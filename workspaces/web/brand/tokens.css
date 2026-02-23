@@ -1,0 +1,26 @@
+/* Mr Quentinha — Design Tokens (CSS)
+   Use estes tokens em todos os frontends (web e mobile).
+*/
+
+:root {
+  --mrq-primary: #FF6A00;
+  --mrq-primary-2: #FF8A33;
+  --mrq-graphite: #1F1F1F;
+  --mrq-bg: #FFFFFF;
+  --mrq-surface: #F6F6F6;
+  --mrq-text: #141414;
+  --mrq-muted: #666666;
+  --mrq-border: #E6E6E6;
+
+  --mrq-radius-lg: 16px;
+  --mrq-radius-md: 12px;
+  --mrq-radius-sm: 10px;
+}
+
+[data-theme="dark"] {
+  --mrq-bg: #0F0F12;
+  --mrq-surface: #17171C;
+  --mrq-text: #F4F4F5;
+  --mrq-muted: #B0B0B8;
+  --mrq-border: #2A2A33;
+}
