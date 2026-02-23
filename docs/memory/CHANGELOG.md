@@ -43,4 +43,16 @@
     - `make lint`
     - `make test`
 
+- Etapa 3 estoque/compras:
+  - INVENTORY MVP com `StockItem` e `StockMovement` integrado a `Ingredient`.
+  - regras de estoque em service layer (`apply_stock_movement`) com bloqueio de saldo negativo em `OUT`.
+  - PROCUREMENT MVP com `PurchaseRequest`, `PurchaseRequestItem`, `Purchase` e `PurchaseItem`.
+  - criacao de compra aplica entrada de estoque automaticamente (`StockMovement` tipo `IN`).
+  - API DRF adicionada:
+    - `/api/v1/inventory/stock-items/`
+    - `/api/v1/inventory/movements/`
+    - `/api/v1/procurement/requests/`
+    - `/api/v1/procurement/purchases/`
+  - testes pytest cobrindo regras de estoque, compras com impacto em saldo e endpoints API.
+
 > Atualize a cada sprint com o que foi entregue.

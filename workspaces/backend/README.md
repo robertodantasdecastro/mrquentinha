@@ -152,3 +152,64 @@ Consultar cardapio por data:
 ```bash
 curl http://127.0.0.1:8000/api/v1/catalog/menus/by-date/2026-02-24/
 ```
+
+## Estoque + Compras (Etapa 3 - MVP)
+### Endpoints
+- `GET/POST /api/v1/inventory/stock-items/`
+- `GET/POST /api/v1/inventory/movements/`
+- `GET/POST /api/v1/procurement/requests/`
+- `GET/POST /api/v1/procurement/purchases/`
+
+### Regras de negocio implementadas
+- Movimentacao `OUT` nao permite saldo negativo.
+- Movimentacao `IN` incrementa saldo do estoque.
+- Ao criar compra (`Purchase` + `PurchaseItem`), o sistema gera `StockMovement` de entrada e atualiza `StockItem`.
+- `total_amount` da compra e calculado no service como soma de `(qty * unit_price) + tax_amount`.
+
+### Exemplos curl
+Criar movimento de estoque (`IN`):
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/inventory/movements/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ingredient": 1,
+    "movement_type": "IN",
+    "qty": "2.500",
+    "unit": "kg",
+    "reference_type": "ADJUSTMENT",
+    "note": "Entrada inicial"
+  }'
+```
+
+Criar solicitacao de compra:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/procurement/requests/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "OPEN",
+    "note": "Reposicao semanal",
+    "items": [
+      {"ingredient": 1, "required_qty": "5.000", "unit": "kg"}
+    ]
+  }'
+```
+
+Criar compra e aplicar entrada em estoque:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/procurement/purchases/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "supplier_name": "Atacado Sul",
+    "invoice_number": "NF-900",
+    "purchase_date": "2026-02-25",
+    "items": [
+      {
+        "ingredient": 1,
+        "qty": "4.000",
+        "unit": "kg",
+        "unit_price": "8.00",
+        "tax_amount": "1.20"
+      }
+    ]
+  }'
+```

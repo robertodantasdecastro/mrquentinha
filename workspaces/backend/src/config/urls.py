@@ -11,4 +11,6 @@ def health_view(_request):
 urlpatterns = [
     path("api/v1/health", health_view, name="health-check"),
     path("api/v1/catalog/", include("apps.catalog.urls")),
+    path("api/v1/inventory/", include("apps.inventory.urls")),
+    path("api/v1/procurement/", include("apps.procurement.urls")),
 ]
