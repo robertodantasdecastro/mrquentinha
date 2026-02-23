@@ -1,0 +1,16 @@
+import os
+import sys
+from pathlib import Path
+
+SRC_DIR = Path(__file__).resolve().parents[1]
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from django.core.wsgi import get_wsgi_application  # noqa: E402
+
+os.environ.setdefault(
+    "DJANGO_SETTINGS_MODULE",
+    os.getenv("DJANGO_SETTINGS_MODULE", "config.settings.prod"),
+)
+
+application = get_wsgi_application()
