@@ -213,3 +213,18 @@ curl -X POST http://127.0.0.1:8000/api/v1/procurement/purchases/ \
     ]
   }'
 ```
+
+### Auto-requisicao por cardapio (Etapa 3.1)
+- `POST /api/v1/procurement/requests/from-menu/`
+- Objetivo: gerar `PurchaseRequest` automaticamente a partir de um `MenuDay` e saldo atual de estoque.
+- Regra de multiplicador MVP: quando `MenuItem.available_qty` estiver preenchido, ele e usado como multiplicador da receita; quando estiver vazio, o sistema considera `1` lote do prato.
+- Permissoes no MVP: `AllowAny` temporario (TODO de RBAC para permitir ao menos COZINHA/COMPRAS/Admin).
+
+Gerar solicitacao de compra automatica por cardapio:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/procurement/requests/from-menu/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "menu_day_id": 1
+  }'
+```

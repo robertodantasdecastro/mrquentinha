@@ -56,3 +56,12 @@
   - testes pytest cobrindo regras de estoque, compras com impacto em saldo e endpoints API.
 
 > Atualize a cada sprint com o que foi entregue.
+
+- Etapa 3.1 auto-requisicao por cardapio:
+  - novo service `generate_purchase_request_from_menu(menu_day_id, requested_by=None)` em procurement.
+  - calculo de necessidade por ingrediente com base em `MenuDay -> MenuItem -> DishIngredient`.
+  - regra MVP de multiplicador: `available_qty` quando informado; caso contrario, `1` lote por prato.
+  - validacao explicita de unidade sem conversao automatica (TODO documentado para conversao futura).
+  - endpoint DRF adicionado: `POST /api/v1/procurement/requests/from-menu/`.
+  - sem falta de ingredientes: retorna `created=false` e nao cria `PurchaseRequest`.
+  - testes pytest cobrindo cenarios sem estoque, estoque suficiente, estoque parcial e endpoint HTTP.

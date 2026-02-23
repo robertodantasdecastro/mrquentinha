@@ -20,3 +20,17 @@ def get_menu_by_date(menu_date: date | str) -> MenuDay | None:
         .prefetch_related(Prefetch("items", queryset=active_items_qs))
         .first()
     )
+
+
+def get_menu_day_for_procurement(menu_day_id: int) -> MenuDay | None:
+    active_items_qs = MenuItem.objects.filter(is_active=True).select_related("dish")
+
+    return (
+        MenuDay.objects.filter(pk=menu_day_id)
+        .select_related("created_by")
+        .prefetch_related(
+            Prefetch("items", queryset=active_items_qs),
+            "items__dish__dish_ingredients__ingredient",
+        )
+        .first()
+    )

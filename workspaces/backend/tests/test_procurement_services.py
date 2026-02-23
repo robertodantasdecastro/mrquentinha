@@ -3,10 +3,70 @@ from decimal import Decimal
 
 import pytest
 
-from apps.catalog.models import Ingredient, IngredientUnit
-from apps.inventory.models import StockMovement, StockMovementType, StockReferenceType
+from apps.catalog.models import (
+    Dish,
+    DishIngredient,
+    Ingredient,
+    IngredientUnit,
+    MenuDay,
+    MenuItem,
+)
+from apps.inventory.models import (
+    StockItem,
+    StockMovement,
+    StockMovementType,
+    StockReferenceType,
+)
 from apps.inventory.selectors import get_stock_by_ingredient
-from apps.procurement.services import create_purchase_and_apply_stock
+from apps.procurement.models import PurchaseRequest
+from apps.procurement.services import (
+    create_purchase_and_apply_stock,
+    generate_purchase_request_from_menu,
+)
+
+
+def _create_menu_for_procurement() -> tuple[MenuDay, Ingredient, Ingredient]:
+    arroz = Ingredient.objects.create(name="Arroz", unit=IngredientUnit.KILOGRAM)
+    feijao = Ingredient.objects.create(name="Feijao", unit=IngredientUnit.KILOGRAM)
+
+    prato_arroz = Dish.objects.create(name="Arroz Branco", yield_portions=10)
+    DishIngredient.objects.create(
+        dish=prato_arroz,
+        ingredient=arroz,
+        quantity=Decimal("2.000"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+
+    prato_feijao = Dish.objects.create(name="Feijao Caseiro", yield_portions=10)
+    DishIngredient.objects.create(
+        dish=prato_feijao,
+        ingredient=feijao,
+        quantity=Decimal("1.000"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+    DishIngredient.objects.create(
+        dish=prato_feijao,
+        ingredient=arroz,
+        quantity=Decimal("0.500"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+
+    menu_day = MenuDay.objects.create(menu_date=date(2026, 3, 2), title="Cardapio")
+    MenuItem.objects.create(
+        menu_day=menu_day,
+        dish=prato_arroz,
+        sale_price=Decimal("20.00"),
+        is_active=True,
+    )
+    MenuItem.objects.create(
+        menu_day=menu_day,
+        dish=prato_feijao,
+        sale_price=Decimal("22.00"),
+        available_qty=2,
+        is_active=True,
+    )
+
+    return menu_day, arroz, feijao
 
 
 @pytest.mark.django_db
@@ -41,3 +101,77 @@ def test_create_purchase_and_apply_stock_cria_movimentos_in_e_atualiza_saldo():
     stock_item = get_stock_by_ingredient(ingredient)
     assert stock_item is not None
     assert stock_item.balance_qty == Decimal("3.000")
+
+
+@pytest.mark.django_db
+def test_generate_purchase_request_from_menu_sem_estoque_cria_itens_corretos():
+    menu_day, arroz, feijao = _create_menu_for_procurement()
+
+    result = generate_purchase_request_from_menu(menu_day.id)
+
+    assert result["created"] is True
+    assert result["purchase_request_id"] is not None
+    assert len(result["items"]) == 2
+
+    items_by_ingredient = {item["ingredient_id"]: item for item in result["items"]}
+    assert items_by_ingredient[arroz.id]["required_qty"] == Decimal("3.000")
+    assert items_by_ingredient[arroz.id]["unit"] == IngredientUnit.KILOGRAM
+    assert items_by_ingredient[feijao.id]["required_qty"] == Decimal("2.000")
+    assert items_by_ingredient[feijao.id]["unit"] == IngredientUnit.KILOGRAM
+
+    purchase_request = PurchaseRequest.objects.get(pk=result["purchase_request_id"])
+    assert purchase_request.items.count() == 2
+
+
+@pytest.mark.django_db
+def test_generate_purchase_request_from_menu_com_estoque_suficiente_nao_cria():
+    menu_day, arroz, feijao = _create_menu_for_procurement()
+
+    StockItem.objects.create(
+        ingredient=arroz,
+        balance_qty=Decimal("3.000"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+    StockItem.objects.create(
+        ingredient=feijao,
+        balance_qty=Decimal("2.500"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+
+    result = generate_purchase_request_from_menu(menu_day.id)
+
+    assert result == {
+        "created": False,
+        "purchase_request_id": None,
+        "message": "sem compra necessaria",
+        "items": [],
+    }
+    assert PurchaseRequest.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_generate_purchase_request_from_menu_com_estoque_parcial_cria_somente_faltas():
+    menu_day, arroz, feijao = _create_menu_for_procurement()
+
+    StockItem.objects.create(
+        ingredient=arroz,
+        balance_qty=Decimal("1.200"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+    StockItem.objects.create(
+        ingredient=feijao,
+        balance_qty=Decimal("2.000"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+
+    result = generate_purchase_request_from_menu(menu_day.id)
+
+    assert result["created"] is True
+    assert len(result["items"]) == 1
+    assert result["items"][0]["ingredient_id"] == arroz.id
+    assert result["items"][0]["required_qty"] == Decimal("1.800")
+    assert result["items"][0]["unit"] == IngredientUnit.KILOGRAM
+
+    purchase_request = PurchaseRequest.objects.get(pk=result["purchase_request_id"])
+    assert purchase_request.items.count() == 1
+    assert purchase_request.items.first().ingredient_id == arroz.id

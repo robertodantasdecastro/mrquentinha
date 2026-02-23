@@ -70,6 +70,24 @@ class PurchaseRequestSerializer(serializers.ModelSerializer):
         return value
 
 
+class GeneratePurchaseRequestFromMenuSerializer(serializers.Serializer):
+    menu_day_id = serializers.IntegerField(min_value=1)
+
+
+class PurchaseRequestFromMenuItemSerializer(serializers.Serializer):
+    ingredient_id = serializers.IntegerField()
+    ingredient_name = serializers.CharField()
+    required_qty = serializers.DecimalField(max_digits=12, decimal_places=3)
+    unit = serializers.ChoiceField(choices=IngredientUnit.choices)
+
+
+class PurchaseRequestFromMenuResultSerializer(serializers.Serializer):
+    created = serializers.BooleanField()
+    purchase_request_id = serializers.IntegerField(allow_null=True)
+    message = serializers.CharField()
+    items = PurchaseRequestFromMenuItemSerializer(many=True)
+
+
 class PurchaseItemWriteSerializer(serializers.Serializer):
     ingredient = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
     qty = serializers.DecimalField(

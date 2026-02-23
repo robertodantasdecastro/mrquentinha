@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from django.db.models import F, QuerySet
 
 from apps.catalog.models import Ingredient
@@ -12,6 +14,21 @@ def get_stock_by_ingredient(ingredient: Ingredient | int) -> StockItem | None:
         .select_related("ingredient")
         .first()
     )
+
+
+def get_stock_map_by_ingredient_ids(
+    ingredient_ids: Iterable[int],
+) -> dict[int, StockItem]:
+    ingredient_id_set = {int(ingredient_id) for ingredient_id in ingredient_ids}
+    if not ingredient_id_set:
+        return {}
+
+    stock_items = (
+        StockItem.objects.filter(ingredient_id__in=ingredient_id_set)
+        .select_related("ingredient")
+        .order_by("ingredient_id")
+    )
+    return {stock_item.ingredient_id: stock_item for stock_item in stock_items}
 
 
 def list_low_stock() -> QuerySet[StockItem]:

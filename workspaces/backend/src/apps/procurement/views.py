@@ -1,12 +1,22 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .models import Purchase, PurchaseRequest, PurchaseRequestStatus
-from .serializers import PurchaseRequestSerializer, PurchaseSerializer
-from .services import create_purchase_and_apply_stock, create_purchase_request
+from .serializers import (
+    GeneratePurchaseRequestFromMenuSerializer,
+    PurchaseRequestFromMenuResultSerializer,
+    PurchaseRequestSerializer,
+    PurchaseSerializer,
+)
+from .services import (
+    create_purchase_and_apply_stock,
+    create_purchase_request,
+    generate_purchase_request_from_menu,
+)
 
 
 class PurchaseRequestViewSet(viewsets.ModelViewSet):
@@ -43,6 +53,30 @@ class PurchaseRequestViewSet(viewsets.ModelViewSet):
 
         output = self.get_serializer(purchase_request)
         return Response(output.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="from-menu")
+    def from_menu(self, request, *args, **kwargs):
+        # TODO: RBAC -> permitir perfis COZINHA e COMPRAS, alem de admin.
+        input_serializer = GeneratePurchaseRequestFromMenuSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        requested_by = request.user if request.user.is_authenticated else None
+
+        try:
+            result = generate_purchase_request_from_menu(
+                menu_day_id=input_serializer.validated_data["menu_day_id"],
+                requested_by=requested_by,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        output_serializer = PurchaseRequestFromMenuResultSerializer(data=result)
+        output_serializer.is_valid(raise_exception=True)
+
+        status_code = (
+            status.HTTP_201_CREATED if result["created"] else status.HTTP_200_OK
+        )
+        return Response(output_serializer.data, status=status_code)
 
     def update(self, request, *args, **kwargs):
         if "items" in request.data:

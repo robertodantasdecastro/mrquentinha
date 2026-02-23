@@ -28,3 +28,12 @@ Quando uma decisão for definitiva e afetar arquitetura, crie um ADR em `docs/ad
 ## Pendencias tecnicas (inventory/procurement)
 - RBAC de `inventory` e `procurement` ainda esta temporario com `AllowAny` no MVP.
 - Proxima etapa deve substituir por permissoes por perfil (Admin/Compras/Estoque CRUD, Cozinha criacao de solicitacao e leitura, Financeiro leitura).
+
+## Etapa 3.1 - Geracao de requisicao por cardapio
+- Multiplicador de consumo no MVP:
+  - se `MenuItem.available_qty` estiver preenchido, usar esse valor para multiplicar os ingredientes da receita.
+  - se `available_qty` estiver vazio, considerar `1` lote por prato.
+- Conversao de unidade:
+  - nao implementar nesta etapa.
+  - service valida compatibilidade entre `DishIngredient.unit` e unidade base do ingrediente/estoque.
+  - TODO: implementar conversao de unidades (g<->kg, ml<->l, etc.) em etapa futura.
