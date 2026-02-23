@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -10,4 +10,5 @@ def health_view(_request):
 
 urlpatterns = [
     path("api/v1/health", health_view, name="health-check"),
+    path("api/v1/catalog/", include("apps.catalog.urls")),
 ]

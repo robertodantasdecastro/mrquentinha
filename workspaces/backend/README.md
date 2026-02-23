@@ -47,6 +47,10 @@ Foi utilizado o padrao `src/` para manter separacao clara entre codigo da aplica
   ```bash
   python manage.py check
   ```
+- Criar migracoes:
+  ```bash
+  python manage.py makemigrations
+  ```
 - Aplicar migracoes:
   ```bash
   python manage.py migrate
@@ -82,3 +86,60 @@ Com Makefile:
   ```json
   { "status": "ok", "app": "mrquentinha", "version": "v1" }
   ```
+
+## Catalogo (Etapa 2 - MVP)
+### Decisao de API
+- Os itens de cardapio foram modelados como recurso embutido no `MenuDay`:
+  - escrita via campo `items`
+  - leitura via campo `menu_items`
+- Nao foi criado endpoint separado para `menu-items` neste MVP.
+
+### Endpoints
+- `GET/POST /api/v1/catalog/ingredients/`
+- `GET/POST /api/v1/catalog/dishes/`
+- `GET/POST /api/v1/catalog/menus/`
+- `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
+
+### Exemplos curl
+Criar ingrediente:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/catalog/ingredients/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Cebola Roxa",
+    "unit": "kg",
+    "is_active": true
+  }'
+```
+
+Criar prato com ingredientes:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/catalog/dishes/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Frango Grelhado",
+    "description": "Proteina",
+    "yield_portions": 10,
+    "ingredients": [
+      {"ingredient": 1, "quantity": "1.500", "unit": "kg"}
+    ]
+  }'
+```
+
+Criar/atualizar cardapio do dia com itens:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/catalog/menus/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "menu_date": "2026-02-24",
+    "title": "Cardapio de Terca",
+    "items": [
+      {"dish": 1, "sale_price": "24.90", "available_qty": 30, "is_active": true}
+    ]
+  }'
+```
+
+Consultar cardapio por data:
+```bash
+curl http://127.0.0.1:8000/api/v1/catalog/menus/by-date/2026-02-24/
+```

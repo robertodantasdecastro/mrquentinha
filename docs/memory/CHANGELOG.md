@@ -19,4 +19,13 @@
   - qualidade configurada com `ruff`, `black` e `pytest` (Makefile com comandos de lint/test)
   - teste automatizado para health endpoint
 
+- Etapa 2 catalogo:
+  - dominio `catalog` com modelos: Ingredient, Dish, DishIngredient, MenuDay e MenuItem
+  - migrations iniciais do catalog aplicadas
+  - service layer em `services.py` para criacao/atualizacao de pratos e cardapio do dia
+  - selectors em `selectors.py` para consulta de ingredientes ativos e cardapio por data
+  - API DRF em `/api/v1/catalog/...` com endpoint `menus/by-date/<YYYY-MM-DD>/`
+  - regra MVP: itens de cardapio embutidos em `MenuDay` (`items` escrita e `menu_items` leitura)
+  - testes pytest cobrindo modelos, services, selectors e endpoints de catalog
+
 > Atualize a cada sprint com o que foi entregue.
