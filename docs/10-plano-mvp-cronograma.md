@@ -2,76 +2,63 @@
 
 > Data de referencia: 23/02/2026
 
-Este cronograma e um **guia** para organizar o desenvolvimento.
-A ideia e trabalhar em entregas pequenas e testaveis (sprints semanais ou quinzenais).
+## Status atual do roadmap
+- **Etapa 0**: concluida
+- **Etapa 1**: concluida
+- **Etapa 2**: concluida
+- **Etapa 3 / 3.1**: concluida
+- **Etapa 4 (Orders)**: concluida
+- **Etapa 5 (Finance)**: em planejamento detalhado (subfases 5.0 a 5.5)
 
-## Marcos (milestones) do MVP
-1. **M0 — Projeto base**: repos + padroes + scaffold backend + auth
-2. **M1 — Catalogo**: ingredientes, pratos, cardapio por dia
-3. **M2 — Estoque/Compras**: estoque, requisicao, registro de compra, entrada
-4. **M3 — Pedidos**: pedido, itens, status, pagamento MVP
-5. **M4 — Financeiro**: AP/AR, despesas, caixa, relatorios minimos
-6. **M5 — Piloto**: estabilidade, logs, deploy inicial em EC2
+## Escopo do MVP operacional
+O MVP operacional permanece limitado ate a **Etapa 5**:
+- base da plataforma
+- catalogo
+- estoque/compras
+- pedidos
+- financeiro integrado (AP/AR/Caixa/relatorio minimo)
 
-## Sprints sugeridos (6 semanas)
-### Semana 1 — M0
-- Repositorio + `AGENTS.md` + docs iniciais
-- Scaffold backend (Django+DRF) + Postgres
-- OAuth Google + JWT
-- RBAC basico + healthcheck
+## Etapa 5 (plano por subfases)
+| Subfase | Foco |
+| --- | --- |
+| 5.0 | Fundacao |
+| 5.1 | AP (compras) |
+| 5.2 | AR (pedidos) |
+| 5.3 | Caixa |
+| 5.4 | Producao |
+| 5.5 | Custos/Relatorios |
 
-### Semana 2 — M1
-- CRUD ingredientes
-- CRUD pratos (receita)
-- Cardapio por dia + itens + preco
-- Testes e endpoints versionados
+## Detalhe resumido da Etapa 5
+- **5.0 Fundacao**: entidades financeiras base, contas, categorias, referencia por origem e validacoes.
+- **5.1 AP (compras)**: gerar e liquidar contas a pagar com origem em `Purchase`.
+- **5.2 AR (pedidos)**: gerar e liquidar contas a receber com origem em `Order`.
+- **5.3 Caixa**: movimentos de entrada/saida, conciliacao e saldo diario.
+- **5.4 Producao**: consolidar rotinas operacionais e preparar modulo dedicado de producao.
+- **5.5 Custos/Relatorios**: fechamento com visoes de resultado, custos e indicadores basicos.
 
-### Semana 3 — M2
-- Estoque por ingrediente
-- Movimentacoes
-- Requisicao de compra (auto ao faltar estoque)
-- Registro de compra manual (sem OCR)
-
-### Semana 4 — M3
-- Fluxo de pedido do cliente
-- Status e historico
-- Pagamento MVP (Pix manual / confirmacao interna)
-
-### Semana 5 — M4
-- Plano de contas simplificado
-- AP/AR com referencia a compras e pedidos
-- Fluxo de caixa (movimentos)
-- Relatorio simples (receitas x despesas)
-
-### Semana 6 — M5
-- Observabilidade minima (logs, health, erros)
-- Hardening de seguranca basico
-- Deploy EC2 (Nginx + Gunicorn)
-- Treino operacional e piloto
-
-## Pos-MVP (planejado)
-### Etapa 6 — Portal institucional + distribuicao digital
-- Escopo: site institucional, links oficiais, pagina de distribuicao com QR e atalhos.
+## Pos-MVP
+### Etapa 6 - Portal institucional + distribuicao digital
+- Escopo: site institucional, links oficiais e pagina de distribuicao (QR + atalhos).
 - Dependencias:
-  - MVP operacional validado ate M5;
-  - identidade visual e conteudo institucional aprovados;
-  - base de deploy e dominios pronta para expansao.
+  - MVP operacional validado ate Etapa 5;
+  - conteudo institucional e identidade visual aprovados;
+  - estrutura de deploy e dominios definida.
 
-### Etapa 7 — Canais web para clientes (web app/PWA)
-- Escopo: experiencia web para consulta, pedido e acompanhamento pelo cliente.
+### Etapa 7 - Canais web para clientes (web app/PWA)
+- Escopo: experiencia web para consulta, pedido e acompanhamento.
 - Dependencias:
-  - API de pedidos e pagamentos MVP estavel (M3/M4);
-  - observabilidade e deploy estaveis (M5);
-  - definicoes de UX de navegacao entre portal, app e web clientes.
+  - API de pedidos/pagamentos estabilizada;
+  - observabilidade e deploy com baseline estavel;
+  - decisoes de UX para navegacao entre portal, app e web clientes.
 
-### Etapa 8 — Governanca, seguranca e escala dos canais
-- Escopo: consolidacao de arquitetura, protecoes, compliance e evolucao de capacidade.
+### Etapa 8 - Governanca, seguranca e escala
+- Escopo: consolidacao de arquitetura, compliance e capacidade operacional.
 - Dependencias:
   - validacao em producao das etapas 6 e 7;
-  - decisoes de segregacao de dados pessoais e politicas LGPD;
-  - definicao de estrategia de crescimento (infra, custos e suporte operacional).
+  - politica de dados pessoais e LGPD definida;
+  - estrategia de crescimento e custos de infra formalizada.
 
 ## Regras do cronograma
-- Cada sprint entrega algo "usavel"
-- Nao avanca para OCR/pagamentos completos antes do fluxo operacional estar estavel
-- Etapas 6-8 nao alteram o fechamento do MVP operacional (M5)
+- Cada entrega precisa ser testavel e usavel.
+- Nao avancar para escopo pos-MVP antes do fechamento financeiro da Etapa 5.
+- Etapas 6-8 nao alteram o criterio de fechamento do MVP operacional.

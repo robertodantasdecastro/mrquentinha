@@ -72,3 +72,28 @@
   - decisions atualizadas com pendencias de stack do portal, PWA e segregacao de dados pessoais.
 
 > Atualize a cada sprint com o que foi entregue.
+
+- Etapa 4 pedidos:
+  - dominio `orders` implementado com modelos `Order`, `OrderItem` e `Payment`.
+  - services com regras de negocio para criacao de pedido e transicao de status.
+  - validacoes: cardapio por data, `menu_item` da data correta e snapshot de preco no item.
+  - criacao automatica de `Payment` com status `PENDING` no MVP.
+  - API DRF adicionada:
+    - `/api/v1/orders/orders/`
+    - `/api/v1/orders/orders/<id>/status/`
+    - `/api/v1/orders/payments/`
+  - testes pytest cobrindo service e endpoint de criacao de pedido.
+
+- Etapa 4 encerrada:
+  - resumo do que foi entregue:
+    - modulo `orders` consolidado com `Order`, `OrderItem` e `Payment` no MVP.
+    - validacoes de pedido por `MenuDay`/`delivery_date` e bloqueio de itens fora da data.
+    - total do pedido calculado no service com snapshot de preco (`unit_price`) em `OrderItem`.
+    - transicoes de status centralizadas no service e pagamento inicial `PENDING` criado automaticamente.
+    - endpoints publicados para pedidos, alteracao de status e pagamentos.
+  - comandos de validacao:
+    - `python manage.py check`
+    - `python manage.py makemigrations --check`
+    - `python manage.py migrate`
+    - `make lint`
+    - `make test`

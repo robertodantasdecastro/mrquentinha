@@ -1,23 +1,23 @@
 # Modelo de dados (PostgreSQL + Django)
 
-## Convenções gerais
-- Toda tabela tem chave primária `id` auto-incremental:
+## Convencoes gerais
+- Toda tabela tem chave primaria `id` auto-incremental:
   - Django: `BigAutoField` (recomendado)
-- Campos padrão recomendados:
+- Campos padrao recomendados:
   - `created_at` (timestamp)
   - `updated_at` (timestamp)
   - `deleted_at` (timestamp, opcional para soft delete)
 - Integridade:
-  - FKs com `ON DELETE` coerente (geralmente `PROTECT` para histórico financeiro)
-- Índices:
-  - índices em campos de busca frequente (ex.: `date`, `status`, `user_id`)
+  - FKs com `ON DELETE` coerente (geralmente `PROTECT` para historico financeiro)
+- Indices:
+  - indices em campos de busca frequente (ex.: `date`, `status`, `user_id`)
   - unique constraints onde faz sentido (ex.: `email`)
 
-> Observação: para integrações externas e mobile, é útil adicionar também um `public_id` (UUID), mas **sem substituir** o `id`. Isso aumenta segurança (evita enumeração).
+> Observacao: para integracoes externas e mobile, e util adicionar tambem um `public_id` (UUID), mas **sem substituir** o `id`.
 
 ---
 
-## Núcleo: Usuários e perfis
+## Nucleo: Usuarios e perfis
 ### `accounts_user`
 - `id` (PK)
 - `email` (unique)
@@ -38,7 +38,7 @@
 
 ---
 
-## Catálogo / Cardápio
+## Catalogo / Cardapio
 ### `catalog_ingredient`
 - `id` (PK)
 - `name`
@@ -50,11 +50,11 @@
 - `id` (PK)
 - `name`
 - `description` (opcional)
-- `yield_portions` (quantas porções a receita produz)
+- `yield_portions` (quantas porcoes a receita produz)
 - `created_at`, `updated_at`
 
 ### `catalog_dish_ingredient`
-(relação N:N com quantidade)
+(relacao N:N com quantidade)
 - `id` (PK)
 - `dish_id` (FK)
 - `ingredient_id` (FK)
@@ -62,10 +62,10 @@
 - `unit` (se precisar converter)
 
 ### `catalog_menu_day`
-(cardápio por dia)
+(cardapio por dia)
 - `id` (PK)
 - `menu_date` (date, index)
-- `title` (ex.: “Cardápio Segunda”)
+- `title`
 - `created_by` (FK user)
 - `created_at`, `updated_at`
 
@@ -73,7 +73,7 @@
 - `id` (PK)
 - `menu_day_id` (FK)
 - `dish_id` (FK)
-- `sale_price` (decimal) — preço do dia (pode variar)
+- `sale_price` (decimal)
 - `available_qty` (int, opcional)
 - `is_active`
 
@@ -86,6 +86,7 @@
 - `balance_qty` (decimal)
 - `unit`
 - `min_qty` (decimal, opcional)
+- `created_at`, `updated_at`
 
 ### `inventory_stock_movement`
 - `id` (PK)
@@ -134,25 +135,26 @@
 - `unit_price` (decimal)
 - `tax_amount` (decimal, opcional)
 - `expiry_date` (opcional)
-- `label_images` (links, fase 2)
 
 ---
 
-## Pedidos
+## Pedidos (implementado na Etapa 4)
 ### `orders_order`
 - `id` (PK)
-- `customer_id` (FK user)
-- `order_date` (timestamp)
+- `customer_id` (FK user, null no MVP)
+- `order_date` (auto_now_add)
 - `delivery_date` (date)
 - `status` (CREATED, CONFIRMED, IN_PROGRESS, DELIVERED, CANCELED)
 - `total_amount` (decimal)
+- `created_at`, `updated_at`
 
 ### `orders_order_item`
 - `id` (PK)
 - `order_id` (FK)
-- `menu_item_id` (FK)
+- `menu_item_id` (FK catalog_menu_item)
 - `qty` (int)
-- `unit_price` (decimal)
+- `unit_price` (decimal; snapshot)
+- `unique(order_id, menu_item_id)`
 
 ### `orders_payment`
 - `id` (PK)
@@ -160,12 +162,17 @@
 - `method` (PIX, CARD, VR, CASH)
 - `status` (PENDING, PAID, FAILED, REFUNDED)
 - `amount` (decimal)
-- `provider_ref` (texto, gateway)
-- `paid_at` (opcional)
+- `provider_ref` (texto, opcional)
+- `paid_at` (timestamp, opcional)
+- `created_at`
+
+Observacao operacional do MVP:
+- ao criar `Order`, o sistema cria `Payment` inicial com status `PENDING`;
+- o pedido valida `MenuDay` por `delivery_date` e pertencimento de cada `menu_item` ao cardapio do dia.
 
 ---
 
-## Financeiro (gestão completa)
+## Financeiro (Etapa 5)
 ### `finance_account`
 (plano de contas simplificado)
 - `id` (PK)
@@ -181,7 +188,7 @@
 - `due_date` (date)
 - `status` (OPEN, PAID, CANCELED)
 - `paid_at` (opcional)
-- `reference_type` / `reference_id` (ex.: PURCHASE)
+- `reference_type` / `reference_id` (origem esperada: `PURCHASE`)
 
 ### `finance_ar_receivable` (contas a receber)
 - `id` (PK)
@@ -191,7 +198,7 @@
 - `due_date`
 - `status` (OPEN, RECEIVED, CANCELED)
 - `received_at`
-- `reference_type` / `reference_id` (ex.: ORDER)
+- `reference_type` / `reference_id` (origem esperada: `ORDER`)
 
 ### `finance_cash_movement`
 (fluxo de caixa)
@@ -201,14 +208,18 @@
 - `amount`
 - `account_id` (FK)
 - `note`
-- `reference_type` / `reference_id`
+- `reference_type` / `reference_id` (ex.: `ORDER`, `PURCHASE`, `AR`, `AP`)
+
+Requisito de integracao entre modulos:
+- Finance deve referenciar eventos de **Order** e **Purchase** por `reference_type` + `reference_id`.
+- A Etapa 5 deve definir idempotencia por referencia (ex.: unique composta) para impedir duplicidade de lancamentos.
 
 ---
 
-## Custos (ligação entre compras → ingredientes → pratos)
-No MVP, o cálculo pode ser **derivado**:
-- custo médio do ingrediente = soma compras / quantidade
+## Custos (ligacao entre compras -> ingredientes -> pratos)
+No MVP, o calculo pode ser **derivado**:
+- custo medio do ingrediente = soma compras / quantidade
 - custo do prato = soma (ingrediente_qty * custo_ingrediente)
 - custo da marmita = custo_prato / yield_portions
 
-Na fase 2, considere tabelas de snapshot de custos para auditoria histórica.
+Na fase 2, considerar tabelas de snapshot de custos para auditoria historica.

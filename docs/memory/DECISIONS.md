@@ -48,3 +48,21 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Segregacao de dados pessoais (Etapa 8):
   - definir separacao logica/fisica entre dados operacionais da empresa e dados pessoais sensiveis.
   - definir politicas de retencao, mascaramento e trilha de auditoria aderentes a LGPD.
+
+## Decisoes abertas para Finance (Etapa 5)
+- Padrao de integracao AP/AR/Caixa por referencia:
+  - adotar `reference_type` + `reference_id` como contrato unico entre dominios operacionais e financeiro.
+  - mapear origens minimas: `PURCHASE` -> AP, `ORDER` -> AR, liquidacao -> Caixa.
+- Idempotencia por referencia:
+  - definir unique composta por tipo e id de referencia no financeiro para evitar duplicidade de lancamentos.
+  - decidir comportamento em reprocessamento (ignorar duplicado vs atualizar registro existente).
+- Producao na subfase 5.4:
+  - criar app dedicado `production` para consolidar rotina operacional e fechamento diario.
+  - decidir fronteira entre `orders`, `inventory` e `production` para evitar sobreposicao de responsabilidades.
+
+## TODO Etapa 5 - AR a partir de Order
+- Gerar `finance_ar_receivable` automaticamente a partir de `Order` confirmado.
+- Usar referencia padrao:
+  - `reference_type = ORDER`
+  - `reference_id = <order.id>`
+- Definir gatilho exato de criacao no fluxo (ex.: `CONFIRMED` ou `DELIVERED`).

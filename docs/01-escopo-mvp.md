@@ -9,9 +9,32 @@ Ter um sistema **operacional** para:
 - controlar financeiro basico (entradas/saidas, contas, fluxo de caixa)
 
 ## Limite do MVP operacional
-O MVP operacional e considerado fechado nas **Etapas 4 e 5**:
-- **Etapa 4 (Pedidos)**: fluxo de pedido do cliente + status + pagamento MVP.
-- **Etapa 5 (Financeiro)**: AP/AR, despesas, fluxo de caixa e relatorio financeiro minimo.
+O MVP operacional fecha na **Etapa 5 (Financeiro)**.
+
+Status atual do desenvolvimento:
+- **Etapas 0, 1, 2, 3, 3.1 e 4**: concluidas
+- **Etapa 5**: planejada (subfases 5.0 a 5.5)
+
+## Etapa 4 (concluida) - Pedidos no MVP
+Entregas implementadas em pedidos:
+- **Order**: cabecalho do pedido por data de entrega (`delivery_date`) e total.
+- **OrderItem**: itens do pedido com `qty` e `unit_price` em snapshot.
+- **Payment (MVP)**: registro inicial de pagamento com status `PENDING`.
+
+Regras de negocio implementadas:
+- validacao de `MenuDay` para a `delivery_date` informada;
+- validacao de que cada `menu_item` pertence ao cardapio do mesmo dia;
+- calculo de `total_amount` no service layer;
+- maquina de status de pedido com transicoes controladas no service:
+  - `CREATED -> CONFIRMED -> IN_PROGRESS -> DELIVERED`
+  - `CANCELED` permitido ate antes de `DELIVERED`.
+
+## Etapa 5 fecha o MVP operacional
+A Etapa 5 integra o financeiro ao operacional com:
+- AP (contas a pagar) a partir de compras
+- AR (contas a receber) a partir de pedidos
+- caixa e conciliacao de movimentos
+- relatorio financeiro minimo (receitas x despesas)
 
 ## Funcionalidades do MVP (prioridade)
 ### A) Base de plataforma
@@ -35,7 +58,7 @@ O MVP operacional e considerado fechado nas **Etapas 4 e 5**:
 ### D) Pedidos e pagamentos (MVP enxuto)
 - Cliente seleciona itens e data
 - Status do pedido (criado, confirmado, em preparo, entregue/cancelado)
-- Pagamento: iniciar com Pix (ex.: "confirmado manualmente" no MVP) e evoluir para gateway
+- Pagamento MVP com registro inicial `PENDING` e evolucao para gateway
 
 ### E) Financeiro (MVP ja com estrutura correta)
 - Plano de contas simplificado

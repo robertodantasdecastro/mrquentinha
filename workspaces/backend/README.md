@@ -228,3 +228,57 @@ curl -X POST http://127.0.0.1:8000/api/v1/procurement/requests/from-menu/ \
     "menu_day_id": 1
   }'
 ```
+
+## Pedidos (Etapa 4 - MVP)
+### Endpoints
+- `GET/POST /api/v1/orders/orders/`
+- `PATCH /api/v1/orders/orders/<id>/status/`
+- `GET /api/v1/orders/payments/`
+- `GET/PATCH /api/v1/orders/payments/<id>/`
+
+### Regras de negocio implementadas
+- Pedido so pode ser criado para data que possua `MenuDay`.
+- Cada `menu_item` do pedido deve pertencer ao cardapio da `delivery_date`.
+- `total_amount` do pedido e calculado no service (`sum qty * sale_price`).
+- `unit_price` e salvo como snapshot em `OrderItem`.
+- Criacao de pedido gera automaticamente `Payment` com status `PENDING` no MVP.
+- Transicoes de status centralizadas no service:
+  - `CREATED -> CONFIRMED -> IN_PROGRESS -> DELIVERED`
+  - `CANCELED` permitido antes de `DELIVERED`.
+
+### Exemplos curl
+Criar pedido:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/orders/orders/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "delivery_date": "2026-03-09",
+    "items": [
+      {"menu_item": 1, "qty": 2}
+    ]
+  }'
+```
+
+Atualizar status do pedido:
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/v1/orders/orders/1/status/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "CONFIRMED"
+  }'
+```
+
+Atualizar status do pagamento:
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/v1/orders/payments/1/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "PAID",
+    "provider_ref": "pix-abc-123"
+  }'
+```
+
+Listar pagamentos:
+```bash
+curl http://127.0.0.1:8000/api/v1/orders/payments/
+```

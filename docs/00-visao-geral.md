@@ -23,25 +23,21 @@ O portal institucional tambem funciona como:
 
 > Um mesmo usuario interno pode acumular perfis (ex.: Gerente de Cozinha + Comprador).
 
-## Fluxo macro (do insumo ao pedido)
-1. Gerente de Cozinha define o **cardapio da semana** (por data).
-2. Cardapio referencia pratos e pratos referenciam ingredientes.
-3. Sistema checa estoque: se faltar ingrediente, gera **requisicao de compra**.
-4. Comprador registra compras:
-   - opcional: foto de rotulo/contrarrotulo -> OCR -> pre-preenchimento
-   - registra preco, unidade, quantidade, impostos, validade etc.
-5. Sistema calcula:
-   - custo por ingrediente
-   - custo por prato
-   - custo por marmita (porcao)
-   - sugestao de preco de venda e margem
-6. Cliente compra por mobile ou web clientes:
-   - escolhe data/quantidade
-   - paga (Pix/cartao/VR - MVP inicia com Pix e evolui)
-7. Financeiro acompanha:
-   - entradas (vendas)
-   - saidas (compras + despesas gerais)
-   - fluxo de caixa e DRE simplificada
+## Fluxo macro do MVP (cadeia de modulos)
+**Catalog -> Inventory/Procurement -> Orders -> Finance (Etapa 5)**
+
+1. **Catalog** publica o cardapio por data (`MenuDay` e `MenuItem`).
+2. **Inventory/Procurement** valida disponibilidade de ingredientes e gera reposicao quando faltar insumo.
+3. **Orders** cria pedidos por data do cardapio, com itens e snapshot de preco.
+4. **Orders** cria `Payment` inicial com status `PENDING` no MVP.
+5. **Finance (Etapa 5)** consome referencias do pedido/compra para gerar AR/AP e registrar caixa.
+
+## Nota de integracao Orders -> Finance
+Na Etapa 4, o pedido ja nasce com pagamento pendente e com base para integracao financeira por referencia.
+Na Etapa 5, essa referencia sera usada para:
+- **AR (contas a receber)** a partir de `Order`;
+- **Caixa** a partir da liquidacao de pagamento;
+- conciliacao entre evento operacional e evento financeiro.
 
 ## Fases sugeridas
 - **MVP operacional (Etapas 0-5)**: base de plataforma, catalogo, estoque/compras, pedidos e financeiro.
