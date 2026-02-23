@@ -66,3 +66,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - `reference_type = ORDER`
   - `reference_id = <order.id>`
 - Definir gatilho exato de criacao no fluxo (ex.: `CONFIRMED` ou `DELIVERED`).
+
+## Etapa 5.0 - padrao financeiro implementado
+- Contrato de integracao entre dominios:
+  - `reference_type` + `reference_id` como referencia cruzada entre operacional e financeiro.
+- Idempotencia em AP/AR:
+  - `APBill` e `ARReceivable` com unique por referencia quando preenchida.
+  - services retornam registro existente ao receber a mesma referencia.
+- Caixa na fundacao:
+  - `CashMovement` mantem referencia opcional da origem.
+  - services de caixa aplicam idempotencia por referencia (`AR` e `AP`) para evitar duplicidade em reprocessamento.
+- Integracoes planejadas para proximas subfases:
+  - 5.1: consolidar geracao de AP a partir de `Purchase`.
+  - 5.2: consolidar geracao de AR a partir de `Order`/`Payment`.

@@ -282,3 +282,75 @@ Listar pagamentos:
 ```bash
 curl http://127.0.0.1:8000/api/v1/orders/payments/
 ```
+
+## Financeiro (Etapa 5.0 - Foundation)
+### Endpoints
+- `GET/POST /api/v1/finance/accounts/`
+- `GET/POST /api/v1/finance/ap-bills/`
+- `GET/POST /api/v1/finance/ar-receivables/`
+- `GET/POST /api/v1/finance/cash-movements/`
+
+### Regras base implementadas
+- Integracao por referencia com `reference_type` + `reference_id`.
+- Unicidade de referencia em AP e AR quando preenchida.
+- Services com idempotencia para:
+  - `create_ap_from_purchase(...)`
+  - `create_ar_from_order(...)`
+  - `record_cash_in_from_ar(...)`
+  - `record_cash_out_from_ap(...)`
+- Permissoes temporarias no MVP: `AllowAny` com TODO explicito para RBAC.
+
+### Exemplos curl
+Criar conta contabil:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/accounts/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Vendas",
+    "type": "REVENUE",
+    "is_active": true
+  }'
+```
+
+Criar AP com referencia de compra:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/ap-bills/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "supplier_name": "Fornecedor Centro",
+    "account": 1,
+    "amount": "150.00",
+    "due_date": "2026-03-25",
+    "status": "OPEN",
+    "reference_type": "PURCHASE",
+    "reference_id": 10
+  }'
+```
+
+Criar AR com referencia de pedido:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/ar-receivables/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "account": 1,
+    "amount": "89.90",
+    "due_date": "2026-03-25",
+    "status": "OPEN",
+    "reference_type": "ORDER",
+    "reference_id": 22
+  }'
+```
+
+Criar movimento de caixa:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/cash-movements/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "direction": "IN",
+    "amount": "89.90",
+    "account": 1,
+    "reference_type": "PAYMENT",
+    "reference_id": 35,
+    "note": "Recebimento PIX"
+  }'
+```

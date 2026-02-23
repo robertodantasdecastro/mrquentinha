@@ -97,3 +97,29 @@
     - `python manage.py migrate`
     - `make lint`
     - `make test`
+
+- Etapa 5.0 finance foundation:
+  - modulo `finance` estruturado com modelos:
+    - `Account`
+    - `APBill`
+    - `ARReceivable`
+    - `CashMovement`
+  - padrao de integracao por referencia implementado em AP/AR:
+    - `reference_type` + `reference_id`
+    - unique por referencia quando preenchida
+  - service layer em `finance/services.py` com idempotencia:
+    - `create_default_chart_of_accounts()`
+    - `create_ap_from_purchase()` (stub para integracao completa na 5.1)
+    - `create_ar_from_order()` (stub para integracao completa na 5.2)
+    - `record_cash_in_from_ar()` e `record_cash_out_from_ap()`
+  - API DRF adicionada:
+    - `/api/v1/finance/accounts/`
+    - `/api/v1/finance/ap-bills/`
+    - `/api/v1/finance/ar-receivables/`
+    - `/api/v1/finance/cash-movements/`
+  - admin basico registrado para os modelos financeiros.
+  - testes pytest cobrindo:
+    - unicidade de `Account`
+    - idempotencia de AP/AR por referencia
+    - criacao de movimentos de caixa IN/OUT
+    - endpoints basicos de finance
