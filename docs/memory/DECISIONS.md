@@ -1,24 +1,24 @@
-# Decisões vivas do projeto
+# Decisoes vivas do projeto
 
-Use este arquivo para registrar decisões “em andamento” (menos formais).
-Quando uma decisão for definitiva e afetar arquitetura, crie um ADR em `docs/adr/`.
+Use este arquivo para registrar decisoes "em andamento" (menos formais).
+Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr/`.
 
-## Padrões definidos
+## Padroes definidos
 - Backend: Django + DRF
 - DB: PostgreSQL
 - Sem Docker no MVP
 - Mobile: React Native
-- Web Gestão: React/Next
+- Web Gestao: React/Next
 
 ## Itens para decidir (aberto)
-- Gateway de pagamento (Pix/Cartão/VR)
-- OCR (serviço externo vs interno)
-- Distribuição iOS (TestFlight/Enterprise)
+- Gateway de pagamento (Pix/Cartao/VR)
+- OCR (servico externo vs interno)
+- Distribuicao iOS (TestFlight/Enterprise)
 
 ## Marca
 - Nome: Mr Quentinha
-- Domínio: www.mrquentinha.com.br
-- Cor primária: #FF6A00
+- Dominio: www.mrquentinha.com.br
+- Cor primaria: #FF6A00
 - Assets: assets/brand/
 
 ## Pendencias tecnicas (catalogo)
@@ -37,3 +37,14 @@ Quando uma decisão for definitiva e afetar arquitetura, crie um ADR em `docs/ad
   - nao implementar nesta etapa.
   - service valida compatibilidade entre `DishIngredient.unit` e unidade base do ingrediente/estoque.
   - TODO: implementar conversao de unidades (g<->kg, ml<->l, etc.) em etapa futura.
+
+## Decisoes abertas para Etapas 6-8
+- Stack do portal institucional (Etapa 6):
+  - decidir entre Next.js (SSR/SSG) ou estrutura estatica mais simples.
+  - definir nivel de integracao com autenticacao e acesso ao admin.
+- Estrategia de web clientes/PWA (Etapa 7):
+  - definir escopo minimo do PWA (instalacao, cache, offline parcial, push).
+  - definir paridade funcional entre mobile nativo e canal web.
+- Segregacao de dados pessoais (Etapa 8):
+  - definir separacao logica/fisica entre dados operacionais da empresa e dados pessoais sensiveis.
+  - definir politicas de retencao, mascaramento e trilha de auditoria aderentes a LGPD.

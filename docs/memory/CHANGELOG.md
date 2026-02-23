@@ -55,8 +55,6 @@
     - `/api/v1/procurement/purchases/`
   - testes pytest cobrindo regras de estoque, compras com impacto em saldo e endpoints API.
 
-> Atualize a cada sprint com o que foi entregue.
-
 - Etapa 3.1 auto-requisicao por cardapio:
   - novo service `generate_purchase_request_from_menu(menu_day_id, requested_by=None)` em procurement.
   - calculo de necessidade por ingrediente com base em `MenuDay -> MenuItem -> DishIngredient`.
@@ -65,3 +63,12 @@
   - endpoint DRF adicionado: `POST /api/v1/procurement/requests/from-menu/`.
   - sem falta de ingredientes: retorna `created=false` e nao cria `PurchaseRequest`.
   - testes pytest cobrindo cenarios sem estoque, estoque suficiente, estoque parcial e endpoint HTTP.
+
+- Docs: roadmap estendido (Etapas 6-8)
+  - visao geral atualizada com ecossistema completo: mobile cliente, web gestao, portal institucional e web clientes.
+  - escopo MVP reforcado com fechamento operacional nas etapas 4 e 5.
+  - cronograma mantido ate M5 e ampliado com bloco pos-MVP (Etapas 6, 7 e 8) com dependencias.
+  - deploy EC2 documentado com estrutura de dominios planejada (`www`, `admin`, `api`, `app`).
+  - decisions atualizadas com pendencias de stack do portal, PWA e segregacao de dados pessoais.
+
+> Atualize a cada sprint com o que foi entregue.
