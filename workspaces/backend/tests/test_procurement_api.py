@@ -12,6 +12,7 @@ from apps.catalog.models import (
     MenuDay,
     MenuItem,
 )
+from apps.finance.models import APBill
 from apps.inventory.selectors import get_stock_by_ingredient
 from apps.procurement.models import PurchaseRequest
 
@@ -45,7 +46,7 @@ def test_procurement_request_endpoint_cria_solicitacao(client):
 
 
 @pytest.mark.django_db
-def test_procurement_purchase_endpoint_cria_compra_e_atualiza_estoque(client):
+def test_procurement_purchase_endpoint_cria_compra_ap_e_atualiza_estoque(client):
     ingredient = Ingredient.objects.create(name="oleo", unit=IngredientUnit.LITER)
 
     payload = {
@@ -74,9 +75,35 @@ def test_procurement_purchase_endpoint_cria_compra_e_atualiza_estoque(client):
     assert body["supplier_name"] == "Atacado Sul"
     assert body["total_amount"] == "33.20"
 
+    purchase_id = body["id"]
+
     stock_item = get_stock_by_ingredient(ingredient)
     assert stock_item is not None
     assert stock_item.balance_qty == Decimal("4.000")
+
+    assert (
+        APBill.objects.filter(
+            reference_type="PURCHASE",
+            reference_id=purchase_id,
+        ).count()
+        == 1
+    )
+
+    ap_response = client.get("/api/v1/finance/ap-bills/")
+    assert ap_response.status_code == 200
+
+    ap_payload = ap_response.json()
+    ap_items = (
+        ap_payload if isinstance(ap_payload, list) else ap_payload.get("results", [])
+    )
+
+    assert any(
+        item["reference_type"] == "PURCHASE"
+        and item["reference_id"] == purchase_id
+        and item["supplier_name"] == "Atacado Sul"
+        and item["amount"] == "33.20"
+        for item in ap_items
+    )
 
 
 @pytest.mark.django_db

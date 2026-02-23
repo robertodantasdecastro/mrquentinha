@@ -298,6 +298,8 @@ curl http://127.0.0.1:8000/api/v1/orders/payments/
   - `create_ar_from_order(...)`
   - `record_cash_in_from_ar(...)`
   - `record_cash_out_from_ap(...)`
+- Compra gera AP automaticamente ao criar `Purchase` via service de procurement, com `reference_type="PURCHASE"` e `reference_id=<purchase.id>`.
+- A geracao de AP e idempotente: se a referencia da compra ja existir, o service retorna o titulo existente sem duplicar.
 - Permissoes temporarias no MVP: `AllowAny` com TODO explicito para RBAC.
 
 ### Exemplos curl

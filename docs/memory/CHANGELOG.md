@@ -123,3 +123,10 @@
     - idempotencia de AP/AR por referencia
     - criacao de movimentos de caixa IN/OUT
     - endpoints basicos de finance
+
+- Etapa 5.1 AP integrado a compras:
+  - fluxo de `procurement` atualizado para gerar `APBill` automaticamente ao criar `Purchase`.
+  - regra de referencia aplicada no AP: `reference_type="PURCHASE"` e `reference_id=<purchase.id>`.
+  - idempotencia reforcada no service financeiro: reprocessamento da mesma compra retorna o AP existente sem duplicar.
+  - fallback de valor no AP: quando `Purchase.total_amount` estiver zerado, o valor e calculado pelos itens (`qty * unit_price + tax_amount`).
+  - testes de service e API adicionados para validar integracao compra -> AP.

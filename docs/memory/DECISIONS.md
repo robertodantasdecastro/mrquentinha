@@ -79,3 +79,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Integracoes planejadas para proximas subfases:
   - 5.1: consolidar geracao de AP a partir de `Purchase`.
   - 5.2: consolidar geracao de AR a partir de `Order`/`Payment`.
+
+## Etapa 5.1 - Regra idempotente de AP por compra
+- Gatilho de integracao:
+  - o service `create_purchase_and_apply_stock` passa a chamar `finance.services.create_ap_from_purchase` ao final da criacao da compra.
+- Contrato de referencia para AP de compras:
+  - `reference_type = "PURCHASE"`
+  - `reference_id = <purchase.id>`
+- Idempotencia aplicada em camada de service (antes de depender apenas da constraint):
+  - se ja existir `APBill` com a referencia da compra, o service retorna o registro existente.
+  - comportamento definido para reprocessamento: nao duplica titulo financeiro.
+- Regra de valor do AP (MVP):
+  - usar `Purchase.total_amount` quando maior que zero.
+  - fallback para soma de itens (`qty * unit_price + tax_amount`) quando total vier zerado.

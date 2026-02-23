@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from apps.catalog.selectors import get_menu_day_for_procurement
+from apps.finance.services import create_ap_from_purchase
 from apps.inventory.models import StockMovementType, StockReferenceType
 from apps.inventory.selectors import get_stock_map_by_ingredient_ids
 from apps.inventory.services import apply_stock_movement
@@ -247,7 +248,6 @@ def create_purchase_and_apply_stock(
             for item in items_payload
         ]
     )
-
     for item in items_payload:
         apply_stock_movement(
             ingredient=item["ingredient"],
@@ -259,6 +259,8 @@ def create_purchase_and_apply_stock(
             note=f"Entrada por compra {purchase.invoice_number or purchase.id}",
             created_by=buyer,
         )
+
+    create_ap_from_purchase(purchase.id)
 
     return (
         Purchase.objects.select_related("buyer")

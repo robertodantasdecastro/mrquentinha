@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -24,6 +24,8 @@ from .selectors import (
     get_cash_by_reference,
 )
 
+MONEY_DECIMAL_PLACES = Decimal("0.01")
+
 DEFAULT_FINANCE_ACCOUNTS = [
     {"name": "Vendas", "type": AccountType.REVENUE},
     {"name": "Insumos", "type": AccountType.EXPENSE},
@@ -31,6 +33,10 @@ DEFAULT_FINANCE_ACCOUNTS = [
     {"name": "Caixa", "type": AccountType.ASSET},
     {"name": "Fornecedores", "type": AccountType.LIABILITY},
 ]
+
+
+def _quantize_money(value: Decimal) -> Decimal:
+    return value.quantize(MONEY_DECIMAL_PLACES, rounding=ROUND_HALF_UP)
 
 
 @transaction.atomic
@@ -63,20 +69,38 @@ def create_default_chart_of_accounts() -> list[Account]:
     return created_or_updated
 
 
-def _resolve_default_revenue_account() -> Account:
+def ensure_default_accounts() -> list[Account]:
+    return create_default_chart_of_accounts()
+
+
+def _resolve_default_account(*, name: str, account_type: str) -> Account:
+    ensure_default_accounts()
     account, _ = Account.objects.get_or_create(
-        name="Vendas",
-        defaults={"type": AccountType.REVENUE, "is_active": True},
+        name=name,
+        defaults={"type": account_type, "is_active": True},
     )
+
+    updated_fields: list[str] = []
+    if account.type != account_type:
+        account.type = account_type
+        updated_fields.append("type")
+    if not account.is_active:
+        account.is_active = True
+        updated_fields.append("is_active")
+
+    if updated_fields:
+        updated_fields.append("updated_at")
+        account.save(update_fields=updated_fields)
+
     return account
+
+
+def _resolve_default_revenue_account() -> Account:
+    return _resolve_default_account(name="Vendas", account_type=AccountType.REVENUE)
 
 
 def _resolve_default_expense_account() -> Account:
-    account, _ = Account.objects.get_or_create(
-        name="Insumos",
-        defaults={"type": AccountType.EXPENSE, "is_active": True},
-    )
-    return account
+    return _resolve_default_account(name="Insumos", account_type=AccountType.EXPENSE)
 
 
 def _ensure_positive_amount(amount: Decimal) -> None:
@@ -86,6 +110,14 @@ def _ensure_positive_amount(amount: Decimal) -> None:
 
 def _resolve_datetime(value: datetime | None) -> datetime:
     return value or timezone.now()
+
+
+def _calculate_purchase_total_from_items(purchase: Purchase) -> Decimal:
+    total = Decimal("0")
+    for item in purchase.items.all():
+        tax_amount = item.tax_amount or Decimal("0")
+        total += item.qty * item.unit_price + tax_amount
+    return _quantize_money(total)
 
 
 @transaction.atomic
@@ -98,7 +130,11 @@ def create_ap_from_purchase(
     supplier_name: str | None = None,
 ) -> APBill:
     try:
-        purchase = Purchase.objects.select_for_update().get(pk=purchase_id)
+        purchase = (
+            Purchase.objects.select_for_update()
+            .prefetch_related("items")
+            .get(pk=purchase_id)
+        )
     except Purchase.DoesNotExist as exc:
         raise ValidationError("Compra nao encontrada para gerar AP.") from exc
 
@@ -107,7 +143,14 @@ def create_ap_from_purchase(
         return existing
 
     account_obj = account or _resolve_default_expense_account()
-    amount_value = amount if amount is not None else purchase.total_amount
+
+    if amount is not None:
+        amount_value = amount
+    elif purchase.total_amount and purchase.total_amount > 0:
+        amount_value = _quantize_money(purchase.total_amount)
+    else:
+        amount_value = _calculate_purchase_total_from_items(purchase)
+
     due_date_value = due_date if due_date is not None else purchase.purchase_date
     supplier_name_value = (
         supplier_name if supplier_name is not None else purchase.supplier_name

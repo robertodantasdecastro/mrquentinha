@@ -11,6 +11,8 @@ from apps.catalog.models import (
     MenuDay,
     MenuItem,
 )
+from apps.finance.models import APBill
+from apps.finance.services import create_ap_from_purchase
 from apps.inventory.models import (
     StockItem,
     StockMovement,
@@ -18,7 +20,7 @@ from apps.inventory.models import (
     StockReferenceType,
 )
 from apps.inventory.selectors import get_stock_by_ingredient
-from apps.procurement.models import PurchaseRequest
+from apps.procurement.models import Purchase, PurchaseItem, PurchaseRequest
 from apps.procurement.services import (
     create_purchase_and_apply_stock,
     generate_purchase_request_from_menu,
@@ -70,7 +72,7 @@ def _create_menu_for_procurement() -> tuple[MenuDay, Ingredient, Ingredient]:
 
 
 @pytest.mark.django_db
-def test_create_purchase_and_apply_stock_cria_movimentos_in_e_atualiza_saldo():
+def test_create_purchase_and_apply_stock_cria_movimentos_in_e_ap_idempotente():
     ingredient = Ingredient.objects.create(name="azeite", unit=IngredientUnit.LITER)
 
     purchase = create_purchase_and_apply_stock(
@@ -93,7 +95,8 @@ def test_create_purchase_and_apply_stock_cria_movimentos_in_e_atualiza_saldo():
     assert purchase.total_amount == Decimal("32.50")
 
     movement = StockMovement.objects.get(
-        ingredient=ingredient, reference_id=purchase.id
+        ingredient=ingredient,
+        reference_id=purchase.id,
     )
     assert movement.movement_type == StockMovementType.IN
     assert movement.reference_type == StockReferenceType.PURCHASE
@@ -101,6 +104,52 @@ def test_create_purchase_and_apply_stock_cria_movimentos_in_e_atualiza_saldo():
     stock_item = get_stock_by_ingredient(ingredient)
     assert stock_item is not None
     assert stock_item.balance_qty == Decimal("3.000")
+
+    ap_bill = APBill.objects.get(
+        reference_type="PURCHASE",
+        reference_id=purchase.id,
+    )
+    assert ap_bill.supplier_name == "Fornecedor Centro"
+    assert ap_bill.amount == Decimal("32.50")
+    assert ap_bill.due_date == date(2026, 2, 24)
+
+    ap_bill_second = create_ap_from_purchase(purchase.id)
+    assert ap_bill_second.id == ap_bill.id
+    assert (
+        APBill.objects.filter(
+            reference_type="PURCHASE",
+            reference_id=purchase.id,
+        ).count()
+        == 1
+    )
+
+
+@pytest.mark.django_db
+def test_create_ap_from_purchase_calcula_amount_quando_total_amount_zerado():
+    ingredient = Ingredient.objects.create(
+        name="farinha",
+        unit=IngredientUnit.KILOGRAM,
+    )
+    purchase = Purchase.objects.create(
+        supplier_name="Fornecedor Sem Total",
+        purchase_date=date(2026, 3, 1),
+        total_amount=Decimal("0"),
+    )
+
+    PurchaseItem.objects.create(
+        purchase=purchase,
+        ingredient=ingredient,
+        qty=Decimal("2.000"),
+        unit=IngredientUnit.KILOGRAM,
+        unit_price=Decimal("8.50"),
+        tax_amount=Decimal("1.00"),
+    )
+
+    ap_bill = create_ap_from_purchase(purchase.id)
+
+    assert ap_bill.amount == Decimal("18.00")
+    assert ap_bill.reference_type == "PURCHASE"
+    assert ap_bill.reference_id == purchase.id
 
 
 @pytest.mark.django_db
