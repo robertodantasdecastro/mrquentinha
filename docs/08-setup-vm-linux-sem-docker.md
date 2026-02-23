@@ -27,6 +27,15 @@ Comandos padrão (a definir no scaffold):
 - criar usuário e banco do projeto
 - definir `DATABASE_URL` no `.env`
 
+### PostgreSQL para testes (pytest)
+O Django/pytest cria automaticamente um banco de testes (prefixo `test_`).
+A role usada no `DATABASE_URL` precisa de `CREATEDB` para esse processo.
+
+Comando:
+```bash
+sudo -u postgres psql -c "ALTER ROLE mrq_user CREATEDB;"
+```
+
 ## 5) Web (React/Next)
 - `npm install`
 - `npm run dev`

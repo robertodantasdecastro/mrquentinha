@@ -28,4 +28,19 @@
   - regra MVP: itens de cardapio embutidos em `MenuDay` (`items` escrita e `menu_items` leitura)
   - testes pytest cobrindo modelos, services, selectors e endpoints de catalog
 
+- Docs/Bootstrap: aviso sobre CREATEDB para testes
+
+- Etapa 2 encerrada:
+  - resumo do entregue:
+    - CRUD de catalogo (ingredientes, pratos/receitas com composicao e cardapio por dia)
+    - endpoint de consulta por data (`/api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`)
+    - service layer (`services.py`) e selectors (`selectors.py`) aplicados no dominio
+    - testes automatizados cobrindo modelos, services/selectors e endpoints
+  - comandos de validacao usados:
+    - `python manage.py check`
+    - `python manage.py makemigrations --check`
+    - `python manage.py migrate`
+    - `make lint`
+    - `make test`
+
 > Atualize a cada sprint com o que foi entregue.

@@ -20,3 +20,7 @@ Quando uma decisão for definitiva e afetar arquitetura, crie um ADR em `docs/ad
 - Domínio: www.mrquentinha.com.br
 - Cor primária: #FF6A00
 - Assets: assets/brand/
+
+## Pendencias tecnicas (catalogo)
+- RBAC do `catalog` ainda esta em modo MVP com `AllowAny` nas views.
+- Proxima etapa deve substituir por permissoes por perfil (Admin/Cozinha CRUD, Financeiro leitura e Cliente leitura de cardapio).

@@ -42,6 +42,15 @@ Foi utilizado o padrao `src/` para manter separacao clara entre codigo da aplica
    ```
 5. Ajustar `DATABASE_URL` no `.env` para seu PostgreSQL.
 
+## PostgreSQL para testes (pytest)
+O `pytest` com Django cria um banco temporario no padrao `test_<nome_do_banco>`.
+Para isso funcionar, o usuario configurado no `DATABASE_URL` precisa da permissao `CREATEDB`.
+
+Comando de ajuste (exemplo com a role `mrq_user`):
+```bash
+sudo -u postgres psql -c "ALTER ROLE mrq_user CREATEDB;"
+```
+
 ## Comandos principais
 - Verificacao de configuracao Django:
   ```bash
