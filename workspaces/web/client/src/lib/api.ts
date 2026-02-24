@@ -1,4 +1,17 @@
-import type { CreatedOrderResponse, MenuDayData, OrderData } from "@/types/api";
+import {
+  clearAuthTokens,
+  getStoredAccessToken,
+  getStoredAuthTokens,
+  persistAuthTokens,
+} from "@/lib/storage";
+import type {
+  AuthTokens,
+  AuthUserProfile,
+  CreatedOrderResponse,
+  MenuDayData,
+  OrderData,
+  RegisterPayload,
+} from "@/types/api";
 
 export class ApiError extends Error {
   status: number;
@@ -10,8 +23,33 @@ export class ApiError extends Error {
   }
 }
 
+type RequestJsonOptions = Omit<RequestInit, "body"> & {
+  body?: string;
+  auth?: boolean;
+  allowAuthRetry?: boolean;
+};
+
+type JsonObject = Record<string, unknown>;
+
 function getApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
+}
+
+function resolveUrl(path: string): string {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    throw new ApiError(
+      "Defina NEXT_PUBLIC_API_BASE_URL para usar a API em tempo real.",
+      0,
+    );
+  }
+
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${baseUrl}${normalizedPath}`;
 }
 
 function parseErrorMessage(payload: unknown): string | null {
@@ -40,20 +78,109 @@ function parseErrorMessage(payload: unknown): string | null {
   return messageParts.length > 0 ? messageParts.join(" | ") : null;
 }
 
-async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, {
-    ...init,
+async function parseJsonBody<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  if (!text) {
+    return {} as T;
+  }
+
+  return JSON.parse(text) as T;
+}
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+  const tokens = getStoredAuthTokens();
+  if (!tokens) {
+    return false;
+  }
+
+  const response = await fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
     },
+    body: JSON.stringify({
+      refresh: tokens.refresh,
+    }),
   });
+
+  if (!response.ok) {
+    clearAuthTokens();
+    return false;
+  }
+
+  const payload = (await parseJsonBody<Partial<AuthTokens>>(response)) ?? {};
+  if (typeof payload.access !== "string" || !payload.access.trim()) {
+    clearAuthTokens();
+    return false;
+  }
+
+  const nextRefresh =
+    typeof payload.refresh === "string" && payload.refresh.trim()
+      ? payload.refresh
+      : tokens.refresh;
+
+  persistAuthTokens({
+    access: payload.access,
+    refresh: nextRefresh,
+  });
+
+  return true;
+}
+
+async function requestJson<T>(
+  path: string,
+  options: RequestJsonOptions = {},
+): Promise<T> {
+  const {
+    auth = false,
+    allowAuthRetry = true,
+    body,
+    headers,
+    ...rest
+  } = options;
+
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set("Content-Type", "application/json");
+
+  if (auth) {
+    const accessToken = getStoredAccessToken();
+    if (!accessToken) {
+      throw new ApiError(
+        "Sessao nao autenticada. Acesse a aba Conta para entrar.",
+        401,
+      );
+    }
+
+    requestHeaders.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  const response = await fetch(resolveUrl(path), {
+    ...rest,
+    headers: requestHeaders,
+    body,
+  });
+
+  if (response.status === 401 && auth && allowAuthRetry) {
+    const refreshed = await tryRefreshAccessToken();
+
+    if (refreshed) {
+      return requestJson<T>(path, {
+        ...options,
+        allowAuthRetry: false,
+      });
+    }
+
+    throw new ApiError(
+      "Sua sessao expirou. Faca login novamente na aba Conta.",
+      401,
+    );
+  }
 
   if (!response.ok) {
     let fallbackMessage = `Erro HTTP ${response.status} ao consultar a API.`;
 
     try {
-      const payload = (await response.json()) as unknown;
+      const payload = (await parseJsonBody<JsonObject>(response)) as unknown;
       const parsed = parseErrorMessage(payload);
       if (parsed) {
         fallbackMessage = parsed;
@@ -65,20 +192,23 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
     throw new ApiError(fallbackMessage, response.status);
   }
 
-  return (await response.json()) as T;
+  return parseJsonBody<T>(response);
+}
+
+function normalizeListPayload<T>(payload: T[] | { results?: T[] }): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload.results)) {
+    return payload.results;
+  }
+
+  return [];
 }
 
 export async function fetchMenuByDate(menuDate: string): Promise<MenuDayData> {
-  const baseUrl = getApiBaseUrl();
-  if (!baseUrl) {
-    throw new ApiError(
-      "Defina NEXT_PUBLIC_API_BASE_URL para consultar o cardapio em tempo real.",
-      0,
-    );
-  }
-
-  const url = `${baseUrl}/api/v1/catalog/menus/by-date/${menuDate}/`;
-  return requestJson<MenuDayData>(url, {
+  return requestJson<MenuDayData>(`/api/v1/catalog/menus/by-date/${menuDate}/`, {
     method: "GET",
     cache: "no-store",
   });
@@ -88,16 +218,9 @@ export async function createOrder(
   deliveryDate: string,
   items: Array<{ menu_item_id: number; qty: number }>,
 ): Promise<CreatedOrderResponse> {
-  const baseUrl = getApiBaseUrl();
-  if (!baseUrl) {
-    throw new ApiError(
-      "Defina NEXT_PUBLIC_API_BASE_URL para criar pedidos.",
-      0,
-    );
-  }
-
-  return requestJson<CreatedOrderResponse>(`${baseUrl}/api/v1/orders/orders/`, {
+  return requestJson<CreatedOrderResponse>("/api/v1/orders/orders/", {
     method: "POST",
+    auth: true,
     body: JSON.stringify({
       delivery_date: deliveryDate,
       items: items.map((item) => ({
@@ -109,30 +232,54 @@ export async function createOrder(
 }
 
 export async function listOrders(): Promise<OrderData[]> {
-  const baseUrl = getApiBaseUrl();
-  if (!baseUrl) {
-    throw new ApiError(
-      "Defina NEXT_PUBLIC_API_BASE_URL para consultar pedidos.",
-      0,
-    );
-  }
+  const payload = await requestJson<OrderData[] | { results?: OrderData[] }>(
+    "/api/v1/orders/orders/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
 
-  return requestJson<OrderData[]>(`${baseUrl}/api/v1/orders/orders/`, {
+  return normalizeListPayload(payload);
+}
+
+export async function loginAccount(
+  username: string,
+  password: string,
+): Promise<AuthTokens> {
+  const payload = await requestJson<AuthTokens>("/api/v1/accounts/token/", {
+    method: "POST",
+    body: JSON.stringify({
+      username,
+      password,
+    }),
+  });
+
+  persistAuthTokens(payload);
+  return payload;
+}
+
+export async function registerAccount(
+  registration: RegisterPayload,
+): Promise<AuthUserProfile> {
+  await requestJson<JsonObject>("/api/v1/accounts/register/", {
+    method: "POST",
+    body: JSON.stringify(registration),
+  });
+
+  await loginAccount(registration.username, registration.password);
+  return fetchMe();
+}
+
+export async function fetchMe(): Promise<AuthUserProfile> {
+  return requestJson<AuthUserProfile>("/api/v1/accounts/me/", {
     method: "GET",
+    auth: true,
     cache: "no-store",
   });
 }
 
-export function getDemoCustomerId(): number | null {
-  const raw = process.env.NEXT_PUBLIC_DEMO_CUSTOMER_ID;
-  if (!raw) {
-    return null;
-  }
-
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
+export function logoutAccount(): void {
+  clearAuthTokens();
 }

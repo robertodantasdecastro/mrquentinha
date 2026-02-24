@@ -1,14 +1,399 @@
+"use client";
+
+import { type FormEvent, useEffect, useState } from "react";
+
+import {
+  ApiError,
+  fetchMe,
+  loginAccount,
+  logoutAccount,
+  registerAccount,
+} from "@/lib/api";
+import { hasStoredAuthSession } from "@/lib/storage";
+import type { AuthUserProfile } from "@/types/api";
+
+type AuthMode = "login" | "register";
+type ViewState = "loading" | "anonymous" | "authenticated";
+
+type LoginFormState = {
+  username: string;
+  password: string;
+};
+
+type RegisterFormState = {
+  username: string;
+  password: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+};
+
+function resolveErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Falha inesperada. Tente novamente.";
+}
+
+function formatRoles(user: AuthUserProfile): string {
+  if (!Array.isArray(user.roles) || user.roles.length === 0) {
+    return "Sem papeis definidos";
+  }
+
+  return user.roles.join(", ");
+}
+
+const INPUT_CLASS =
+  "w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-primary";
+
 export default function ContaPage() {
+  const [viewState, setViewState] = useState<ViewState>("loading");
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [busy, setBusy] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [user, setUser] = useState<AuthUserProfile | null>(null);
+
+  const [loginForm, setLoginForm] = useState<LoginFormState>({
+    username: "",
+    password: "",
+  });
+
+  const [registerForm, setRegisterForm] = useState<RegisterFormState>({
+    username: "",
+    password: "",
+    email: "",
+    firstName: "",
+    lastName: "",
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function bootstrapSession() {
+      if (!hasStoredAuthSession()) {
+        if (mounted) {
+          setViewState("anonymous");
+        }
+        return;
+      }
+
+      try {
+        const profile = await fetchMe();
+        if (!mounted) {
+          return;
+        }
+
+        setUser(profile);
+        setViewState("authenticated");
+      } catch {
+        logoutAccount();
+        if (mounted) {
+          setUser(null);
+          setViewState("anonymous");
+        }
+      }
+    }
+
+    bootstrapSession();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setBusy(true);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      await loginAccount(loginForm.username.trim(), loginForm.password);
+      const profile = await fetchMe();
+
+      setUser(profile);
+      setViewState("authenticated");
+      setMessage("Login realizado com sucesso.");
+      setLoginForm({ username: "", password: "" });
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setBusy(true);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      const profile = await registerAccount({
+        username: registerForm.username.trim(),
+        password: registerForm.password,
+        email: registerForm.email.trim(),
+        first_name: registerForm.firstName.trim(),
+        last_name: registerForm.lastName.trim(),
+      });
+
+      setUser(profile);
+      setViewState("authenticated");
+      setMessage("Cadastro realizado e sessao iniciada.");
+      setRegisterForm({
+        username: "",
+        password: "",
+        email: "",
+        firstName: "",
+        lastName: "",
+      });
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleLogout() {
+    logoutAccount();
+    setUser(null);
+    setViewState("anonymous");
+    setErrorMessage("");
+    setMessage("Sessao encerrada.");
+  }
+
   return (
     <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
         Conta
       </p>
       <h1 className="mt-1 text-2xl font-bold text-text">Area do cliente</h1>
-      <p className="mt-3 text-sm text-muted">
-        Esta pagina e um placeholder do MVP. Nas proximas etapas vamos adicionar login,
-        dados pessoais, enderecos e preferencias do cliente.
-      </p>
+
+      {viewState === "loading" && (
+        <p className="mt-3 text-sm text-muted">Validando sessao...</p>
+      )}
+
+      {viewState === "authenticated" && user && (
+        <div className="mt-4 space-y-4">
+          <p className="text-sm text-muted">
+            Sessao ativa para <strong className="text-text">{user.username}</strong>.
+          </p>
+
+          <div className="rounded-xl border border-border bg-bg p-4 text-sm text-muted">
+            <p>
+              <strong className="text-text">Email:</strong>{" "}
+              {user.email || "nao informado"}
+            </p>
+            <p className="mt-1">
+              <strong className="text-text">Nome:</strong>{" "}
+              {[user.first_name, user.last_name].filter(Boolean).join(" ") || "nao informado"}
+            </p>
+            <p className="mt-1">
+              <strong className="text-text">Papeis:</strong> {formatRoles(user)}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+          >
+            Sair
+          </button>
+        </div>
+      )}
+
+      {viewState === "anonymous" && (
+        <div className="mt-4 space-y-4">
+          <p className="text-sm text-muted">
+            Entre com sua conta para visualizar apenas seus pedidos e finalizar novas compras.
+          </p>
+
+          <div className="inline-flex rounded-full border border-border bg-bg p-1 text-xs font-semibold uppercase tracking-[0.08em]">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={`rounded-full px-3 py-2 transition ${
+                mode === "login"
+                  ? "bg-primary text-white"
+                  : "text-muted hover:text-text"
+              }`}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("register")}
+              className={`rounded-full px-3 py-2 transition ${
+                mode === "register"
+                  ? "bg-primary text-white"
+                  : "text-muted hover:text-text"
+              }`}
+            >
+              Cadastro
+            </button>
+          </div>
+
+          {mode === "login" && (
+            <form onSubmit={handleLogin} className="grid gap-3">
+              <label className="grid gap-1 text-sm text-muted">
+                Usuario
+                <input
+                  required
+                  autoComplete="username"
+                  className={INPUT_CLASS}
+                  value={loginForm.username}
+                  onChange={(event) =>
+                    setLoginForm((current) => ({
+                      ...current,
+                      username: event.currentTarget.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="grid gap-1 text-sm text-muted">
+                Senha
+                <input
+                  required
+                  type="password"
+                  autoComplete="current-password"
+                  className={INPUT_CLASS}
+                  value={loginForm.password}
+                  onChange={(event) =>
+                    setLoginForm((current) => ({
+                      ...current,
+                      password: event.currentTarget.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={busy}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busy ? "Entrando..." : "Entrar"}
+              </button>
+            </form>
+          )}
+
+          {mode === "register" && (
+            <form onSubmit={handleRegister} className="grid gap-3">
+              <label className="grid gap-1 text-sm text-muted">
+                Usuario
+                <input
+                  required
+                  autoComplete="username"
+                  className={INPUT_CLASS}
+                  value={registerForm.username}
+                  onChange={(event) =>
+                    setRegisterForm((current) => ({
+                      ...current,
+                      username: event.currentTarget.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="grid gap-1 text-sm text-muted">
+                Email
+                <input
+                  type="email"
+                  autoComplete="email"
+                  className={INPUT_CLASS}
+                  value={registerForm.email}
+                  onChange={(event) =>
+                    setRegisterForm((current) => ({
+                      ...current,
+                      email: event.currentTarget.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="grid gap-1 text-sm text-muted">
+                  Nome
+                  <input
+                    autoComplete="given-name"
+                    className={INPUT_CLASS}
+                    value={registerForm.firstName}
+                    onChange={(event) =>
+                      setRegisterForm((current) => ({
+                        ...current,
+                        firstName: event.currentTarget.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="grid gap-1 text-sm text-muted">
+                  Sobrenome
+                  <input
+                    autoComplete="family-name"
+                    className={INPUT_CLASS}
+                    value={registerForm.lastName}
+                    onChange={(event) =>
+                      setRegisterForm((current) => ({
+                        ...current,
+                        lastName: event.currentTarget.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+
+              <label className="grid gap-1 text-sm text-muted">
+                Senha
+                <input
+                  required
+                  type="password"
+                  minLength={8}
+                  autoComplete="new-password"
+                  className={INPUT_CLASS}
+                  value={registerForm.password}
+                  onChange={(event) =>
+                    setRegisterForm((current) => ({
+                      ...current,
+                      password: event.currentTarget.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={busy}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busy ? "Cadastrando..." : "Criar conta"}
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+
+      {message && (
+        <p className="mt-4 rounded-md border border-emerald-300/70 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300">
+          {message}
+        </p>
+      )}
+
+      {errorMessage && (
+        <p className="mt-4 rounded-md border border-red-300/70 bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-300">
+          {errorMessage}
+        </p>
+      )}
     </section>
   );
 }

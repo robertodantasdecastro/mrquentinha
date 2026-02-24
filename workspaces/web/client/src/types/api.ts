@@ -56,3 +56,25 @@ export type CreatedOrderResponse = {
   delivery_date: string;
   order_items: OrderItemData[];
 };
+
+export type AuthTokens = {
+  access: string;
+  refresh: string;
+};
+
+export type AuthUserProfile = {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  roles: string[];
+};
+
+export type RegisterPayload = {
+  username: string;
+  password: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+};
