@@ -9,8 +9,7 @@ export default function PedidosPage() {
         </p>
         <h1 className="mt-1 text-2xl font-bold text-text">Acompanhe seu historico</h1>
         <p className="mt-2 text-sm text-muted">
-          Visualizacao em modo demo. O filtro por usuario real sera aplicado junto com
-          autenticacao nas proximas etapas.
+          O historico e exibido conforme o usuario autenticado no backend.
         </p>
       </header>
 

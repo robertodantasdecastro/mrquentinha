@@ -2,18 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { ApiError, getDemoCustomerId, listOrders } from "@/lib/api";
+import { ApiError, listOrders } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
-import { getRememberedOrderIds } from "@/lib/storage";
 import type { OrderData } from "@/types/api";
 
-type HistoryState = "loading" | "ready" | "error";
-type FilterMode = "customer" | "remembered" | "all";
-
-type FilterResult = {
-  orders: OrderData[];
-  mode: FilterMode;
-};
+type HistoryState = "loading" | "ready" | "unauthorized" | "error";
 
 function formatDate(dateValue: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -35,37 +28,10 @@ function resolveErrorMessage(error: unknown): string {
   return "Falha ao carregar os pedidos.";
 }
 
-function applyDemoFilter(orders: OrderData[]): FilterResult {
-  const demoCustomerId = getDemoCustomerId();
-  const rememberedIds = getRememberedOrderIds();
-
-  if (demoCustomerId !== null) {
-    const customerOrders = orders.filter(
-      (order) => order.customer === demoCustomerId,
-    );
-    if (customerOrders.length > 0) {
-      return { orders: customerOrders, mode: "customer" };
-    }
-  }
-
-  if (rememberedIds.length > 0) {
-    const rememberedOrders = orders.filter((order) =>
-      rememberedIds.includes(order.id),
-    );
-
-    if (rememberedOrders.length > 0) {
-      return { orders: rememberedOrders, mode: "remembered" };
-    }
-  }
-
-  return { orders, mode: "all" };
-}
-
 export function OrderHistoryList() {
   const [historyState, setHistoryState] = useState<HistoryState>("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [orders, setOrders] = useState<OrderData[]>([]);
-  const [filterMode, setFilterMode] = useState<FilterMode>("all");
 
   useEffect(() => {
     let mounted = true;
@@ -80,13 +46,19 @@ export function OrderHistoryList() {
           return;
         }
 
-        const filtered = applyDemoFilter(payload);
-
-        setOrders(filtered.orders);
-        setFilterMode(filtered.mode);
+        setOrders(payload);
         setHistoryState("ready");
       } catch (error) {
         if (!mounted) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.status === 401) {
+          setOrders([]);
+          setHistoryState("unauthorized");
+          setErrorMessage(
+            "Sessao nao autenticada. Acesse a aba Conta para entrar e ver seu historico.",
+          );
           return;
         }
 
@@ -117,18 +89,19 @@ export function OrderHistoryList() {
       <div className="mb-4 flex flex-col gap-2">
         <h2 className="text-xl font-bold text-text">Historico de pedidos</h2>
         <p className="text-sm text-muted">
-          {filterMode === "customer" &&
-            "Filtro aplicado por customer demo via NEXT_PUBLIC_DEMO_CUSTOMER_ID."}
-          {filterMode === "remembered" &&
-            "Filtro aplicado pelos pedidos criados neste navegador (modo demo)."}
-          {filterMode === "all" &&
-            "MVP sem auth: exibindo pedidos retornados pela API sem filtro seguro."}
+          Esta lista utiliza o escopo da sua conta autenticada no backend.
         </p>
       </div>
 
       {historyState === "loading" && (
         <div className="rounded-xl border border-border bg-bg px-4 py-10 text-center text-sm text-muted">
           Carregando pedidos...
+        </div>
+      )}
+
+      {historyState === "unauthorized" && (
+        <div className="rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-4 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
+          {errorMessage}
         </div>
       )}
 
@@ -140,7 +113,7 @@ export function OrderHistoryList() {
 
       {historyState === "ready" && sortedOrders.length === 0 && (
         <div className="rounded-xl border border-border bg-bg px-4 py-8 text-center text-sm text-muted">
-          Nenhum pedido encontrado para o modo demo.
+          Nenhum pedido encontrado para sua conta.
         </div>
       )}
 

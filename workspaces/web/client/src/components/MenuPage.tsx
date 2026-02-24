@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { ApiError, createOrder, fetchMenuByDate, getDemoCustomerId } from "@/lib/api";
+import { ApiError, createOrder, fetchMenuByDate } from "@/lib/api";
 import { getTodayIsoDate } from "@/lib/format";
-import { rememberOrderId } from "@/lib/storage";
+import { hasStoredAuthSession, rememberOrderId } from "@/lib/storage";
 import { CartDrawer, type CheckoutState } from "@/components/CartDrawer";
 import { MenuDayView, type MenuFetchState } from "@/components/MenuDayView";
 import type { MenuDayData, MenuItemData } from "@/types/api";
@@ -26,6 +26,9 @@ function parseErrorMessage(error: unknown): string {
 
 export function MenuPage() {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayIsoDate());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+    hasStoredAuthSession(),
+  );
 
   const [menu, setMenu] = useState<MenuDayData | null>(null);
   const [menuState, setMenuState] = useState<MenuFetchState>("loading");
@@ -35,7 +38,21 @@ export function MenuPage() {
   const [checkoutState, setCheckoutState] = useState<CheckoutState>("idle");
   const [checkoutMessage, setCheckoutMessage] = useState<string>("");
 
-  const demoCustomerId = getDemoCustomerId();
+  useEffect(() => {
+    const syncAuthState = () => {
+      setIsAuthenticated(hasStoredAuthSession());
+    };
+
+    syncAuthState();
+
+    window.addEventListener("focus", syncAuthState);
+    window.addEventListener("storage", syncAuthState);
+
+    return () => {
+      window.removeEventListener("focus", syncAuthState);
+      window.removeEventListener("storage", syncAuthState);
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -196,8 +213,8 @@ export function MenuPage() {
   const removeCartItem = (menuItemId: number) => {
     setCart((currentCart) => {
       const nextCart = { ...currentCart };
-        delete nextCart[menuItemId];
-        return nextCart;
+      delete nextCart[menuItemId];
+      return nextCart;
     });
   };
 
@@ -228,6 +245,9 @@ export function MenuPage() {
       );
     } catch (error) {
       setCheckoutState("error");
+      if (error instanceof ApiError && error.status === 401) {
+        setIsAuthenticated(false);
+      }
       setCheckoutMessage(parseErrorMessage(error));
     }
   };
@@ -236,15 +256,15 @@ export function MenuPage() {
     <section className="space-y-4">
       <div className="rounded-2xl border border-border bg-surface/70 p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          Web Cliente MVP
+          Web Cliente
         </p>
         <h1 className="mt-1 text-2xl font-bold text-text">
           Monte seu pedido e acompanhe seus status
         </h1>
         <p className="mt-2 text-sm text-muted">
-          MVP sem login real. Pedido e historico usam modo demo com integracao direta na
-          API.
-          {demoCustomerId ? ` Customer demo: ${demoCustomerId}.` : ""}
+          {isAuthenticated
+            ? "Sessao autenticada. Seus pedidos serao criados na conta ativa."
+            : "Faca login na aba Conta para finalizar pedidos com sua conta real."}
         </p>
       </div>
 
