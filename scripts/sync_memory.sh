@@ -16,21 +16,36 @@ SYNC_PACK=(
   ".agent/workflows/USAGE_GUIDE.md"
 )
 
-ensure_npm() {
-  if command -v npm >/dev/null 2>&1; then
-    return
+activate_backend_venv() {
+  local venv_activate="$ROOT_DIR/workspaces/backend/.venv/bin/activate"
+
+  if [[ ! -f "$venv_activate" ]]; then
+    echo "[sync_memory] ERRO: venv nao encontrada em $venv_activate" >&2
+    exit 1
   fi
 
-  if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
-    # shellcheck disable=SC1090
-    source "$HOME/.nvm/nvm.sh"
-    if command -v nvm >/dev/null 2>&1; then
-      nvm use --silent default >/dev/null 2>&1 || nvm use --silent node >/dev/null 2>&1 || true
-    fi
+  # shellcheck disable=SC1090
+  source "$venv_activate"
+}
+
+ensure_nvm_lts() {
+  if [[ ! -s "$HOME/.nvm/nvm.sh" ]]; then
+    echo "[sync_memory] ERRO: nvm nao encontrado em ~/.nvm/nvm.sh" >&2
+    exit 1
   fi
+
+  # shellcheck disable=SC1090
+  source "$HOME/.nvm/nvm.sh"
+
+  if ! command -v nvm >/dev/null 2>&1; then
+    echo "[sync_memory] ERRO: comando nvm indisponivel." >&2
+    exit 1
+  fi
+
+  nvm use --lts >/dev/null
 
   if ! command -v npm >/dev/null 2>&1; then
-    echo "[sync_memory] ERRO: npm nao encontrado no PATH para quick gate." >&2
+    echo "[sync_memory] ERRO: npm nao encontrado apos nvm --lts." >&2
     exit 1
   fi
 }
@@ -41,7 +56,7 @@ Uso: bash scripts/sync_memory.sh [--check] [--quick-gate]
 
 Opcoes:
   --check       Executa checagem de sincronizacao (padrao)
-  --quick-gate  Roda gate rapido: make test + build portal/client
+  --quick-gate  Roda gate rapido: make test + pytest + build portal/client
 USAGE
 }
 
@@ -111,14 +126,12 @@ fi
 
 if [[ "$RUN_QUICK_GATE" == "true" ]]; then
   echo "[sync_memory] Rodando quick gate..."
-  if [[ -f "$ROOT_DIR/workspaces/backend/.venv/bin/activate" ]]; then
-    # shellcheck disable=SC1091
-    source "$ROOT_DIR/workspaces/backend/.venv/bin/activate"
-  fi
 
-  ensure_npm
-
+  activate_backend_venv
   (cd "$ROOT_DIR" && make test)
+  (cd "$ROOT_DIR" && pytest)
+
+  ensure_nvm_lts
   (cd "$ROOT_DIR/workspaces/web/portal" && npm run build)
   (cd "$ROOT_DIR/workspaces/web/client" && npm run build)
 fi

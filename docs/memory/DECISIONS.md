@@ -226,3 +226,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Integracao entre agentes ocorre em `join/codex-ag`.
 - Guard rail operacional:
   - `scripts/branch_guard.sh` em modo `--strict` antes de checkpoint/sync/merge.
+
+## 24/02/2026 - Harmonizacao de workflows Codex <-> Antigravity
+- Arquitetura de workflows:
+  - `W10..W21` = fonte de verdade (rotinas completas).
+  - `00..06` = wrappers de entrada, sem duplicar instrucoes longas.
+- Politica de branch em workflow com escrita:
+  - qualquer fluxo com `commit/push/merge` deve validar branch com `scripts/branch_guard.sh` antes de prosseguir.
+- Modo paralelo:
+  - lock humano obrigatorio por contexto em `.agent/memory/IN_PROGRESS.md` para evitar edicao concorrente dos mesmos arquivos.
+  - sincronizacao obrigatoria pre-checkpoint via `W21_sync_codex_antigravity`.
+- Confiabilidade de comandos:
+  - testes no root exigem venv backend ativa.
+  - comandos npm exigem `source ~/.nvm/nvm.sh && nvm use --lts`.

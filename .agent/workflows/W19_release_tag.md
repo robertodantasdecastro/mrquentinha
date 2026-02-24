@@ -1,12 +1,15 @@
 ---
 id: W19
 title: Release e tag
-description: Executar checkpoint de release interna com tag anotada e publicacao segura.
+description: Publicar checkpoint de release com branch policy e qualidade completa.
 inputs:
+  - agente (codex|join)
   - nome_tag
 outputs:
   - release_publicada
 commands:
+  - sed -n '1,220p' GEMINI.md
+  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary feature/etapa-4-orders --allow-codex-join
   - executar W16_auditoria_qualidade
   - atualizar CHANGELOG com release note curta
   - git tag -a <tag> -m "release"
@@ -20,11 +23,10 @@ memory_updates:
 
 # W19 - Release/Tag
 
-## Passos
-1. Rodar quality gate completo (W16).
-2. Atualizar `CHANGELOG` com nota curta de release.
-3. Criar tag anotada.
-4. Publicar branch e tag no remoto.
+## Regras
+- Ler `GEMINI.md`.
+- Branch permitida para release: `feature/etapa-4-orders` ou `join/codex-ag`.
+- Antigravity nao publica release fora do fluxo de integracao.
 
 ## Criterio de saida
-- Tag publicada com qualidade validada.
+- Tag publicada com qualidade validada e memoria sincronizada.

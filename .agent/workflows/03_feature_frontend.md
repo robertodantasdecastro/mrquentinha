@@ -1,14 +1,19 @@
 ---
-description: Entrega de feature frontend (portal/client) com Design System compartilhado e validacao de build.
+description: Wrapper para entrega frontend. Fonte de verdade: W10/W12/W17/W21 + padrao UI compartilhada.
 ---
 
-# Workflow 03 - Feature Frontend
+# Workflow 03 - Feature Frontend (Wrapper)
 
-1. Criar branch (`codex/<escopo-curto>`).
-2. Implementar usando `workspaces/web/ui` e templates modulares.
-3. Evitar hardcode de conteudo; integrar com backend por env.
-4. Validar:
-   - `npm run lint`
-   - `npm run build`
-5. Atualizar README do app impactado e memoria do projeto.
-6. Commitar e fazer push.
+## Precondicao
+- Ler `AGENTS.md` e `GEMINI.md`.
+- Validar branch do agente:
+  - Codex: `bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders`
+  - Antigravity: `bash scripts/branch_guard.sh --agent antigravity --strict`
+
+## Execucao
+1. Implementar com `workspaces/web/ui` e layout clean.
+2. Carregar Node LTS antes de npm:
+   - `source ~/.nvm/nvm.sh && nvm use --lts`
+3. Validar builds/lint dos frontends.
+4. Atualizar memoria/docs via `W17_atualizar_documentacao_memoria`.
+5. Sincronizar e commitar via `W21_sync_codex_antigravity` e `W12_salvar_checkpoint`.

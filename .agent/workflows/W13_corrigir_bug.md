@@ -9,6 +9,7 @@ outputs:
   - bug_corrigido
   - teste_regressao
 commands:
+  - sed -n '1,220p' GEMINI.md
   - reproduzir_cenario
   - criar_teste_falhando
   - implementar_correcao
@@ -23,11 +24,8 @@ memory_updates:
 # W13 - Corrigir bug
 
 ## Passos
-1. Reproduzir bug com passos claros.
-2. Criar teste que falha antes da correcao.
-3. Implementar correcao minima e objetiva.
-4. Rodar regressao no modulo e pontos impactados.
-5. Documentar causa raiz em `CHANGELOG` e, se necessario, `DECISIONS`.
-
-## Criterio de saida
-- Bug reproduzido, corrigido e coberto por teste.
+1. Ler `GEMINI.md`.
+2. Reproduzir bug com passos claros.
+3. Criar teste que falha antes da correcao.
+4. Implementar correcao minima e objetiva.
+5. Rodar regressao no modulo e pontos impactados.

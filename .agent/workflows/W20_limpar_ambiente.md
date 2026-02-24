@@ -7,6 +7,7 @@ inputs:
 outputs:
   - ambiente_pronto_para_novo_start
 commands:
+  - sed -n '1,220p' GEMINI.md
   - encerrar processos portas 8000/3000/3001
   - remover locks .next/dev/lock
   - limpar caches opcionais
@@ -19,12 +20,7 @@ memory_updates:
 # W20 - Limpar ambiente
 
 ## Passos
-1. Encerrar processos nas portas `8000`, `3000` e `3001`.
-2. Remover locks stale:
-   - `workspaces/web/portal/.next/dev/lock` (se existir)
-   - `workspaces/web/client/.next/dev/lock` (se existir)
-3. Limpar caches opcionais (somente desenvolvimento, sem dados de producao).
-4. Validar ambiente livre para novo start.
-
-## Criterio de saida
-- Ambiente pronto para novo ciclo de execucao.
+1. Ler `GEMINI.md`.
+2. Encerrar processos nas portas `8000`, `3000` e `3001`.
+3. Remover locks stale de Next.
+4. Validar ambiente pronto para novo start.

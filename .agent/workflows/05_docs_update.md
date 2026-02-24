@@ -1,11 +1,13 @@
 ---
-description: Atualizacao padronizada da memoria e documentacao operacional sem vazamento de segredos.
+description: Wrapper de docs/memoria. Fonte de verdade: W17_atualizar_documentacao_memoria.
 ---
 
-# Workflow 05 - Docs Update
+# Workflow 05 - Docs Update (Wrapper)
 
-1. Atualizar `docs/memory/PROJECT_STATE.md` com estado real atual.
-2. Atualizar `docs/memory/CHANGELOG.md` com o que foi entregue.
-3. Atualizar `docs/memory/DECISIONS.md` para decisoes novas e TODOs abertos.
-4. Atualizar `docs/memory/RUNBOOK_DEV.md` com fluxo operacional e troubleshooting.
-5. Revisar diffs para confirmar ausencia de segredos.
+## Precondicao
+- Ler `GEMINI.md`.
+
+## Encaminhamento oficial
+1. Executar `W17_atualizar_documentacao_memoria`.
+2. Validar sincronizacao:
+   - `bash scripts/sync_memory.sh --check`

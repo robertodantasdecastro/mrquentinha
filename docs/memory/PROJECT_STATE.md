@@ -2,19 +2,27 @@
 
 Referencia de atualizacao: 24/02/2026.
 
-## Etapas concluidas
+## Etapas
 - Concluidas: 0 -> 5.6.3, 6.0, 6.0.1, 7.0.
-
-## Antigravity
-- Antigravity Rules Path: `.agent/rules/global.md`
-- Espelho para topo do painel: `.agent/rules/00_GLOBAL_RULE.md`
+- Em progresso: 7.1 (Auth/RBAC para cliente real).
 
 ## Politica de branches (anti-conflito)
 - `BRANCH_CODEX_PRIMARY=feature/etapa-4-orders`
-- Codex: atua apenas na branch principal.
-- Antigravity: atua apenas em `ag/<tipo>/<slug>`.
-- Join/integracao: `join/codex-ag`.
+- Codex: branch principal e, quando integracao, `join/codex-ag`.
+- Antigravity: `ag/<tipo>/<slug>`.
+- Integracao: `join/codex-ag`.
 - Guard rail: `scripts/branch_guard.sh`.
+
+## Antigravity
+- Rules path: `.agent/rules/global.md`
+- Espelho topo: `.agent/rules/00_GLOBAL_RULE.md`
+- Guia de uso: `.agent/workflows/USAGE_GUIDE.md`
+- Mapa oficial: `.agent/workflows/WORKFLOW_MAP.md`
+
+## Modo paralelo
+- Regras: `docs/memory/PARALLEL_DEV_RULES.md`
+- Lock humano: `.agent/memory/IN_PROGRESS.md`
+- Sync obrigatorio: `W21_sync_codex_antigravity`
 
 ## Modulos backend ativos
 - `catalog`
@@ -26,20 +34,20 @@ Referencia de atualizacao: 24/02/2026.
 - `ocr_ai`
 
 ## Frontends ativos
-- Portal institucional (`workspaces/web/portal`) na porta `3000`
-- Client web (`workspaces/web/client`) na porta `3001`
-- UI compartilhada (`workspaces/web/ui`) usada por portal e client
+- Portal (`workspaces/web/portal`) porta `3000`
+- Client (`workspaces/web/client`) porta `3001`
+- UI shared (`workspaces/web/ui`)
 
 ## API backend
 - Porta: `8000`
-- Endpoint raiz: `GET /` (API index)
-- Health: `GET /api/v1/health`
+- `GET /` (API index)
+- `GET /api/v1/health`
 - RBAC hardening ativo por perfil.
-- Excecao MVP (somente leitura publica):
+- Excecao MVP (read-only publico):
   - `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
   - `GET /api/v1/catalog/menus/today/`
 
-## Endpoints principais por dominio
+## Endpoints principais
 - Catalog:
   - `/api/v1/catalog/ingredients/`
   - `/api/v1/catalog/dishes/`
@@ -76,24 +84,20 @@ Referencia de atualizacao: 24/02/2026.
   - `/api/v1/ocr/jobs/`
   - `/api/v1/ocr/jobs/<id>/apply/`
 
-## Scripts e smokes
-- Start/execucao:
+## Scripts oficiais
+- Start:
   - `scripts/start_backend_dev.sh`
   - `scripts/start_portal_dev.sh`
   - `scripts/start_client_dev.sh`
-- Dados e smoke:
-  - `scripts/seed_demo.sh`
+- Smoke:
   - `scripts/smoke_stack_dev.sh`
   - `scripts/smoke_client_dev.sh`
-- Operacao de workflow/sync:
-  - `scripts/session.sh`
-  - `scripts/sync_memory.sh`
+- Dados:
+  - `scripts/seed_demo.sh`
+- Qualidade e sync:
   - `scripts/quality_gate_all.sh`
-  - `scripts/commit_sync.sh`
+  - `scripts/sync_memory.sh`
   - `scripts/branch_guard.sh`
-  - `scripts/ops_dashboard.sh`
-  - `scripts/ops_center.py`
-  - export em `.runtime/ops/exports/` (JSONL/CSV)
 
 ## Quickstart
 No root (`~/mrquentinha`), em terminais separados:
@@ -111,17 +115,16 @@ Validacao rapida:
 ./scripts/smoke_client_dev.sh
 ```
 
-Sync/check final antes de commit:
+Pre-commit recomendado:
 
 ```bash
-bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders
-bash scripts/sync_memory.sh --check
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join
 bash scripts/quality_gate_all.sh
+bash scripts/sync_memory.sh --check
 ```
 
 ## Variaveis de ambiente (sem segredos)
 ### Backend (`workspaces/backend/.env`)
-
 ```env
 DATABASE_URL=postgresql://mrq_user:CHANGE_ME@localhost:5432/mrquentinha
 ALLOWED_HOSTS=localhost,127.0.0.1,10.211.55.21
@@ -130,13 +133,11 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://127.0.0.
 ```
 
 ### Portal (`workspaces/web/portal/.env.local`)
-
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://10.211.55.21:8000
 ```
 
 ### Client (`workspaces/web/client/.env.local`)
-
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://10.211.55.21:8000
 NEXT_PUBLIC_DEMO_CUSTOMER_ID=1
@@ -144,4 +145,4 @@ NEXT_PUBLIC_DEMO_CUSTOMER_ID=1
 
 ## Regra de segredos
 - Valores reais apenas em `.env` local (gitignored).
-- Repositorio deve conter somente placeholders em `.env.example`.
+- Repositorio deve conter placeholders em `.env.example`.

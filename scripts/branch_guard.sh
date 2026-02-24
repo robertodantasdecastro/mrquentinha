@@ -7,16 +7,18 @@ Uso:
   bash scripts/branch_guard.sh --agent <codex|antigravity|join> [opcoes]
 
 Opcoes:
-  --agent <nome>           Agente alvo: codex, antigravity ou join.
-  --codex-primary <branch> Branch principal do Codex (default: $BRANCH_CODEX_PRIMARY).
-  --join-branch <branch>   Branch de integracao (default: join/codex-ag).
-  --strict                 Retorna exit code 1 quando regra for violada.
-  -h, --help               Mostra ajuda.
+  --agent <nome>             Agente alvo: codex, antigravity ou join.
+  --codex-primary <branch>   Branch principal do Codex (default: $BRANCH_CODEX_PRIMARY).
+  --join-branch <branch>     Branch de integracao (default: join/codex-ag).
+  --allow-codex-join         Permite Codex operar na join branch (alem da branch principal).
+  --strict                   Retorna exit code 1 quando regra for violada.
+  -h, --help                 Mostra ajuda.
 
 Exemplos:
   BRANCH_CODEX_PRIMARY=feature/etapa-4-orders \
     bash scripts/branch_guard.sh --agent codex --strict
 
+  bash scripts/branch_guard.sh --agent codex --strict --allow-codex-join
   bash scripts/branch_guard.sh --agent antigravity --strict
   bash scripts/branch_guard.sh --agent join --strict
 USAGE
@@ -24,6 +26,7 @@ USAGE
 
 AGENT=""
 STRICT=0
+ALLOW_CODEX_JOIN=0
 CODEX_PRIMARY="${BRANCH_CODEX_PRIMARY:-}"
 JOIN_BRANCH="join/codex-ag"
 
@@ -40,6 +43,10 @@ while [[ $# -gt 0 ]]; do
     --join-branch)
       JOIN_BRANCH="${2:-}"
       shift 2
+      ;;
+    --allow-codex-join)
+      ALLOW_CODEX_JOIN=1
+      shift
       ;;
     --strict)
       STRICT=1
@@ -82,9 +89,26 @@ violation=0
 
 case "$AGENT" in
   codex)
-    if [[ "$CURRENT_BRANCH" != "$CODEX_PRIMARY" ]]; then
-      echo "[branch-guard] Violacao: Codex deve operar em '$CODEX_PRIMARY', branch atual '$CURRENT_BRANCH'." >&2
+    codex_ok=0
+
+    if [[ "$CURRENT_BRANCH" == "$CODEX_PRIMARY" ]]; then
+      codex_ok=1
+    fi
+
+    if [[ $ALLOW_CODEX_JOIN -eq 1 && "$CURRENT_BRANCH" == "$JOIN_BRANCH" ]]; then
+      codex_ok=1
+    fi
+
+    if [[ $codex_ok -ne 1 ]]; then
+      echo "[branch-guard] Violacao: Codex deve operar em '$CODEX_PRIMARY'" >&2
+      if [[ $ALLOW_CODEX_JOIN -eq 1 ]]; then
+        echo "[branch-guard] (join permitida: '$JOIN_BRANCH')" >&2
+      fi
+      echo "[branch-guard] Branch atual: '$CURRENT_BRANCH'" >&2
       echo "[branch-guard] Correcao: git checkout '$CODEX_PRIMARY'" >&2
+      if [[ $ALLOW_CODEX_JOIN -eq 1 ]]; then
+        echo "[branch-guard] Ou para integracao: git checkout '$JOIN_BRANCH'" >&2
+      fi
       violation=1
     fi
     ;;

@@ -1,54 +1,43 @@
-# Guia de Uso dos Workflows Customizados
+# Guia de Uso dos Workflows (Codex + Antigravity)
 
-## Objetivo
-Padronizar como iniciar, continuar, corrigir, refatorar, validar, sincronizar memoria e entregar durante todo o ciclo de desenvolvimento.
+## Princípios
+- Fonte de verdade: workflows `W10..W21`.
+- Wrappers `00..06` existem para atalhos e onboarding.
+- Nunca iniciar tarefa sem ler `AGENTS.md` e `GEMINI.md`.
 
-## Workflows disponiveis (W10..W21)
-- `W10_iniciar_sessao`: inicio do dia com baseline tecnico.
-- `W11_continuar_sessao`: retomar contexto apos pausa.
-- `W12_salvar_checkpoint`: salvar progresso com quality gate.
-- `W13_corrigir_bug`: bugfix orientado por teste.
-- `W14_analisar_e_corrigir`: investigacao profunda + correcao definitiva.
-- `W15_refatoracao_com_limpeza`: refatorar sem alterar comportamento.
-- `W16_auditoria_qualidade`: quality gate completo com relatorio.
-- `W17_atualizar_documentacao_memoria`: sincronizar docs/memoria.
-- `W18_preparar_pr_merge`: preparar branch para PR/merge.
-- `W19_release_tag`: checkpoint de release com tag.
-- `W20_limpar_ambiente`: limpar ambiente de dev com seguranca.
-- `W21_sync_codex_antigravity`: sincronizacao obrigatoria Codex <-> Antigravity.
+## Política de branches
+- Codex: `feature/etapa-4-orders` (ou `join/codex-ag` em integracao).
+- Antigravity: `ag/<tipo>/<slug>`.
+- Integracao: `join/codex-ag`.
+- Guard rail obrigatorio:
+  - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join`
+  - `bash scripts/branch_guard.sh --agent antigravity --strict`
+  - `bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders`
 
-## Sequencia recomendada do dia
+## Fluxo recomendado (dia a dia)
 1. `W10_iniciar_sessao`
-2. `W11_continuar_sessao` (se retomada apos pausa)
-3. `W02_feature_backend` ou `W03_feature_frontend`
-4. `W16_auditoria_qualidade`
+2. `W02_feature_backend` ou `W03_feature_frontend`
+3. `W16_auditoria_qualidade`
+4. `W17_atualizar_documentacao_memoria`
 5. `W21_sync_codex_antigravity`
 6. `W12_salvar_checkpoint`
 
-## Quando usar W13 e W14
-- Use `W13` quando o bug e localizado e existe reproducao clara.
-- Use `W14` quando houver incerteza, necessidade de logs/hipoteses e analise de causa raiz.
+## Trabalho paralelo (Codex + Antigravity)
+1. Antes de editar, ler `.agent/memory/IN_PROGRESS.md`.
+2. Registrar lock humano no `IN_PROGRESS.md` (agente, branch, arquivos/areas).
+3. Evitar editar os mesmos arquivos ao mesmo tempo.
+4. Se houver intersecao, combinar ordem de entrega e usar `join/codex-ag` para integracao.
+5. Fechar com `W21_sync_codex_antigravity` antes de checkpoint/PR.
 
-## Quando usar W15
-- Use `W15` para limpeza estrutural sem alterar comportamento funcional.
-- Sempre com golden tests antes e depois.
+## Quando usar W13, W14 e W15
+- `W13`: bug localizado e reproducao clara.
+- `W14`: causa raiz incerta, precisa de investigacao.
+- `W15`: limpeza/refatoracao sem alterar comportamento.
 
-## Quando usar W18 e W19
-- `W18`: antes de abrir PR e antes de merge.
-- `W19`: quando for gerar checkpoint de release interna com tag.
+## PR e release
+- PR/merge: `W18_preparar_pr_merge`.
+- Release/tag: `W19_release_tag` (sempre apos QA completo).
 
-## Quando usar W21
-- Sempre que houver mudanca em backend, frontend, scripts, endpoints, portas ou env vars.
-- Antes de commit final para garantir sincronizacao entre codigo, docs/memoria e workflows.
-
-## Fluxo pratico recomendado
-1. `W10` (start)
-2. `W02/W03` (feature)
-3. `W16` (qa)
-4. `W21` (sync)
-5. commit + push
-
-## Como atualizar TODO_NEXT e PROJECT_STATE
-- `TODO_NEXT`: manter fila cronologica objetiva dos proximos passos.
-- `PROJECT_STATE`: refletir estado real (portas, endpoints, scripts, quickstart, modulos ativos).
-- Registrar mudancas estruturais no `CHANGELOG` e decisoes em `DECISIONS`.
+## Venv/NVM (obrigatorio)
+- Testes no root: ativar venv do backend antes.
+- NPM: carregar nvm e usar Node LTS antes de qualquer `npm run ...`.

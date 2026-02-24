@@ -1,12 +1,17 @@
 ---
-description: Bootstrap local do projeto para iniciar trabalho com stack completa e memoria carregada.
+description: Wrapper de bootstrap. Fonte de verdade: W10_iniciar_sessao.
 ---
 
-# Workflow 00 - Bootstrap
+# Workflow 00 - Bootstrap (Wrapper)
 
-1. Ler `AGENTS.md` e memoria oficial (`PROJECT_STATE`, `DECISIONS`, `CHANGELOG`, `RUNBOOK_DEV`).
-2. Verificar status do repo (`git status`) e registrar se ha alteracoes pendentes.
-3. Conferir env minimo sem segredos em arquivos versionados (`.env.example`).
-4. Subir backend, portal e client com os scripts oficiais.
-5. Rodar `scripts/smoke_stack_dev.sh` e `scripts/smoke_client_dev.sh`.
-6. Se smoke falhar, corrigir antes de iniciar qualquer feature.
+## Precondicao
+- Ler `AGENTS.md` e `GEMINI.md`.
+
+## Encaminhamento oficial
+1. Executar `W10_iniciar_sessao`.
+2. Se a sessao for retomada, executar `W11_continuar_sessao`.
+
+## Comando recomendado
+```bash
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join
+```

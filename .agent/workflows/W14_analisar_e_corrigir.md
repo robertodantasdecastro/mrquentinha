@@ -9,6 +9,7 @@ outputs:
   - correcao_aplicada
   - troubleshooting_documentado
 commands:
+  - sed -n '1,220p' GEMINI.md
   - coletar_logs
   - formular_hipoteses
   - isolar_causa_raiz
@@ -24,13 +25,7 @@ memory_updates:
 # W14 - Analisar e corrigir
 
 ## Passos
-1. Coletar logs e sinais (API, frontend, scripts, banco).
-2. Isolar causa raiz com experimento minimo reproduzivel.
-3. Propor duas abordagens:
-   - solucao rapida (mitigacao)
-   - solucao correta (definitiva)
-4. Aplicar a solucao correta.
-5. Atualizar `docs/memory/RUNBOOK_DEV.md` com troubleshooting objetivo.
-
-## Criterio de saida
-- Causa raiz comprovada e correcao definitiva aplicada.
+1. Ler `GEMINI.md`.
+2. Coletar logs e sinais.
+3. Isolar causa raiz com experimento reproduzivel.
+4. Aplicar solucao correta e atualizar troubleshooting.

@@ -8,6 +8,7 @@ outputs:
   - codigo_refatorado
   - comportamento_preservado
 commands:
+  - sed -n '1,220p' GEMINI.md
   - executar_golden_tests
   - refatorar_incrementalmente
   - rodar_lint_test_por_passo
@@ -20,17 +21,8 @@ memory_updates:
 
 # W15 - Refatoracao com limpeza
 
-## Regras
-- Iniciar com golden tests passando.
-- Fazer refatoracoes pequenas e isoladas.
-- Rodar lint/test a cada passo relevante.
-- Evitar mistura de refatoracao com mudanca funcional.
-
 ## Passos
-1. Congelar baseline com testes existentes.
-2. Refatorar em lotes pequenos.
-3. Validar continuamente (`make lint`, `make test`, builds quando aplicavel).
-4. Revisar diff para garantir ausencia de alteracao de comportamento.
-
-## Criterio de saida
-- Entrega PR-ready, sem regressao funcional.
+1. Ler `GEMINI.md`.
+2. Congelar baseline com golden tests.
+3. Refatorar em lotes pequenos e validar continuamente.
+4. Confirmar ausencia de mudanca comportamental.

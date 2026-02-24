@@ -5,13 +5,7 @@ No root (`~/mrquentinha`), em terminais separados:
 
 ```bash
 ./scripts/start_backend_dev.sh
-```
-
-```bash
 ./scripts/start_portal_dev.sh
-```
-
-```bash
 ./scripts/start_client_dev.sh
 ```
 
@@ -20,145 +14,87 @@ Acessos:
 - Portal: `http://127.0.0.1:3000`
 - Web Cliente: `http://127.0.0.1:3001`
 
-## 1.1) Painel de operacao e monitoramento
-
-Abrir painel estilo btop (CPU, memoria, trafego, acessos e gestao de servicos):
-
-```bash
-./scripts/ops_dashboard.sh
-```
-
-Comandos dentro do painel:
-- `1/2/3`: backend start/stop/restart
-- `4/5/6`: portal start/stop/restart
-- `7/8/9`: client start/stop/restart
-- `a`: start all
-- `s`: stop all
-- `r`: restart all
-- `q`: sair
-
-Snapshot rapido (sem TUI):
+## 2) Sessao e paralelo (Codex + Antigravity)
+1. Ler `AGENTS.md` e `GEMINI.md`.
+2. Ler `.agent/memory/IN_PROGRESS.md`.
+3. Validar branch:
 
 ```bash
-python3 scripts/ops_center.py --once
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join
+bash scripts/branch_guard.sh --agent antigravity --strict
+bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders
 ```
 
-Export continuo de metricas do painel (historico):
+4. Atualizar lock humano (`IN_PROGRESS.md`) antes de editar.
 
-```bash
-./scripts/ops_dashboard.sh --export-json --export-csv --export-interval 5
-```
-
-Arquivos de export:
-- `.runtime/ops/exports/ops_YYYYMMDD.jsonl`
-- `.runtime/ops/exports/ops_YYYYMMDD.csv`
-
-## 2) Rodar smoke
-Validacao automatica ponta a ponta:
+## 3) Smoke
+Validacao ponta a ponta:
 
 ```bash
 ./scripts/smoke_stack_dev.sh
 ```
 
-Validacao rapida so do client:
+Validacao rapida do client:
 
 ```bash
 ./scripts/smoke_client_dev.sh
 ```
 
-### 2.1) Smoke apos hardening RBAC
-- O smoke nao usa mais `GET /api/v1/catalog/menus/` (privado).
-- Endpoint publico read-only usado no smoke e nos frontends:
+### 3.1) Smoke apos hardening RBAC
+- Endpoint privado `/api/v1/catalog/menus/` nao e usado no smoke.
+- Endpoint publico read-only usado para smoke/frontends:
   - `GET /api/v1/catalog/menus/today/`
-- Regras de seguranca mantidas:
-  - CRUD de catalogo continua protegido por RBAC.
-  - Apenas leitura minima de cardapio (`by-date` e `today`) fica publica no MVP.
+- CRUD do catalogo permanece protegido por RBAC.
 
-## 3) Seed DEMO
+## 4) Seed DEMO
 Com backend pronto:
 
 ```bash
 ./scripts/seed_demo.sh
 ```
 
-O seed e idempotente e pode ser reexecutado no ambiente de desenvolvimento.
+## 5) Quality gate padronizado
+```bash
+bash scripts/quality_gate_all.sh
+```
 
-## 4) Testar OCR (MVP simulado)
-### 4.1 Criar OCR job (multipart)
+O script garante:
+- venv backend ativa
+- Node via `nvm use --lts`
+- checks backend/root/frontends/smokes
+
+## 6) Sync obrigatorio antes de commit final
+```bash
+bash scripts/sync_memory.sh --check
+```
+
+## 7) OCR (MVP simulado)
+### Criar OCR job
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/ \
   -F "kind=LABEL_FRONT" \
   -F "image=@/caminho/arquivo.png" \
-  -F "raw_text=Produto: Arroz Tipo 1\nMarca: Demo\nPorcao: 50 g\nValor energetico 180 kcal\nCarboidratos 38 g\nProteinas 3.5 g\nGorduras totais 0.5 g\nGorduras saturadas 0.1 g\nFibra alimentar 1.0 g\nSodio 2 mg"
+  -F "raw_text=Produto: Arroz Tipo 1\nMarca: Demo"
 ```
 
-### 4.2 Aplicar OCR em ingrediente
+### Aplicar OCR
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/\<JOB_ID\>/apply/ \
   -H "Content-Type: application/json" \
-  -d '{
-    "target_type": "INGREDIENT",
-    "target_id": 1,
-    "mode": "merge"
-  }'
+  -d '{"target_type":"INGREDIENT","target_id":1,"mode":"merge"}'
 ```
 
-## 5) Fluxo operacional completo para testes
-1. Catalogo:
-- criar/ajustar ingredientes e pratos
-- criar cardapio do dia (`MenuDay` + `MenuItem`)
+## 8) Troubleshooting
+- `DisallowedHost`:
+  - revisar `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`.
+- CORS:
+  - revisar `CORS_ALLOWED_ORIGINS`.
+- Next lock:
+  - remover apenas `workspaces/web/client/.next/dev/lock` apos encerrar processo.
+- Porta ocupada:
+  - `ss -ltnp | grep -E ':8000|:3000|:3001'`
 
-2. Compras/Estoque:
-- registrar `Purchase` com `PurchaseItem`
-- conferir `StockMovement IN` e saldo de `StockItem`
-
-3. Producao:
-- criar `ProductionBatch` para data
-- completar lote (`/complete/`) para gerar `StockMovement OUT`
-
-4. Pedidos:
-- criar `Order` com itens do cardapio da data
-- validar total e `Payment PENDING`
-
-5. Financeiro:
-- confirmar geracao de AP por compra
-- confirmar geracao de AR por pedido
-- marcar pagamento como `PAID` e validar entrada de caixa + ledger
-- consultar `cashflow`, `dre` e `kpis`
-
-## 6) Politica de branches (anti-conflito)
-- Codex: `feature/etapa-4-orders`
-- Antigravity: `ag/<tipo>/<slug>`
-- Integracao: `join/codex-ag`
-
-Validar branch antes de checkpoint/merge:
-
-```bash
-bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders
-bash scripts/branch_guard.sh --agent antigravity --strict
-bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders
-```
-
-## 7) Troubleshooting
-- DisallowedHost em DEV:
-  - ajustar `ALLOWED_HOSTS` em `workspaces/backend/.env` para incluir IP/host de acesso.
-  - ajustar `CSRF_TRUSTED_ORIGINS` para as origens usadas pelo portal/client.
-
-- CORS bloqueando frontend:
-  - revisar `CORS_ALLOWED_ORIGINS` no `.env` do backend.
-  - garantir que a origem exata (`http://IP:porta`) esteja na lista.
-
-- Lock do Next no client (`.next/dev/lock`):
-  - encerrar processo legado da porta 3001.
-  - remover apenas o lock stale:
-    - `rm -f workspaces/web/client/.next/dev/lock`
-
-- Porta ocupada em smoke:
-  - checar listeners:
-    - `ss -ltnp | grep -E ':8000|:3000|:3001'`
-  - reexecutar smoke apos liberar as portas.
-
-## 8) Qualidade antes de PR
+## 9) Qualidade manual (fallback)
 Backend:
 
 ```bash
@@ -166,7 +102,6 @@ cd workspaces/backend
 source .venv/bin/activate
 python manage.py check
 python manage.py makemigrations --check
-python manage.py migrate
 make lint
 make test
 ```
@@ -174,22 +109,16 @@ make test
 Root:
 
 ```bash
+cd ~/mrquentinha
+source workspaces/backend/.venv/bin/activate
 make test
 pytest
 ```
 
-Portal:
+Frontends:
 
 ```bash
-cd workspaces/web/portal
-npm run lint
-npm run build
-```
-
-Client:
-
-```bash
-cd workspaces/web/client
-npm run lint
-npm run build
+source ~/.nvm/nvm.sh && nvm use --lts
+cd workspaces/web/portal && npm run build
+cd workspaces/web/client && npm run build
 ```

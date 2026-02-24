@@ -1,6 +1,10 @@
 # Session Commands (macros de rotina)
 
-## Mapeamento de macros
+## Regra base
+- Ler `AGENTS.md` e `GEMINI.md` antes de qualquer macro.
+- Em fluxos com commit/push/merge, executar `scripts/branch_guard.sh`.
+
+## Mapeamento de macros (fonte de verdade W10..W21)
 - `INICIAR_SESSAO` -> `W10_iniciar_sessao.md`
 - `CONTINUAR_SESSAO` -> `W11_continuar_sessao.md`
 - `SALVAR_CHECKPOINT` -> `W12_salvar_checkpoint.md`
@@ -14,13 +18,19 @@
 - `LIMPAR_AMBIENTE` -> `W20_limpar_ambiente.md`
 - `SYNC_CODEX_ANTIGRAVITY` -> `W21_sync_codex_antigravity.md`
 
-## Macros de feature
+## Wrappers (00..06)
+- `BOOTSTRAP` -> `00_bootstrap.md`
+- `DEV_LOOP` -> `01_dev_loop.md`
 - `FEATURE_BACKEND` -> `02_feature_backend.md`
 - `FEATURE_FRONTEND` -> `03_feature_frontend.md`
+- `QUALITY_GATE` -> `04_quality_gate.md`
+- `DOCS_UPDATE` -> `05_docs_update.md`
+- `RELEASE_CHECKPOINT` -> `06_release_checkpoint.md`
 
 ## Sequencia recomendada
-- Inicio do dia: `INICIAR_SESSAO`
-- Execucao: `FEATURE_BACKEND` ou `FEATURE_FRONTEND`
-- Fechamento tecnico: `AUDITAR_QUALIDADE`
-- Sincronizacao obrigatoria: `SYNC_CODEX_ANTIGRAVITY`
-- Persistencia: `SALVAR_CHECKPOINT`
+1. `INICIAR_SESSAO`
+2. `FEATURE_BACKEND` ou `FEATURE_FRONTEND`
+3. `AUDITAR_QUALIDADE`
+4. `ATUALIZAR_DOCS_MEMORIA`
+5. `SYNC_CODEX_ANTIGRAVITY`
+6. `SALVAR_CHECKPOINT`

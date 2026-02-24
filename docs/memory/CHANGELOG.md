@@ -313,3 +313,10 @@
   - workflows W12/W18/W21 atualizados com validacao de branch e fluxo de integracao join.
   - smoke do stack ajustado para usar endpoint publico read-only de cardapio (`GET /api/v1/catalog/menus/today/`).
   - backend manteve RBAC para CRUD e liberou apenas leitura minima publica (`by-date` e `today`) para MVP.
+
+- Infra/Workflow: harmonizacao Codex <-> Antigravity (sem duplicacao)
+  - `W10..W21` definidos como fonte de verdade para operacao humana.
+  - `00..06` consolidados como wrappers curtos que apenas encaminham para os `W*`.
+  - branch policy aplicada nos fluxos com commit/push/merge via `scripts/branch_guard.sh`.
+  - quality gate e sync padronizados com ativacao de venv backend e `nvm use --lts` para npm.
+  - criada documentacao de trabalho paralelo com lock humano (`IN_PROGRESS.md`) e mapa oficial de workflows.

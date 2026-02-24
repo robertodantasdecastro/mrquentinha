@@ -3,30 +3,51 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-ensure_npm() {
-  if command -v npm >/dev/null 2>&1; then
-    return
+activate_backend_venv() {
+  local venv_activate="$ROOT_DIR/workspaces/backend/.venv/bin/activate"
+
+  if [[ ! -f "$venv_activate" ]]; then
+    echo "[quality_gate] ERRO: venv do backend nao encontrada em $venv_activate" >&2
+    echo "[quality_gate] Crie/ative a venv antes de rodar o quality gate." >&2
+    exit 1
   fi
 
-  if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
-    # shellcheck disable=SC1090
-    source "$HOME/.nvm/nvm.sh"
-    if command -v nvm >/dev/null 2>&1; then
-      nvm use --silent default >/dev/null 2>&1 || nvm use --silent node >/dev/null 2>&1 || true
-    fi
+  # shellcheck disable=SC1090
+  source "$venv_activate"
+}
+
+ensure_nvm_lts() {
+  if [[ ! -s "$HOME/.nvm/nvm.sh" ]]; then
+    echo "[quality_gate] ERRO: nvm nao encontrado em ~/.nvm/nvm.sh" >&2
+    exit 1
   fi
+
+  # shellcheck disable=SC1090
+  source "$HOME/.nvm/nvm.sh"
+
+  if ! command -v nvm >/dev/null 2>&1; then
+    echo "[quality_gate] ERRO: comando nvm indisponivel no shell atual." >&2
+    exit 1
+  fi
+
+  nvm use --lts >/dev/null
 
   if ! command -v npm >/dev/null 2>&1; then
-    echo "[quality_gate] ERRO: npm nao encontrado no PATH." >&2
-    echo "[quality_gate] Instale Node.js/NPM ou configure NVM no ambiente atual." >&2
+    echo "[quality_gate] ERRO: npm nao encontrado apos carregar nvm --lts." >&2
     exit 1
   fi
 }
 
-if [[ -f "$ROOT_DIR/workspaces/backend/.venv/bin/activate" ]]; then
-  # shellcheck disable=SC1091
-  source "$ROOT_DIR/workspaces/backend/.venv/bin/activate"
-fi
+activate_backend_venv
+
+echo "[quality_gate] Backend: python manage.py check"
+(cd "$ROOT_DIR/workspaces/backend" && python manage.py check)
+
+echo "[quality_gate] Backend: make lint"
+(cd "$ROOT_DIR/workspaces/backend" && make lint)
+
+echo "[quality_gate] Backend: make test"
+(cd "$ROOT_DIR/workspaces/backend" && make test)
 
 echo "[quality_gate] Root: make test"
 (cd "$ROOT_DIR" && make test)
@@ -34,10 +55,7 @@ echo "[quality_gate] Root: make test"
 echo "[quality_gate] Root: pytest"
 (cd "$ROOT_DIR" && pytest)
 
-echo "[quality_gate] Backend: make test"
-(cd "$ROOT_DIR/workspaces/backend" && make test)
-
-ensure_npm
+ensure_nvm_lts
 
 echo "[quality_gate] Portal: npm run build"
 (cd "$ROOT_DIR/workspaces/web/portal" && npm run build)
