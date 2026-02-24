@@ -206,3 +206,16 @@
   - pagina `/app` com QR Code para `https://www.mrquentinha.com.br/app` e botoes Android/iOS (placeholders documentados).
   - README do portal atualizado com setup local, env vars e build.
   - docs de deploy EC2 atualizadas com nota de deploy do portal via reverse proxy ou build estatico.
+
+- Etapa 6.0.1 hardening portal (dev origins + audit + scripts):
+  - `next.config.ts` atualizado com `allowedDevOrigins` para desenvolvimento local/VM.
+  - `npm audit fix` executado sem `--force`; vulnerabilidades high restantes documentadas no README do portal.
+  - scripts de DX criados no root:
+    - `scripts/start_backend_dev.sh`
+    - `scripts/start_portal_dev.sh`
+  - README do root atualizado com fluxo rapido para subir backend + portal.
+
+- Fix: ALLOWED_HOSTS dev para VM
+  - settings carregam `ALLOWED_HOSTS` via env com default local (`localhost`, `127.0.0.1`).
+  - adicionado `CSRF_TRUSTED_ORIGINS` via env (default vazio) para ambiente de desenvolvimento.
+  - `.env.example` e `README` do backend atualizados com exemplos para acesso via IP da VM.

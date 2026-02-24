@@ -536,3 +536,14 @@ Consultar se uma data esta fechada:
 ```bash
 curl "http://127.0.0.1:8000/api/v1/finance/closes/is-closed/?date=2026-12-15"
 ```
+
+## Acesso via IP da VM (DEV)
+Para acessar o backend via IP da VM (ex.: `http://10.211.55.21:8000`), ajuste no `.env`:
+
+```env
+ALLOWED_HOSTS=localhost,127.0.0.1,10.211.55.21
+CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://10.211.55.21:3000
+```
+
+- `ALLOWED_HOSTS` libera o host/IP aceito pelo Django.
+- `CSRF_TRUSTED_ORIGINS` deve conter as origens web que farão chamadas com métodos que exigem CSRF.
