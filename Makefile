@@ -1,24 +1,26 @@
 SHELL := /bin/bash
 
+BACKEND_DIR := workspaces/backend
+BACKEND_VENV_ACTIVATE := $(BACKEND_DIR)/.venv/bin/activate
+
 .PHONY: test lint format check
 
+define require_backend_venv
+@if [[ ! -f "$(BACKEND_VENV_ACTIVATE)" ]]; then  echo "[make] ERRO: venv nao encontrada em $(BACKEND_VENV_ACTIVATE)";  echo "[make] Crie e instale deps: cd $(BACKEND_DIR) && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt";  exit 1;  fi
+endef
+
 test:
-	cd workspaces/backend && make test
-	@if [[ -x workspaces/backend/.venv/bin/pytest ]]; then \
-		echo "[make test] Rodando pytest no root com workspaces/backend/.venv/bin/pytest"; \
-		workspaces/backend/.venv/bin/pytest; \
-	elif command -v pytest >/dev/null 2>&1; then \
-		echo "[make test] Rodando pytest no root com pytest do PATH"; \
-		pytest; \
-	else \
-		echo "[make test] AVISO: pytest nao encontrado. Ative a venv em workspaces/backend/.venv"; \
-	fi
+	$(call require_backend_venv)
+	cd $(BACKEND_DIR) && . .venv/bin/activate && make test
 
 lint:
-	cd workspaces/backend && make lint
+	$(call require_backend_venv)
+	cd $(BACKEND_DIR) && . .venv/bin/activate && make lint
 
 format:
-	cd workspaces/backend && make format
+	$(call require_backend_venv)
+	cd $(BACKEND_DIR) && . .venv/bin/activate && make format
 
 check:
-	cd workspaces/backend && python manage.py check
+	$(call require_backend_venv)
+	cd $(BACKEND_DIR) && . .venv/bin/activate && python manage.py check
