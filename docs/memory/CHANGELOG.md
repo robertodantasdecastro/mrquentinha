@@ -145,3 +145,11 @@
   - retorno por dia com `total_in`, `total_out`, `net` e `running_balance`.
   - validacoes de entrada adicionadas (`from`/`to` obrigatorios e `from <= to`).
   - testes de relatorio e API cobrindo agregacao e saldo acumulado.
+
+- Etapa 5.4 producao + consumo de estoque:
+  - novo modulo `production` com modelos `ProductionBatch` e `ProductionItem`.
+  - endpoint de lotes de producao publicado em `/api/v1/production/batches/` com acao `POST /<id>/complete/`.
+  - conclusao de lote consome ingredientes por receita (`DishIngredient`) e gera `StockMovement` `OUT` com referencia `PRODUCTION`.
+  - integracao com `inventory.services.apply_stock_movement` para reaproveitar regra de bloqueio de saldo negativo.
+  - idempotencia no fechamento de lote: reprocessamento de `complete_batch` nao duplica movimentos.
+  - testes pytest cobrindo criacao de lote, consumo de estoque, bloqueio por saldo insuficiente, idempotencia e endpoint `complete`.

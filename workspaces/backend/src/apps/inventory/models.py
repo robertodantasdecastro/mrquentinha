@@ -47,6 +47,7 @@ class StockReferenceType(models.TextChoices):
     PURCHASE = "PURCHASE", "PURCHASE"
     CONSUMPTION = "CONSUMPTION", "CONSUMPTION"
     ADJUSTMENT = "ADJUSTMENT", "ADJUSTMENT"
+    PRODUCTION = "PRODUCTION", "PRODUCTION"
 
 
 class StockMovement(models.Model):

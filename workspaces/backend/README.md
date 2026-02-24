@@ -15,6 +15,7 @@ Foi utilizado o padrao `src/` para manter separacao clara entre codigo da aplica
 - `inventory`
 - `procurement`
 - `orders`
+- `production`
 - `finance`
 - `ocr_ai`
 
@@ -362,4 +363,45 @@ curl -X POST http://127.0.0.1:8000/api/v1/finance/cash-movements/ \
 Relatorio de cashflow por periodo:
 ```bash
 curl "http://127.0.0.1:8000/api/v1/finance/reports/cashflow/?from=2026-03-01&to=2026-03-07"
+```
+
+## Producao (Etapa 5.4 - MVP)
+### Decisao de API
+- Os itens de producao ficam embutidos no `ProductionBatch` via campo `items` na escrita e `production_items` na leitura.
+- Nao foi criado endpoint separado para `production/items` no MVP.
+
+### Endpoints
+- `GET/POST /api/v1/production/batches/`
+- `POST /api/v1/production/batches/<id>/complete/`
+
+### Regras de negocio implementadas
+- Criacao de lote valida existencia de `MenuDay` para a data e se cada `menu_item` pertence ao cardapio do dia.
+- Conclusao do lote (`complete`) consome estoque automaticamente com base em `DishIngredient.quantity * qty_produced`.
+- Consumo de estoque gera `StockMovement OUT` com referencia `PRODUCTION` + `batch.id`.
+- Nao permite saldo negativo (reaproveita validacao do modulo `inventory`).
+- Idempotencia na conclusao: se o lote ja estiver `DONE`, nao gera movimentos duplicados.
+- Conversao de unidade ainda nao implementada: unidade da receita deve ser compativel com a unidade do ingrediente/estoque (TODO futuro).
+
+### Exemplos curl
+Criar lote de producao:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/production/batches/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "production_date": "2026-03-20",
+    "note": "Lote de producao da cozinha",
+    "items": [
+      {
+        "menu_item": 1,
+        "qty_planned": 30,
+        "qty_produced": 28,
+        "qty_waste": 2
+      }
+    ]
+  }'
+```
+
+Concluir lote e aplicar consumo de estoque:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/production/batches/1/complete/
 ```

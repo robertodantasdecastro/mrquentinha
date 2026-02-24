@@ -112,3 +112,15 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - dias sem movimentacao nao sao retornados no endpoint de cashflow.
   - motivo: resposta mais enxuta no MVP, mantendo foco nos dias com evento financeiro.
   - TODO futuro: opcao para preencher dias vazios com zero quando necessario para dashboards.
+
+## Etapa 5.4 - Producao e consumo de estoque
+- Integracao de referencia em estoque para producao:
+  - `StockMovement.reference_type = "PRODUCTION"`
+  - `StockMovement.reference_id = <production_batch.id>`
+- Idempotencia no fechamento do lote:
+  - `complete_batch` nao deve gerar novos movimentos se o lote ja estiver `DONE`.
+  - se ja houver movimentos `OUT` de referencia `PRODUCTION` para o lote, apenas conclui status e retorna.
+- Unidade sem conversao (MVP):
+  - consumo de ingrediente em producao exige unidade compativel entre receita (`DishIngredient.unit`) e estoque/ingrediente.
+  - ao detectar unidade incompativel, o service retorna `ValidationError` explicita.
+  - TODO: implementar conversao de unidades (g<->kg, ml<->l, etc.) em subfase futura.
