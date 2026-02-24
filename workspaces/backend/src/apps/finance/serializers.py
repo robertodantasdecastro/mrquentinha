@@ -8,9 +8,11 @@ from .models import (
     APBillStatus,
     ARReceivable,
     ARReceivableStatus,
+    BankStatement,
     CashDirection,
     CashMovement,
     LedgerEntry,
+    StatementLine,
 )
 
 
@@ -146,6 +148,50 @@ class ARReceivableSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class BankStatementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BankStatement
+        fields = [
+            "id",
+            "period_start",
+            "period_end",
+            "opening_balance",
+            "closing_balance",
+            "source",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def validate(self, attrs: dict) -> dict:
+        attrs = super().validate(attrs)
+
+        period_start = attrs.get(
+            "period_start", getattr(self.instance, "period_start", None)
+        )
+        period_end = attrs.get("period_end", getattr(self.instance, "period_end", None))
+
+        if period_start and period_end and period_start > period_end:
+            raise serializers.ValidationError(
+                "period_start deve ser menor ou igual a period_end."
+            )
+
+        return attrs
+
+
+class StatementLineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StatementLine
+        fields = [
+            "id",
+            "statement",
+            "line_date",
+            "description",
+            "amount",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+
 class CashMovementSerializer(serializers.ModelSerializer):
     direction = serializers.ChoiceField(choices=CashDirection.choices)
     amount = serializers.DecimalField(
@@ -165,9 +211,11 @@ class CashMovementSerializer(serializers.ModelSerializer):
             "note",
             "reference_type",
             "reference_id",
+            "statement_line",
+            "is_reconciled",
             "created_at",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "statement_line", "is_reconciled", "created_at"]
 
     def validate(self, attrs: dict) -> dict:
         attrs = super().validate(attrs)
@@ -201,3 +249,7 @@ class LedgerEntrySerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+
+class ReconcileCashMovementSerializer(serializers.Serializer):
+    statement_line_id = serializers.IntegerField(min_value=1)

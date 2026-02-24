@@ -290,7 +290,13 @@ curl http://127.0.0.1:8000/api/v1/orders/payments/
 - `GET/POST /api/v1/finance/ap-bills/`
 - `GET/POST /api/v1/finance/ar-receivables/`
 - `GET/POST /api/v1/finance/cash-movements/`
+- `GET/POST /api/v1/finance/bank-statements/`
+- `GET/POST /api/v1/finance/statement-lines/`
+- `GET/POST /api/v1/finance/bank-statements/<id>/lines/`
+- `POST /api/v1/finance/cash-movements/<id>/reconcile/`
+- `POST /api/v1/finance/cash-movements/<id>/unreconcile/`
 - `GET /api/v1/finance/ledger/` (read-only no MVP)
+- `GET /api/v1/finance/reports/unreconciled/?from=YYYY-MM-DD&to=YYYY-MM-DD`
 
 ### Regras base implementadas
 - Integracao por referencia com `reference_type` + `reference_id`.
@@ -308,6 +314,11 @@ curl http://127.0.0.1:8000/api/v1/orders/payments/
   - ao receber AR, registra `AR_RECEIVED` e `CASH_IN`
   - ao pagar AP, registra `AP_PAID` e `CASH_OUT`
 - Idempotencia do ledger por (`reference_type`, `reference_id`, `entry_type`), sem duplicar entradas em reprocessamentos.
+- Conciliacao de caixa (Etapa 5.6.2):
+  - `reconcile_cash_movement` vincula `CashMovement` a `StatementLine` e marca `is_reconciled=true`.
+  - reconciliar novamente com a mesma linha e idempotente (sem erro).
+  - tentativa de reconciliar com outra linha gera erro claro e exige desconciliacao previa.
+  - `unreconcile_cash_movement` remove vinculo e retorna o movimento para pendencia de conciliacao.
 - Permissoes temporarias no MVP: `AllowAny` com TODO explicito para RBAC.
 
 ### Exemplos curl
@@ -434,4 +445,62 @@ curl -X POST http://127.0.0.1:8000/api/v1/production/batches/ \
 Concluir lote e aplicar consumo de estoque:
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/production/batches/1/complete/
+```
+
+## Financeiro - Conciliacao de Caixa (Etapa 5.6.2)
+### Endpoints
+- `GET/POST /api/v1/finance/bank-statements/`
+- `GET/POST /api/v1/finance/statement-lines/`
+- `GET/POST /api/v1/finance/bank-statements/<id>/lines/`
+- `POST /api/v1/finance/cash-movements/<id>/reconcile/`
+- `POST /api/v1/finance/cash-movements/<id>/unreconcile/`
+- `GET /api/v1/finance/reports/unreconciled/?from=YYYY-MM-DD&to=YYYY-MM-DD`
+
+### Regras de conciliacao (MVP)
+- Reconciliar com a mesma `statement_line` e idempotente (nao duplica e nao falha).
+- Se o movimento ja estiver conciliado com outra linha, retorna erro claro.
+- `unreconcile` remove o vinculo e marca o movimento como pendente (`is_reconciled=false`).
+
+### Exemplos curl
+Criar extrato bancario:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/bank-statements/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "period_start": "2026-08-01",
+    "period_end": "2026-08-31",
+    "opening_balance": "1000.00",
+    "closing_balance": "1200.00",
+    "source": "Banco MVP"
+  }'
+```
+
+Criar linha no extrato:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/bank-statements/1/lines/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "line_date": "2026-08-05",
+    "description": "Credito PIX",
+    "amount": "150.00"
+  }'
+```
+
+Conciliar movimento de caixa:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/cash-movements/1/reconcile/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "statement_line_id": 10
+  }'
+```
+
+Desconciliar movimento de caixa:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/cash-movements/1/unreconcile/
+```
+
+Relatorio de pendencias de conciliacao:
+```bash
+curl "http://127.0.0.1:8000/api/v1/finance/reports/unreconciled/?from=2026-08-01&to=2026-08-31"
 ```

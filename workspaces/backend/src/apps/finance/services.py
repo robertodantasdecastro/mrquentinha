@@ -19,6 +19,7 @@ from .models import (
     CashMovement,
     LedgerEntry,
     LedgerEntryType,
+    StatementLine,
 )
 from .selectors import (
     get_ap_by_reference,
@@ -440,5 +441,62 @@ def record_cash_out_from_ap(
         cash_account=movement.account,
         entry_date=movement.movement_date,
     )
+
+    return movement
+
+
+@transaction.atomic
+def reconcile_cash_movement(
+    cash_movement_id: int,
+    statement_line_id: int,
+) -> CashMovement:
+    try:
+        movement = CashMovement.objects.select_for_update().get(pk=cash_movement_id)
+    except CashMovement.DoesNotExist as exc:
+        raise ValidationError("Movimento de caixa nao encontrado.") from exc
+
+    try:
+        statement_line = StatementLine.objects.get(pk=statement_line_id)
+    except StatementLine.DoesNotExist as exc:
+        raise ValidationError("Linha de extrato nao encontrada.") from exc
+
+    if movement.is_reconciled:
+        if movement.statement_line_id == statement_line.id:
+            return movement
+
+        raise ValidationError(
+            "Movimento ja conciliado com outra linha de extrato. "
+            "Desconcilie antes de reconciliar novamente."
+        )
+
+    if (
+        movement.statement_line_id is not None
+        and movement.statement_line_id != statement_line.id
+    ):
+        raise ValidationError(
+            "Movimento ja possui vinculo com outra linha de extrato. "
+            "Desconcilie antes de reconciliar novamente."
+        )
+
+    movement.statement_line = statement_line
+    movement.is_reconciled = True
+    movement.save(update_fields=["statement_line", "is_reconciled"])
+
+    return movement
+
+
+@transaction.atomic
+def unreconcile_cash_movement(cash_movement_id: int) -> CashMovement:
+    try:
+        movement = CashMovement.objects.select_for_update().get(pk=cash_movement_id)
+    except CashMovement.DoesNotExist as exc:
+        raise ValidationError("Movimento de caixa nao encontrado.") from exc
+
+    if not movement.is_reconciled and movement.statement_line_id is None:
+        return movement
+
+    movement.statement_line = None
+    movement.is_reconciled = False
+    movement.save(update_fields=["statement_line", "is_reconciled"])
 
     return movement

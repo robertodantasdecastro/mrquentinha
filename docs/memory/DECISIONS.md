@@ -151,3 +151,15 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - services usam `get_or_create` para reprocessamento seguro sem duplicidade.
 - TODO futuro:
   - evoluir para modelo contabil completo com partidas dobradas obrigatorias e fechamento por periodo.
+
+## Etapa 5.6.2 - Conciliacao de caixa (extrato)
+- Modelo de conciliacao MVP:
+  - conciliacao manual via vinculo `CashMovement.statement_line`.
+  - flag `CashMovement.is_reconciled` indica pendencia/conciliado para filtros operacionais.
+- Regra de idempotencia:
+  - reconciliar o mesmo movimento com a mesma `StatementLine` e operacao idempotente.
+  - se o movimento ja estiver conciliado com outra linha, o service retorna erro claro (nao sobrescreve).
+- Reconciliacao inversa:
+  - `unreconcile_cash_movement` remove vinculo e volta `is_reconciled=false`.
+- Relatorio de pendencias:
+  - endpoint `reports/unreconciled` retorna apenas movimentos nao conciliados por periodo (`from`/`to`).

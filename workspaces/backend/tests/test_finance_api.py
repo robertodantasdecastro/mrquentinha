@@ -18,9 +18,11 @@ from apps.finance.models import (
     AccountType,
     APBill,
     APBillStatus,
+    BankStatement,
     CashDirection,
     CashMovement,
     LedgerEntry,
+    StatementLine,
 )
 from apps.orders.models import Order, OrderItem, OrderStatus
 from apps.procurement.models import Purchase, PurchaseItem
@@ -372,6 +374,7 @@ def test_finance_kpis_report_endpoint_retorna_200_com_kpis_basicos(client):
         "/api/v1/finance/reports/cashflow/",
         "/api/v1/finance/reports/dre/",
         "/api/v1/finance/reports/kpis/",
+        "/api/v1/finance/reports/unreconciled/",
     ],
 )
 def test_finance_reports_endpoint_exige_from_e_to(client, endpoint):
@@ -388,6 +391,7 @@ def test_finance_reports_endpoint_exige_from_e_to(client, endpoint):
         "/api/v1/finance/reports/cashflow/",
         "/api/v1/finance/reports/dre/",
         "/api/v1/finance/reports/kpis/",
+        "/api/v1/finance/reports/unreconciled/",
     ],
 )
 def test_finance_reports_endpoint_valida_intervalo(client, endpoint):
@@ -395,3 +399,140 @@ def test_finance_reports_endpoint_valida_intervalo(client, endpoint):
 
     assert response.status_code == 400
     assert "menor ou igual" in response.json()["detail"]
+
+
+@pytest.mark.django_db
+def test_finance_bank_statement_e_lines_endpoints_criam_dados(client):
+    statement_payload = {
+        "period_start": "2026-08-01",
+        "period_end": "2026-08-31",
+        "opening_balance": "1000.00",
+        "closing_balance": "1200.00",
+        "source": "Banco MVP",
+    }
+
+    statement_response = client.post(
+        "/api/v1/finance/bank-statements/",
+        data=json.dumps(statement_payload),
+        content_type="application/json",
+    )
+
+    assert statement_response.status_code == 201
+    statement_id = statement_response.json()["id"]
+
+    line_response = client.post(
+        f"/api/v1/finance/bank-statements/{statement_id}/lines/",
+        data=json.dumps(
+            {
+                "line_date": "2026-08-05",
+                "description": "Credito PIX",
+                "amount": "150.00",
+            }
+        ),
+        content_type="application/json",
+    )
+
+    assert line_response.status_code == 201
+    assert line_response.json()["statement"] == statement_id
+
+    list_lines_response = client.get(
+        f"/api/v1/finance/bank-statements/{statement_id}/lines/"
+    )
+
+    assert list_lines_response.status_code == 200
+    assert len(list_lines_response.json()) == 1
+
+
+@pytest.mark.django_db
+def test_finance_cash_movement_reconcile_e_unreconcile_endpoints(client):
+    cash_account = Account.objects.create(
+        name="Conta Caixa API Rec", type=AccountType.ASSET
+    )
+    movement = CashMovement.objects.create(
+        direction=CashDirection.IN,
+        amount=Decimal("99.90"),
+        account=cash_account,
+        reference_type="AR",
+        reference_id=987,
+    )
+    statement = BankStatement.objects.create(
+        period_start=date(2026, 9, 1),
+        period_end=date(2026, 9, 30),
+    )
+    line = StatementLine.objects.create(
+        statement=statement,
+        line_date=date(2026, 9, 10),
+        description="Recebimento no banco",
+        amount=Decimal("99.90"),
+    )
+
+    reconcile_response = client.post(
+        f"/api/v1/finance/cash-movements/{movement.id}/reconcile/",
+        data=json.dumps({"statement_line_id": line.id}),
+        content_type="application/json",
+    )
+
+    assert reconcile_response.status_code == 200
+    reconcile_body = reconcile_response.json()
+    assert reconcile_body["is_reconciled"] is True
+    assert reconcile_body["statement_line"] == line.id
+
+    unreconcile_response = client.post(
+        f"/api/v1/finance/cash-movements/{movement.id}/unreconcile/",
+        data=json.dumps({}),
+        content_type="application/json",
+    )
+
+    assert unreconcile_response.status_code == 200
+    unreconcile_body = unreconcile_response.json()
+    assert unreconcile_body["is_reconciled"] is False
+    assert unreconcile_body["statement_line"] is None
+
+
+@pytest.mark.django_db
+def test_finance_unreconciled_report_retorna_apenas_pendentes(client):
+    cash_account = Account.objects.create(
+        name="Conta Caixa API Pend", type=AccountType.ASSET
+    )
+    pending = CashMovement.objects.create(
+        movement_date=timezone.make_aware(datetime(2026, 10, 10, 10, 0)),
+        direction=CashDirection.IN,
+        amount=Decimal("120.00"),
+        account=cash_account,
+        reference_type="AR",
+        reference_id=1001,
+        is_reconciled=False,
+    )
+
+    statement = BankStatement.objects.create(
+        period_start=date(2026, 10, 1),
+        period_end=date(2026, 10, 31),
+    )
+    line = StatementLine.objects.create(
+        statement=statement,
+        line_date=date(2026, 10, 11),
+        description="Linha conciliada",
+        amount=Decimal("80.00"),
+    )
+    CashMovement.objects.create(
+        movement_date=timezone.make_aware(datetime(2026, 10, 11, 9, 0)),
+        direction=CashDirection.OUT,
+        amount=Decimal("80.00"),
+        account=cash_account,
+        reference_type="AP",
+        reference_id=1002,
+        statement_line=line,
+        is_reconciled=True,
+    )
+
+    response = client.get(
+        "/api/v1/finance/reports/unreconciled/?from=2026-10-01&to=2026-10-31"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["from"] == "2026-10-01"
+    assert body["to"] == "2026-10-31"
+    assert len(body["items"]) == 1
+    assert body["items"][0]["id"] == pending.id
+    assert body["items"][0]["is_reconciled"] is False

@@ -176,3 +176,15 @@
     - `record_cash_out_from_ap` registra ledger `AP_PAID` e `CASH_OUT`.
   - endpoint read-only publicado em `/api/v1/finance/ledger/`.
   - testes adicionados para idempotencia de ledger em AR/AP e listagem do endpoint.
+
+- Etapa 5.6.2 conciliacao:
+  - modelos adicionados no `finance`: `BankStatement` e `StatementLine`.
+  - `CashMovement` estendido com `statement_line` e `is_reconciled`.
+  - services de conciliacao criados:
+    - `reconcile_cash_movement(cash_movement_id, statement_line_id)`
+    - `unreconcile_cash_movement(cash_movement_id)`
+  - idempotencia da conciliacao implementada (mesma linha nao duplica nem falha).
+  - endpoint de pendencias publicado: `GET /api/v1/finance/reports/unreconciled/?from=...&to=...`.
+  - endpoints de conciliacao publicados:
+    - `POST /api/v1/finance/cash-movements/<id>/reconcile/`
+    - `POST /api/v1/finance/cash-movements/<id>/unreconcile/`

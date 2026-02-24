@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import Account, APBill, ARReceivable, CashMovement, LedgerEntry
+from .models import (
+    Account,
+    APBill,
+    ARReceivable,
+    BankStatement,
+    CashMovement,
+    LedgerEntry,
+    StatementLine,
+)
 
 
 @admin.register(Account)
@@ -42,6 +50,35 @@ class ARReceivableAdmin(admin.ModelAdmin):
     search_fields = ["customer__username", "customer__email", "reference_type"]
 
 
+@admin.register(BankStatement)
+class BankStatementAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "period_start",
+        "period_end",
+        "opening_balance",
+        "closing_balance",
+        "source",
+        "created_at",
+    ]
+    list_filter = ["period_start", "period_end", "source"]
+    search_fields = ["source"]
+
+
+@admin.register(StatementLine)
+class StatementLineAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "statement",
+        "line_date",
+        "description",
+        "amount",
+        "created_at",
+    ]
+    list_filter = ["line_date", "statement"]
+    search_fields = ["description"]
+
+
 @admin.register(CashMovement)
 class CashMovementAdmin(admin.ModelAdmin):
     list_display = [
@@ -50,10 +87,12 @@ class CashMovementAdmin(admin.ModelAdmin):
         "direction",
         "amount",
         "account",
+        "is_reconciled",
+        "statement_line",
         "reference_type",
         "reference_id",
     ]
-    list_filter = ["direction", "movement_date", "account"]
+    list_filter = ["direction", "movement_date", "account", "is_reconciled"]
     search_fields = ["reference_type", "reference_id", "note"]
 
 

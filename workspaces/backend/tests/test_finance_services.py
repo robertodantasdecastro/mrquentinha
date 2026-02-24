@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from apps.finance.models import (
@@ -11,16 +12,20 @@ from apps.finance.models import (
     APBillStatus,
     ARReceivable,
     ARReceivableStatus,
+    BankStatement,
     CashDirection,
     CashMovement,
     LedgerEntry,
     LedgerEntryType,
+    StatementLine,
 )
 from apps.finance.services import (
     create_ap_from_purchase,
     create_ar_from_order,
+    reconcile_cash_movement,
     record_cash_in_from_ar,
     record_cash_out_from_ap,
+    unreconcile_cash_movement,
 )
 from apps.orders.models import Order, OrderStatus
 from apps.procurement.models import Purchase
@@ -201,3 +206,133 @@ def test_record_cash_out_from_ap_cria_ledger_e_nao_duplica():
     assert cash_out.amount == Decimal("90.00")
     assert cash_out.debit_account == expense_account
     assert cash_out.credit_account == cash_account
+
+
+@pytest.mark.django_db
+def test_reconcile_cash_movement_marca_conciliado_e_vincula_linha():
+    cash_account = Account.objects.create(
+        name="Conta Caixa Conciliacao",
+        type=AccountType.ASSET,
+    )
+    movement = CashMovement.objects.create(
+        direction=CashDirection.IN,
+        amount=Decimal("50.00"),
+        account=cash_account,
+        reference_type="AR",
+        reference_id=300,
+    )
+    statement = BankStatement.objects.create(
+        period_start=date(2026, 4, 1),
+        period_end=date(2026, 4, 30),
+        source="Banco Teste",
+    )
+    line = StatementLine.objects.create(
+        statement=statement,
+        line_date=date(2026, 4, 10),
+        description="Recebimento PIX",
+        amount=Decimal("50.00"),
+    )
+
+    reconciled = reconcile_cash_movement(movement.id, line.id)
+
+    assert reconciled.is_reconciled is True
+    assert reconciled.statement_line_id == line.id
+
+
+@pytest.mark.django_db
+def test_reconcile_cash_movement_mesma_linha_e_idempotente():
+    cash_account = Account.objects.create(
+        name="Conta Caixa Conciliacao Idempotente",
+        type=AccountType.ASSET,
+    )
+    movement = CashMovement.objects.create(
+        direction=CashDirection.IN,
+        amount=Decimal("70.00"),
+        account=cash_account,
+        reference_type="AR",
+        reference_id=301,
+    )
+    statement = BankStatement.objects.create(
+        period_start=date(2026, 5, 1),
+        period_end=date(2026, 5, 31),
+    )
+    line = StatementLine.objects.create(
+        statement=statement,
+        line_date=date(2026, 5, 5),
+        description="Credito",
+        amount=Decimal("70.00"),
+    )
+
+    first = reconcile_cash_movement(movement.id, line.id)
+    second = reconcile_cash_movement(movement.id, line.id)
+
+    assert first.id == second.id
+    assert second.is_reconciled is True
+    assert second.statement_line_id == line.id
+
+
+@pytest.mark.django_db
+def test_reconcile_cash_movement_com_outra_linha_falha():
+    cash_account = Account.objects.create(
+        name="Conta Caixa Conciliacao Erro",
+        type=AccountType.ASSET,
+    )
+    movement = CashMovement.objects.create(
+        direction=CashDirection.OUT,
+        amount=Decimal("45.00"),
+        account=cash_account,
+        reference_type="AP",
+        reference_id=500,
+    )
+    statement = BankStatement.objects.create(
+        period_start=date(2026, 6, 1),
+        period_end=date(2026, 6, 30),
+    )
+    first_line = StatementLine.objects.create(
+        statement=statement,
+        line_date=date(2026, 6, 3),
+        description="Debito fornecedor",
+        amount=Decimal("-45.00"),
+    )
+    other_line = StatementLine.objects.create(
+        statement=statement,
+        line_date=date(2026, 6, 4),
+        description="Outra linha",
+        amount=Decimal("-45.00"),
+    )
+
+    reconcile_cash_movement(movement.id, first_line.id)
+
+    with pytest.raises(ValidationError):
+        reconcile_cash_movement(movement.id, other_line.id)
+
+
+@pytest.mark.django_db
+def test_unreconcile_cash_movement_remove_vinculo():
+    cash_account = Account.objects.create(
+        name="Conta Caixa Desconciliacao",
+        type=AccountType.ASSET,
+    )
+    movement = CashMovement.objects.create(
+        direction=CashDirection.IN,
+        amount=Decimal("80.00"),
+        account=cash_account,
+        reference_type="AR",
+        reference_id=701,
+    )
+    statement = BankStatement.objects.create(
+        period_start=date(2026, 7, 1),
+        period_end=date(2026, 7, 31),
+    )
+    line = StatementLine.objects.create(
+        statement=statement,
+        line_date=date(2026, 7, 10),
+        description="Receita julho",
+        amount=Decimal("80.00"),
+    )
+
+    reconcile_cash_movement(movement.id, line.id)
+    unreconciled = unreconcile_cash_movement(movement.id)
+
+    assert unreconciled.is_reconciled is False
+    assert unreconciled.statement_line is None

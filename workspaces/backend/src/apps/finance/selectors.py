@@ -1,6 +1,16 @@
+from datetime import date
+
 from django.db.models import QuerySet
 
-from .models import Account, APBill, ARReceivable, CashMovement, LedgerEntry
+from .models import (
+    Account,
+    APBill,
+    ARReceivable,
+    BankStatement,
+    CashMovement,
+    LedgerEntry,
+    StatementLine,
+)
 
 
 def list_accounts() -> QuerySet[Account]:
@@ -17,9 +27,37 @@ def list_ar_receivables() -> QuerySet[ARReceivable]:
     )
 
 
+def list_bank_statements() -> QuerySet[BankStatement]:
+    return BankStatement.objects.order_by("-period_start", "-id")
+
+
+def list_statement_lines(statement_id: int) -> QuerySet[StatementLine]:
+    return StatementLine.objects.filter(statement_id=statement_id).order_by(
+        "line_date", "id"
+    )
+
+
+def list_all_statement_lines() -> QuerySet[StatementLine]:
+    return StatementLine.objects.select_related("statement").order_by("line_date", "id")
+
+
 def list_cash_movements() -> QuerySet[CashMovement]:
-    return CashMovement.objects.select_related("account").order_by(
+    return CashMovement.objects.select_related("account", "statement_line").order_by(
         "-movement_date", "-id"
+    )
+
+
+def list_unreconciled_movements(
+    from_date: date, to_date: date
+) -> QuerySet[CashMovement]:
+    return (
+        CashMovement.objects.select_related("account", "statement_line")
+        .filter(
+            movement_date__date__gte=from_date,
+            movement_date__date__lte=to_date,
+            is_reconciled=False,
+        )
+        .order_by("movement_date", "id")
     )
 
 

@@ -145,6 +145,49 @@ class ARReceivable(TimeStampedModel):
         return f"AR-{self.id} ({self.status})"
 
 
+class BankStatement(models.Model):
+    period_start = models.DateField()
+    period_end = models.DateField()
+    opening_balance = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    closing_balance = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    source = models.CharField(max_length=120, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-period_start", "-id"]
+
+    def __str__(self) -> str:
+        return f"Statement-{self.id} ({self.period_start} a {self.period_end})"
+
+
+class StatementLine(models.Model):
+    statement = models.ForeignKey(
+        BankStatement,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    line_date = models.DateField()
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["line_date", "id"]
+
+    def __str__(self) -> str:
+        return f"StatementLine-{self.id} ({self.amount})"
+
+
 class CashMovement(models.Model):
     movement_date = models.DateTimeField(default=timezone.now)
     direction = models.CharField(max_length=8, choices=CashDirection.choices)
@@ -161,6 +204,14 @@ class CashMovement(models.Model):
     note = models.TextField(null=True, blank=True)
     reference_type = models.CharField(max_length=32, null=True, blank=True)
     reference_id = models.PositiveIntegerField(null=True, blank=True)
+    statement_line = models.ForeignKey(
+        StatementLine,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cash_movements",
+    )
+    is_reconciled = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
