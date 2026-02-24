@@ -32,3 +32,30 @@ def client(db, admin_user):
 @pytest.fixture
 def anonymous_client():
     return APIClient()
+
+
+@pytest.fixture
+def create_user_with_roles(db):
+    User = get_user_model()
+    ensure_default_roles()
+
+    def _factory(
+        *,
+        username: str,
+        role_codes: list[str] | None = None,
+        is_staff: bool = False,
+        password: str = "test_pass_123",
+    ):
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            email=f"{username}@example.com",
+            is_staff=is_staff,
+        )
+
+        if role_codes:
+            assign_roles_to_user(user=user, role_codes=role_codes, replace=True)
+
+        return user
+
+    return _factory

@@ -11,8 +11,8 @@ from apps.accounts.permissions import (
     PAYMENT_READ_ROLES,
     PAYMENT_WRITE_ROLES,
     RoleMatrixPermission,
-    is_management_user,
 )
+from apps.accounts.services import SystemRole
 
 from .selectors import list_orders, list_payments
 from .serializers import (
@@ -21,7 +21,12 @@ from .serializers import (
     PaymentSerializer,
     PaymentStatusUpdateSerializer,
 )
-from .services import create_order, update_order_status, update_payment_status
+from .services import (
+    create_order,
+    has_global_order_access,
+    update_order_status,
+    update_payment_status,
+)
 
 
 class OrderViewSet(
@@ -36,14 +41,14 @@ class OrderViewSet(
         "create": ORDER_CREATE_ROLES,
         "list": ORDER_READ_ROLES,
         "retrieve": ORDER_READ_ROLES,
-        "status": ORDER_STATUS_UPDATE_ROLES,
+        "status": (*ORDER_STATUS_UPDATE_ROLES, SystemRole.CLIENTE),
     }
 
     def get_queryset(self):
         queryset = list_orders()
         user = self.request.user
 
-        if is_management_user(user):
+        if has_global_order_access(user):
             return queryset
 
         return queryset.filter(customer=user)
@@ -69,18 +74,21 @@ class OrderViewSet(
 
     @action(detail=True, methods=["patch"], url_path="status")
     def status(self, request, pk=None):
+        order = self.get_object()
+
         input_serializer = OrderStatusUpdateSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
 
         try:
-            order = update_order_status(
-                order_id=int(pk),
+            updated_order = update_order_status(
+                order_id=order.id,
                 new_status=input_serializer.validated_data["status"],
+                actor_user=request.user,
             )
         except DjangoValidationError as exc:
             raise DRFValidationError(exc.messages) from exc
 
-        output = self.get_serializer(order)
+        output = self.get_serializer(updated_order)
         return Response(output.data, status=status.HTTP_200_OK)
 
 
@@ -94,15 +102,15 @@ class PaymentViewSet(
     required_roles_by_action = {
         "list": PAYMENT_READ_ROLES,
         "retrieve": PAYMENT_READ_ROLES,
-        "update": PAYMENT_WRITE_ROLES,
-        "partial_update": PAYMENT_WRITE_ROLES,
+        "update": (*PAYMENT_WRITE_ROLES, SystemRole.CLIENTE),
+        "partial_update": (*PAYMENT_WRITE_ROLES, SystemRole.CLIENTE),
     }
 
     def get_queryset(self):
         queryset = list_payments()
         user = self.request.user
 
-        if is_management_user(user):
+        if has_global_order_access(user):
             return queryset
 
         return queryset.filter(order__customer=user)
@@ -127,6 +135,7 @@ class PaymentViewSet(
             updated_payment = update_payment_status(
                 payment_id=payment.id,
                 update_data=serializer.validated_data,
+                actor_user=request.user,
             )
         except DjangoValidationError as exc:
             raise DRFValidationError(exc.messages) from exc

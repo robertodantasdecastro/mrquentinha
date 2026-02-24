@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts.services import SystemRole, user_has_any_role
 from apps.finance.services import create_ar_from_order, record_cash_in_from_ar
 
 from .models import (
@@ -76,6 +77,25 @@ def _sync_paid_payment_cash_flow(*, payment: Payment) -> None:
     record_cash_in_from_ar(ar_receivable.id)
 
 
+def has_global_order_access(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+
+    return user_has_any_role(
+        user,
+        [
+            SystemRole.ADMIN,
+            SystemRole.FINANCEIRO,
+            SystemRole.COZINHA,
+            SystemRole.COMPRAS,
+            SystemRole.ESTOQUE,
+        ],
+    )
+
+
 @transaction.atomic
 def create_order(*, customer, delivery_date: date, items_payload: list[dict]) -> Order:
     _assert_items_payload(items_payload)
@@ -136,11 +156,15 @@ def _is_valid_order_transition(current_status: str, new_status: str) -> bool:
 
 
 @transaction.atomic
-def update_order_status(*, order_id: int, new_status: str) -> Order:
+def update_order_status(*, order_id: int, new_status: str, actor_user=None) -> Order:
     try:
         order = Order.objects.select_for_update().get(pk=order_id)
     except Order.DoesNotExist as exc:
         raise ValidationError("Pedido nao encontrado.") from exc
+
+    if actor_user is not None and not has_global_order_access(actor_user):
+        if order.customer_id != getattr(actor_user, "id", None):
+            raise ValidationError("Pedido nao encontrado.")
 
     status_choices = {choice for choice, _ in OrderStatus.choices}
     if new_status not in status_choices:
@@ -157,7 +181,9 @@ def update_order_status(*, order_id: int, new_status: str) -> Order:
 
 
 @transaction.atomic
-def update_payment_status(*, payment_id: int, update_data: dict) -> Payment:
+def update_payment_status(
+    *, payment_id: int, update_data: dict, actor_user=None
+) -> Payment:
     try:
         payment = (
             Payment.objects.select_for_update()
@@ -166,6 +192,10 @@ def update_payment_status(*, payment_id: int, update_data: dict) -> Payment:
         )
     except Payment.DoesNotExist as exc:
         raise ValidationError("Pagamento nao encontrado.") from exc
+
+    if actor_user is not None and not has_global_order_access(actor_user):
+        if payment.order.customer_id != getattr(actor_user, "id", None):
+            raise ValidationError("Pagamento nao encontrado.")
 
     status_choices = {choice for choice, _ in PaymentStatus.choices}
     if "status" in update_data:

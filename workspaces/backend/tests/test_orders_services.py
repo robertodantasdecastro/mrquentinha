@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 from django.core.exceptions import ValidationError
 
+from apps.accounts.services import SystemRole
 from apps.catalog.models import (
     Dish,
     DishIngredient,
@@ -236,3 +237,139 @@ def test_update_order_status_transicao_invalida_falha():
 
     with pytest.raises(ValidationError):
         update_order_status(order_id=order.id, new_status=OrderStatus.DELIVERED)
+
+
+@pytest.mark.django_db
+def test_update_order_status_bloqueia_usuario_nao_dono(create_user_with_roles):
+    delivery_date = date(2026, 3, 13)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("18.00"),
+        dish_name="Prato Ownership",
+        ingredient_name="Ingrediente Ownership",
+    )
+
+    owner = create_user_with_roles(
+        username="owner_service", role_codes=[SystemRole.CLIENTE]
+    )
+    other = create_user_with_roles(
+        username="other_service", role_codes=[SystemRole.CLIENTE]
+    )
+
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+
+    with pytest.raises(ValidationError, match="Pedido nao encontrado"):
+        update_order_status(
+            order_id=order.id,
+            new_status=OrderStatus.CANCELED,
+            actor_user=other,
+        )
+
+
+@pytest.mark.django_db
+def test_update_payment_status_bloqueia_usuario_nao_dono(create_user_with_roles):
+    delivery_date = date(2026, 3, 14)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("18.00"),
+        dish_name="Prato Payment Ownership",
+        ingredient_name="Ingrediente Payment Ownership",
+    )
+
+    owner = create_user_with_roles(
+        username="owner_payment", role_codes=[SystemRole.CLIENTE]
+    )
+    other = create_user_with_roles(
+        username="other_payment", role_codes=[SystemRole.CLIENTE]
+    )
+
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    with pytest.raises(ValidationError, match="Pagamento nao encontrado"):
+        update_payment_status(
+            payment_id=payment.id,
+            update_data={"status": PaymentStatus.PAID},
+            actor_user=other,
+        )
+
+
+@pytest.mark.django_db
+def test_update_order_status_permite_papel_gestao_em_pedido_de_terceiro(
+    create_user_with_roles,
+):
+    delivery_date = date(2026, 3, 15)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("18.00"),
+        dish_name="Prato Management Status",
+        ingredient_name="Ingrediente Management Status",
+    )
+
+    owner = create_user_with_roles(
+        username="owner_management_status", role_codes=[SystemRole.CLIENTE]
+    )
+    financeiro = create_user_with_roles(
+        username="financeiro_management_status",
+        role_codes=[SystemRole.FINANCEIRO],
+        is_staff=False,
+    )
+
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+
+    updated_order = update_order_status(
+        order_id=order.id,
+        new_status=OrderStatus.CANCELED,
+        actor_user=financeiro,
+    )
+
+    assert updated_order.status == OrderStatus.CANCELED
+
+
+@pytest.mark.django_db
+def test_update_payment_status_permite_papel_gestao_em_pagamento_de_terceiro(
+    create_user_with_roles,
+):
+    delivery_date = date(2026, 3, 16)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("18.00"),
+        dish_name="Prato Management Payment",
+        ingredient_name="Ingrediente Management Payment",
+    )
+
+    owner = create_user_with_roles(
+        username="owner_management_payment", role_codes=[SystemRole.CLIENTE]
+    )
+    financeiro = create_user_with_roles(
+        username="financeiro_management_payment",
+        role_codes=[SystemRole.FINANCEIRO],
+        is_staff=False,
+    )
+
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    updated_payment = update_payment_status(
+        payment_id=payment.id,
+        update_data={"status": PaymentStatus.PAID},
+        actor_user=financeiro,
+    )
+
+    assert updated_payment.status == PaymentStatus.PAID
