@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --mrq-primary: #ff6a00;
+  --mrq-primary-2: #ff8a33;
+  --mrq-graphite: #1f1f1f;
+  --mrq-bg: #ffffff;
+  --mrq-surface: #f6f6f6;
+  --mrq-text: #141414;
+  --mrq-muted: #666666;
+  --mrq-border: #e6e6e6;
+  --mrq-radius-lg: 16px;
+  --mrq-radius-md: 12px;
+  --mrq-radius-sm: 10px;
+}
+
+[data-theme="dark"] {
+  --mrq-bg: #0f0f12;
+  --mrq-surface: #17171c;
+  --mrq-text: #f4f4f5;
+  --mrq-muted: #b0b0b8;
+  --mrq-border: #2a2a33;
+}
+
+@theme inline {
+  --color-primary: var(--mrq-primary);
+  --color-primary-soft: var(--mrq-primary-2);
+  --color-graphite: var(--mrq-graphite);
+  --color-bg: var(--mrq-bg);
+  --color-surface: var(--mrq-surface);
+  --color-text: var(--mrq-text);
+  --color-muted: var(--mrq-muted);
+  --color-border: var(--mrq-border);
+
+  --radius-lg: var(--mrq-radius-lg);
+  --radius-md: var(--mrq-radius-md);
+  --radius-sm: var(--mrq-radius-sm);
+
+  --font-sans: "Poppins", "Montserrat", "Segoe UI", sans-serif;
+}
+
+* {
+  border-color: var(--mrq-border);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 5% 5%, rgb(255 106 0 / 16%), transparent 30%),
+    radial-gradient(circle at 95% 2%, rgb(31 31 31 / 8%), transparent 20%),
+    var(--mrq-bg);
+  color: var(--mrq-text);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

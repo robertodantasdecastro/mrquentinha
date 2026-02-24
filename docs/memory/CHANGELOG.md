@@ -196,3 +196,13 @@
   - endpoint auxiliar `GET /api/v1/finance/closes/is-closed/?date=YYYY-MM-DD` publicado.
   - bloqueio por periodo fechado aplicado no service layer para operacoes de `CashMovement`, `APBill`, `ARReceivable` e `LedgerEntry`.
   - testes de service e API adicionados para fechamento, duplicidade, bloqueios e consulta `is-closed`.
+
+- Etapa 6.0 portal scaffold:
+  - criado app `workspaces/web/portal` com Next.js (App Router) + TypeScript + Tailwind.
+  - paginas implementadas: `/`, `/cardapio`, `/app`, `/contato`.
+  - componentes base implementados: `Header`, `Footer`, `Hero`, `CardapioList`, `QRDownloadCard`.
+  - tema light/dark aplicado com tokens da marca (paleta laranja/grafite).
+  - integracao de cardapio por data via `NEXT_PUBLIC_API_BASE_URL` em `/api/v1/catalog/menus/by-date/YYYY-MM-DD/`.
+  - pagina `/app` com QR Code para `https://www.mrquentinha.com.br/app` e botoes Android/iOS (placeholders documentados).
+  - README do portal atualizado com setup local, env vars e build.
+  - docs de deploy EC2 atualizadas com nota de deploy do portal via reverse proxy ou build estatico.

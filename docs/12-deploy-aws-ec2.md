@@ -27,3 +27,10 @@ Esta estrutura esta documentada para orientar DNS, SSL e roteamento, sem impleme
 - `admin.mrquentinha.com.br` -> gestao web
 - `api.mrquentinha.com.br` -> backend/API
 - `app.mrquentinha.com.br` -> pagina de download e QR
+
+## Nota de deploy do portal (Etapa 6)
+Sem implementar nesta etapa, o deploy do portal pode seguir dois caminhos:
+- Nginx reverse proxy para um processo Node.js (`next start`) dedicado ao portal.
+- Build estatico do portal quando aplicavel, servido diretamente por Nginx.
+
+Em ambos os cenarios, manter `www.mrquentinha.com.br` apontando para o frontend do portal e `api.mrquentinha.com.br` para o backend Django.
