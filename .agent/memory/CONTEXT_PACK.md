@@ -1,24 +1,29 @@
 # Context Pack (Resumo Operacional)
 
+## Mapa rapido do repo
+- `AGENTS.md` (regras centrais)
+- `docs/memory/*` (estado, decisoes, changelog, runbook)
+- `scripts/*` (start/smoke/seed/session)
+- `workspaces/backend` (API Django/DRF)
+- `workspaces/web/portal` (frontend portal)
+- `workspaces/web/client` (frontend client)
+- `workspaces/web/ui` (Design System compartilhado)
+- `.agent/*` (workflows/prompts/rules/memory)
+- `.antigravity/*` (regras globais)
+
 ## Estado atual
 - Etapas concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`.
-- Branch atual de trabalho deve ser validada no inicio da sessao.
 
-## Portas e apps
-- Backend API: `8000`
-- Portal institucional: `3000`
-- Web Client: `3001`
-
-## Scripts principais
-- `scripts/start_backend_dev.sh`
-- `scripts/start_portal_dev.sh`
-- `scripts/start_client_dev.sh`
-- `scripts/seed_demo.sh`
-- `scripts/smoke_stack_dev.sh`
-- `scripts/smoke_client_dev.sh`
+## Portas e scripts
+- Backend: `8000` -> `scripts/start_backend_dev.sh`
+- Portal: `3000` -> `scripts/start_portal_dev.sh`
+- Client: `3001` -> `scripts/start_client_dev.sh`
+- Seed: `scripts/seed_demo.sh`
+- Smokes: `scripts/smoke_stack_dev.sh` e `scripts/smoke_client_dev.sh`
+- Helper de sessao: `scripts/session.sh`
 
 ## Endpoints chave
-- `GET /`
+- `GET /` (API index)
 - `GET /api/v1/health`
 - `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
 - `POST /api/v1/orders/orders/`
@@ -29,14 +34,12 @@
 - `POST /api/v1/ocr/jobs/`
 - `POST /api/v1/ocr/jobs/<id>/apply/`
 
-## Proximos passos (fonte: TODO_NEXT)
-1. 7.0.1: consolidar smoke_client (robustez continua).
-2. 7.1: Auth/RBAC para cliente real.
-3. 7.2: Pagamentos (Pix/Cartao/VR).
-4. 6.1: Nginx local sem DNS.
-5. 8: Financas pessoais.
+## Proximos passos (TODO_NEXT)
+1. 7.0.1: consolidar smoke_client (robustez continua)
+2. 7.1: Auth/RBAC para cliente real
+3. 7.2: Pagamentos (Pix/Cartao/VR)
+4. 6.1: Nginx local sem DNS
+5. 8: Financas pessoais
 
-## Regras de execucao
-- Nunca comitar segredos.
-- Sempre validar antes de commit (test/build/smoke conforme escopo).
-- Sempre atualizar docs de memoria quando houver impacto operacional.
+## Regra critica
+- Sem segredos no repositorio. Valores reais somente em `.env` local (gitignored).

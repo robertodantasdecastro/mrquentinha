@@ -276,3 +276,9 @@
   - criado `SESSION_COMMANDS.md` com macros operacionais para iniciar/continuar/salvar/corrigir/auditar/release.
   - adicionados templates de prompts para sessao, bugfix, refactor, quality e docs.
   - memoria `.agent/memory` atualizada com index de workflows e contexto operacional vigente.
+
+- Docs: GLOBAL_RULE Antigravity + guia de uso de workflows
+  - adicionada regra-mae em `.antigravity/GLOBAL_RULE.md` com mapa do repo, padroes e politica de segredos.
+  - adicionados guias `.agent/workflows/USAGE_GUIDE.md` e `.agent/workflows/WORKFLOW_MAP.md`.
+  - atualizados `SESSION_COMMANDS`, `CONTEXT_PACK` e `PROJECT_STATE` para refletir o estado atual.
+  - criado helper `scripts/session.sh` para atalhos `start`, `continue`, `save` e `qa`.
