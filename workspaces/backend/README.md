@@ -365,6 +365,26 @@ Relatorio de cashflow por periodo:
 curl "http://127.0.0.1:8000/api/v1/finance/reports/cashflow/?from=2026-03-01&to=2026-03-07"
 ```
 
+
+Relatorio DRE simplificada por periodo:
+```bash
+curl "http://127.0.0.1:8000/api/v1/finance/reports/dre/?from=2026-04-01&to=2026-04-30"
+```
+
+Relatorio de KPIs por periodo:
+```bash
+curl "http://127.0.0.1:8000/api/v1/finance/reports/kpis/?from=2026-04-01&to=2026-04-30"
+```
+
+### Custos, margem e DRE (Etapa 5.5 - MVP)
+- Custo do ingrediente: media ponderada por compras (`PurchaseItem`) ate a data de referencia.
+- Custo do prato: soma dos ingredientes da receita (`DishIngredient`).
+- Custo do `MenuItem`: custo do prato dividido por `yield_portions`.
+- Margem: calculada com base em receita - CMV estimado.
+- Receita da DRE no MVP: pedidos com status `DELIVERED` no periodo.
+- CMV no MVP: custo estimado dos itens vendidos (`OrderItem.qty * custo_menu_item`).
+- Limitacao atual: sem conversao de unidades; divergencia de unidade gera erro com TODO explicito.
+
 ## Producao (Etapa 5.4 - MVP)
 ### Decisao de API
 - Os itens de producao ficam embutidos no `ProductionBatch` via campo `items` na escrita e `production_items` na leitura.

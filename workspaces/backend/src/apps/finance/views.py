@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -6,7 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .reports import get_cashflow
+from .reports import get_cashflow, get_dre, get_kpis
 from .selectors import (
     list_accounts,
     list_ap_bills,
@@ -53,33 +54,7 @@ class CashMovementViewSet(viewsets.ModelViewSet):
         return list_cash_movements()
 
 
-class CashflowReportAPIView(APIView):
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
-
-    def get(self, request):
-        from_date, to_date = self._parse_period(request)
-
-        cashflow_items = get_cashflow(from_date=from_date, to_date=to_date)
-        payload_items = [
-            {
-                "date": item["date"].isoformat(),
-                "total_in": f"{item['total_in']:.2f}",
-                "total_out": f"{item['total_out']:.2f}",
-                "net": f"{item['net']:.2f}",
-                "running_balance": f"{item['running_balance']:.2f}",
-            }
-            for item in cashflow_items
-        ]
-
-        return Response(
-            {
-                "from": from_date.isoformat(),
-                "to": to_date.isoformat(),
-                "items": payload_items,
-            },
-            status=status.HTTP_200_OK,
-        )
-
+class PeriodReportMixin:
     def _parse_period(self, request) -> tuple[date, date]:
         from_raw = request.query_params.get("from")
         to_raw = request.query_params.get("to")
@@ -108,3 +83,82 @@ class CashflowReportAPIView(APIView):
             )
 
         return from_date, to_date
+
+    def _format_money(self, value: Decimal) -> str:
+        return f"{value:.2f}"
+
+
+class CashflowReportAPIView(PeriodReportMixin, APIView):
+    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+
+    def get(self, request):
+        from_date, to_date = self._parse_period(request)
+
+        cashflow_items = get_cashflow(from_date=from_date, to_date=to_date)
+        payload_items = [
+            {
+                "date": item["date"].isoformat(),
+                "total_in": self._format_money(item["total_in"]),
+                "total_out": self._format_money(item["total_out"]),
+                "net": self._format_money(item["net"]),
+                "running_balance": self._format_money(item["running_balance"]),
+            }
+            for item in cashflow_items
+        ]
+
+        return Response(
+            {
+                "from": from_date.isoformat(),
+                "to": to_date.isoformat(),
+                "items": payload_items,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class DreReportAPIView(PeriodReportMixin, APIView):
+    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+
+    def get(self, request):
+        from_date, to_date = self._parse_period(request)
+        dre = get_dre(from_date=from_date, to_date=to_date)
+
+        return Response(
+            {
+                "from": from_date.isoformat(),
+                "to": to_date.isoformat(),
+                "dre": {
+                    "receita_total": self._format_money(dre["receita_total"]),
+                    "despesas_total": self._format_money(dre["despesas_total"]),
+                    "cmv_estimado": self._format_money(dre["cmv_estimado"]),
+                    "lucro_bruto": self._format_money(dre["lucro_bruto"]),
+                    "resultado": self._format_money(dre["resultado"]),
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class KpisReportAPIView(PeriodReportMixin, APIView):
+    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+
+    def get(self, request):
+        from_date, to_date = self._parse_period(request)
+        kpis = get_kpis(from_date=from_date, to_date=to_date)
+
+        return Response(
+            {
+                "from": from_date.isoformat(),
+                "to": to_date.isoformat(),
+                "kpis": {
+                    "pedidos": kpis["pedidos"],
+                    "receita_total": self._format_money(kpis["receita_total"]),
+                    "despesas_total": self._format_money(kpis["despesas_total"]),
+                    "cmv_estimado": self._format_money(kpis["cmv_estimado"]),
+                    "lucro_bruto": self._format_money(kpis["lucro_bruto"]),
+                    "ticket_medio": self._format_money(kpis["ticket_medio"]),
+                    "margem_media": self._format_money(kpis["margem_media"]),
+                },
+            },
+            status=status.HTTP_200_OK,
+        )

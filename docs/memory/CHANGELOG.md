@@ -153,3 +153,11 @@
   - integracao com `inventory.services.apply_stock_movement` para reaproveitar regra de bloqueio de saldo negativo.
   - idempotencia no fechamento de lote: reprocessamento de `complete_batch` nao duplica movimentos.
   - testes pytest cobrindo criacao de lote, consumo de estoque, bloqueio por saldo insuficiente, idempotencia e endpoint `complete`.
+
+- Etapa 5.5 custos + DRE + KPIs:
+  - relatorios financeiros estendidos com custo medio ponderado de ingrediente, custo de prato e custo de item do cardapio.
+  - DRE simplificada por periodo adicionada em `/api/v1/finance/reports/dre/`.
+  - KPIs financeiros adicionados em `/api/v1/finance/reports/kpis/` (pedidos, ticket medio, margem media, receita, despesas, CMV estimado e lucro bruto).
+  - premissa MVP documentada: receita por pedidos `DELIVERED` e CMV estimado por itens vendidos.
+  - validacao de parametros `from`/`to` reaproveitada para `cashflow`, `dre` e `kpis`.
+  - testes automatizados cobrindo custos, DRE/KPIs e endpoints de relatorio.

@@ -7,6 +7,8 @@ from .views import (
     ARReceivableViewSet,
     CashflowReportAPIView,
     CashMovementViewSet,
+    DreReportAPIView,
+    KpisReportAPIView,
 )
 
 router = DefaultRouter()
@@ -25,5 +27,7 @@ router.register(
 
 urlpatterns = [
     path("reports/cashflow/", CashflowReportAPIView.as_view(), name="finance-cashflow"),
+    path("reports/dre/", DreReportAPIView.as_view(), name="finance-dre"),
+    path("reports/kpis/", KpisReportAPIView.as_view(), name="finance-kpis"),
     path("", include(router.urls)),
 ]

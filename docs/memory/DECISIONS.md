@@ -124,3 +124,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - consumo de ingrediente em producao exige unidade compativel entre receita (`DishIngredient.unit`) e estoque/ingrediente.
   - ao detectar unidade incompativel, o service retorna `ValidationError` explicita.
   - TODO: implementar conversao de unidades (g<->kg, ml<->l, etc.) em subfase futura.
+
+## Etapa 5.5 - Custos, margem e DRE simplificada
+- Base de receita no MVP:
+  - a receita dos relatorios (`DRE` e `KPIs`) considera pedidos com status `DELIVERED` no periodo.
+- CMV do MVP:
+  - calculado como custo estimado dos itens vendidos (`OrderItem.qty * custo_menu_item`).
+  - nao usa consumo real de estoque nesta fase.
+  - TODO futuro: comparar custo estimado vs custo real (com base em movimentos de producao/estoque).
+- Custo de ingrediente:
+  - media ponderada por compras (`PurchaseItem`): `sum(qty * unit_price + tax) / sum(qty)`.
+- Sem conversao de unidades no MVP:
+  - divergencia entre unidade de compra/receita e unidade base do ingrediente gera `ValidationError` explicita.
+  - TODO: implementar conversao de unidades (g<->kg, ml<->l, etc.) para custos reais e comparaveis.

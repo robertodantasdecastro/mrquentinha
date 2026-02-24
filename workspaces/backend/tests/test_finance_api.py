@@ -1,10 +1,98 @@
 import json
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 import pytest
 from django.utils import timezone
 
-from apps.finance.models import Account, AccountType, CashDirection, CashMovement
+from apps.catalog.models import (
+    Dish,
+    DishIngredient,
+    Ingredient,
+    IngredientUnit,
+    MenuDay,
+    MenuItem,
+)
+from apps.finance.models import (
+    Account,
+    AccountType,
+    APBill,
+    APBillStatus,
+    CashDirection,
+    CashMovement,
+)
+from apps.orders.models import Order, OrderItem, OrderStatus
+from apps.procurement.models import Purchase, PurchaseItem
+
+
+def _setup_reports_scenario() -> tuple[str, str]:
+    period_from = "2026-04-01"
+    period_to = "2026-04-30"
+
+    ingredient = Ingredient.objects.create(
+        name="Ingrediente API DRE",
+        unit=IngredientUnit.KILOGRAM,
+    )
+    dish = Dish.objects.create(name="Prato API DRE", yield_portions=2)
+    DishIngredient.objects.create(
+        dish=dish,
+        ingredient=ingredient,
+        quantity=Decimal("2.000"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+
+    menu_day = MenuDay.objects.create(
+        menu_date=date(2026, 4, 20),
+        title="Cardapio API DRE",
+    )
+    menu_item = MenuItem.objects.create(
+        menu_day=menu_day,
+        dish=dish,
+        sale_price=Decimal("10.00"),
+        is_active=True,
+    )
+
+    purchase = Purchase.objects.create(
+        supplier_name="Fornecedor API DRE",
+        purchase_date=date(2026, 4, 10),
+        total_amount=Decimal("60.00"),
+    )
+    PurchaseItem.objects.create(
+        purchase=purchase,
+        ingredient=ingredient,
+        qty=Decimal("10.000"),
+        unit=IngredientUnit.KILOGRAM,
+        unit_price=Decimal("6.00"),
+        tax_amount=Decimal("0.00"),
+    )
+
+    order = Order.objects.create(
+        customer=None,
+        delivery_date=date(2026, 4, 20),
+        status=OrderStatus.DELIVERED,
+        total_amount=Decimal("30.00"),
+    )
+    OrderItem.objects.create(
+        order=order,
+        menu_item=menu_item,
+        qty=3,
+        unit_price=Decimal("10.00"),
+    )
+
+    expense_account = Account.objects.create(
+        name="Conta Despesa API DRE",
+        type=AccountType.EXPENSE,
+    )
+    APBill.objects.create(
+        supplier_name="Fornecedor Despesa API DRE",
+        account=expense_account,
+        amount=Decimal("5.00"),
+        due_date=date(2026, 4, 22),
+        status=APBillStatus.PAID,
+        paid_at=timezone.make_aware(datetime(2026, 4, 22, 10, 0)),
+    )
+
+    return period_from, period_to
 
 
 @pytest.mark.django_db
@@ -199,18 +287,76 @@ def test_finance_cashflow_report_endpoint_agrega_por_dia(client):
 
 
 @pytest.mark.django_db
-def test_finance_cashflow_report_endpoint_exige_from_e_to(client):
-    response = client.get("/api/v1/finance/reports/cashflow/")
+def test_finance_dre_report_endpoint_retorna_200_com_dados_consistentes(client):
+    period_from, period_to = _setup_reports_scenario()
+
+    response = client.get(
+        f"/api/v1/finance/reports/dre/?from={period_from}&to={period_to}"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["from"] == period_from
+    assert body["to"] == period_to
+    assert body["dre"] == {
+        "receita_total": "30.00",
+        "despesas_total": "5.00",
+        "cmv_estimado": "18.00",
+        "lucro_bruto": "12.00",
+        "resultado": "7.00",
+    }
+
+
+@pytest.mark.django_db
+def test_finance_kpis_report_endpoint_retorna_200_com_kpis_basicos(client):
+    period_from, period_to = _setup_reports_scenario()
+
+    response = client.get(
+        f"/api/v1/finance/reports/kpis/?from={period_from}&to={period_to}"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["from"] == period_from
+    assert body["to"] == period_to
+    assert body["kpis"] == {
+        "pedidos": 1,
+        "receita_total": "30.00",
+        "despesas_total": "5.00",
+        "cmv_estimado": "18.00",
+        "lucro_bruto": "12.00",
+        "ticket_medio": "30.00",
+        "margem_media": "40.00",
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/api/v1/finance/reports/cashflow/",
+        "/api/v1/finance/reports/dre/",
+        "/api/v1/finance/reports/kpis/",
+    ],
+)
+def test_finance_reports_endpoint_exige_from_e_to(client, endpoint):
+    response = client.get(endpoint)
 
     assert response.status_code == 400
     assert "obrigatorios" in response.json()["detail"]
 
 
 @pytest.mark.django_db
-def test_finance_cashflow_report_endpoint_valida_intervalo(client):
-    response = client.get(
-        "/api/v1/finance/reports/cashflow/?from=2026-03-10&to=2026-03-09"
-    )
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/api/v1/finance/reports/cashflow/",
+        "/api/v1/finance/reports/dre/",
+        "/api/v1/finance/reports/kpis/",
+    ],
+)
+def test_finance_reports_endpoint_valida_intervalo(client, endpoint):
+    response = client.get(f"{endpoint}?from=2026-03-10&to=2026-03-09")
 
     assert response.status_code == 400
     assert "menor ou igual" in response.json()["detail"]
