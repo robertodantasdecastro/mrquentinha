@@ -270,3 +270,9 @@
   - criados workflows operacionais em `.agent/workflows/` cobrindo bootstrap, loop diario, backend, frontend, quality gate, docs e release checkpoint.
   - criados prompts base para agentes em `.agent/prompts/` (system, backend, frontend, data seed e bugfix).
   - `docs/memory/PROJECT_STATE.md` e `docs/memory/RUNBOOK_DEV.md` atualizados com estado real, quickstart, smoke e troubleshooting.
+
+- Antigravity: workflows adicionais de sessao, bugfix, refactor, QA, PR e release
+  - adicionados workflows W10-W20 para lifecycle completo de trabalho.
+  - criado `SESSION_COMMANDS.md` com macros operacionais para iniciar/continuar/salvar/corrigir/auditar/release.
+  - adicionados templates de prompts para sessao, bugfix, refactor, quality e docs.
+  - memoria `.agent/memory` atualizada com index de workflows e contexto operacional vigente.

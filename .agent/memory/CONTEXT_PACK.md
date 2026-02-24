@@ -1,5 +1,9 @@
 # Context Pack (Resumo Operacional)
 
+## Estado atual
+- Etapas concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`.
+- Branch atual de trabalho deve ser validada no inicio da sessao.
+
 ## Portas e apps
 - Backend API: `8000`
 - Portal institucional: `3000`
@@ -25,11 +29,14 @@
 - `POST /api/v1/ocr/jobs/`
 - `POST /api/v1/ocr/jobs/<id>/apply/`
 
-## Branch e convencao
-- Branch atual: `feature/etapa-4-orders`
-- Convencao para novas branches de agentes: `codex/<escopo-curto>`.
+## Proximos passos (fonte: TODO_NEXT)
+1. 7.0.1: consolidar smoke_client (robustez continua).
+2. 7.1: Auth/RBAC para cliente real.
+3. 7.2: Pagamentos (Pix/Cartao/VR).
+4. 6.1: Nginx local sem DNS.
+5. 8: Financas pessoais.
 
 ## Regras de execucao
 - Nunca comitar segredos.
-- Sempre validar antes de commit.
-- Sempre atualizar docs de memoria com estado real.
+- Sempre validar antes de commit (test/build/smoke conforme escopo).
+- Sempre atualizar docs de memoria quando houver impacto operacional.
