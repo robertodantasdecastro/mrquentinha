@@ -2,13 +2,15 @@ from datetime import date
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework import status, viewsets
+from django.utils import timezone
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .models import APBillStatus, ARReceivableStatus
 from .reports import get_cashflow, get_dre, get_kpis
 from .selectors import (
     list_accounts,
@@ -17,6 +19,7 @@ from .selectors import (
     list_ar_receivables,
     list_bank_statements,
     list_cash_movements,
+    list_financial_closes,
     list_ledger_entries,
     list_statement_lines,
     list_unreconciled_movements,
@@ -27,11 +30,20 @@ from .serializers import (
     ARReceivableSerializer,
     BankStatementSerializer,
     CashMovementSerializer,
+    FinancialCloseSerializer,
     LedgerEntrySerializer,
     ReconcileCashMovementSerializer,
     StatementLineSerializer,
 )
-from .services import reconcile_cash_movement, unreconcile_cash_movement
+from .services import (
+    close_period,
+    ensure_ap_bill_open_for_write,
+    ensure_ar_receivable_open_for_write,
+    ensure_cash_movement_open_for_write,
+    is_date_closed,
+    reconcile_cash_movement,
+    unreconcile_cash_movement,
+)
 
 
 class AccountViewSet(viewsets.ModelViewSet):
@@ -49,6 +61,51 @@ class APBillViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return list_ap_bills()
 
+    def perform_create(self, serializer):
+        status_value = serializer.validated_data.get("status", APBillStatus.OPEN)
+        due_date = serializer.validated_data.get("due_date")
+        paid_at = serializer.validated_data.get("paid_at")
+
+        try:
+            ensure_ap_bill_open_for_write(
+                due_date=due_date,
+                status=status_value,
+                paid_at=paid_at,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        serializer.save()
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        status_value = serializer.validated_data.get("status", instance.status)
+        due_date = serializer.validated_data.get("due_date", instance.due_date)
+        paid_at = serializer.validated_data.get("paid_at", instance.paid_at)
+
+        try:
+            ensure_ap_bill_open_for_write(
+                due_date=due_date,
+                status=status_value,
+                paid_at=paid_at,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        try:
+            ensure_ap_bill_open_for_write(
+                due_date=instance.due_date,
+                status=instance.status,
+                paid_at=instance.paid_at,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        instance.delete()
+
 
 class ARReceivableViewSet(viewsets.ModelViewSet):
     serializer_class = ARReceivableSerializer
@@ -56,6 +113,51 @@ class ARReceivableViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return list_ar_receivables()
+
+    def perform_create(self, serializer):
+        status_value = serializer.validated_data.get("status", ARReceivableStatus.OPEN)
+        due_date = serializer.validated_data.get("due_date")
+        received_at = serializer.validated_data.get("received_at")
+
+        try:
+            ensure_ar_receivable_open_for_write(
+                due_date=due_date,
+                status=status_value,
+                received_at=received_at,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        serializer.save()
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        status_value = serializer.validated_data.get("status", instance.status)
+        due_date = serializer.validated_data.get("due_date", instance.due_date)
+        received_at = serializer.validated_data.get("received_at", instance.received_at)
+
+        try:
+            ensure_ar_receivable_open_for_write(
+                due_date=due_date,
+                status=status_value,
+                received_at=received_at,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        try:
+            ensure_ar_receivable_open_for_write(
+                due_date=instance.due_date,
+                status=instance.status,
+                received_at=instance.received_at,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        instance.delete()
 
 
 class BankStatementViewSet(viewsets.ModelViewSet):
@@ -110,6 +212,37 @@ class CashMovementViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return list_cash_movements()
 
+    def perform_create(self, serializer):
+        movement_date = serializer.validated_data.get("movement_date") or timezone.now()
+
+        try:
+            ensure_cash_movement_open_for_write(movement_date=movement_date)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        serializer.save()
+
+    def perform_update(self, serializer):
+        movement_date = serializer.validated_data.get(
+            "movement_date",
+            serializer.instance.movement_date,
+        )
+
+        try:
+            ensure_cash_movement_open_for_write(movement_date=movement_date)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        try:
+            ensure_cash_movement_open_for_write(movement_date=instance.movement_date)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        instance.delete()
+
     @action(detail=True, methods=["post"], url_path="reconcile")
     def reconcile(self, request, pk=None):
         movement = self.get_object()
@@ -146,6 +279,40 @@ class LedgerEntryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return list_ledger_entries()
+
+
+class FinancialCloseViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = FinancialCloseSerializer
+    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+
+    def get_queryset(self):
+        return list_financial_closes()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            financial_close = close_period(
+                period_start=serializer.validated_data["period_start"],
+                period_end=serializer.validated_data["period_end"],
+                closed_by=serializer.validated_data.get("closed_by"),
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        output_serializer = self.get_serializer(financial_close)
+        headers = self.get_success_headers(output_serializer.data)
+        return Response(
+            output_serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
 
 
 class PeriodReportMixin:
@@ -272,6 +439,32 @@ class KpisReportAPIView(PeriodReportMixin, APIView):
                     "ticket_medio": self._format_money(kpis["ticket_medio"]),
                     "margem_media": self._format_money(kpis["margem_media"]),
                 },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class IsClosedAPIView(APIView):
+    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+
+    def get(self, request):
+        date_raw = request.query_params.get("date")
+        if not date_raw:
+            raise DRFValidationError(
+                {"detail": "Parametro 'date' e obrigatorio no formato YYYY-MM-DD."}
+            )
+
+        try:
+            parsed_date = date.fromisoformat(date_raw)
+        except ValueError as exc:
+            raise DRFValidationError(
+                {"detail": "Formato invalido. Use 'date' como YYYY-MM-DD."}
+            ) from exc
+
+        return Response(
+            {
+                "date": parsed_date.isoformat(),
+                "closed": is_date_closed(parsed_date),
             },
             status=status.HTTP_200_OK,
         )

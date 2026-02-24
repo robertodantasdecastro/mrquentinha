@@ -11,6 +11,7 @@ from .models import (
     BankStatement,
     CashDirection,
     CashMovement,
+    FinancialClose,
     LedgerEntry,
     StatementLine,
 )
@@ -249,6 +250,36 @@ class LedgerEntrySerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+
+class FinancialCloseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FinancialClose
+        fields = [
+            "id",
+            "period_start",
+            "period_end",
+            "closed_at",
+            "closed_by",
+            "totals_json",
+            "created_at",
+        ]
+        read_only_fields = ["id", "closed_at", "totals_json", "created_at"]
+
+    def validate(self, attrs: dict) -> dict:
+        attrs = super().validate(attrs)
+
+        period_start = attrs.get(
+            "period_start", getattr(self.instance, "period_start", None)
+        )
+        period_end = attrs.get("period_end", getattr(self.instance, "period_end", None))
+
+        if period_start and period_end and period_start > period_end:
+            raise serializers.ValidationError(
+                "period_start deve ser menor ou igual a period_end."
+            )
+
+        return attrs
 
 
 class ReconcileCashMovementSerializer(serializers.Serializer):

@@ -188,6 +188,33 @@ class StatementLine(models.Model):
         return f"StatementLine-{self.id} ({self.amount})"
 
 
+class FinancialClose(models.Model):
+    period_start = models.DateField()
+    period_end = models.DateField()
+    closed_at = models.DateTimeField(default=timezone.now)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="finance_closes",
+    )
+    totals_json = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-period_start", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["period_start", "period_end"],
+                name="finance_close_period_unique",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"Close-{self.id} ({self.period_start} a {self.period_end})"
+
+
 class CashMovement(models.Model):
     movement_date = models.DateTimeField(default=timezone.now)
     direction = models.CharField(max_length=8, choices=CashDirection.choices)

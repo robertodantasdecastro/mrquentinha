@@ -9,6 +9,8 @@ from .views import (
     CashflowReportAPIView,
     CashMovementViewSet,
     DreReportAPIView,
+    FinancialCloseViewSet,
+    IsClosedAPIView,
     KpisReportAPIView,
     LedgerEntryViewSet,
     StatementLineViewSet,
@@ -39,6 +41,7 @@ router.register(
     basename="finance-cash-movements",
 )
 router.register(r"ledger", LedgerEntryViewSet, basename="finance-ledger")
+router.register(r"closes", FinancialCloseViewSet, basename="finance-closes")
 
 urlpatterns = [
     path("reports/cashflow/", CashflowReportAPIView.as_view(), name="finance-cashflow"),
@@ -49,5 +52,6 @@ urlpatterns = [
     ),
     path("reports/dre/", DreReportAPIView.as_view(), name="finance-dre"),
     path("reports/kpis/", KpisReportAPIView.as_view(), name="finance-kpis"),
+    path("closes/is-closed/", IsClosedAPIView.as_view(), name="finance-is-closed"),
     path("", include(router.urls)),
 ]

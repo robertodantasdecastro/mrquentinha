@@ -6,6 +6,7 @@ from .models import (
     ARReceivable,
     BankStatement,
     CashMovement,
+    FinancialClose,
     LedgerEntry,
     StatementLine,
 )
@@ -110,3 +111,17 @@ class LedgerEntryAdmin(admin.ModelAdmin):
     ]
     list_filter = ["entry_type", "entry_date", "debit_account", "credit_account"]
     search_fields = ["reference_type", "reference_id", "note"]
+
+
+@admin.register(FinancialClose)
+class FinancialCloseAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "period_start",
+        "period_end",
+        "closed_at",
+        "closed_by",
+        "created_at",
+    ]
+    list_filter = ["period_start", "period_end", "closed_at"]
+    search_fields = ["period_start", "period_end"]

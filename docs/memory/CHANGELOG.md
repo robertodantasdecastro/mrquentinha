@@ -188,3 +188,11 @@
   - endpoints de conciliacao publicados:
     - `POST /api/v1/finance/cash-movements/<id>/reconcile/`
     - `POST /api/v1/finance/cash-movements/<id>/unreconcile/`
+
+- Etapa 5.6.3 fechamento mensal:
+  - novo modelo `FinancialClose` para registrar fechamento por periodo com snapshot em `totals_json`.
+  - service `close_period(period_start, period_end, closed_by=None)` para consolidar DRE + cashflow no momento do fechamento.
+  - endpoint `POST/GET /api/v1/finance/closes/` publicado para criar e listar fechamentos.
+  - endpoint auxiliar `GET /api/v1/finance/closes/is-closed/?date=YYYY-MM-DD` publicado.
+  - bloqueio por periodo fechado aplicado no service layer para operacoes de `CashMovement`, `APBill`, `ARReceivable` e `LedgerEntry`.
+  - testes de service e API adicionados para fechamento, duplicidade, bloqueios e consulta `is-closed`.

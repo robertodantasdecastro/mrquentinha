@@ -17,17 +17,21 @@ from .models import (
     ARReceivableStatus,
     CashDirection,
     CashMovement,
+    FinancialClose,
     LedgerEntry,
     LedgerEntryType,
     StatementLine,
 )
+from .reports import get_cashflow, get_dre
 from .selectors import (
     get_ap_by_reference,
     get_ar_by_reference,
     get_cash_by_reference,
+    get_financial_close_for_date,
 )
 
 MONEY_DECIMAL_PLACES = Decimal("0.01")
+ZERO_MONEY = Decimal("0.00")
 DEFAULT_REVENUE_ACCOUNT_NAME = "Vendas"
 DEFAULT_EXPENSE_ACCOUNT_NAME = "Insumos"
 DEFAULT_CASH_ACCOUNT_NAME = "Caixa/Banco"
@@ -43,6 +47,147 @@ DEFAULT_FINANCE_ACCOUNTS = [
 
 def _quantize_money(value: Decimal) -> Decimal:
     return value.quantize(MONEY_DECIMAL_PLACES, rounding=ROUND_HALF_UP)
+
+
+def _resolve_datetime(value: datetime | None) -> datetime:
+    return value or timezone.now()
+
+
+def _resolve_date(value: date | datetime | None) -> date | None:
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        return value.date()
+
+    return value
+
+
+def is_date_closed(target_date: date) -> bool:
+    return get_financial_close_for_date(target_date) is not None
+
+
+def _ensure_open_period_for_date(
+    *,
+    target_date: date | datetime | None,
+    entity_label: str,
+):
+    resolved_date = _resolve_date(target_date)
+    if resolved_date is None:
+        return
+
+    financial_close = get_financial_close_for_date(resolved_date)
+    if financial_close is None:
+        return
+
+    raise ValidationError(
+        f"Nao e permitido alterar {entity_label} na data "
+        f"{resolved_date.isoformat()} porque o periodo "
+        f"{financial_close.period_start.isoformat()} a "
+        f"{financial_close.period_end.isoformat()} esta fechado."
+    )
+
+
+def ensure_cash_movement_open_for_write(*, movement_date: date | datetime) -> None:
+    _ensure_open_period_for_date(
+        target_date=movement_date,
+        entity_label="movimento de caixa",
+    )
+
+
+def ensure_ap_bill_open_for_write(
+    *,
+    due_date: date | None,
+    status: str,
+    paid_at: datetime | None = None,
+) -> None:
+    _ensure_open_period_for_date(
+        target_date=due_date,
+        entity_label="conta a pagar",
+    )
+
+    if status == APBillStatus.PAID:
+        effective_paid_at = paid_at or timezone.now()
+        _ensure_open_period_for_date(
+            target_date=effective_paid_at,
+            entity_label="pagamento de conta a pagar",
+        )
+
+
+def ensure_ar_receivable_open_for_write(
+    *,
+    due_date: date | None,
+    status: str,
+    received_at: datetime | None = None,
+) -> None:
+    _ensure_open_period_for_date(
+        target_date=due_date,
+        entity_label="conta a receber",
+    )
+
+    if status == ARReceivableStatus.RECEIVED:
+        effective_received_at = received_at or timezone.now()
+        _ensure_open_period_for_date(
+            target_date=effective_received_at,
+            entity_label="recebimento de conta a receber",
+        )
+
+
+def ensure_ledger_entry_open_for_write(*, entry_date: date | datetime) -> None:
+    _ensure_open_period_for_date(
+        target_date=entry_date,
+        entity_label="lancamento de auditoria",
+    )
+
+
+@transaction.atomic
+def close_period(
+    *,
+    period_start: date,
+    period_end: date,
+    closed_by=None,
+) -> FinancialClose:
+    if period_start > period_end:
+        raise ValidationError("period_start deve ser menor ou igual a period_end.")
+
+    existing_close = FinancialClose.objects.filter(
+        period_start=period_start,
+        period_end=period_end,
+    ).first()
+    if existing_close is not None:
+        raise ValidationError("Periodo informado ja foi fechado.")
+
+    dre = get_dre(from_date=period_start, to_date=period_end)
+    cashflow_items = get_cashflow(from_date=period_start, to_date=period_end)
+
+    cashflow_net_total = ZERO_MONEY
+    cashflow_running_balance = ZERO_MONEY
+
+    for item in cashflow_items:
+        cashflow_net_total += item["net"]
+        cashflow_running_balance = item["running_balance"]
+
+    cashflow_net_total = _quantize_money(cashflow_net_total)
+    cashflow_running_balance = _quantize_money(cashflow_running_balance)
+
+    totals_json = {
+        "period_start": period_start.isoformat(),
+        "period_end": period_end.isoformat(),
+        "receita_total": f"{dre['receita_total']:.2f}",
+        "despesas_total": f"{dre['despesas_total']:.2f}",
+        "cmv_estimado": f"{dre['cmv_estimado']:.2f}",
+        "lucro_bruto": f"{dre['lucro_bruto']:.2f}",
+        "resultado": f"{dre['resultado']:.2f}",
+        "saldo_caixa_periodo": f"{cashflow_net_total:.2f}",
+        "saldo_caixa_final": f"{cashflow_running_balance:.2f}",
+    }
+
+    return FinancialClose.objects.create(
+        period_start=period_start,
+        period_end=period_end,
+        closed_by=closed_by,
+        totals_json=totals_json,
+    )
 
 
 @transaction.atomic
@@ -127,8 +272,31 @@ def _ensure_positive_amount(amount: Decimal) -> None:
         raise ValidationError("Valor deve ser maior que zero.")
 
 
-def _resolve_datetime(value: datetime | None) -> datetime:
-    return value or timezone.now()
+@transaction.atomic
+def create_cash_movement(
+    *,
+    direction: str,
+    amount: Decimal,
+    account: Account,
+    movement_date: datetime | None = None,
+    note: str | None = None,
+    reference_type: str | None = None,
+    reference_id: int | None = None,
+) -> CashMovement:
+    _ensure_positive_amount(amount)
+
+    movement_datetime = _resolve_datetime(movement_date)
+    ensure_cash_movement_open_for_write(movement_date=movement_datetime)
+
+    return CashMovement.objects.create(
+        movement_date=movement_datetime,
+        direction=direction,
+        amount=_quantize_money(amount),
+        account=account,
+        note=note,
+        reference_type=reference_type,
+        reference_id=reference_id,
+    )
 
 
 def _record_ledger_entry(
@@ -143,13 +311,15 @@ def _record_ledger_entry(
     entry_date: datetime | None = None,
 ) -> LedgerEntry:
     _ensure_positive_amount(amount)
+    resolved_entry_date = _resolve_datetime(entry_date)
+    ensure_ledger_entry_open_for_write(entry_date=resolved_entry_date)
 
     ledger_entry, _ = LedgerEntry.objects.get_or_create(
         reference_type=reference_type,
         reference_id=reference_id,
         entry_type=entry_type,
         defaults={
-            "entry_date": _resolve_datetime(entry_date),
+            "entry_date": resolved_entry_date,
             "amount": _quantize_money(amount),
             "debit_account": debit_account,
             "credit_account": credit_account,
@@ -263,6 +433,10 @@ def create_ap_from_purchase(
     )
 
     _ensure_positive_amount(amount_value)
+    ensure_ap_bill_open_for_write(
+        due_date=due_date_value,
+        status=APBillStatus.OPEN,
+    )
 
     return APBill.objects.create(
         supplier_name=supplier_name_value,
@@ -301,6 +475,10 @@ def create_ar_from_order(
     due_date_value = due_date if due_date is not None else order.delivery_date
 
     _ensure_positive_amount(amount_value)
+    ensure_ar_receivable_open_for_write(
+        due_date=due_date_value,
+        status=ARReceivableStatus.OPEN,
+    )
 
     return ARReceivable.objects.create(
         customer=order.customer,
@@ -339,6 +517,11 @@ def record_cash_in_from_ar(
     )
     if existing_movement is not None:
         if receivable.status != ARReceivableStatus.RECEIVED:
+            ensure_ar_receivable_open_for_write(
+                due_date=receivable.due_date,
+                status=ARReceivableStatus.RECEIVED,
+                received_at=existing_movement.movement_date,
+            )
             receivable.status = ARReceivableStatus.RECEIVED
             if receivable.received_at is None:
                 receivable.received_at = existing_movement.movement_date
@@ -361,8 +544,15 @@ def record_cash_in_from_ar(
     if cash_account.type != AccountType.ASSET:
         raise ValidationError("Conta de caixa deve ser do tipo ASSET.")
 
-    movement = CashMovement.objects.create(
-        movement_date=_resolve_datetime(movement_date),
+    movement_datetime = _resolve_datetime(movement_date)
+    ensure_ar_receivable_open_for_write(
+        due_date=receivable.due_date,
+        status=ARReceivableStatus.RECEIVED,
+        received_at=movement_datetime,
+    )
+
+    movement = create_cash_movement(
+        movement_date=movement_datetime,
         direction=CashDirection.IN,
         amount=receivable.amount,
         account=cash_account,
@@ -408,6 +598,11 @@ def record_cash_out_from_ap(
     )
     if existing_movement is not None:
         if bill.status != APBillStatus.PAID:
+            ensure_ap_bill_open_for_write(
+                due_date=bill.due_date,
+                status=APBillStatus.PAID,
+                paid_at=existing_movement.movement_date,
+            )
             bill.status = APBillStatus.PAID
             if bill.paid_at is None:
                 bill.paid_at = existing_movement.movement_date
@@ -421,8 +616,15 @@ def record_cash_out_from_ap(
 
         return existing_movement
 
-    movement = CashMovement.objects.create(
-        movement_date=_resolve_datetime(movement_date),
+    movement_datetime = _resolve_datetime(movement_date)
+    ensure_ap_bill_open_for_write(
+        due_date=bill.due_date,
+        status=APBillStatus.PAID,
+        paid_at=movement_datetime,
+    )
+
+    movement = create_cash_movement(
+        movement_date=movement_datetime,
         direction=CashDirection.OUT,
         amount=bill.amount,
         account=account or bill.account,
@@ -454,6 +656,8 @@ def reconcile_cash_movement(
         movement = CashMovement.objects.select_for_update().get(pk=cash_movement_id)
     except CashMovement.DoesNotExist as exc:
         raise ValidationError("Movimento de caixa nao encontrado.") from exc
+
+    ensure_cash_movement_open_for_write(movement_date=movement.movement_date)
 
     try:
         statement_line = StatementLine.objects.get(pk=statement_line_id)
@@ -491,6 +695,8 @@ def unreconcile_cash_movement(cash_movement_id: int) -> CashMovement:
         movement = CashMovement.objects.select_for_update().get(pk=cash_movement_id)
     except CashMovement.DoesNotExist as exc:
         raise ValidationError("Movimento de caixa nao encontrado.") from exc
+
+    ensure_cash_movement_open_for_write(movement_date=movement.movement_date)
 
     if not movement.is_reconciled and movement.statement_line_id is None:
         return movement

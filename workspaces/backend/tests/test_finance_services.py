@@ -1,9 +1,10 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.utils import timezone
 
 from apps.finance.models import (
     Account,
@@ -15,13 +16,16 @@ from apps.finance.models import (
     BankStatement,
     CashDirection,
     CashMovement,
+    FinancialClose,
     LedgerEntry,
     LedgerEntryType,
     StatementLine,
 )
 from apps.finance.services import (
+    close_period,
     create_ap_from_purchase,
     create_ar_from_order,
+    create_cash_movement,
     reconcile_cash_movement,
     record_cash_in_from_ar,
     record_cash_out_from_ap,
@@ -336,3 +340,108 @@ def test_unreconcile_cash_movement_remove_vinculo():
 
     assert unreconciled.is_reconciled is False
     assert unreconciled.statement_line is None
+
+
+@pytest.mark.django_db
+def test_close_period_cria_financial_close_com_snapshot():
+    cash_account = Account.objects.create(
+        name="Conta Caixa Fechamento",
+        type=AccountType.ASSET,
+    )
+    create_cash_movement(
+        movement_date=timezone.make_aware(datetime(2026, 11, 5, 9, 0)),
+        direction=CashDirection.IN,
+        amount=Decimal("150.00"),
+        account=cash_account,
+        reference_type="MANUAL",
+        reference_id=1,
+    )
+
+    financial_close = close_period(
+        period_start=date(2026, 11, 1),
+        period_end=date(2026, 11, 30),
+    )
+
+    assert isinstance(financial_close, FinancialClose)
+    assert financial_close.totals_json["saldo_caixa_periodo"] == "150.00"
+    assert financial_close.totals_json["saldo_caixa_final"] == "150.00"
+    assert "receita_total" in financial_close.totals_json
+    assert "despesas_total" in financial_close.totals_json
+    assert "cmv_estimado" in financial_close.totals_json
+    assert "resultado" in financial_close.totals_json
+
+
+@pytest.mark.django_db
+def test_close_period_impede_fechamento_duplicado():
+    close_period(
+        period_start=date(2026, 12, 1),
+        period_end=date(2026, 12, 31),
+    )
+
+    with pytest.raises(ValidationError):
+        close_period(
+            period_start=date(2026, 12, 1),
+            period_end=date(2026, 12, 31),
+        )
+
+
+@pytest.mark.django_db
+def test_periodo_fechado_bloqueia_cash_ap_e_ar():
+    close_period(
+        period_start=date(2026, 12, 1),
+        period_end=date(2026, 12, 31),
+    )
+
+    cash_account = Account.objects.create(
+        name="Conta Caixa Bloqueio",
+        type=AccountType.ASSET,
+    )
+    revenue_account = Account.objects.create(
+        name="Conta Receita Bloqueio",
+        type=AccountType.REVENUE,
+    )
+    expense_account = Account.objects.create(
+        name="Conta Despesa Bloqueio",
+        type=AccountType.EXPENSE,
+    )
+
+    bill = APBill.objects.create(
+        supplier_name="Fornecedor Bloqueio",
+        account=expense_account,
+        amount=Decimal("95.00"),
+        due_date=date(2026, 12, 10),
+        status=APBillStatus.OPEN,
+    )
+    receivable = ARReceivable.objects.create(
+        customer=None,
+        account=revenue_account,
+        amount=Decimal("210.00"),
+        due_date=date(2026, 12, 10),
+        status=ARReceivableStatus.OPEN,
+    )
+
+    closed_movement_date = timezone.make_aware(datetime(2026, 12, 15, 10, 0))
+
+    with pytest.raises(ValidationError):
+        create_cash_movement(
+            movement_date=closed_movement_date,
+            direction=CashDirection.IN,
+            amount=Decimal("10.00"),
+            account=cash_account,
+            reference_type="MANUAL",
+            reference_id=2,
+        )
+
+    with pytest.raises(ValidationError):
+        record_cash_out_from_ap(
+            bill.id,
+            account=cash_account,
+            movement_date=closed_movement_date,
+        )
+
+    with pytest.raises(ValidationError):
+        record_cash_in_from_ar(
+            receivable.id,
+            account=cash_account,
+            movement_date=closed_movement_date,
+        )

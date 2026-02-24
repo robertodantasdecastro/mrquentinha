@@ -536,3 +536,109 @@ def test_finance_unreconciled_report_retorna_apenas_pendentes(client):
     assert len(body["items"]) == 1
     assert body["items"][0]["id"] == pending.id
     assert body["items"][0]["is_reconciled"] is False
+
+
+@pytest.mark.django_db
+def test_finance_closes_endpoint_fecha_periodo_com_snapshot(client):
+    cash_account = Account.objects.create(
+        name="Conta Caixa API Close",
+        type=AccountType.ASSET,
+    )
+    CashMovement.objects.create(
+        movement_date=timezone.make_aware(datetime(2026, 11, 3, 8, 0)),
+        direction=CashDirection.IN,
+        amount=Decimal("75.00"),
+        account=cash_account,
+        reference_type="AR",
+        reference_id=9001,
+    )
+
+    response = client.post(
+        "/api/v1/finance/closes/",
+        data=json.dumps(
+            {
+                "period_start": "2026-11-01",
+                "period_end": "2026-11-30",
+            }
+        ),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["period_start"] == "2026-11-01"
+    assert body["period_end"] == "2026-11-30"
+    assert body["totals_json"]["saldo_caixa_periodo"] == "75.00"
+    assert body["totals_json"]["saldo_caixa_final"] == "75.00"
+    assert "receita_total" in body["totals_json"]
+    assert "resultado" in body["totals_json"]
+
+
+@pytest.mark.django_db
+def test_finance_is_closed_endpoint_retorna_true_e_false(client):
+    close_response = client.post(
+        "/api/v1/finance/closes/",
+        data=json.dumps(
+            {
+                "period_start": "2026-12-01",
+                "period_end": "2026-12-31",
+            }
+        ),
+        content_type="application/json",
+    )
+    assert close_response.status_code == 201
+
+    inside_response = client.get("/api/v1/finance/closes/is-closed/?date=2026-12-15")
+    assert inside_response.status_code == 200
+    assert inside_response.json() == {"date": "2026-12-15", "closed": True}
+
+    outside_response = client.get("/api/v1/finance/closes/is-closed/?date=2027-01-01")
+    assert outside_response.status_code == 200
+    assert outside_response.json() == {"date": "2027-01-01", "closed": False}
+
+
+@pytest.mark.django_db
+def test_finance_cash_movement_endpoint_bloqueia_periodo_fechado(client):
+    close_response = client.post(
+        "/api/v1/finance/closes/",
+        data=json.dumps(
+            {
+                "period_start": "2027-01-01",
+                "period_end": "2027-01-31",
+            }
+        ),
+        content_type="application/json",
+    )
+    assert close_response.status_code == 201
+
+    account_response = client.post(
+        "/api/v1/finance/accounts/",
+        data=json.dumps(
+            {
+                "name": "Conta Caixa Bloqueio API",
+                "type": "ASSET",
+                "is_active": True,
+            }
+        ),
+        content_type="application/json",
+    )
+    assert account_response.status_code == 201
+
+    response = client.post(
+        "/api/v1/finance/cash-movements/",
+        data=json.dumps(
+            {
+                "movement_date": "2027-01-10T10:00:00Z",
+                "direction": "IN",
+                "amount": "45.90",
+                "account": account_response.json()["id"],
+                "note": "Tentativa em periodo fechado",
+                "reference_type": "PAYMENT",
+                "reference_id": 4001,
+            }
+        ),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert "fechado" in json.dumps(response.json()).lower()

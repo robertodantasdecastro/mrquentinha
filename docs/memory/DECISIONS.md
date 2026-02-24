@@ -163,3 +163,14 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - `unreconcile_cash_movement` remove vinculo e volta `is_reconciled=false`.
 - Relatorio de pendencias:
   - endpoint `reports/unreconciled` retorna apenas movimentos nao conciliados por periodo (`from`/`to`).
+
+## Etapa 5.6.3 - Fechamento por periodo (MVP)
+- Escopo de bloqueio no MVP:
+  - bloqueio aplicado no service layer (sem trigger no banco nesta etapa).
+  - alteracoes em `CashMovement`, `APBill`, `ARReceivable` e `LedgerEntry` sao barradas quando a data relevante estiver em periodo fechado.
+- Snapshot no fechamento:
+  - `FinancialClose.totals_json` registra totais congelados do periodo no momento do fechamento.
+  - totais incluem DRE (`receita_total`, `despesas_total`, `cmv_estimado`, `lucro_bruto`, `resultado`) e caixa (`saldo_caixa_periodo`, `saldo_caixa_final`).
+- Regra de duplicidade:
+  - nao permitir fechar o mesmo intervalo (`period_start`, `period_end`) duas vezes.
+  - comportamento definido: retornar erro de validacao claro no service `close_period`.

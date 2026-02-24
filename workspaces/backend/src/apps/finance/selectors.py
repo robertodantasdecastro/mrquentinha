@@ -8,6 +8,7 @@ from .models import (
     ARReceivable,
     BankStatement,
     CashMovement,
+    FinancialClose,
     LedgerEntry,
     StatementLine,
 )
@@ -66,6 +67,23 @@ def list_ledger_entries() -> QuerySet[LedgerEntry]:
         "debit_account",
         "credit_account",
     ).order_by("-entry_date", "-id")
+
+
+def list_financial_closes() -> QuerySet[FinancialClose]:
+    return FinancialClose.objects.select_related("closed_by").order_by(
+        "-period_start", "-id"
+    )
+
+
+def get_financial_close_for_date(target_date: date) -> FinancialClose | None:
+    return (
+        FinancialClose.objects.filter(
+            period_start__lte=target_date,
+            period_end__gte=target_date,
+        )
+        .order_by("-period_start", "-id")
+        .first()
+    )
 
 
 def get_ap_by_reference(reference_type: str, reference_id: int) -> APBill | None:

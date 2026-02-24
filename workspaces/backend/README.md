@@ -504,3 +504,35 @@ Relatorio de pendencias de conciliacao:
 ```bash
 curl "http://127.0.0.1:8000/api/v1/finance/reports/unreconciled/?from=2026-08-01&to=2026-08-31"
 ```
+
+## Financeiro - Fechamento Mensal (Etapa 5.6.3)
+### Endpoints
+- `GET/POST /api/v1/finance/closes/`
+- `GET /api/v1/finance/closes/is-closed/?date=YYYY-MM-DD`
+
+### Regras de fechamento (MVP)
+- `close_period(period_start, period_end)` gera snapshot em `totals_json` com:
+  - `receita_total`, `despesas_total`, `cmv_estimado`, `lucro_bruto`, `resultado`
+  - `saldo_caixa_periodo` e `saldo_caixa_final`
+- O mesmo periodo nao pode ser fechado duas vezes.
+- Bloqueio por periodo fechado aplicado no service layer para alteracoes em:
+  - `CashMovement`
+  - `APBill`
+  - `ARReceivable`
+  - `LedgerEntry`
+
+### Exemplos curl
+Fechar periodo:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/finance/closes/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "period_start": "2026-12-01",
+    "period_end": "2026-12-31"
+  }'
+```
+
+Consultar se uma data esta fechada:
+```bash
+curl "http://127.0.0.1:8000/api/v1/finance/closes/is-closed/?date=2026-12-15"
+```
