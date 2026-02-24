@@ -1,7 +1,7 @@
 # Guia de Uso dos Workflows (Codex + Antigravity)
 
 ## Principios
-- Fonte de verdade: workflows `W10..W21`.
+- Fonte de verdade: workflows `W09..W25`.
 - Wrappers `00..06` existem para atalhos e onboarding.
 - Nunca iniciar tarefa sem ler `AGENTS.md` e `GEMINI.md`.
 
@@ -15,12 +15,13 @@
   - `bash scripts/branch_guard.sh --agent union --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
 
 ## Fluxo recomendado (dia a dia)
-1. `W10_iniciar_sessao`
-2. `W02_feature_backend` ou `W03_feature_frontend`
-3. `W16_auditoria_qualidade`
-4. `W17_atualizar_documentacao_memoria`
-5. `W21_sync_codex_antigravity`
-6. `W12_salvar_checkpoint`
+1. `W09_preflight_antigravity`
+2. `W10_iniciar_sessao` (ou `W11_continuar_sessao`)
+3. `W02_feature_backend` ou `W03_feature_frontend`
+4. `W16_auditoria_qualidade`
+5. `W17_atualizar_documentacao_memoria`
+6. `W21_sync_codex_antigravity`
+7. `W12_salvar_checkpoint`
 
 ## Trabalho paralelo (Codex + Antigravity)
 1. Antes de editar, ler `.agent/memory/IN_PROGRESS.md`.
@@ -29,15 +30,22 @@
 4. Se houver intersecao, combinar ordem de entrega e usar `Antigravity_Codex` para integracao.
 5. Fechar com `W21_sync_codex_antigravity` antes de checkpoint/PR.
 
-## Quando usar W13, W14 e W15
-- `W13`: bug localizado e reproducao clara.
-- `W14`: causa raiz incerta, precisa de investigacao.
-- `W15`: limpeza/refatoracao sem alterar comportamento.
+## Workflows adicionais
+- `W22_layout_references_audit`: registrar referencias e CTA em `docs/memory/LAYOUT_REFERENCES.md`.
+- `W23_design_system_sync`: auditar uso de `ui/` e tokens em `docs/memory/DESIGN_SYSTEM_STATUS.md`.
+- `W24_git_comparison_review`: comparar `main`, `AntigravityIDE`, `Antigravity_Codex` em `docs/memory/GIT_COMPARE_REPORT.md`.
+- `W25_recovery_readonly`: executar recovery sem alteracoes e registrar `docs/memory/RECOVERY_TEMPLATE.md`.
 
 ## PR e release
 - PR/merge: `W18_preparar_pr_merge`.
 - Release/tag: `W19_release_tag` (sempre apos QA completo).
 
 ## Venv/NVM (obrigatorio)
-- Testes no root: ativar venv do backend antes.
-- NPM: carregar nvm e usar Node LTS antes de qualquer `npm run ...`.
+- Testes Python:
+```bash
+cd workspaces/backend && source .venv/bin/activate
+```
+- Comandos npm:
+```bash
+source ~/.nvm/nvm.sh && nvm use --lts
+```

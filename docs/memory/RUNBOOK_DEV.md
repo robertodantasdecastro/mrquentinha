@@ -27,7 +27,26 @@ bash scripts/branch_guard.sh --agent union --strict --codex-primary main --antig
 
 4. Atualizar lock humano (`IN_PROGRESS.md`) antes de editar.
 
-## 3) Smoke
+## 3) Sincronizar GEMINI (repo -> global runtime)
+Checagem:
+
+```bash
+bash scripts/sync_gemini_global.sh --check
+```
+
+Sincronizar:
+
+```bash
+bash scripts/sync_gemini_global.sh
+```
+
+Diff amigavel:
+
+```bash
+bash scripts/diff_gemini.sh
+```
+
+## 4) Smoke
 Validacao ponta a ponta:
 
 ```bash
@@ -40,32 +59,15 @@ Validacao rapida do client:
 ./scripts/smoke_client_dev.sh
 ```
 
-### 3.1) Smoke apos hardening RBAC
-- Endpoint privado `/api/v1/catalog/menus/` nao e usado no smoke.
-- Endpoint publico read-only usado para smoke/frontends:
-  - `GET /api/v1/catalog/menus/today/`
-- CRUD do catalogo permanece protegido por RBAC.
-
-## 4) Seed DEMO
-Com backend pronto:
-
-```bash
-./scripts/seed_demo.sh
-```
-
 ## 5) Quality gate padronizado
 ```bash
 bash scripts/quality_gate_all.sh
 ```
 
-O script garante:
-- venv backend ativa
-- Node via `nvm use --lts`
-- checks backend/root/frontends/smokes
-
 ## 6) Sync obrigatorio antes de commit final
 ```bash
 bash scripts/sync_memory.sh --check
+bash scripts/sync_gemini_global.sh --check
 ```
 
 ## 7) Uniao oficial (main + AntigravityIDE)
@@ -78,7 +80,13 @@ Simulacao sem executar:
 ./scripts/union_branch_build_and_test.sh --dry-run
 ```
 
-## 8) Troubleshooting
+## 8) Recovery read-only (W25)
+Quando houver travamento/divergencia e necessario diagnostico sem alterar nada:
+1. Executar workflow `W25_recovery_readonly`.
+2. Registrar saida em `docs/memory/RECOVERY_TEMPLATE.md`.
+3. Atualizar este runbook com novos troubleshooting recorrentes.
+
+## 9) Troubleshooting
 - `DisallowedHost`:
   - revisar `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`.
 - CORS:
@@ -87,32 +95,3 @@ Simulacao sem executar:
   - remover apenas `workspaces/web/client/.next/dev/lock` apos encerrar processo.
 - Porta ocupada:
   - `ss -ltnp | grep -E ':8000|:3000|:3001'`
-
-## 9) Qualidade manual (fallback)
-Backend:
-
-```bash
-cd workspaces/backend
-source .venv/bin/activate
-python manage.py check
-python manage.py makemigrations --check
-make lint
-make test
-```
-
-Root:
-
-```bash
-cd ~/mrquentinha
-source workspaces/backend/.venv/bin/activate
-make test
-pytest
-```
-
-Frontends:
-
-```bash
-source ~/.nvm/nvm.sh && nvm use --lts
-cd workspaces/web/portal && npm run build
-cd workspaces/web/client && npm run build
-```

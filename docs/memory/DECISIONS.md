@@ -239,3 +239,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Confiabilidade de comandos:
   - testes no root exigem venv backend ativa.
   - comandos npm exigem `source ~/.nvm/nvm.sh && nvm use --lts`.
+
+## 24/02/2026 - Sincronismo GEMINI (repo -> global)
+- Fonte oficial versionada:
+  - `~/mrquentinha/GEMINI.md`
+- Fonte runtime para Antigravity UI:
+  - `~/.gemini/GEMINI.md`
+- Regra:
+  - o arquivo do repo e a fonte de verdade.
+  - o arquivo global deve ser sincronizado automaticamente via `scripts/sync_gemini_global.sh`.
+- Excecao permitida:
+  - `GEMINI.md` do repo pode conter cabecalho de espelho; o conteudo canonico (pos-cabecalho) deve ser identico ao global.
+- Validacao obrigatoria em sync:
+  - checar chaves `BRANCH_CODEX_PRIMARY`, `BRANCH_ANTIGRAVITY` e `BRANCH_UNION`.

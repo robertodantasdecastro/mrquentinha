@@ -329,3 +329,16 @@
   - workflow de uniao atualizado (`W18`) com merge controlado de `origin/AntigravityIDE` em `Antigravity_Codex` e validacao completa.
   - novo script `scripts/union_branch_build_and_test.sh` com modo `--dry-run`.
   - `branch_guard.sh` atualizado para as novas branches canonicas e bloqueio de uso indevido da branch de uniao.
+
+- Workflow audit + GEMINI sync + novos workflows:
+  - auditoria completa dos workflows com reforco de branch_guard, venv e nvm quando aplicavel.
+  - adicionado sincronismo GEMINI repo->global com scripts:
+    - `scripts/sync_gemini_global.sh`
+    - `scripts/diff_gemini.sh`
+  - `W21` atualizado para validar `sync_memory --check` e `sync_gemini_global.sh --check`.
+  - novos workflows adicionados:
+    - `W22_layout_references_audit`
+    - `W23_design_system_sync`
+    - `W24_git_comparison_review`
+    - `W25_recovery_readonly`
+  - documentacao/memoria atualizadas para refletir policy, scripts e fluxos de recovery.

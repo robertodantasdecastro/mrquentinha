@@ -1,3 +1,13 @@
+<!-- REPO_HEADER_START -->
+# GEMINI (Espelho Versionado)
+
+Este arquivo espelha `~/.gemini/GEMINI.md`; sincronize com:
+
+```bash
+bash scripts/sync_gemini_global.sh
+```
+<!-- REPO_HEADER_END -->
+
 # GEMINI - Global Antigravity
 
 ## Politica de Branches (Anti-Conflito)
