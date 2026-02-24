@@ -59,6 +59,11 @@ Cada prompt deve conter:
 - Toda mudanca em backend/frontend/scripts deve refletir docs/memory e `.agent`.
 - Nunca armazenar segredos em git (`.env` real, tokens, chaves, senhas).
 
+## Compatibilidade de paths (Codex x Antigravity)
+- Regra global lida pelo painel Antigravity: `.agent/rules/global.md`.
+- Espelho para ordenacao no topo: `.agent/rules/00_GLOBAL_RULE.md`.
+- Fontes completas mantidas em `.antigravity/GLOBAL_RULE.md` e `.antigravity/GLOBAL_SYNC_RULE.md`.
+
 ## Checklist antes de PR/merge
 1. Backend
 - `python manage.py check`

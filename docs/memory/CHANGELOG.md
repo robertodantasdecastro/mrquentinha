@@ -289,3 +289,9 @@
   - criado workflow `W21_sync_codex_antigravity` para sincronizacao obrigatoria pre-commit.
   - criados scripts `sync_memory.sh`, `quality_gate_all.sh` e `commit_sync.sh`.
   - atualizado workflow do Codex e guia de uso do Antigravity para incluir fluxo de sync.
+
+- Infra: antigravity global rule path fix
+  - regra global operacional adicionada em `.agent/rules/global.md`
+  - espelho para topo do painel criado em `.agent/rules/00_GLOBAL_RULE.md`
+  - mapeamento de paths documentado em `.agent/rules/README.md`
+  - docs atualizadas com compatibilidade de paths Codex/Antigravity

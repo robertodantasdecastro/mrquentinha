@@ -5,6 +5,10 @@ Referencia de atualizacao: 24/02/2026.
 ## Etapas concluidas
 - Concluidas: 0 -> 5.6.3, 6.0, 6.0.1, 7.0.
 
+## Antigravity
+- Antigravity Rules Path: `.agent/rules/global.md`
+- Espelho para topo do painel: `.agent/rules/00_GLOBAL_RULE.md`
+
 ## Modulos backend ativos
 - `catalog`
 - `inventory`
