@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Badge, Card, Input } from "@mrquentinha/ui";
+import Image from "next/image";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 
 type DishData = {
   id: number;
   name: string;
   description?: string | null;
+  image_url?: string | null;
 };
 
 type MenuItemData = {
@@ -133,22 +136,20 @@ export function CardapioList() {
   }, [apiBaseUrl, selectedDate]);
 
   return (
-    <section className="rounded-lg border border-border bg-surface/80 p-6">
+    <Card tone="surface" className="p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Consulta em tempo real
-          </p>
-          <h2 className="mt-1 text-2xl font-bold text-text">Cardapio por data</h2>
+          <Badge>Consulta em tempo real</Badge>
+          <h2 className="mt-2 text-2xl font-bold text-text">Cardapio por data</h2>
         </div>
 
         <label className="flex flex-col gap-1 text-sm font-medium text-muted">
           Selecione a data
-          <input
+          <Input
             type="date"
             value={selectedDate}
-            onChange={(event) => setSelectedDate(event.target.value)}
-            className="rounded-md border border-border bg-bg px-3 py-2 text-text outline-none transition focus:border-primary"
+            onChange={(event: ChangeEvent<HTMLInputElement>) => setSelectedDate(event.target.value)}
+            className="w-auto"
           />
         </label>
       </div>
@@ -194,7 +195,7 @@ export function CardapioList() {
                   className="rounded-md border border-border bg-bg p-4 transition hover:border-primary/60"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <h4 className="text-base font-semibold text-text">{item.dish.name}</h4>
                       {item.dish.description && (
                         <p className="mt-1 text-sm text-muted">{item.dish.description}</p>
@@ -204,6 +205,17 @@ export function CardapioList() {
                       {formatCurrency(item.sale_price)}
                     </p>
                   </div>
+
+                  {item.dish.image_url && (
+                    <Image
+                      src={item.dish.image_url}
+                      alt={item.dish.name}
+                      width={640}
+                      height={360}
+                      className="mt-3 h-36 w-full rounded-md border border-border object-cover"
+                      unoptimized
+                    />
+                  )}
 
                   {item.available_qty !== undefined && item.available_qty !== null && (
                     <p className="mt-3 text-xs uppercase tracking-[0.14em] text-muted">
@@ -216,6 +228,6 @@ export function CardapioList() {
           </div>
         )}
       </div>
-    </section>
+    </Card>
   );
 }

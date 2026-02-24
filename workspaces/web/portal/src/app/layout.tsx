@@ -1,3 +1,4 @@
+import { TemplateProvider } from "@mrquentinha/ui";
 import type { Metadata } from "next";
 
 import { Footer } from "@/components/Footer";
@@ -43,13 +44,15 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: initThemeScript }} />
       </head>
       <body className="bg-bg text-text antialiased">
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-6 md:py-10">
-            {children}
-          </main>
-          <Footer />
-        </div>
+        <TemplateProvider template="clean">
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-6 md:py-10">
+              {children}
+            </main>
+            <Footer />
+          </div>
+        </TemplateProvider>
       </body>
     </html>
   );

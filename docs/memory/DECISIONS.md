@@ -174,3 +174,31 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Regra de duplicidade:
   - nao permitir fechar o mesmo intervalo (`period_start`, `period_end`) duas vezes.
   - comportamento definido: retornar erro de validacao claro no service `close_period`.
+
+## 24/02/2026 - Midia, OCR e dados DEMO ponta a ponta
+- Midia (MVP dev):
+  - imagens armazenadas em `MEDIA_ROOT` local com `MEDIA_URL=/media/`.
+  - uploads expostos por endpoints dedicados (ingrediente, prato, comprovante de compra e OCR job).
+  - decisao de nao usar S3/CDN nesta fase; migracao para storage externo fica para fase de deploy/producao.
+
+- OCR (MVP funcional):
+  - pipeline com fallback:
+    - prioridade para `pytesseract` quando disponivel;
+    - fallback para modo simulado com `raw_text` enviado na requisicao.
+  - parser MVP extrai campos principais de rotulo e comprovante para `parsed_json`.
+  - aplicacao de OCR (`/ocr/jobs/<id>/apply/`) suporta `merge` e `overwrite`.
+
+- Nutricao (MVP):
+  - dados em `NutritionFact` por 100g/ml e por porcao opcional.
+  - sem conversao de unidades nesta fase; divergencia gera erro claro + TODO.
+  - referencia normativa documentada: RDC 429/2020 e IN 75/2020.
+  - escopo restrito a dados capturados/estimados + fonte, sem alegacoes nutricionais de marketing.
+
+- Seed DEMO:
+  - comando `seed_demo` cobre cadeia completa: catalogo, compras, estoque, producao, pedidos, financeiro e OCR simulado.
+  - comportamento idempotente para repeticao em ambiente de desenvolvimento.
+
+- UI compartilhada (portal/client):
+  - pacote comum em `workspaces/web/ui` com componentes base e `TemplateProvider`.
+  - frontends configurados para usar visual "clean" com tokens da marca.
+  - build dos apps web padronizado com `next build --webpack` para compatibilidade com pacote compartilhado local.

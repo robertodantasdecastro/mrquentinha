@@ -1,44 +1,40 @@
 # Visao geral do produto
 
 ## O que e
-Ecossistema digital completo da marca **Mr Quentinha**, com canais conectados:
-- **Cliente (Mobile)**: ve cardapio por data, cria pedido, paga e acompanha status.
-- **Gestao (Web)**: opera catalogo, estoque, compras, pedidos e financeiro.
-- **Portal institucional (Web)**: apresenta a marca, servicos e canais oficiais.
-- **Web clientes**: experiencia web para navegacao, compra e acompanhamento de pedidos.
-- **Backend (API)**: centraliza regras de negocio, seguranca, persistencia e integracoes.
+Ecossistema digital da marca **Mr Quentinha**, com canais conectados por uma API unica:
+- **Backend (Django + DRF)**: regra de negocio, persistencia, integracoes e auditoria.
+- **Portal institucional (web)**: comunicacao da marca, cardapio publico e distribuicao digital.
+- **Web Cliente (PWA-like)**: consulta de cardapio, carrinho, criacao de pedidos e historico.
+- **Web Gestao (planejado)**: operacao interna completa (catalogo, compras, estoque, financeiro).
+- **Mobile Cliente (planejado)**: experiencia nativa para pedidos e acompanhamento.
 
 ## Papel do portal (Etapa 6)
 O portal institucional tambem funciona como:
-- ponto de distribuicao digital (QR code + links para app e canais web);
-- ponto de entrada para acesso rapido a gestao web;
-- pagina oficial para comunicacao institucional da marca.
+- ponto oficial de distribuicao (QR Code + links de download/acesso);
+- entrada para area de gestao (`admin`/backoffice);
+- vitrine institucional e canal de contato.
 
-## Perfis de usuario (RBAC)
-- **Cliente**: compra marmitas, acompanha pedidos, historico e pagamentos.
-- **Admin**: configura tudo, gerencia usuarios internos, parametros e auditoria.
-- **Gerente de Cozinha**: monta cardapios, define pratos e ingredientes, sinaliza necessidades.
-- **Comprador**: recebe solicitacoes e registra compras (com suporte a OCR).
-- **Financeiro**: contas a pagar/receber, fluxo de caixa, despesas fixas/variaveis, relatorios.
+## Fluxo macro do sistema (estado atual)
+**Catalog -> Inventory/Procurement -> Production -> Orders -> Finance**
 
-> Um mesmo usuario interno pode acumular perfis (ex.: Gerente de Cozinha + Comprador).
+1. `Catalog` define ingredientes, pratos e cardapio por data.
+2. `Inventory/Procurement` abastece estoque por compras e requisicoes.
+3. `Production` consome estoque por lote com base nas receitas.
+4. `Orders` recebe pedidos por data do cardapio e controla status/pagamento.
+5. `Finance` consolida AP/AR, caixa, ledger, conciliacao, fechamento e relatorios.
+6. `OCR` apoia captura de dados de rotulos/comprovantes para acelerar cadastro/operacao.
 
-## Fluxo macro do MVP (cadeia de modulos)
-**Catalog -> Inventory/Procurement -> Orders -> Finance (Etapa 5)**
+## Estado de entrega por fases
+- **Concluidas**: 0, 1, 2, 3, 3.1, 4, 5.0, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6.1, 5.6.2, 5.6.3, 6.0, 6.0.1, 7.0.
+- **Em seguida (prioridade)**:
+  - 7.1: autenticacao + RBAC completo
+  - 7.2: pagamentos online/gateway
+  - 6.1: nginx local/reverse proxy consolidado
+  - 8: trilha de financas pessoais e expansao do ecossistema
 
-1. **Catalog** publica o cardapio por data (`MenuDay` e `MenuItem`).
-2. **Inventory/Procurement** valida disponibilidade de ingredientes e gera reposicao quando faltar insumo.
-3. **Orders** cria pedidos por data do cardapio, com itens e snapshot de preco.
-4. **Orders** cria `Payment` inicial com status `PENDING` no MVP.
-5. **Finance (Etapa 5)** consome referencias do pedido/compra para gerar AR/AP e registrar caixa.
-
-## Nota de integracao Orders -> Finance
-Na Etapa 4, o pedido ja nasce com pagamento pendente e com base para integracao financeira por referencia.
-Na Etapa 5, essa referencia sera usada para:
-- **AR (contas a receber)** a partir de `Order`;
-- **Caixa** a partir da liquidacao de pagamento;
-- conciliacao entre evento operacional e evento financeiro.
-
-## Fases sugeridas
-- **MVP operacional (Etapas 0-5)**: base de plataforma, catalogo, estoque/compras, pedidos e financeiro.
-- **Pos-MVP (Etapas 6-8)**: portal institucional, evolucao de canais web e governanca/escala.
+## Perfis (RBAC alvo)
+- **Cliente**: consulta cardapio, cria/acompanha pedidos.
+- **Cozinha**: cardapio, producao e necessidades de compra.
+- **Compras/Estoque**: compras, estoque e conciliacao operacional.
+- **Financeiro**: AP/AR/caixa/relatorios e fechamento.
+- **Admin**: governanca geral, configuracoes e auditoria.

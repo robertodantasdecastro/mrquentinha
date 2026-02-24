@@ -1,64 +1,58 @@
-# Plano do MVP + cronograma sugerido
+# Plano do MVP e cronograma
 
-> Data de referencia: 23/02/2026
+Data de referencia: 24/02/2026.
 
 ## Status atual do roadmap
-- **Etapa 0**: concluida
-- **Etapa 1**: concluida
-- **Etapa 2**: concluida
-- **Etapa 3 / 3.1**: concluida
-- **Etapa 4 (Orders)**: concluida
-- **Etapa 5 (Finance)**: em planejamento detalhado (subfases 5.0 a 5.5)
+- Etapa 0: concluida
+- Etapa 1: concluida
+- Etapa 2: concluida
+- Etapa 3 e 3.1: concluida
+- Etapa 4: concluida
+- Etapa 5.0 a 5.6.3: concluida
+- Etapa 6.0 e 6.0.1: concluida
+- Etapa 7.0: concluida
 
-## Escopo do MVP operacional
-O MVP operacional permanece limitado ate a **Etapa 5**:
-- base da plataforma
+## Fechamento do MVP operacional
+O MVP operacional foi fechado com o backend cobrindo:
 - catalogo
-- estoque/compras
+- estoque e compras
+- producao
 - pedidos
-- financeiro integrado (AP/AR/Caixa/relatorio minimo)
+- financeiro completo no escopo MVP (AP/AR/caixa/ledger/conciliacao/fechamento/relatorios)
 
-## Etapa 5 (plano por subfases)
-| Subfase | Foco |
-| --- | --- |
-| 5.0 | Fundacao |
-| 5.1 | AP (compras) |
-| 5.2 | AR (pedidos) |
-| 5.3 | Caixa |
-| 5.4 | Producao |
-| 5.5 | Custos/Relatorios |
+## Cronograma consolidado (realizado)
+- Fase base: Etapas 0 a 2
+- Fase operacao: Etapas 3, 3.1 e 4
+- Fase financeira: Etapa 5 (5.0 a 5.6.3)
+- Fase canais web iniciais: Etapa 6.0/6.0.1 e 7.0
 
-## Detalhe resumido da Etapa 5
-- **5.0 Fundacao**: entidades financeiras base, contas, categorias, referencia por origem e validacoes.
-- **5.1 AP (compras)**: gerar e liquidar contas a pagar com origem em `Purchase`.
-- **5.2 AR (pedidos)**: gerar e liquidar contas a receber com origem em `Order`.
-- **5.3 Caixa**: movimentos de entrada/saida, conciliacao e saldo diario.
-- **5.4 Producao**: consolidar rotinas operacionais e preparar modulo dedicado de producao.
-- **5.5 Custos/Relatorios**: fechamento com visoes de resultado, custos e indicadores basicos.
+## Proximas fases (planejado)
+### 7.1 Auth + RBAC
+Dependencias:
+- modelo de papeis por modulo consolidado
+- estrategia de sessao/token definida para web cliente e gestao
+- hardening de permissao nos endpoints hoje com TODO de `AllowAny`
 
-## Pos-MVP
-### Etapa 6 - Portal institucional + distribuicao digital
-- Escopo: site institucional, links oficiais e pagina de distribuicao (QR + atalhos).
-- Dependencias:
-  - MVP operacional validado ate Etapa 5;
-  - conteudo institucional e identidade visual aprovados;
-  - estrutura de deploy e dominios definida.
+### 7.2 Pagamentos online
+Dependencias:
+- auth e identificacao de cliente final (7.1)
+- escolha de gateway (PIX/cartao/VR)
+- politica de reconciliacao financeira com provider (`provider_ref`)
 
-### Etapa 7 - Canais web para clientes (web app/PWA)
-- Escopo: experiencia web para consulta, pedido e acompanhamento.
-- Dependencias:
-  - API de pedidos/pagamentos estabilizada;
-  - observabilidade e deploy com baseline estavel;
-  - decisoes de UX para navegacao entre portal, app e web clientes.
+### 6.1 Nginx local e consolidacao de dominios dev
+Dependencias:
+- stack dev estavel (backend + portal + client)
+- definicao de hosts locais e proxy reverso por subdominio
+- checklist de CORS/CSRF por ambiente
 
-### Etapa 8 - Governanca, seguranca e escala
-- Escopo: consolidacao de arquitetura, compliance e capacidade operacional.
-- Dependencias:
-  - validacao em producao das etapas 6 e 7;
-  - politica de dados pessoais e LGPD definida;
-  - estrategia de crescimento e custos de infra formalizada.
+### 8 Financas pessoais (expansao de produto)
+Dependencias:
+- operacao B2C estabilizada
+- governanca de dados pessoais e segregacao de escopos
+- definicao de produto e limites entre financeiro operacional e pessoal
 
-## Regras do cronograma
-- Cada entrega precisa ser testavel e usavel.
-- Nao avancar para escopo pos-MVP antes do fechamento financeiro da Etapa 5.
-- Etapas 6-8 nao alteram o criterio de fechamento do MVP operacional.
+## Regra de execucao continua
+Cada nova fase deve manter:
+- cobertura de testes automatizados
+- idempotencia em integracoes criticas
+- documentacao viva (`CHANGELOG`, `DECISIONS`, runbooks)

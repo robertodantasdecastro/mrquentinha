@@ -544,8 +544,8 @@ Checklist minimo para acesso via navegador/portal no IP da VM:
 1. Ajustar variaveis no `.env`:
 ```env
 ALLOWED_HOSTS=localhost,127.0.0.1,10.211.55.21
-CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://10.211.55.21:3000
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://10.211.55.21:3000
+CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,http://10.211.55.21:3000,http://10.211.55.21:3001
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,http://10.211.55.21:3000,http://10.211.55.21:3001
 ```
 2. Rodar migracoes:
 ```bash
@@ -563,5 +563,69 @@ curl http://10.211.55.21:8000/api/v1/health
 
 Notas:
 - `ALLOWED_HOSTS` libera os hosts/IPs aceitos pelo Django.
-- `CSRF_TRUSTED_ORIGINS` deve conter as origens web confiaveis (portal).
+- `CSRF_TRUSTED_ORIGINS` deve conter as origens web confiaveis (portal e client).
 - `CORS_ALLOWED_ORIGINS` libera chamadas cross-origin no ambiente de desenvolvimento.
+
+## Midia e uploads (MVP)
+### Campos de imagem
+- `Ingredient.image`
+- `Dish.image`
+- `Purchase.receipt_image`
+- `PurchaseItem.label_front_image`
+- `PurchaseItem.label_back_image`
+
+### Endpoints de upload
+- `POST/PATCH /api/v1/catalog/ingredients/<id>/image/`
+- `POST/PATCH /api/v1/catalog/dishes/<id>/image/`
+- `POST/PATCH /api/v1/procurement/purchases/<id>/receipt-image/`
+- `POST /api/v1/ocr/jobs/` (multipart: `image`, `kind`, opcional `raw_text`)
+
+Exemplo upload de imagem para ingrediente:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/catalog/ingredients/1/image/ \
+  -F "image=@/caminho/imagem.png"
+```
+
+## OCR MVP (funcional + simulacao)
+### Fluxo
+1. Criar job em `/api/v1/ocr/jobs/`.
+2. OCR tenta `pytesseract` quando disponivel.
+3. Sem OCR local, usar `raw_text` para simulacao consistente.
+4. Aplicar resultado em destino com `/api/v1/ocr/jobs/<id>/apply/`.
+
+### Endpoint de aplicacao
+- `POST /api/v1/ocr/jobs/<id>/apply/`
+- payload:
+```json
+{
+  "target_type": "INGREDIENT",
+  "target_id": 1,
+  "mode": "merge"
+}
+```
+
+`target_type` aceitos:
+- `INGREDIENT`
+- `PURCHASE_ITEM`
+
+## Nutricao (MVP)
+- `NutritionFact` armazena base nutricional por 100g/ml e por porcao (opcional).
+- Fonte dos dados em `source`: `MANUAL`, `OCR` ou `ESTIMATED`.
+- Sem conversao de unidade no MVP: divergencia gera erro claro + TODO de conversao futura.
+
+Referencia regulatoria usada na modelagem (documentacao):
+- RDC 429/2020
+- IN 75/2020
+
+## Seed DEMO
+Comando principal:
+```bash
+python manage.py seed_demo
+```
+
+Via script no root:
+```bash
+./scripts/seed_demo.sh
+```
+
+O seed cria dados realistas de catalogo, menu, compras, estoque, producao, pedidos, financeiro e OCR simulado.

@@ -42,5 +42,12 @@ class PurchaseRequestItemAdmin(admin.ModelAdmin):
 
 @admin.register(PurchaseItem)
 class PurchaseItemAdmin(admin.ModelAdmin):
-    list_display = ("id", "purchase", "ingredient", "qty", "unit", "unit_price")
+    list_display = (
+        "id",
+        "purchase",
+        "ingredient",
+        "qty",
+        "unit",
+        "unit_price",
+    )
     search_fields = ("purchase__id", "ingredient__name")

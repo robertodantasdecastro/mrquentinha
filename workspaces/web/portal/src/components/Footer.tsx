@@ -1,3 +1,4 @@
+import { AppFooter, Container } from "@mrquentinha/ui";
 import Link from "next/link";
 
 const ADMIN_URL = "https://admin.mrquentinha.com.br";
@@ -5,8 +6,8 @@ const CLIENT_AREA_URL = "https://app.mrquentinha.com.br";
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-surface/70">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-10 md:flex-row md:items-center md:justify-between md:px-6">
+    <AppFooter>
+      <Container className="flex w-full flex-col gap-5 py-10 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-base font-semibold text-text">Mr Quentinha</p>
           <p className="mt-1 text-sm text-muted">
@@ -34,7 +35,7 @@ export function Footer() {
             Area do Cliente
           </a>
         </div>
-      </div>
-    </footer>
+      </Container>
+    </AppFooter>
   );
 }

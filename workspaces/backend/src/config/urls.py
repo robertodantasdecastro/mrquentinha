@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
@@ -17,6 +19,7 @@ def api_index_view(_request):
                 "orders": "/api/v1/orders",
                 "finance": "/api/v1/finance",
                 "production": "/api/v1/production",
+                "ocr": "/api/v1/ocr",
             },
         }
     )
@@ -42,4 +45,8 @@ urlpatterns = [
     path("api/v1/orders/", include("apps.orders.urls")),
     path("api/v1/production/", include("apps.production.urls")),
     path("api/v1/finance/", include("apps.finance.urls")),
+    path("api/v1/ocr/", include("apps.ocr_ai.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

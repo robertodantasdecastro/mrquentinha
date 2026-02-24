@@ -223,3 +223,55 @@ No MVP, o calculo pode ser **derivado**:
 - custo da marmita = custo_prato / yield_portions
 
 Na fase 2, considerar tabelas de snapshot de custos para auditoria historica.
+
+---
+
+## Extensoes atuais (midia, OCR e nutricao)
+
+### Mapeamento de imagens (MVP)
+- `catalog_ingredient.image` (opcional)
+- `catalog_dish.image` (opcional)
+- `procurement_purchase.receipt_image` (opcional)
+- `procurement_purchase_item.label_front_image` (opcional)
+- `procurement_purchase_item.label_back_image` (opcional)
+
+### `ocr_ai_ocr_job`
+- `id` (PK)
+- `kind` (LABEL_FRONT, LABEL_BACK, RECEIPT)
+- `status` (PENDING, PROCESSED, APPLIED, FAILED)
+- `image` (arquivo)
+- `raw_text` (texto bruto OCR/simulado)
+- `parsed_json` (JSON estruturado)
+- `error_message` (opcional)
+- `created_at`, `updated_at`
+
+### `catalog_nutrition_fact`
+(relacao 1:1 com ingrediente)
+- `ingredient_id` (FK unique)
+- Base por 100g/ml:
+  - `energy_kcal_100g`
+  - `carbs_g_100g`
+  - `protein_g_100g`
+  - `fat_g_100g`
+  - `sat_fat_g_100g`
+  - `fiber_g_100g`
+  - `sodium_mg_100g`
+- Base por porcao (opcional no MVP):
+  - `serving_size_g`
+  - `energy_kcal_per_serving`
+  - `carbs_g_per_serving`
+  - `protein_g_per_serving`
+  - `fat_g_per_serving`
+  - `sat_fat_g_per_serving`
+  - `fiber_g_per_serving`
+  - `sodium_mg_per_serving`
+- `source` (MANUAL, OCR, ESTIMATED)
+
+### Observacao normativa (Brasil)
+A modelagem nutricional do MVP foi preparada para compatibilidade com rotulagem brasileira, com base em:
+- **RDC 429/2020**
+- **IN 75/2020**
+
+Escopo atual:
+- armazenar dados capturados/estimados + fonte (`MANUAL`/`OCR`/`ESTIMATED`);
+- nao armazenar promessas nutricionais/alegacoes de marketing no modelo.

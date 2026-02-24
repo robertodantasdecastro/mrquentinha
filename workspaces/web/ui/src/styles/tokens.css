@@ -1,0 +1,23 @@
+/* Baseado em workspaces/web/brand/tokens.css */
+:root {
+  --mrq-primary: #ff6a00;
+  --mrq-primary-2: #ff8a33;
+  --mrq-graphite: #1f1f1f;
+  --mrq-bg: #ffffff;
+  --mrq-surface: #f6f6f6;
+  --mrq-text: #141414;
+  --mrq-muted: #666666;
+  --mrq-border: #e6e6e6;
+
+  --mrq-radius-lg: 16px;
+  --mrq-radius-md: 12px;
+  --mrq-radius-sm: 10px;
+}
+
+[data-theme="dark"] {
+  --mrq-bg: #0f0f12;
+  --mrq-surface: #17171c;
+  --mrq-text: #f4f4f5;
+  --mrq-muted: #b0b0b8;
+  --mrq-border: #2a2a33;
+}

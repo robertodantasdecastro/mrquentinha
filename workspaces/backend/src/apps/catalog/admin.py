@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Dish, DishIngredient, Ingredient, MenuDay, MenuItem
+from .models import (
+    Dish,
+    DishIngredient,
+    Ingredient,
+    MenuDay,
+    MenuItem,
+    NutritionFact,
+)
 
 
 @admin.register(Ingredient)
@@ -8,6 +15,21 @@ class IngredientAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "unit", "is_active", "updated_at")
     list_filter = ("unit", "is_active")
     search_fields = ("name",)
+
+
+@admin.register(NutritionFact)
+class NutritionFactAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "ingredient",
+        "energy_kcal_100g",
+        "protein_g_100g",
+        "carbs_g_100g",
+        "source",
+        "updated_at",
+    )
+    list_filter = ("source",)
+    search_fields = ("ingredient__name",)
 
 
 class DishIngredientInline(admin.TabularInline):

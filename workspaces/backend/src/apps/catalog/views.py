@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -24,6 +25,25 @@ class IngredientViewSet(viewsets.ModelViewSet):
             return list_active_ingredients()
         return Ingredient.objects.all().order_by("name")
 
+    @action(
+        detail=True,
+        methods=["post", "patch"],
+        url_path="image",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def image(self, request, pk=None):
+        ingredient = self.get_object()
+
+        image = request.FILES.get("image")
+        if image is None:
+            raise DRFValidationError(["Envie o arquivo no campo 'image'."])
+
+        ingredient.image = image
+        ingredient.save(update_fields=["image", "updated_at"])
+
+        output = self.get_serializer(ingredient)
+        return Response(output.data, status=status.HTTP_200_OK)
+
 
 class DishViewSet(viewsets.ModelViewSet):
     serializer_class = DishSerializer
@@ -42,6 +62,7 @@ class DishViewSet(viewsets.ModelViewSet):
             "name": serializer.validated_data["name"],
             "description": serializer.validated_data.get("description"),
             "yield_portions": serializer.validated_data["yield_portions"],
+            "image": serializer.validated_data.get("image"),
         }
         ingredients_payload = serializer.validated_data.get("ingredients", [])
 
@@ -70,6 +91,7 @@ class DishViewSet(viewsets.ModelViewSet):
                 "yield_portions",
                 instance.yield_portions,
             ),
+            "image": serializer.validated_data.get("image", instance.image),
         }
         ingredients_payload = serializer.validated_data.get("ingredients")
 
@@ -81,6 +103,25 @@ class DishViewSet(viewsets.ModelViewSet):
             )
         except DjangoValidationError as exc:
             raise DRFValidationError(exc.messages) from exc
+
+        output = self.get_serializer(dish)
+        return Response(output.data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=True,
+        methods=["post", "patch"],
+        url_path="image",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def image(self, request, pk=None):
+        dish = self.get_object()
+
+        image = request.FILES.get("image")
+        if image is None:
+            raise DRFValidationError(["Envie o arquivo no campo 'image'."])
+
+        dish.image = image
+        dish.save(update_fields=["image", "updated_at"])
 
         output = self.get_serializer(dish)
         return Response(output.data, status=status.HTTP_200_OK)

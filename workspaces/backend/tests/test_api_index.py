@@ -11,6 +11,7 @@ def test_api_index_endpoint_retorna_payload_esperado(client):
             "orders": "/api/v1/orders",
             "finance": "/api/v1/finance",
             "production": "/api/v1/production",
+            "ocr": "/api/v1/ocr",
         },
     }
 

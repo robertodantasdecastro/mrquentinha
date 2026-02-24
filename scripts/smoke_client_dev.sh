@@ -6,11 +6,18 @@ START_SCRIPT="$ROOT_DIR/scripts/start_client_dev.sh"
 CLIENT_DIR="$ROOT_DIR/workspaces/web/client"
 CLIENT_PORT="${CLIENT_PORT:-3001}"
 CLIENT_BASE_URL="http://127.0.0.1:${CLIENT_PORT}"
+START_TIMEOUT_SECONDS="${START_TIMEOUT_SECONDS:-30}"
 SMOKE_LOG="/tmp/mrq_smoke_client.log"
 CLIENT_PID=""
+LOG_ALREADY_PRINTED=0
 
 if [[ ! -x "$START_SCRIPT" ]]; then
   echo "[smoke-client] Script nao encontrado ou sem permissao de execucao: $START_SCRIPT" >&2
+  exit 1
+fi
+
+if ! [[ "$START_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || (( START_TIMEOUT_SECONDS <= 0 )); then
+  echo "[smoke-client] START_TIMEOUT_SECONDS invalido: $START_TIMEOUT_SECONDS" >&2
   exit 1
 fi
 
@@ -57,11 +64,21 @@ stop_pids_gracefully() {
   signal_pids KILL "${pids[@]}"
 }
 
+print_client_log() {
+  if (( LOG_ALREADY_PRINTED == 1 )); then
+    return
+  fi
+
+  LOG_ALREADY_PRINTED=1
+  echo "[smoke-client] Ultimas linhas do log do client:" >&2
+  tail -n 60 "$SMOKE_LOG" >&2 || true
+}
+
 http_status() {
   local url="$1"
 
   if command -v curl >/dev/null 2>&1; then
-    curl -sS -o /dev/null -w "%{http_code}" "$url" || true
+    curl -sS -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || true
     return
   fi
 
@@ -82,20 +99,28 @@ http_status() {
   ' "$url" || true
 }
 
-wait_for_200() {
-  local url="$1"
-  local attempts="${2:-30}"
+wait_for_client() {
+  local deadline=$((SECONDS + START_TIMEOUT_SECONDS))
 
-  for ((i = 1; i <= attempts; i++)); do
+  while (( SECONDS < deadline )); do
     local status_code
-    status_code="$(http_status "$url")"
+    status_code="$(http_status "$CLIENT_BASE_URL/")"
+
     if [[ "$status_code" == "200" ]]; then
       return 0
     fi
+
+    if [[ -n "$CLIENT_PID" ]] && ! kill -0 "$CLIENT_PID" 2>/dev/null; then
+      echo "[smoke-client] Client encerrou antes de ficar disponivel." >&2
+      print_client_log
+      return 1
+    fi
+
     sleep 1
   done
 
-  echo "[smoke-client] Timeout aguardando 200 em: $url" >&2
+  echo "[smoke-client] Timeout (${START_TIMEOUT_SECONDS}s) aguardando 200 em ${CLIENT_BASE_URL}/" >&2
+  print_client_log
   return 1
 }
 
@@ -115,8 +140,7 @@ cleanup() {
   stop_pids_gracefully "${pids[@]}"
 
   if [[ $status -ne 0 ]]; then
-    echo "[smoke-client] Falhou. Ultimas linhas do log:" >&2
-    tail -n 60 "$SMOKE_LOG" >&2 || true
+    print_client_log
   fi
 
   exit "$status"
@@ -124,17 +148,20 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
+: > "$SMOKE_LOG"
+
 echo "[smoke-client] Subindo client em background..."
 CLIENT_PORT="$CLIENT_PORT" "$START_SCRIPT" >"$SMOKE_LOG" 2>&1 &
 CLIENT_PID=$!
 
 echo "[smoke-client] Aguardando client responder..."
-wait_for_200 "$CLIENT_BASE_URL/"
+wait_for_client
 
 for route in "/" "/pedidos" "/cardapio"; do
   status_code="$(http_status "${CLIENT_BASE_URL}${route}")"
   if [[ "$status_code" != "200" ]]; then
     echo "[smoke-client] Rota ${route} retornou status ${status_code}" >&2
+    print_client_log
     exit 1
   fi
   echo "[smoke-client] OK ${route} -> ${status_code}"

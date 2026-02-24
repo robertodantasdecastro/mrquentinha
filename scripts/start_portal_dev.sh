@@ -9,7 +9,22 @@ if [[ ! -d "$PORTAL_DIR" ]]; then
   exit 1
 fi
 
-if ! command -v npm >/dev/null 2>&1; then
+ensure_npm() {
+  if command -v npm >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local nvm_dir="${NVM_DIR:-$HOME/.nvm}"
+  if [[ -s "$nvm_dir/nvm.sh" ]]; then
+    # shellcheck disable=SC1090
+    source "$nvm_dir/nvm.sh"
+    nvm use --silent default >/dev/null 2>&1 || nvm use --silent --lts >/dev/null 2>&1 || true
+  fi
+
+  command -v npm >/dev/null 2>&1
+}
+
+if ! ensure_npm; then
   echo "[portal] npm nao encontrado no PATH." >&2
   exit 1
 fi

@@ -232,6 +232,7 @@ def create_purchase_and_apply_stock(
         invoice_number=purchase_data.get("invoice_number"),
         purchase_date=purchase_data["purchase_date"],
         total_amount=total_amount,
+        receipt_image=purchase_data.get("receipt_image"),
     )
 
     PurchaseItem.objects.bulk_create(
@@ -244,10 +245,13 @@ def create_purchase_and_apply_stock(
                 unit_price=item["unit_price"],
                 tax_amount=item.get("tax_amount"),
                 expiry_date=item.get("expiry_date"),
+                label_front_image=item.get("label_front_image"),
+                label_back_image=item.get("label_back_image"),
             )
             for item in items_payload
         ]
     )
+
     for item in items_payload:
         apply_stock_movement(
             ingredient=item["ingredient"],

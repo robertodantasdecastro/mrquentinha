@@ -25,10 +25,21 @@ class IngredientUnit(models.TextChoices):
     UNIT = "unidade", "unidade"
 
 
+class NutritionSource(models.TextChoices):
+    MANUAL = "MANUAL", "MANUAL"
+    OCR = "OCR", "OCR"
+    ESTIMATED = "ESTIMATED", "ESTIMATED"
+
+
 class Ingredient(TimeStampedModel):
     name = models.CharField(max_length=120, unique=True)
     unit = models.CharField(max_length=16, choices=IngredientUnit.choices)
     is_active = models.BooleanField(default=True)
+    image = models.ImageField(
+        upload_to="catalog/ingredients/%Y/%m/%d",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["name"]
@@ -41,10 +52,143 @@ class Ingredient(TimeStampedModel):
         return self.name
 
 
+class NutritionFact(TimeStampedModel):
+    ingredient = models.OneToOneField(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name="nutrition_fact",
+    )
+
+    energy_kcal_100g = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    carbs_g_100g = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    protein_g_100g = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    fat_g_100g = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    sat_fat_g_100g = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    fiber_g_100g = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    sodium_mg_100g = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+
+    serving_size_g = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+
+    energy_kcal_per_serving = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    carbs_g_per_serving = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    protein_g_per_serving = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    fat_g_per_serving = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    sat_fat_g_per_serving = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    fiber_g_per_serving = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+    sodium_mg_per_serving = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0"))],
+        null=True,
+        blank=True,
+    )
+
+    source = models.CharField(
+        max_length=16,
+        choices=NutritionSource.choices,
+        default=NutritionSource.MANUAL,
+    )
+
+    class Meta:
+        ordering = ["ingredient__name"]
+
+    def __str__(self) -> str:
+        return f"Nutrição {self.ingredient.name}"
+
+
 class Dish(TimeStampedModel):
     name = models.CharField(max_length=140, unique=True)
     description = models.TextField(blank=True, null=True)
     yield_portions = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    image = models.ImageField(
+        upload_to="catalog/dishes/%Y/%m/%d",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["name"]

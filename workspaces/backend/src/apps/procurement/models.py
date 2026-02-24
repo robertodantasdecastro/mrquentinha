@@ -83,6 +83,11 @@ class Purchase(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0"))],
     )
+    receipt_image = models.ImageField(
+        upload_to="procurement/receipts/%Y/%m/%d",
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -123,6 +128,17 @@ class PurchaseItem(models.Model):
         validators=[MinValueValidator(Decimal("0"))],
     )
     expiry_date = models.DateField(null=True, blank=True)
+    label_front_image = models.ImageField(
+        upload_to="procurement/labels/front/%Y/%m/%d",
+        null=True,
+        blank=True,
+    )
+    label_back_image = models.ImageField(
+        upload_to="procurement/labels/back/%Y/%m/%d",
+        null=True,
+        blank=True,
+    )
+    metadata = models.JSONField(default=dict, blank=True)
 
     def __str__(self) -> str:
         return f"{self.purchase_id} - {self.ingredient.name}"

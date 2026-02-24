@@ -1,46 +1,11 @@
 "use client";
 
+import { Container, Navbar, ThemeToggle } from "@mrquentinha/ui";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-type Theme = "light" | "dark";
 
 const ADMIN_URL = "https://admin.mrquentinha.com.br";
 const CLIENT_AREA_URL = "https://app.mrquentinha.com.br";
-
-function resolveThemeFromBrowser(): Theme {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-
-  const storedTheme = localStorage.getItem("mrq-theme");
-  if (storedTheme === "light" || storedTheme === "dark") {
-    return storedTheme;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
-function getInitialTheme(): Theme {
-  if (typeof document === "undefined") {
-    return "light";
-  }
-
-  const attrTheme = document.documentElement.getAttribute("data-theme");
-  if (attrTheme === "light" || attrTheme === "dark") {
-    return attrTheme;
-  }
-
-  return resolveThemeFromBrowser();
-}
-
-function applyTheme(theme: Theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("mrq-theme", theme);
-}
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -50,22 +15,18 @@ const NAV_LINKS = [
 ];
 
 export function Header() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((current) => (current === "dark" ? "light" : "dark"));
-  };
-
   return (
-    <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-6xl px-4 pt-3 md:px-6">
+    <Navbar>
+      <Container className="pt-3">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-3" aria-label="Mr Quentinha">
-            <Image src="/brand/logo_wordmark.svg" alt="Mr Quentinha" width={164} height={42} priority />
+            <Image
+              src="/brand/logo_wordmark.svg"
+              alt="Mr Quentinha"
+              width={164}
+              height={42}
+              priority
+            />
           </Link>
 
           <div className="flex items-center gap-2">
@@ -85,14 +46,7 @@ export function Header() {
             >
               Area do Cliente
             </a>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="rounded-md border border-border bg-surface px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted transition hover:border-primary hover:text-primary"
-              aria-label="Alternar tema"
-            >
-              Tema
-            </button>
+            <ThemeToggle storageKey="mrq-theme" />
           </div>
         </div>
 
@@ -107,7 +61,7 @@ export function Header() {
             </Link>
           ))}
         </nav>
-      </div>
-    </header>
+      </Container>
+    </Navbar>
   );
 }

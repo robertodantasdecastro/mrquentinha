@@ -3,6 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.catalog.models import Ingredient, IngredientUnit
+from apps.catalog.serializers import build_media_url
 
 from .models import (
     Purchase,
@@ -14,9 +15,16 @@ from .models import (
 
 
 class IngredientSummarySerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Ingredient
-        fields = ["id", "name", "unit"]
+        fields = ["id", "name", "unit", "image_url"]
+
+    def get_image_url(self, obj: Ingredient) -> str | None:
+        return build_media_url(
+            request=self.context.get("request"), file_field=obj.image
+        )
 
 
 class PurchaseRequestItemWriteSerializer(serializers.Serializer):
@@ -109,10 +117,14 @@ class PurchaseItemWriteSerializer(serializers.Serializer):
         allow_null=True,
     )
     expiry_date = serializers.DateField(required=False, allow_null=True)
+    label_front_image = serializers.ImageField(required=False, allow_null=True)
+    label_back_image = serializers.ImageField(required=False, allow_null=True)
 
 
 class PurchaseItemReadSerializer(serializers.ModelSerializer):
     ingredient = IngredientSummarySerializer(read_only=True)
+    label_front_image_url = serializers.SerializerMethodField()
+    label_back_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = PurchaseItem
@@ -124,7 +136,24 @@ class PurchaseItemReadSerializer(serializers.ModelSerializer):
             "unit_price",
             "tax_amount",
             "expiry_date",
+            "label_front_image",
+            "label_front_image_url",
+            "label_back_image",
+            "label_back_image_url",
+            "metadata",
         ]
+
+    def get_label_front_image_url(self, obj: PurchaseItem) -> str | None:
+        return build_media_url(
+            request=self.context.get("request"),
+            file_field=obj.label_front_image,
+        )
+
+    def get_label_back_image_url(self, obj: PurchaseItem) -> str | None:
+        return build_media_url(
+            request=self.context.get("request"),
+            file_field=obj.label_back_image,
+        )
 
 
 class PurchaseSerializer(serializers.ModelSerializer):
@@ -134,6 +163,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True,
     )
+    receipt_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Purchase
@@ -144,6 +174,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "invoice_number",
             "purchase_date",
             "total_amount",
+            "receipt_image",
+            "receipt_image_url",
             "created_at",
             "updated_at",
             "items",
@@ -153,6 +185,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             "id",
             "buyer",
             "total_amount",
+            "receipt_image_url",
             "created_at",
             "updated_at",
             "purchase_items",
@@ -163,3 +196,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
         if len(ingredient_ids) != len(set(ingredient_ids)):
             raise serializers.ValidationError("Ingrediente duplicado na compra.")
         return value
+
+    def get_receipt_image_url(self, obj: Purchase) -> str | None:
+        return build_media_url(
+            request=self.context.get("request"),
+            file_field=obj.receipt_image,
+        )
