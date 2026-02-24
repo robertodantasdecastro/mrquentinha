@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "apps.inventory.apps.InventoryConfig",
     "apps.procurement.apps.ProcurementConfig",
     "apps.orders.apps.OrdersConfig",
+    "apps.production.apps.ProductionConfig",
     "apps.finance.apps.FinanceConfig",
     "apps.ocr_ai.apps.OcrAiConfig",
 ]
