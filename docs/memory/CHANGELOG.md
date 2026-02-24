@@ -349,3 +349,18 @@
   - `scripts/sync_gemini_global.sh` desativado (stub com orientacao para `gemini_check`).
   - workflows W10/W11/W12/W18/W21 atualizados para validar GEMINI global antes de branch/push/union.
   - `WORKFLOW_MAP` e `USAGE_GUIDE` revisados para remover dependencia de GEMINI do repositorio.
+
+- Etapa 6.2 portal template letsfit-clean:
+  - refatoracao da estrutura base com `TemplateProvider` suportando `NEXT_PUBLIC_PORTAL_TEMPLATE` (`classic` e `letsfit-clean`).
+  - novo diretorio de componentes `letsfit` em `src/components/letsfit` contendo Hero, BenefitsBar, Categories, KitSimulator, HowToHeat, Faq.
+  - novas paginas integradas `/sobre` e `/como-funciona`.
+  - reestruturacao da home `/` para renderizar `HomeLetsFit` ou `HomeClassic` de acordo com o template.
+  - aprimoramento do componente dinamico `CardapioList` para chamar endpoint `/today/` quando for a data corrente.
+  - roteamento dinâmico visual nos headers e footers via construtos React ContextClient.
+  - script the protecao de branches `branch_guard.sh` atualizado para habilitar hifen (`-`) na policy do Antigravity.
+
+- Etapa 7.1.1 backend auth/rbac (orders/payments por ownership):
+  - `orders` agora aplica escopo por ownership para cliente autenticado em listagem e mutacao.
+  - clientes podem atualizar apenas seus proprios recursos; tentativas em recursos de terceiros retornam 404.
+  - papéis de gestao (`ADMIN`, `FINANCEIRO`, `COZINHA`, `COMPRAS`, `ESTOQUE`) mantem acesso global de leitura/escrita conforme matriz RBAC.
+  - cobertura de testes ampliada em services e API para ownership e acesso global de gestão.

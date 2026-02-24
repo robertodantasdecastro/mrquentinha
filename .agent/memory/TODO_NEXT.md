@@ -1,7 +1,8 @@
 # TODO Next (fila cronologica)
 
-1. 7.1: concluir Auth/RBAC para cliente real (fim do modo demo no client).
-2. 7.2: pagamentos (Pix/Cartao/VR) com fluxo de confirmacao.
-3. 6.1: nginx local sem DNS para unificar rotas portal/client/api.
-4. Hardening contínuo: smoke/quality gate em ambiente VM sob carga.
-5. 8: modulo de financas pessoais (planejado).
+1. [x] 7.1.1 Backend Auth/RBAC: escopo de pedidos/pagamentos por usuario autenticado (concluida em 24/02/2026).
+2. [ ] 7.1.2 Client Auth: login/register/me + refresh token, remover modo demo.
+3. [ ] 7.1.3 Fechamento 7.1: smokes, regressao completa e docs.
+4. [ ] 7.2 Pagamentos online (PIX/Cartao/VR) apos 7.1 concluida.
+5. [ ] 6.1 Nginx local (proxy portal/client/api) apos 7.2 ou em janela dedicada.
+6. [ ] 8 Financas pessoais (planejado, fora da trilha critica atual).

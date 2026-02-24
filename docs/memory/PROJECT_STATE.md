@@ -5,6 +5,7 @@ Referencia de atualizacao: 24/02/2026.
 ## Etapas
 - Concluidas: 0 -> 5.6.3, 6.0, 6.0.1, 7.0.
 - Em progresso: 7.1 (Auth/RBAC para cliente real).
+- Subetapa concluida em 24/02/2026: 7.1.1 Backend Auth/RBAC (escopo de pedidos/pagamentos por ownership + papeis de gestao).
 
 ## Politica de branches (anti-conflito)
 - `BRANCH_CODEX_PRIMARY=main`
@@ -27,6 +28,22 @@ Referencia de atualizacao: 24/02/2026.
 - Regras: `docs/memory/PARALLEL_DEV_RULES.md`
 - Lock humano: `.agent/memory/IN_PROGRESS.md`
 - Sync obrigatorio: `W21_sync_codex_antigravity`
+
+## Estado por Componente
+
+### Backend (Django)
+- **Status:** Operacional (Autenticação JWT, Cartões de Crédito, Mock OCR, Perfis Lojista/Cliente)
+- **Banco de Dados:** PostgreSQL (`mrquentinhabd`)
+- **App Principal:** `core`, `accounts`, `catalog`, `inventory`, `orders`, `finance`, `production`, `ocr_ai`
+- **Cobertura de Testes:** Boa (~85%)
+
+### Web Portal (Next.js - 3000)
+- **Status:** Landing page institucional
+- **Features:** Estrutura unificada, `CardapioList` dinâmico integrado à API (`/today/` e `/by-date/`).
+- **Templates:** Suporte a chaveamento de templates via `NEXT_PUBLIC_PORTAL_TEMPLATE`.
+  - Padrões suportados: `classic` e `letsfit-clean`.
+
+### Web Client (Next.js - 3001)
 
 ## Workflows adicionais
 - `W22_layout_references_audit`
@@ -104,3 +121,11 @@ bash scripts/sync_memory.sh --check
 ## Regra de segredos
 - Valores reais apenas em `.env` local (gitignored).
 - Repositorio deve conter placeholders em `.env.example`.
+
+## Plano da etapa ativa
+- Etapa ativa: 7.1 (Auth/RBAC end-to-end).
+- Branch Codex da etapa: main (guard ativo para codex; namespace main/etapa-* indisponivel no repo atual).
+- Foco imediato:
+  1) client: autenticacao JWT real (sem demo).
+  2) fechamento 7.1: quality gate + smokes + docs.
+  3) preparacao da etapa 7.2 (pagamentos online) apos concluir 7.1.
