@@ -225,3 +225,21 @@
   - CORS em dev com `django-cors-headers` e `CORS_ALLOWED_ORIGINS` via `.env` (sem abrir prod).
   - ajustes de docs/env para acesso por IP da VM (`ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS`).
   - script `scripts/smoke_stack_dev.sh` criado para validar backend + portal automaticamente.
+
+- Etapa 7.0 web cliente MVP:
+  - novo app `workspaces/web/client` com Next.js App Router + TypeScript + Tailwind.
+  - layout mobile-first com navbar simples (`Cardapio`, `Meus pedidos`, `Conta`) e tema light/dark.
+  - pagina de cardapio com consulta por data em `GET /api/v1/catalog/menus/by-date/YYYY-MM-DD/`.
+  - carrinho local com controle de quantidade, total e finalizacao de pedido.
+  - criacao de pedidos integrada em `POST /api/v1/orders/orders/`.
+  - historico de pedidos em `/pedidos` com filtro demo best-effort no frontend.
+  - README do client atualizado com setup, envs e observacoes de integracao.
+
+- DX: start/smoke client + fix lock next dev
+  - diagnostico e limpeza de lock/processo do Next no client (`.next/dev/lock`).
+  - novo script `scripts/start_client_dev.sh` com:
+    - encerramento gracioso de processo antigo na porta `3001` (SIGINT -> SIGTERM);
+    - limpeza de lock stale quando nao houver `next dev` ativo;
+    - defaults de env para `NEXT_PUBLIC_API_BASE_URL` e `NEXT_PUBLIC_DEMO_CUSTOMER_ID`.
+  - novo script `scripts/smoke_client_dev.sh` para subir client em background, validar `/, /pedidos, /cardapio` e encerrar processos ao final.
+  - `npm audit fix` executado sem `--force`; pendencias `high` de cadeia `eslint/minimatch` documentadas no README do client.
