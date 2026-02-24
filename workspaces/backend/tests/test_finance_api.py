@@ -1,6 +1,10 @@
 import json
+from datetime import datetime
 
 import pytest
+from django.utils import timezone
+
+from apps.finance.models import Account, AccountType, CashDirection, CashMovement
 
 
 @pytest.mark.django_db
@@ -135,3 +139,78 @@ def test_finance_cash_movements_endpoint_cria_movimento(client):
     assert body["amount"] == "45.90"
     assert body["reference_type"] == "PAYMENT"
     assert body["reference_id"] == 3001
+
+
+@pytest.mark.django_db
+def test_finance_cashflow_report_endpoint_agrega_por_dia(client):
+    cash_account = Account.objects.create(
+        name="Conta Caixa API", type=AccountType.ASSET
+    )
+
+    CashMovement.objects.create(
+        movement_date=timezone.make_aware(datetime(2026, 3, 5, 8, 0)),
+        direction=CashDirection.IN,
+        amount="100.00",
+        account=cash_account,
+        reference_type="AR",
+        reference_id=101,
+    )
+    CashMovement.objects.create(
+        movement_date=timezone.make_aware(datetime(2026, 3, 5, 13, 0)),
+        direction=CashDirection.OUT,
+        amount="30.00",
+        account=cash_account,
+        reference_type="AP",
+        reference_id=201,
+    )
+    CashMovement.objects.create(
+        movement_date=timezone.make_aware(datetime(2026, 3, 6, 9, 0)),
+        direction=CashDirection.IN,
+        amount="50.00",
+        account=cash_account,
+        reference_type="AR",
+        reference_id=102,
+    )
+
+    response = client.get(
+        "/api/v1/finance/reports/cashflow/?from=2026-03-05&to=2026-03-06"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["from"] == "2026-03-05"
+    assert body["to"] == "2026-03-06"
+    assert len(body["items"]) == 2
+
+    assert body["items"][0] == {
+        "date": "2026-03-05",
+        "total_in": "100.00",
+        "total_out": "30.00",
+        "net": "70.00",
+        "running_balance": "70.00",
+    }
+    assert body["items"][1] == {
+        "date": "2026-03-06",
+        "total_in": "50.00",
+        "total_out": "0.00",
+        "net": "50.00",
+        "running_balance": "120.00",
+    }
+
+
+@pytest.mark.django_db
+def test_finance_cashflow_report_endpoint_exige_from_e_to(client):
+    response = client.get("/api/v1/finance/reports/cashflow/")
+
+    assert response.status_code == 400
+    assert "obrigatorios" in response.json()["detail"]
+
+
+@pytest.mark.django_db
+def test_finance_cashflow_report_endpoint_valida_intervalo(client):
+    response = client.get(
+        "/api/v1/finance/reports/cashflow/?from=2026-03-10&to=2026-03-09"
+    )
+
+    assert response.status_code == 400
+    assert "menor ou igual" in response.json()["detail"]

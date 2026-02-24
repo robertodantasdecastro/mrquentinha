@@ -105,3 +105,10 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Regra idempotente obrigatoria:
   - se o AR ja estiver recebido e/ou ja existir movimento `IN` referenciado ao AR, nao gerar novo movimento.
   - reprocessamento de pagamento `PAID` deve ser seguro e sem duplicidade financeira.
+
+## Etapa 5.3 - Cashflow (MVP)
+- Relatorio de caixa por periodo usa agregacao diaria de `CashMovement`.
+- Decisao MVP sobre dias sem movimento:
+  - dias sem movimentacao nao sao retornados no endpoint de cashflow.
+  - motivo: resposta mais enxuta no MVP, mantendo foco nos dias com evento financeiro.
+  - TODO futuro: opcao para preencher dias vazios com zero quando necessario para dashboards.

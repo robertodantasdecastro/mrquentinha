@@ -138,3 +138,10 @@
   - `CashMovement IN` usa conta patrimonial padrao `Caixa/Banco` (ASSET).
   - idempotencia aplicada em service: reprocessamento de `PAID` nao duplica AR nem movimento de caixa.
   - testes de service e API cobrindo pedido -> AR e pagamento -> caixa.
+
+- Etapa 5.3 relatorio cashflow:
+  - criado modulo de relatorios financeiros com `get_cashflow(from_date, to_date)`.
+  - novo endpoint `GET /api/v1/finance/reports/cashflow/?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+  - retorno por dia com `total_in`, `total_out`, `net` e `running_balance`.
+  - validacoes de entrada adicionadas (`from`/`to` obrigatorios e `from <= to`).
+  - testes de relatorio e API cobrindo agregacao e saldo acumulado.

@@ -358,3 +358,8 @@ curl -X POST http://127.0.0.1:8000/api/v1/finance/cash-movements/ \
     "note": "Recebimento PIX"
   }'
 ```
+
+Relatorio de cashflow por periodo:
+```bash
+curl "http://127.0.0.1:8000/api/v1/finance/reports/cashflow/?from=2026-03-01&to=2026-03-07"
+```

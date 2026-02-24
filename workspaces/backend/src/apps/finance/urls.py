@@ -5,6 +5,7 @@ from .views import (
     AccountViewSet,
     APBillViewSet,
     ARReceivableViewSet,
+    CashflowReportAPIView,
     CashMovementViewSet,
 )
 
@@ -23,5 +24,6 @@ router.register(
 )
 
 urlpatterns = [
+    path("reports/cashflow/", CashflowReportAPIView.as_view(), name="finance-cashflow"),
     path("", include(router.urls)),
 ]
