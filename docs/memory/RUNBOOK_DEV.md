@@ -20,9 +20,9 @@ Acessos:
 3. Validar branch:
 
 ```bash
-bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join
-bash scripts/branch_guard.sh --agent antigravity --strict
-bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+bash scripts/branch_guard.sh --agent antigravity --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+bash scripts/branch_guard.sh --agent union --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
 ```
 
 4. Atualizar lock humano (`IN_PROGRESS.md`) antes de editar.
@@ -68,20 +68,14 @@ O script garante:
 bash scripts/sync_memory.sh --check
 ```
 
-## 7) OCR (MVP simulado)
-### Criar OCR job
+## 7) Uniao oficial (main + AntigravityIDE)
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/ \
-  -F "kind=LABEL_FRONT" \
-  -F "image=@/caminho/arquivo.png" \
-  -F "raw_text=Produto: Arroz Tipo 1\nMarca: Demo"
+./scripts/union_branch_build_and_test.sh
 ```
 
-### Aplicar OCR
+Simulacao sem executar:
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/\<JOB_ID\>/apply/ \
-  -H "Content-Type: application/json" \
-  -d '{"target_type":"INGREDIENT","target_id":1,"mode":"merge"}'
+./scripts/union_branch_build_and_test.sh --dry-run
 ```
 
 ## 8) Troubleshooting

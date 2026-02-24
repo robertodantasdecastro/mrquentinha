@@ -7,10 +7,12 @@ Referencia de atualizacao: 24/02/2026.
 - Em progresso: 7.1 (Auth/RBAC para cliente real).
 
 ## Politica de branches (anti-conflito)
-- `BRANCH_CODEX_PRIMARY=feature/etapa-4-orders`
-- Codex: branch principal e, quando integracao, `join/codex-ag`.
-- Antigravity: `ag/<tipo>/<slug>`.
-- Integracao: `join/codex-ag`.
+- `BRANCH_CODEX_PRIMARY=main`
+- `BRANCH_ANTIGRAVITY=AntigravityIDE`
+- `BRANCH_UNION=Antigravity_Codex`
+- Codex: `main` e `main/etapa-*`.
+- Antigravity: `AntigravityIDE` e `AntigravityIDE/etapa-*`.
+- Uniao: `Antigravity_Codex` (somente merge/cherry-pick/PR).
 - Guard rail: `scripts/branch_guard.sh`.
 
 ## Antigravity
@@ -98,6 +100,7 @@ Referencia de atualizacao: 24/02/2026.
   - `scripts/quality_gate_all.sh`
   - `scripts/sync_memory.sh`
   - `scripts/branch_guard.sh`
+  - `scripts/union_branch_build_and_test.sh`
 
 ## Quickstart
 No root (`~/mrquentinha`), em terminais separados:
@@ -118,7 +121,7 @@ Validacao rapida:
 Pre-commit recomendado:
 
 ```bash
-bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
 bash scripts/quality_gate_all.sh
 bash scripts/sync_memory.sh --check
 ```

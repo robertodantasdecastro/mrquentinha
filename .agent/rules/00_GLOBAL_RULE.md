@@ -45,15 +45,17 @@ Esta regra deve aparecer no painel `Rules > Global` do Antigravity e permanecer 
 - Frontend: uso de `workspaces/web/ui`, `TemplateProvider` e layout clean/modular.
 
 ## Politica de Branches (Anti-Conflito)
-- `BRANCH_CODEX_PRIMARY=feature/etapa-4-orders`
-- Codex trabalha somente em `BRANCH_CODEX_PRIMARY`.
-- Antigravity sempre cria/usa branch `ag/<tipo>/<slug>`.
-- Integracao entre agentes ocorre apenas em `join/codex-ag`.
-- Nenhum agente deve comitar em branch do outro.
+- `BRANCH_CODEX_PRIMARY=main`
+- `BRANCH_ANTIGRAVITY=AntigravityIDE`
+- `BRANCH_UNION=Antigravity_Codex`
+- Codex: somente `main` e `main/etapa-*`.
+- Antigravity: somente `AntigravityIDE` e `AntigravityIDE/etapa-*`.
+- Union: somente `Antigravity_Codex` para merge/cherry-pick/PR.
+- Nenhum agente deve comitar em branch principal do outro.
 - Guard rail obrigatorio antes de commit/push:
-  - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders`
-  - `bash scripts/branch_guard.sh --agent antigravity --strict`
-  - `bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders`
+  - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
+  - `bash scripts/branch_guard.sh --agent antigravity --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
+  - `bash scripts/branch_guard.sh --agent union --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
 
 ## Sync Pack obrigatorio
 Atualizar quando houver mudanca de codigo, script, configuracao, endpoint, porta ou env var:
@@ -77,4 +79,4 @@ Qualquer mudanca em `workspaces/backend`, `workspaces/web/*` ou `scripts/` exige
 - Rodar quality gate antes de push.
 
 ## Compatibilidade de fonte completa
-- Fonte detalhada complementar: `.antigravity/GLOBAL_RULE.md` e `.antigravity/GLOBAL_SYNC_RULE.md`.
+- Fonte oficial: `GEMINI.md`.

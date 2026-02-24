@@ -320,3 +320,12 @@
   - branch policy aplicada nos fluxos com commit/push/merge via `scripts/branch_guard.sh`.
   - quality gate e sync padronizados com ativacao de venv backend e `nvm use --lts` para npm.
   - criada documentacao de trabalho paralelo com lock humano (`IN_PROGRESS.md`) e mapa oficial de workflows.
+
+- Branch policy atualizada (main/AntigravityIDE/Antigravity_Codex):
+  - politica canonica ajustada para `main` (Codex), `AntigravityIDE` (Antigravity) e `Antigravity_Codex` (uniao).
+  - regra de branches por etapa formalizada:
+    - Codex: `main/etapa-N-TituloEtapa`
+    - Antigravity: `AntigravityIDE/etapa-N-TituloEtapa`
+  - workflow de uniao atualizado (`W18`) com merge controlado de `origin/AntigravityIDE` em `Antigravity_Codex` e validacao completa.
+  - novo script `scripts/union_branch_build_and_test.sh` com modo `--dry-run`.
+  - `branch_guard.sh` atualizado para as novas branches canonicas e bloqueio de uso indevido da branch de uniao.

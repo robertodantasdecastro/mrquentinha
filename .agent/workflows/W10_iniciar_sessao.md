@@ -1,7 +1,7 @@
 ---
 id: W10
 title: Iniciar sessao
-description: Comecar o trabalho com baseline tecnico validado, branch correta e contexto compartilhado.
+description: Comecar o trabalho com baseline validado, branch correta e lock humano.
 inputs:
   - agente (codex|antigravity)
   - objetivo_dia
@@ -12,31 +12,30 @@ outputs:
 commands:
   - sed -n '1,220p' AGENTS.md
   - sed -n '1,220p' GEMINI.md
-  - sed -n '1,260p' docs/memory/PROJECT_STATE.md
-  - sed -n '1,260p' docs/memory/DECISIONS.md
   - sed -n '1,220p' .agent/memory/IN_PROGRESS.md
-  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary feature/etapa-4-orders --allow-codex-join
-  - cd workspaces/backend && source .venv/bin/activate && cd ~/mrquentinha && make test && pytest
+  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+  - cd workspaces/backend && source .venv/bin/activate && cd ~/mrquentinha && make test
   - source ~/.nvm/nvm.sh && nvm use --lts
   - cd workspaces/web/portal && npm run build
   - cd workspaces/web/client && npm run build
 quality_gate:
-  - baseline backend/frontend sem erro de build/test
+  - baseline backend/frontend sem erro
 memory_updates:
   - atualizar .agent/memory/IN_PROGRESS.md quando modo_escrita=sim
 ---
 
 # W10 - Iniciar sessao
 
+## Branches canonicas
+- Codex: `main` e `main/etapa-*`.
+- Antigravity: `AntigravityIDE` e `AntigravityIDE/etapa-*`.
+- Uniao (nao diaria): `Antigravity_Codex`.
+
 ## Passos
-1. Ler `AGENTS.md`, `GEMINI.md` e memoria oficial.
-2. Ler `.agent/memory/IN_PROGRESS.md` para evitar colisao de edicao.
-3. Validar branch do agente com `scripts/branch_guard.sh`.
-4. Validar baseline:
-   - backend com venv ativa (`make test` + `pytest` no root)
-   - frontend com nvm LTS (`npm run build` portal/client)
-5. Se `modo_escrita=sim`, atualizar `IN_PROGRESS.md` com:
-   - agente, branch, etapa, arquivos/areas e proximo comando.
+1. Ler `AGENTS.md`, `GEMINI.md` e `IN_PROGRESS.md`.
+2. Validar branch do agente com `branch_guard`.
+3. Rodar baseline tecnico (backend + build portal/client).
+4. Se `modo_escrita=sim`, atualizar `IN_PROGRESS.md` (agente, branch, etapa, areas tocadas).
 
 ## Criterio de saida
-- Emitir: `Sessao pronta` + checklist do dia.
+- Emitir `Sessao pronta` com checklist do dia.

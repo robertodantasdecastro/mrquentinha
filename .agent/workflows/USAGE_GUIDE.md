@@ -1,18 +1,18 @@
 # Guia de Uso dos Workflows (Codex + Antigravity)
 
-## Princípios
+## Principios
 - Fonte de verdade: workflows `W10..W21`.
 - Wrappers `00..06` existem para atalhos e onboarding.
 - Nunca iniciar tarefa sem ler `AGENTS.md` e `GEMINI.md`.
 
-## Política de branches
-- Codex: `feature/etapa-4-orders` (ou `join/codex-ag` em integracao).
-- Antigravity: `ag/<tipo>/<slug>`.
-- Integracao: `join/codex-ag`.
+## Politica de branches
+- Codex: `main` (ou `main/etapa-*` em desenvolvimento por etapa).
+- Antigravity: `AntigravityIDE` (ou `AntigravityIDE/etapa-*`).
+- Integracao: `Antigravity_Codex`.
 - Guard rail obrigatorio:
-  - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join`
-  - `bash scripts/branch_guard.sh --agent antigravity --strict`
-  - `bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders`
+  - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
+  - `bash scripts/branch_guard.sh --agent antigravity --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
+  - `bash scripts/branch_guard.sh --agent union --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
 
 ## Fluxo recomendado (dia a dia)
 1. `W10_iniciar_sessao`
@@ -26,7 +26,7 @@
 1. Antes de editar, ler `.agent/memory/IN_PROGRESS.md`.
 2. Registrar lock humano no `IN_PROGRESS.md` (agente, branch, arquivos/areas).
 3. Evitar editar os mesmos arquivos ao mesmo tempo.
-4. Se houver intersecao, combinar ordem de entrega e usar `join/codex-ag` para integracao.
+4. Se houver intersecao, combinar ordem de entrega e usar `Antigravity_Codex` para integracao.
 5. Fechar com `W21_sync_codex_antigravity` antes de checkpoint/PR.
 
 ## Quando usar W13, W14 e W15

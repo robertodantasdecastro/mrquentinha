@@ -13,5 +13,5 @@ description: Wrapper de bootstrap. Fonte de verdade: W10_iniciar_sessao.
 
 ## Comando recomendado
 ```bash
-bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
 ```

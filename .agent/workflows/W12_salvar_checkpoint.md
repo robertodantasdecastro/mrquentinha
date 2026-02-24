@@ -1,45 +1,42 @@
 ---
 id: W12
 title: Salvar checkpoint
-description: Salvar progresso com branch policy, quality gate minimo e memoria sincronizada.
+description: Salvar progresso com branch policy valida, qualidade minima e memoria sincronizada.
 inputs:
-  - agente (codex|antigravity|join)
+  - agente (codex|antigravity|union)
   - mensagem_checkpoint
-  - criar_tag (opcional)
 outputs:
   - commit_checkpoint
-  - tag_checkpoint (opcional)
 commands:
   - sed -n '1,220p' GEMINI.md
-  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary feature/etapa-4-orders --allow-codex-join
+  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
   - git diff --stat
   - cd workspaces/backend && source .venv/bin/activate && make lint && make test
   - source ~/.nvm/nvm.sh && nvm use --lts
   - cd workspaces/web/portal && npm run build
   - cd workspaces/web/client && npm run build
-  - git add ...
-  - git commit -m "<mensagem>"
-  - git tag -a checkpoint-YYYYMMDD-HHMM -m "checkpoint" (opcional)
+  - git add ... && git commit -m "<mensagem>"
 quality_gate:
-  - branch_guard em modo strict
-  - backend lint/test + builds dos frontends
+  - branch_guard
+  - backend lint/test + builds frontend
 memory_updates:
-  - atualizar CHANGELOG com entrada curta do checkpoint
+  - atualizar docs/memory/CHANGELOG.md
 ---
 
 # W12 - Salvar checkpoint
 
 ## Regras por agente
 - Codex:
-  - pode commitar em `feature/etapa-4-orders`.
-  - para integracao, pode commitar em `join/codex-ag` (usar `--allow-codex-join`).
+  - commit em `main` ou `main/etapa-*`.
 - Antigravity:
-  - commita apenas em `ag/<tipo>/<slug>`.
-  - nunca commitar em branch do Codex.
+  - commit em `AntigravityIDE` ou `AntigravityIDE/etapa-*`.
+- Union:
+  - commit apenas em `Antigravity_Codex` para merge/cherry-pick/integracao.
+  - nao usar como branch de desenvolvimento diario.
 
 ## Passos
 1. Ler `GEMINI.md`.
 2. Validar branch com `branch_guard`.
-3. Rodar quality gate minimo (venv + nvm LTS).
-4. Atualizar `docs/memory/CHANGELOG.md`.
+3. Rodar quality gate minimo.
+4. Atualizar `CHANGELOG`.
 5. Commitar com mensagem rastreavel.

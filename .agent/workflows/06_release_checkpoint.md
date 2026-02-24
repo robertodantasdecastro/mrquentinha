@@ -7,9 +7,9 @@ description: Wrapper de release/checkpoint. Fonte de verdade: W19_release_tag + 
 ## Precondicao
 - Ler `GEMINI.md`.
 - Validar branch:
-  - Codex (feature/join):
-    - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders --allow-codex-join`
-  - Antigravity: nao publica release em branch Codex/join.
+  - Codex (`main`/`main-etapa` ou union quando integracao):
+    - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
+  - Antigravity: nao publica release em branch do Codex/union.
 
 ## Encaminhamento oficial
 1. Executar `W19_release_tag`.

@@ -1,46 +1,58 @@
-# Branch Policy (Codex x Antigravity x Join)
+# Branch Policy (Codex x Antigravity x Union)
 
 Atualizado em: 24/02/2026.
 
-## Variavel de referencia
-- `BRANCH_CODEX_PRIMARY=feature/etapa-4-orders`
+## Branches canonicos
+- `BRANCH_CODEX_PRIMARY=main`
+- `BRANCH_ANTIGRAVITY=AntigravityIDE`
+- `BRANCH_UNION=Antigravity_Codex`
 
-## Regras
-1. Codex trabalha somente em `BRANCH_CODEX_PRIMARY`.
-2. Antigravity trabalha somente em branches `ag/<tipo>/<slug>`.
-3. Integracao entre agentes ocorre em `join/codex-ag`.
-4. Nao alterar historico das branches originais durante integracao.
+## Regra por agente
+1. Codex trabalha em:
+  - `main`
+  - `main/etapa-N-TituloEtapa`
+2. Antigravity trabalha em:
+  - `AntigravityIDE`
+  - `AntigravityIDE/etapa-N-TituloEtapa`
+3. Uniao trabalha somente em:
+  - `Antigravity_Codex` (merge/cherry-pick/PR)
+  - nao usar como branch de desenvolvimento diario.
 
-## Guard rail de branch
-Script oficial:
-
-```bash
-bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders
-bash scripts/branch_guard.sh --agent antigravity --strict
-bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders
-```
-
-## Fluxo recomendado
+## Regra de branches por etapa
 ### Codex
 ```bash
-git checkout feature/etapa-4-orders
-bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders
+git checkout main
+git checkout -b main/etapa-7.1-Auth-RBAC main
+# ... desenvolvimento ...
+git checkout main
+git merge --no-ff main/etapa-7.1-Auth-RBAC
 ```
 
 ### Antigravity
 ```bash
-git checkout -b ag/chore/smoke-rbac
-bash scripts/branch_guard.sh --agent antigravity --strict
+git checkout AntigravityIDE
+git checkout -b AntigravityIDE/etapa-7.1-Auth-RBAC AntigravityIDE
+# ... desenvolvimento ...
+git checkout AntigravityIDE
+git merge --no-ff AntigravityIDE/etapa-7.1-Auth-RBAC
 ```
 
-### Join (integracao)
+## Workflow de uniao (main + AntigravityIDE)
+Comando oficial:
 ```bash
-git checkout -B join/codex-ag feature/etapa-4-orders
-bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders
-
-git merge --no-ff ag/chore/smoke-rbac
-# resolver conflitos, rodar quality gate
+./scripts/union_branch_build_and_test.sh
 ```
 
-## Observacao
-- Opcao futura (nao implementada): automatizar login JWT no smoke para fluxos privados.
+Fluxo resumido:
+1. `main` atualizado
+2. `Antigravity_Codex` resetado a partir de `origin/main`
+3. merge de `origin/AntigravityIDE`
+4. validacoes completas (backend/root/front/smokes)
+5. push de `Antigravity_Codex` e PR `Antigravity_Codex -> main`
+
+## Guard rail de branch
+```bash
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+bash scripts/branch_guard.sh --agent antigravity --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+bash scripts/branch_guard.sh --agent union --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+```

@@ -1,7 +1,7 @@
 ---
 id: W11
 title: Continuar sessao
-description: Retomar apos pausa com contexto, lock humano e validacao rapida.
+description: Retomar apos pausa com contexto e branch policy valida.
 inputs:
   - agente (codex|antigravity)
   - objetivo_atual
@@ -11,27 +11,31 @@ outputs:
   - plano_curto_de_execucao
 commands:
   - sed -n '1,220p' GEMINI.md
-  - sed -n '1,260p' .agent/memory/CONTEXT_PACK.md
+  - sed -n '1,220p' .agent/memory/CONTEXT_PACK.md
   - sed -n '1,220p' .agent/memory/TODO_NEXT.md
   - sed -n '1,220p' .agent/memory/IN_PROGRESS.md
   - git log -5 --oneline
-  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary feature/etapa-4-orders --allow-codex-join
+  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
   - bash scripts/smoke_stack_dev.sh
   - bash scripts/smoke_client_dev.sh
 quality_gate:
-  - smoke scripts sem falhas
+  - smokes sem falha
 memory_updates:
   - atualizar .agent/memory/IN_PROGRESS.md quando modo_escrita=sim
 ---
 
 # W11 - Continuar sessao
 
+## Branches canonicas
+- Codex: `main` / `main/etapa-*`.
+- Antigravity: `AntigravityIDE` / `AntigravityIDE/etapa-*`.
+- Uniao: `Antigravity_Codex` apenas para integracao.
+
 ## Passos
-1. Ler `GEMINI.md`, `CONTEXT_PACK`, `TODO_NEXT` e `IN_PROGRESS.md`.
-2. Revisar ultimos commits e branch atual.
-3. Validar branch com `branch_guard`.
-4. Rodar smoke rapido (`stack` e `client`).
-5. Se `modo_escrita=sim`, atualizar `IN_PROGRESS.md` antes de voltar a editar.
+1. Recarregar contexto (`GEMINI`, `CONTEXT_PACK`, `TODO_NEXT`, `IN_PROGRESS`).
+2. Validar branch com `branch_guard`.
+3. Rodar smoke rapido (`stack` e `client`).
+4. Se `modo_escrita=sim`, registrar lock humano em `IN_PROGRESS.md`.
 
 ## Criterio de saida
-- Contexto restaurado e objetivo unico definido para execucao.
+- Objetivo unico definido e ambiente pronto para editar.

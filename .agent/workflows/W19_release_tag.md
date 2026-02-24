@@ -3,13 +3,13 @@ id: W19
 title: Release e tag
 description: Publicar checkpoint de release com branch policy e qualidade completa.
 inputs:
-  - agente (codex|join)
+  - agente (codex|union)
   - nome_tag
 outputs:
   - release_publicada
 commands:
   - sed -n '1,220p' GEMINI.md
-  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary feature/etapa-4-orders --allow-codex-join
+  - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
   - executar W16_auditoria_qualidade
   - atualizar CHANGELOG com release note curta
   - git tag -a <tag> -m "release"
@@ -25,7 +25,7 @@ memory_updates:
 
 ## Regras
 - Ler `GEMINI.md`.
-- Branch permitida para release: `feature/etapa-4-orders` ou `join/codex-ag`.
+- Branch permitida para release: `main` ou `Antigravity_Codex`.
 - Antigravity nao publica release fora do fluxo de integracao.
 
 ## Criterio de saida

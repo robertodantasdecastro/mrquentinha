@@ -2,33 +2,35 @@
 set -euo pipefail
 
 usage() {
-  cat <<'USAGE'
+  cat <<"USAGE"
 Uso:
-  bash scripts/branch_guard.sh --agent <codex|antigravity|join> [opcoes]
+  bash scripts/branch_guard.sh --agent <codex|antigravity|union> [opcoes]
 
 Opcoes:
-  --agent <nome>             Agente alvo: codex, antigravity ou join.
-  --codex-primary <branch>   Branch principal do Codex (default: $BRANCH_CODEX_PRIMARY).
-  --join-branch <branch>     Branch de integracao (default: join/codex-ag).
-  --allow-codex-join         Permite Codex operar na join branch (alem da branch principal).
-  --strict                   Retorna exit code 1 quando regra for violada.
-  -h, --help                 Mostra ajuda.
+  --agent <nome>                  Agente alvo: codex, antigravity ou union.
+  --codex-primary <branch>        Branch principal do Codex (default: BRANCH_CODEX_PRIMARY ou main).
+  --antigravity-branch <branch>   Branch principal do Antigravity (default: BRANCH_ANTIGRAVITY ou AntigravityIDE).
+  --union-branch <branch>         Branch neutro de uniao (default: BRANCH_UNION ou Antigravity_Codex).
+  --strict                        Retorna exit code 1 quando regra for violada.
+  -h, --help                      Mostra ajuda.
+
+Regras:
+  Codex        -> main e main/etapa-*
+  Antigravity  -> AntigravityIDE e AntigravityIDE/etapa-*
+  Union        -> somente Antigravity_Codex (apenas merge/cherry-pick/PR)
 
 Exemplos:
-  BRANCH_CODEX_PRIMARY=feature/etapa-4-orders \
-    bash scripts/branch_guard.sh --agent codex --strict
-
-  bash scripts/branch_guard.sh --agent codex --strict --allow-codex-join
-  bash scripts/branch_guard.sh --agent antigravity --strict
-  bash scripts/branch_guard.sh --agent join --strict
+  bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+  bash scripts/branch_guard.sh --agent antigravity --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+  bash scripts/branch_guard.sh --agent union --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
 USAGE
 }
 
 AGENT=""
 STRICT=0
-ALLOW_CODEX_JOIN=0
-CODEX_PRIMARY="${BRANCH_CODEX_PRIMARY:-}"
-JOIN_BRANCH="join/codex-ag"
+CODEX_PRIMARY="${BRANCH_CODEX_PRIMARY:-main}"
+ANTIGRAVITY_BRANCH="${BRANCH_ANTIGRAVITY:-AntigravityIDE}"
+UNION_BRANCH="${BRANCH_UNION:-Antigravity_Codex}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -40,13 +42,13 @@ while [[ $# -gt 0 ]]; do
       CODEX_PRIMARY="${2:-}"
       shift 2
       ;;
-    --join-branch)
-      JOIN_BRANCH="${2:-}"
+    --antigravity-branch)
+      ANTIGRAVITY_BRANCH="${2:-}"
       shift 2
       ;;
-    --allow-codex-join)
-      ALLOW_CODEX_JOIN=1
-      shift
+    --union-branch)
+      UNION_BRANCH="${2:-}"
+      shift 2
       ;;
     --strict)
       STRICT=1
@@ -81,58 +83,64 @@ if [[ -z "$CURRENT_BRANCH" ]]; then
   exit 2
 fi
 
-if [[ -z "$CODEX_PRIMARY" ]]; then
-  CODEX_PRIMARY="$CURRENT_BRANCH"
-fi
-
 violation=0
+
+fail_msg() {
+  echo "$1" >&2
+  violation=1
+}
 
 case "$AGENT" in
   codex)
-    codex_ok=0
-
-    if [[ "$CURRENT_BRANCH" == "$CODEX_PRIMARY" ]]; then
-      codex_ok=1
-    fi
-
-    if [[ $ALLOW_CODEX_JOIN -eq 1 && "$CURRENT_BRANCH" == "$JOIN_BRANCH" ]]; then
-      codex_ok=1
-    fi
-
-    if [[ $codex_ok -ne 1 ]]; then
-      echo "[branch-guard] Violacao: Codex deve operar em '$CODEX_PRIMARY'" >&2
-      if [[ $ALLOW_CODEX_JOIN -eq 1 ]]; then
-        echo "[branch-guard] (join permitida: '$JOIN_BRANCH')" >&2
-      fi
+    if [[ "$CURRENT_BRANCH" != "$CODEX_PRIMARY" && "$CURRENT_BRANCH" != "$CODEX_PRIMARY"/etapa-* ]]; then
+      fail_msg "[branch-guard] Violacao: Codex so pode operar em '$CODEX_PRIMARY' ou '$CODEX_PRIMARY/etapa-*'."
       echo "[branch-guard] Branch atual: '$CURRENT_BRANCH'" >&2
-      echo "[branch-guard] Correcao: git checkout '$CODEX_PRIMARY'" >&2
-      if [[ $ALLOW_CODEX_JOIN -eq 1 ]]; then
-        echo "[branch-guard] Ou para integracao: git checkout '$JOIN_BRANCH'" >&2
-      fi
-      violation=1
+      echo "[branch-guard] Correcao (principal): git checkout '$CODEX_PRIMARY'" >&2
+      echo "[branch-guard] Correcao (etapa): git checkout -b '$CODEX_PRIMARY/etapa-7.1-Auth-RBAC' '$CODEX_PRIMARY'" >&2
+    fi
+
+    if [[ "$CURRENT_BRANCH" == "$ANTIGRAVITY_BRANCH" || "$CURRENT_BRANCH" == "$ANTIGRAVITY_BRANCH"/etapa-* ]]; then
+      fail_msg "[branch-guard] Violacao: Codex nao deve commitar em branch principal/etapa do Antigravity."
     fi
     ;;
+
   antigravity)
-    if [[ ! "$CURRENT_BRANCH" =~ ^ag/[a-z0-9._-]+/[a-z0-9._-]+$ ]]; then
-      echo "[branch-guard] Violacao: Antigravity deve usar branch no padrao ag/<tipo>/<slug>." >&2
+    if [[ "$CURRENT_BRANCH" != "$ANTIGRAVITY_BRANCH" && "$CURRENT_BRANCH" != "$ANTIGRAVITY_BRANCH"/etapa-* ]]; then
+      fail_msg "[branch-guard] Violacao: Antigravity so pode operar em '$ANTIGRAVITY_BRANCH' ou '$ANTIGRAVITY_BRANCH/etapa-*'."
       echo "[branch-guard] Branch atual: '$CURRENT_BRANCH'" >&2
-      echo "[branch-guard] Exemplo: git checkout -b ag/chore/smoke-rbac" >&2
-      violation=1
+      echo "[branch-guard] Correcao (principal): git checkout '$ANTIGRAVITY_BRANCH'" >&2
+      echo "[branch-guard] Correcao (etapa): git checkout -b '$ANTIGRAVITY_BRANCH/etapa-7.1-Auth-RBAC' '$ANTIGRAVITY_BRANCH'" >&2
+    fi
+
+    if [[ "$CURRENT_BRANCH" == "$CODEX_PRIMARY" || "$CURRENT_BRANCH" == "$CODEX_PRIMARY"/etapa-* ]]; then
+      fail_msg "[branch-guard] Violacao: Antigravity nao deve commitar em branch principal/etapa do Codex."
     fi
     ;;
-  join)
-    if [[ "$CURRENT_BRANCH" != "$JOIN_BRANCH" ]]; then
-      echo "[branch-guard] Violacao: integracao Join deve ocorrer em '$JOIN_BRANCH'." >&2
+
+  union)
+    if [[ "$CURRENT_BRANCH" != "$UNION_BRANCH" ]]; then
+      fail_msg "[branch-guard] Violacao: branch de uniao deve ser '$UNION_BRANCH'."
       echo "[branch-guard] Branch atual: '$CURRENT_BRANCH'" >&2
-      echo "[branch-guard] Correcao: git checkout -B '$JOIN_BRANCH' '$CODEX_PRIMARY'" >&2
-      violation=1
+      echo "[branch-guard] Correcao: git checkout -B '$UNION_BRANCH' 'origin/$CODEX_PRIMARY'" >&2
+    else
+      if [[ -f .git/MERGE_HEAD || -f .git/CHERRY_PICK_HEAD ]]; then
+        :
+      elif ! git diff --quiet || ! git diff --cached --quiet; then
+        fail_msg "[branch-guard] Violacao: '$UNION_BRANCH' nao e branch de trabalho diario. Use somente merge/cherry-pick/PR."
+        echo "[branch-guard] Correcao: volte para '$CODEX_PRIMARY' ou '$ANTIGRAVITY_BRANCH' e mantenha desenvolvimento nas branches de etapa." >&2
+      fi
     fi
     ;;
+
   *)
-    echo "[branch-guard] Agent invalido: '$AGENT'. Use codex|antigravity|join." >&2
+    echo "[branch-guard] Agent invalido: '$AGENT'. Use codex|antigravity|union." >&2
     exit 2
     ;;
 esac
+
+if [[ "$CURRENT_BRANCH" == "$UNION_BRANCH" && "$AGENT" != "union" ]]; then
+  fail_msg "[branch-guard] Violacao: '$UNION_BRANCH' e branch neutro de integracao. Use --agent union para operar nela."
+fi
 
 if [[ $violation -eq 1 ]]; then
   if [[ $STRICT -eq 1 ]]; then
