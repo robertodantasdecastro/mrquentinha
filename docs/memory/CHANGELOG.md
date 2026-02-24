@@ -166,3 +166,13 @@
   - Makefile no root com delegacao para `workspaces/backend` (`test`, `lint`, `format`, `check`).
   - `pytest.ini` no root para executar testes do backend.
   - `conftest.py` no root para garantir `workspaces/backend/src` no `sys.path`.
+
+- Etapa 5.6.1 ledger de auditoria financeira:
+  - novo modelo `LedgerEntry` no modulo `finance` para trilha de auditoria financeira.
+  - tipos de entrada MVP: `AP_PAID`, `AR_RECEIVED`, `CASH_IN`, `CASH_OUT`, `ADJUSTMENT`.
+  - idempotencia por constraint unica em (`reference_type`, `reference_id`, `entry_type`).
+  - integracao em services:
+    - `record_cash_in_from_ar` registra ledger `AR_RECEIVED` e `CASH_IN`.
+    - `record_cash_out_from_ap` registra ledger `AP_PAID` e `CASH_OUT`.
+  - endpoint read-only publicado em `/api/v1/finance/ledger/`.
+  - testes adicionados para idempotencia de ledger em AR/AP e listagem do endpoint.

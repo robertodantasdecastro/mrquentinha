@@ -39,6 +39,14 @@ class CashDirection(models.TextChoices):
     OUT = "OUT", "OUT"
 
 
+class LedgerEntryType(models.TextChoices):
+    AP_PAID = "AP_PAID", "AP_PAID"
+    AR_RECEIVED = "AR_RECEIVED", "AR_RECEIVED"
+    CASH_IN = "CASH_IN", "CASH_IN"
+    CASH_OUT = "CASH_OUT", "CASH_OUT"
+    ADJUSTMENT = "ADJUSTMENT", "ADJUSTMENT"
+
+
 class Account(TimeStampedModel):
     name = models.CharField(max_length=120, unique=True)
     type = models.CharField(max_length=16, choices=AccountType.choices)
@@ -160,3 +168,43 @@ class CashMovement(models.Model):
 
     def __str__(self) -> str:
         return f"Cash-{self.id} ({self.direction})"
+
+
+class LedgerEntry(models.Model):
+    entry_date = models.DateTimeField(default=timezone.now)
+    entry_type = models.CharField(max_length=16, choices=LedgerEntryType.choices)
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    debit_account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="ledger_debits",
+    )
+    credit_account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="ledger_credits",
+    )
+    reference_type = models.CharField(max_length=32)
+    reference_id = models.PositiveIntegerField()
+    note = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-entry_date", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["reference_type", "reference_id", "entry_type"],
+                name="finance_ledger_reference_entry_type_unique",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"Ledger-{self.id} ({self.entry_type})"

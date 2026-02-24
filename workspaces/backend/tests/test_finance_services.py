@@ -13,6 +13,8 @@ from apps.finance.models import (
     ARReceivableStatus,
     CashDirection,
     CashMovement,
+    LedgerEntry,
+    LedgerEntryType,
 )
 from apps.finance.services import (
     create_ap_from_purchase,
@@ -109,3 +111,93 @@ def test_record_cash_in_e_out_cria_movimentos_e_atualiza_status():
     assert bill.paid_at is not None
 
     assert CashMovement.objects.count() == 2
+
+
+@pytest.mark.django_db
+def test_record_cash_in_from_ar_cria_ledger_e_nao_duplica():
+    revenue_account = Account.objects.create(
+        name="Conta Receita Ledger AR",
+        type=AccountType.REVENUE,
+    )
+    cash_account = Account.objects.create(
+        name="Conta Caixa Ledger AR",
+        type=AccountType.ASSET,
+    )
+    receivable = ARReceivable.objects.create(
+        customer=None,
+        account=revenue_account,
+        amount=Decimal("180.00"),
+        due_date=date(2026, 3, 20),
+        status=ARReceivableStatus.OPEN,
+    )
+
+    movement_first = record_cash_in_from_ar(receivable.id, account=cash_account)
+    movement_second = record_cash_in_from_ar(receivable.id, account=cash_account)
+
+    assert movement_first.id == movement_second.id
+
+    entries = LedgerEntry.objects.filter(
+        reference_type="AR",
+        reference_id=receivable.id,
+    )
+    assert entries.count() == 2
+    assert {entry.entry_type for entry in entries} == {
+        LedgerEntryType.AR_RECEIVED,
+        LedgerEntryType.CASH_IN,
+    }
+
+    ar_received = entries.get(entry_type=LedgerEntryType.AR_RECEIVED)
+    cash_in = entries.get(entry_type=LedgerEntryType.CASH_IN)
+
+    assert ar_received.amount == Decimal("180.00")
+    assert ar_received.debit_account == cash_account
+    assert ar_received.credit_account == revenue_account
+
+    assert cash_in.amount == Decimal("180.00")
+    assert cash_in.debit_account == cash_account
+    assert cash_in.credit_account == revenue_account
+
+
+@pytest.mark.django_db
+def test_record_cash_out_from_ap_cria_ledger_e_nao_duplica():
+    expense_account = Account.objects.create(
+        name="Conta Despesa Ledger AP",
+        type=AccountType.EXPENSE,
+    )
+    cash_account = Account.objects.create(
+        name="Conta Caixa Ledger AP",
+        type=AccountType.ASSET,
+    )
+    bill = APBill.objects.create(
+        supplier_name="Fornecedor Ledger AP",
+        account=expense_account,
+        amount=Decimal("90.00"),
+        due_date=date(2026, 3, 21),
+        status=APBillStatus.OPEN,
+    )
+
+    movement_first = record_cash_out_from_ap(bill.id, account=cash_account)
+    movement_second = record_cash_out_from_ap(bill.id, account=cash_account)
+
+    assert movement_first.id == movement_second.id
+
+    entries = LedgerEntry.objects.filter(
+        reference_type="AP",
+        reference_id=bill.id,
+    )
+    assert entries.count() == 2
+    assert {entry.entry_type for entry in entries} == {
+        LedgerEntryType.AP_PAID,
+        LedgerEntryType.CASH_OUT,
+    }
+
+    ap_paid = entries.get(entry_type=LedgerEntryType.AP_PAID)
+    cash_out = entries.get(entry_type=LedgerEntryType.CASH_OUT)
+
+    assert ap_paid.amount == Decimal("90.00")
+    assert ap_paid.debit_account == expense_account
+    assert ap_paid.credit_account == cash_account
+
+    assert cash_out.amount == Decimal("90.00")
+    assert cash_out.debit_account == expense_account
+    assert cash_out.credit_account == cash_account

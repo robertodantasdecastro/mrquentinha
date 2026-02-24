@@ -10,6 +10,7 @@ from .models import (
     ARReceivableStatus,
     CashDirection,
     CashMovement,
+    LedgerEntry,
 )
 
 
@@ -182,3 +183,21 @@ class CashMovementSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+
+
+class LedgerEntrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LedgerEntry
+        fields = [
+            "id",
+            "entry_date",
+            "entry_type",
+            "amount",
+            "debit_account",
+            "credit_account",
+            "reference_type",
+            "reference_id",
+            "note",
+            "created_at",
+        ]
+        read_only_fields = fields

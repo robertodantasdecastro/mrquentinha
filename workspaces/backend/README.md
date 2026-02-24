@@ -290,6 +290,7 @@ curl http://127.0.0.1:8000/api/v1/orders/payments/
 - `GET/POST /api/v1/finance/ap-bills/`
 - `GET/POST /api/v1/finance/ar-receivables/`
 - `GET/POST /api/v1/finance/cash-movements/`
+- `GET /api/v1/finance/ledger/` (read-only no MVP)
 
 ### Regras base implementadas
 - Integracao por referencia com `reference_type` + `reference_id`.
@@ -303,6 +304,10 @@ curl http://127.0.0.1:8000/api/v1/orders/payments/
 - A geracao de AP e idempotente: se a referencia da compra ja existir, o service retorna o titulo existente sem duplicar.
 - Pedido gera AR automaticamente na conta de receita `Vendas` com referencia `ORDER`/`order.id`.
 - Pagamento com status `PAID` liquida o AR e gera `CashMovement` de entrada na conta `Caixa/Banco` (ASSET), sem duplicar em reprocessamento.
+- Ledger de auditoria (Etapa 5.6.1):
+  - ao receber AR, registra `AR_RECEIVED` e `CASH_IN`
+  - ao pagar AP, registra `AP_PAID` e `CASH_OUT`
+- Idempotencia do ledger por (`reference_type`, `reference_id`, `entry_type`), sem duplicar entradas em reprocessamentos.
 - Permissoes temporarias no MVP: `AllowAny` com TODO explicito para RBAC.
 
 ### Exemplos curl
@@ -358,6 +363,11 @@ curl -X POST http://127.0.0.1:8000/api/v1/finance/cash-movements/ \
     "reference_id": 35,
     "note": "Recebimento PIX"
   }'
+```
+
+Listar lancamentos de auditoria (ledger):
+```bash
+curl http://127.0.0.1:8000/api/v1/finance/ledger/
 ```
 
 Relatorio de cashflow por periodo:

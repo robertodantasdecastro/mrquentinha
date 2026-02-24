@@ -9,6 +9,7 @@ from .views import (
     CashMovementViewSet,
     DreReportAPIView,
     KpisReportAPIView,
+    LedgerEntryViewSet,
 )
 
 router = DefaultRouter()
@@ -24,6 +25,7 @@ router.register(
     CashMovementViewSet,
     basename="finance-cash-movements",
 )
+router.register(r"ledger", LedgerEntryViewSet, basename="finance-ledger")
 
 urlpatterns = [
     path("reports/cashflow/", CashflowReportAPIView.as_view(), name="finance-cashflow"),

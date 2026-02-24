@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Account, APBill, ARReceivable, CashMovement
+from .models import Account, APBill, ARReceivable, CashMovement, LedgerEntry
 
 
 @admin.register(Account)
@@ -54,4 +54,20 @@ class CashMovementAdmin(admin.ModelAdmin):
         "reference_id",
     ]
     list_filter = ["direction", "movement_date", "account"]
+    search_fields = ["reference_type", "reference_id", "note"]
+
+
+@admin.register(LedgerEntry)
+class LedgerEntryAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "entry_date",
+        "entry_type",
+        "amount",
+        "debit_account",
+        "credit_account",
+        "reference_type",
+        "reference_id",
+    ]
+    list_filter = ["entry_type", "entry_date", "debit_account", "credit_account"]
     search_fields = ["reference_type", "reference_id", "note"]

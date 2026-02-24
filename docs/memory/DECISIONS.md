@@ -137,3 +137,17 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Sem conversao de unidades no MVP:
   - divergencia entre unidade de compra/receita e unidade base do ingrediente gera `ValidationError` explicita.
   - TODO: implementar conversao de unidades (g<->kg, ml<->l, etc.) para custos reais e comparaveis.
+
+## Etapa 5.6.1 - Ledger de auditoria financeira
+- Escopo do ledger no MVP:
+  - registrar trilha de auditoria financeira orientada a eventos do AP/AR/Caixa.
+  - nao substitui contabilidade completa (livro diario/razao) nesta fase.
+- Decisao de lancamento por evento:
+  - para recebimento de AR, registrar duas entradas: `AR_RECEIVED` e `CASH_IN`.
+  - para pagamento de AP, registrar duas entradas: `AP_PAID` e `CASH_OUT`.
+  - motivo: manter visao de evento de negocio e evento de caixa separadas para auditoria operacional.
+- Idempotencia do ledger:
+  - chave unica em (`reference_type`, `reference_id`, `entry_type`).
+  - services usam `get_or_create` para reprocessamento seguro sem duplicidade.
+- TODO futuro:
+  - evoluir para modelo contabil completo com partidas dobradas obrigatorias e fechamento por periodo.

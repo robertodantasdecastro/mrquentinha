@@ -13,12 +13,14 @@ from .selectors import (
     list_ap_bills,
     list_ar_receivables,
     list_cash_movements,
+    list_ledger_entries,
 )
 from .serializers import (
     AccountSerializer,
     APBillSerializer,
     ARReceivableSerializer,
     CashMovementSerializer,
+    LedgerEntrySerializer,
 )
 
 
@@ -52,6 +54,14 @@ class CashMovementViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return list_cash_movements()
+
+
+class LedgerEntryViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = LedgerEntrySerializer
+    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+
+    def get_queryset(self):
+        return list_ledger_entries()
 
 
 class PeriodReportMixin:

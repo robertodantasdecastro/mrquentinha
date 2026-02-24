@@ -1,6 +1,6 @@
 from django.db.models import QuerySet
 
-from .models import Account, APBill, ARReceivable, CashMovement
+from .models import Account, APBill, ARReceivable, CashMovement, LedgerEntry
 
 
 def list_accounts() -> QuerySet[Account]:
@@ -21,6 +21,13 @@ def list_cash_movements() -> QuerySet[CashMovement]:
     return CashMovement.objects.select_related("account").order_by(
         "-movement_date", "-id"
     )
+
+
+def list_ledger_entries() -> QuerySet[LedgerEntry]:
+    return LedgerEntry.objects.select_related(
+        "debit_account",
+        "credit_account",
+    ).order_by("-entry_date", "-id")
 
 
 def get_ap_by_reference(reference_type: str, reference_id: int) -> APBill | None:

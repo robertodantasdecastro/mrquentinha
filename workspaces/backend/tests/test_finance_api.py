@@ -20,6 +20,7 @@ from apps.finance.models import (
     APBillStatus,
     CashDirection,
     CashMovement,
+    LedgerEntry,
 )
 from apps.orders.models import Order, OrderItem, OrderStatus
 from apps.procurement.models import Purchase, PurchaseItem
@@ -227,6 +228,40 @@ def test_finance_cash_movements_endpoint_cria_movimento(client):
     assert body["amount"] == "45.90"
     assert body["reference_type"] == "PAYMENT"
     assert body["reference_id"] == 3001
+
+
+@pytest.mark.django_db
+def test_finance_ledger_endpoint_lista_entries(client):
+    debit_account = Account.objects.create(
+        name="Conta Debito Ledger API",
+        type=AccountType.EXPENSE,
+    )
+    credit_account = Account.objects.create(
+        name="Conta Credito Ledger API",
+        type=AccountType.ASSET,
+    )
+
+    entry = LedgerEntry.objects.create(
+        entry_type="CASH_OUT",
+        amount=Decimal("33.40"),
+        debit_account=debit_account,
+        credit_account=credit_account,
+        reference_type="AP",
+        reference_id=999,
+        note="Teste ledger API",
+    )
+
+    response = client.get("/api/v1/finance/ledger/")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    item = body[0]
+    assert item["id"] == entry.id
+    assert item["entry_type"] == "CASH_OUT"
+    assert item["amount"] == "33.40"
+    assert item["reference_type"] == "AP"
+    assert item["reference_id"] == 999
 
 
 @pytest.mark.django_db

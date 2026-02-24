@@ -17,6 +17,8 @@ from .models import (
     ARReceivableStatus,
     CashDirection,
     CashMovement,
+    LedgerEntry,
+    LedgerEntryType,
 )
 from .selectors import (
     get_ap_by_reference,
@@ -126,6 +128,93 @@ def _ensure_positive_amount(amount: Decimal) -> None:
 
 def _resolve_datetime(value: datetime | None) -> datetime:
     return value or timezone.now()
+
+
+def _record_ledger_entry(
+    *,
+    entry_type: str,
+    amount: Decimal,
+    debit_account: Account | None,
+    credit_account: Account | None,
+    reference_type: str,
+    reference_id: int,
+    note: str | None,
+    entry_date: datetime | None = None,
+) -> LedgerEntry:
+    _ensure_positive_amount(amount)
+
+    ledger_entry, _ = LedgerEntry.objects.get_or_create(
+        reference_type=reference_type,
+        reference_id=reference_id,
+        entry_type=entry_type,
+        defaults={
+            "entry_date": _resolve_datetime(entry_date),
+            "amount": _quantize_money(amount),
+            "debit_account": debit_account,
+            "credit_account": credit_account,
+            "note": note,
+        },
+    )
+
+    return ledger_entry
+
+
+def _record_cash_in_ledger_entries(
+    *,
+    receivable: ARReceivable,
+    cash_account: Account,
+    entry_date: datetime,
+) -> None:
+    _record_ledger_entry(
+        entry_type=LedgerEntryType.AR_RECEIVED,
+        amount=receivable.amount,
+        debit_account=cash_account,
+        credit_account=receivable.account,
+        reference_type="AR",
+        reference_id=receivable.id,
+        note=f"Recebimento do AR {receivable.id}",
+        entry_date=entry_date,
+    )
+
+    _record_ledger_entry(
+        entry_type=LedgerEntryType.CASH_IN,
+        amount=receivable.amount,
+        debit_account=cash_account,
+        credit_account=receivable.account,
+        reference_type="AR",
+        reference_id=receivable.id,
+        note=f"Entrada de caixa do AR {receivable.id}",
+        entry_date=entry_date,
+    )
+
+
+def _record_cash_out_ledger_entries(
+    *,
+    bill: APBill,
+    cash_account: Account,
+    entry_date: datetime,
+) -> None:
+    _record_ledger_entry(
+        entry_type=LedgerEntryType.AP_PAID,
+        amount=bill.amount,
+        debit_account=bill.account,
+        credit_account=cash_account,
+        reference_type="AP",
+        reference_id=bill.id,
+        note=f"Liquidacao do AP {bill.id}",
+        entry_date=entry_date,
+    )
+
+    _record_ledger_entry(
+        entry_type=LedgerEntryType.CASH_OUT,
+        amount=bill.amount,
+        debit_account=bill.account,
+        credit_account=cash_account,
+        reference_type="AP",
+        reference_id=bill.id,
+        note=f"Saida de caixa do AP {bill.id}",
+        entry_date=entry_date,
+    )
 
 
 def _calculate_purchase_total_from_items(purchase: Purchase) -> Decimal:
@@ -253,6 +342,13 @@ def record_cash_in_from_ar(
             if receivable.received_at is None:
                 receivable.received_at = existing_movement.movement_date
             receivable.save(update_fields=["status", "received_at", "updated_at"])
+
+        _record_cash_in_ledger_entries(
+            receivable=receivable,
+            cash_account=existing_movement.account,
+            entry_date=existing_movement.movement_date,
+        )
+
         return existing_movement
 
     if receivable.status == ARReceivableStatus.RECEIVED:
@@ -277,6 +373,12 @@ def record_cash_in_from_ar(
     receivable.status = ARReceivableStatus.RECEIVED
     receivable.received_at = movement.movement_date
     receivable.save(update_fields=["status", "received_at", "updated_at"])
+
+    _record_cash_in_ledger_entries(
+        receivable=receivable,
+        cash_account=movement.account,
+        entry_date=movement.movement_date,
+    )
 
     return movement
 
@@ -304,6 +406,18 @@ def record_cash_out_from_ap(
         reference_id=bill.id,
     )
     if existing_movement is not None:
+        if bill.status != APBillStatus.PAID:
+            bill.status = APBillStatus.PAID
+            if bill.paid_at is None:
+                bill.paid_at = existing_movement.movement_date
+            bill.save(update_fields=["status", "paid_at", "updated_at"])
+
+        _record_cash_out_ledger_entries(
+            bill=bill,
+            cash_account=existing_movement.account,
+            entry_date=existing_movement.movement_date,
+        )
+
         return existing_movement
 
     movement = CashMovement.objects.create(
@@ -320,5 +434,11 @@ def record_cash_out_from_ap(
         bill.status = APBillStatus.PAID
         bill.paid_at = movement.movement_date
         bill.save(update_fields=["status", "paid_at", "updated_at"])
+
+    _record_cash_out_ledger_entries(
+        bill=bill,
+        cash_account=movement.account,
+        entry_date=movement.movement_date,
+    )
 
     return movement
