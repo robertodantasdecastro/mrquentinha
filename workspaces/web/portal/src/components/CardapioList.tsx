@@ -22,6 +22,8 @@ type MenuDayData = {
   menu_items: MenuItemData[];
 };
 
+type CardapioState = "loading" | "empty" | "loaded" | "error";
+
 function getDefaultDate(): string {
   const now = new Date();
   const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
@@ -43,8 +45,8 @@ function formatCurrency(value: string): string {
 export function CardapioList() {
   const [selectedDate, setSelectedDate] = useState<string>(getDefaultDate());
   const [menu, setMenu] = useState<MenuDayData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<CardapioState>("loading");
+  const [message, setMessage] = useState<string>("Carregando cardapio...");
 
   const apiBaseUrl = useMemo(
     () => process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "",
@@ -58,15 +60,18 @@ export function CardapioList() {
       if (!apiBaseUrl) {
         if (isMounted) {
           setMenu(null);
-          setError(
+          setState("error");
+          setMessage(
             "Defina NEXT_PUBLIC_API_BASE_URL para carregar o cardapio em tempo real.",
           );
         }
         return;
       }
 
-      setLoading(true);
-      setError(null);
+      if (isMounted) {
+        setState("loading");
+        setMessage("Carregando cardapio...");
+      }
 
       try {
         const response = await fetch(
@@ -79,32 +84,43 @@ export function CardapioList() {
         if (response.status === 404) {
           if (isMounted) {
             setMenu(null);
-            setError(null);
+            setState("empty");
+            setMessage(`Sem cardapio cadastrado para ${selectedDate}.`);
           }
           return;
         }
 
         if (!response.ok) {
-          throw new Error(`Erro ${response.status} ao consultar cardapio.`);
+          let errorMessage = `Falha ao consultar cardapio (HTTP ${response.status}).`;
+
+          try {
+            const payload = (await response.json()) as { detail?: string };
+            if (payload?.detail) {
+              errorMessage = payload.detail;
+            }
+          } catch {
+            // Mantem mensagem padrao quando resposta nao tiver JSON.
+          }
+
+          throw new Error(errorMessage);
         }
 
         const payload: MenuDayData = await response.json();
 
         if (isMounted) {
           setMenu(payload);
+          setState("loaded");
+          setMessage("");
         }
       } catch (fetchError) {
         if (isMounted) {
           setMenu(null);
-          setError(
+          setState("error");
+          setMessage(
             fetchError instanceof Error
               ? fetchError.message
               : "Falha ao consultar o cardapio. Tente novamente.",
           );
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
         }
       }
     }
@@ -138,25 +154,25 @@ export function CardapioList() {
       </div>
 
       <div className="mt-6">
-        {loading && (
+        {state === "loading" && (
           <div className="rounded-md border border-border bg-bg px-4 py-8 text-center text-muted">
-            Carregando cardapio...
+            {message}
           </div>
         )}
 
-        {!loading && error && (
+        {state === "error" && (
           <div className="rounded-md border border-red-400/60 bg-red-50 px-4 py-4 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
-            {error}
+            {message}
           </div>
         )}
 
-        {!loading && !error && !menu && (
+        {state === "empty" && (
           <div className="rounded-md border border-border bg-bg px-4 py-8 text-center text-muted">
-            Sem cardapio cadastrado para {selectedDate}.
+            {message}
           </div>
         )}
 
-        {!loading && !error && menu && (
+        {state === "loaded" && menu && (
           <div className="space-y-4">
             <div className="rounded-md border border-border bg-bg px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">

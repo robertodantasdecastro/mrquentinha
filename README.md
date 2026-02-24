@@ -46,3 +46,25 @@ Direto no backend:
 - `cd workspaces/backend && make test`
 - `cd workspaces/backend && make lint`
 - `cd workspaces/backend && make format`
+
+## Subir stack de desenvolvimento (backend + portal)
+Comandos no root do repositorio (`~/mrquentinha`):
+
+1. Backend (Django + migrate + runserver 8000):
+```bash
+./scripts/start_backend_dev.sh
+```
+
+2. Portal (Next.js dev server 3000):
+```bash
+./scripts/start_portal_dev.sh
+```
+
+Obs:
+- Use dois terminais separados (um para backend e outro para portal).
+- Encerramento com `Ctrl+C` e tratado de forma limpa pelos scripts.
+
+3. Smoke test completo do stack (sobe backend + portal, valida endpoints e encerra):
+```bash
+./scripts/smoke_stack_dev.sh
+```

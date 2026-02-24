@@ -219,3 +219,9 @@
   - settings carregam `ALLOWED_HOSTS` via env com default local (`localhost`, `127.0.0.1`).
   - adicionado `CSRF_TRUSTED_ORIGINS` via env (default vazio) para ambiente de desenvolvimento.
   - `.env.example` e `README` do backend atualizados com exemplos para acesso via IP da VM.
+
+- DX: stack dev perfeito (API index, CORS, smoke script)
+  - backend com endpoint raiz `/` (API index) e rota de `/favicon.ico` para evitar 404 em dev.
+  - CORS em dev com `django-cors-headers` e `CORS_ALLOWED_ORIGINS` via `.env` (sem abrir prod).
+  - ajustes de docs/env para acesso por IP da VM (`ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS`).
+  - script `scripts/smoke_stack_dev.sh` criado para validar backend + portal automaticamente.

@@ -32,6 +32,11 @@ npm run dev
 4. Acesse:
 - [http://localhost:3000](http://localhost:3000)
 
+## Dev Origin (Next.js)
+O portal define `allowedDevOrigins` em `next.config.ts` para evitar warning de origem em desenvolvimento:
+- `http://10.211.55.21:3000`
+- `http://localhost:3000`
+
 ## Variaveis de ambiente
 - `NEXT_PUBLIC_API_BASE_URL`: base da API backend.
 
@@ -59,3 +64,24 @@ Arquivo:
 Constantes para trocar quando os links oficiais estiverem publicados:
 - `ANDROID_DOWNLOAD_URL`
 - `IOS_DOWNLOAD_URL`
+
+## Security Notes
+Foi executado `npm audit fix` sem `--force`.
+
+Estado atual do audit:
+- `0` critical
+- `8` high
+
+Resumo:
+- As vulnerabilidades restantes estao encadeadas em dependencia de desenvolvimento do `eslint` (`minimatch`).
+- A correcao automatica exige `npm audit fix --force`, que elevaria `eslint` para `10.x` (breaking change).
+
+Decisao no MVP:
+- Nao aplicar `--force` nesta etapa para evitar quebra de DX/build.
+- Tratar atualizacao major de lint/dependencias antes do deploy em producao.
+
+## Teste rapido da pagina /cardapio
+1. Suba backend (`8000`) e portal (`3000`).
+2. Abra: `http://10.211.55.21:3000/cardapio` (ou `http://localhost:3000/cardapio`).
+3. Se houver cardapio para a data selecionada, os itens aparecem com preco.
+4. Se nao houver cardapio no dia, a pagina mostra mensagem amigavel e continua funcional.

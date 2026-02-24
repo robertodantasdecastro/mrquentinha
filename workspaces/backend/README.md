@@ -537,13 +537,31 @@ Consultar se uma data esta fechada:
 curl "http://127.0.0.1:8000/api/v1/finance/closes/is-closed/?date=2026-12-15"
 ```
 
-## Acesso via IP da VM (DEV)
-Para acessar o backend via IP da VM (ex.: `http://10.211.55.21:8000`), ajuste no `.env`:
 
+## Acesso via IP da VM (DEV)
+Checklist minimo para acesso via navegador/portal no IP da VM:
+
+1. Ajustar variaveis no `.env`:
 ```env
 ALLOWED_HOSTS=localhost,127.0.0.1,10.211.55.21
 CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://10.211.55.21:3000
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://10.211.55.21:3000
+```
+2. Rodar migracoes:
+```bash
+python manage.py migrate
+```
+3. Subir servidor em todas as interfaces:
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
+4. Validar endpoints base:
+```bash
+curl http://10.211.55.21:8000/
+curl http://10.211.55.21:8000/api/v1/health
 ```
 
-- `ALLOWED_HOSTS` libera o host/IP aceito pelo Django.
-- `CSRF_TRUSTED_ORIGINS` deve conter as origens web que farão chamadas com métodos que exigem CSRF.
+Notas:
+- `ALLOWED_HOSTS` libera os hosts/IPs aceitos pelo Django.
+- `CSRF_TRUSTED_ORIGINS` deve conter as origens web confiaveis (portal).
+- `CORS_ALLOWED_ORIGINS` libera chamadas cross-origin no ambiente de desenvolvimento.
