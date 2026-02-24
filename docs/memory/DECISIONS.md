@@ -92,3 +92,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Regra de valor do AP (MVP):
   - usar `Purchase.total_amount` quando maior que zero.
   - fallback para soma de itens (`qty * unit_price + tax_amount`) quando total vier zerado.
+
+## Etapa 5.2 - Idempotencia de cash-in por AR
+- Integracao `Order -> AR`:
+  - todo pedido criado deve gerar (ou reaproveitar) um `ARReceivable` por referencia `ORDER` + `order.id`.
+  - conta padrao do AR no MVP: `Vendas` (REVENUE).
+- Integracao `Payment PAID -> AR -> Caixa`:
+  - ao marcar pagamento como `PAID`, localizar AR pela referencia do pedido.
+  - AR deve ser marcado como `RECEIVED`.
+  - registrar `CashMovement` de entrada com referencia `AR` + `ar.id`.
+  - conta padrao de caixa para entrada: `Caixa/Banco` (ASSET).
+- Regra idempotente obrigatoria:
+  - se o AR ja estiver recebido e/ou ja existir movimento `IN` referenciado ao AR, nao gerar novo movimento.
+  - reprocessamento de pagamento `PAID` deve ser seguro e sem duplicidade financeira.

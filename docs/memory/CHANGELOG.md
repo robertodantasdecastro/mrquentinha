@@ -130,3 +130,11 @@
   - idempotencia reforcada no service financeiro: reprocessamento da mesma compra retorna o AP existente sem duplicar.
   - fallback de valor no AP: quando `Purchase.total_amount` estiver zerado, o valor e calculado pelos itens (`qty * unit_price + tax_amount`).
   - testes de service e API adicionados para validar integracao compra -> AP.
+
+- Etapa 5.2 AR + caixa por pagamento:
+  - `orders.create_order` passou a gerar `ARReceivable` automaticamente (referencia `ORDER` + `order.id`).
+  - AR criado com conta de receita padrao `Vendas` e vencimento no `delivery_date` do pedido.
+  - ao atualizar `Payment` para `PAID`, o fluxo liquida o AR (`RECEIVED`) e gera `CashMovement` `IN`.
+  - `CashMovement IN` usa conta patrimonial padrao `Caixa/Banco` (ASSET).
+  - idempotencia aplicada em service: reprocessamento de `PAID` nao duplica AR nem movimento de caixa.
+  - testes de service e API cobrindo pedido -> AR e pagamento -> caixa.

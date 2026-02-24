@@ -300,6 +300,8 @@ curl http://127.0.0.1:8000/api/v1/orders/payments/
   - `record_cash_out_from_ap(...)`
 - Compra gera AP automaticamente ao criar `Purchase` via service de procurement, com `reference_type="PURCHASE"` e `reference_id=<purchase.id>`.
 - A geracao de AP e idempotente: se a referencia da compra ja existir, o service retorna o titulo existente sem duplicar.
+- Pedido gera AR automaticamente na conta de receita `Vendas` com referencia `ORDER`/`order.id`.
+- Pagamento com status `PAID` liquida o AR e gera `CashMovement` de entrada na conta `Caixa/Banco` (ASSET), sem duplicar em reprocessamento.
 - Permissoes temporarias no MVP: `AllowAny` com TODO explicito para RBAC.
 
 ### Exemplos curl

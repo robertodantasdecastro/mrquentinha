@@ -25,12 +25,15 @@ from .selectors import (
 )
 
 MONEY_DECIMAL_PLACES = Decimal("0.01")
+DEFAULT_REVENUE_ACCOUNT_NAME = "Vendas"
+DEFAULT_EXPENSE_ACCOUNT_NAME = "Insumos"
+DEFAULT_CASH_ACCOUNT_NAME = "Caixa/Banco"
 
 DEFAULT_FINANCE_ACCOUNTS = [
-    {"name": "Vendas", "type": AccountType.REVENUE},
-    {"name": "Insumos", "type": AccountType.EXPENSE},
+    {"name": DEFAULT_REVENUE_ACCOUNT_NAME, "type": AccountType.REVENUE},
+    {"name": DEFAULT_EXPENSE_ACCOUNT_NAME, "type": AccountType.EXPENSE},
     {"name": "Operacional", "type": AccountType.EXPENSE},
-    {"name": "Caixa", "type": AccountType.ASSET},
+    {"name": DEFAULT_CASH_ACCOUNT_NAME, "type": AccountType.ASSET},
     {"name": "Fornecedores", "type": AccountType.LIABILITY},
 ]
 
@@ -96,11 +99,24 @@ def _resolve_default_account(*, name: str, account_type: str) -> Account:
 
 
 def _resolve_default_revenue_account() -> Account:
-    return _resolve_default_account(name="Vendas", account_type=AccountType.REVENUE)
+    return _resolve_default_account(
+        name=DEFAULT_REVENUE_ACCOUNT_NAME,
+        account_type=AccountType.REVENUE,
+    )
 
 
 def _resolve_default_expense_account() -> Account:
-    return _resolve_default_account(name="Insumos", account_type=AccountType.EXPENSE)
+    return _resolve_default_account(
+        name=DEFAULT_EXPENSE_ACCOUNT_NAME,
+        account_type=AccountType.EXPENSE,
+    )
+
+
+def _resolve_default_cash_account() -> Account:
+    return _resolve_default_account(
+        name=DEFAULT_CASH_ACCOUNT_NAME,
+        account_type=AccountType.ASSET,
+    )
 
 
 def _ensure_positive_amount(amount: Decimal) -> None:
@@ -145,7 +161,7 @@ def create_ap_from_purchase(
     account_obj = account or _resolve_default_expense_account()
 
     if amount is not None:
-        amount_value = amount
+        amount_value = _quantize_money(amount)
     elif purchase.total_amount and purchase.total_amount > 0:
         amount_value = _quantize_money(purchase.total_amount)
     else:
@@ -187,7 +203,11 @@ def create_ar_from_order(
         return existing
 
     account_obj = account or _resolve_default_revenue_account()
-    amount_value = amount if amount is not None else order.total_amount
+    amount_value = (
+        _quantize_money(amount)
+        if amount is not None
+        else _quantize_money(order.total_amount)
+    )
     due_date_value = due_date if due_date is not None else order.delivery_date
 
     _ensure_positive_amount(amount_value)
@@ -228,22 +248,35 @@ def record_cash_in_from_ar(
         reference_id=receivable.id,
     )
     if existing_movement is not None:
+        if receivable.status != ARReceivableStatus.RECEIVED:
+            receivable.status = ARReceivableStatus.RECEIVED
+            if receivable.received_at is None:
+                receivable.received_at = existing_movement.movement_date
+            receivable.save(update_fields=["status", "received_at", "updated_at"])
         return existing_movement
+
+    if receivable.status == ARReceivableStatus.RECEIVED:
+        raise ValidationError(
+            "AR ja esta RECEIVED. Nenhum novo movimento de caixa foi criado."
+        )
+
+    cash_account = account or _resolve_default_cash_account()
+    if cash_account.type != AccountType.ASSET:
+        raise ValidationError("Conta de caixa deve ser do tipo ASSET.")
 
     movement = CashMovement.objects.create(
         movement_date=_resolve_datetime(movement_date),
         direction=CashDirection.IN,
         amount=receivable.amount,
-        account=account or receivable.account,
+        account=cash_account,
         note=note or f"Entrada de caixa referente ao AR {receivable.id}",
         reference_type="AR",
         reference_id=receivable.id,
     )
 
-    if receivable.status != ARReceivableStatus.RECEIVED:
-        receivable.status = ARReceivableStatus.RECEIVED
-        receivable.received_at = movement.movement_date
-        receivable.save(update_fields=["status", "received_at", "updated_at"])
+    receivable.status = ARReceivableStatus.RECEIVED
+    receivable.received_at = movement.movement_date
+    receivable.save(update_fields=["status", "received_at", "updated_at"])
 
     return movement
 

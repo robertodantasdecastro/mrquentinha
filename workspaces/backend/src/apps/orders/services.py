@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.finance.services import create_ar_from_order, record_cash_in_from_ar
+
 from .models import (
     Order,
     OrderItem,
@@ -65,6 +67,15 @@ def _calculate_total_amount(items_payload: list[dict]) -> Decimal:
     return _quantize_money(total_amount)
 
 
+def _sync_order_receivable(*, order_id: int) -> None:
+    create_ar_from_order(order_id)
+
+
+def _sync_paid_payment_cash_flow(*, payment: Payment) -> None:
+    ar_receivable = create_ar_from_order(payment.order_id)
+    record_cash_in_from_ar(ar_receivable.id)
+
+
 @transaction.atomic
 def create_order(*, customer, delivery_date: date, items_payload: list[dict]) -> Order:
     _assert_items_payload(items_payload)
@@ -101,7 +112,7 @@ def create_order(*, customer, delivery_date: date, items_payload: list[dict]) ->
         amount=total_amount,
     )
 
-    # TODO(etapa 5): gerar AR usando reference_type/reference_id = ORDER/order.id.
+    _sync_order_receivable(order_id=order.id)
 
     return (
         Order.objects.select_related("customer")
@@ -163,7 +174,11 @@ def update_payment_status(*, payment_id: int, update_data: dict) -> Payment:
             raise ValidationError("Status de pagamento invalido.")
         payment.status = new_status
 
-        if new_status == PaymentStatus.PAID and "paid_at" not in update_data:
+        if (
+            new_status == PaymentStatus.PAID
+            and "paid_at" not in update_data
+            and payment.paid_at is None
+        ):
             payment.paid_at = timezone.now()
 
     if "provider_ref" in update_data:
@@ -173,4 +188,8 @@ def update_payment_status(*, payment_id: int, update_data: dict) -> Payment:
         payment.paid_at = update_data["paid_at"]
 
     payment.save()
+
+    if payment.status == PaymentStatus.PAID:
+        _sync_paid_payment_cash_flow(payment=payment)
+
     return payment

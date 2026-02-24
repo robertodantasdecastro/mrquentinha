@@ -12,8 +12,20 @@ from apps.catalog.models import (
     MenuDay,
     MenuItem,
 )
+from apps.finance.models import (
+    AccountType,
+    ARReceivable,
+    ARReceivableStatus,
+    CashDirection,
+    CashMovement,
+)
+from apps.finance.services import create_ar_from_order
 from apps.orders.models import OrderStatus, PaymentStatus
-from apps.orders.services import create_order, update_order_status
+from apps.orders.services import (
+    create_order,
+    update_order_status,
+    update_payment_status,
+)
 
 
 def _create_menu_item(
@@ -87,6 +99,102 @@ def test_create_order_calcula_total_e_snapshot_unit_price():
     payment = order.payments.get()
     assert payment.status == PaymentStatus.PENDING
     assert payment.amount == Decimal("55.50")
+
+
+@pytest.mark.django_db
+def test_create_order_cria_ar_automaticamente_e_idempotente_por_referencia():
+    delivery_date = date(2026, 3, 6)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("18.00"),
+        dish_name="Prato AR",
+        ingredient_name="Ingrediente AR",
+    )
+
+    order = create_order(
+        customer=None,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 2}],
+    )
+
+    receivable = ARReceivable.objects.get(
+        reference_type="ORDER",
+        reference_id=order.id,
+    )
+    assert receivable.amount == Decimal("36.00")
+    assert receivable.due_date == delivery_date
+    assert receivable.status == ARReceivableStatus.OPEN
+    assert receivable.account.name == "Vendas"
+    assert receivable.account.type == AccountType.REVENUE
+
+    receivable_second = create_ar_from_order(order.id)
+    assert receivable_second.id == receivable.id
+    assert (
+        ARReceivable.objects.filter(
+            reference_type="ORDER",
+            reference_id=order.id,
+        ).count()
+        == 1
+    )
+
+
+@pytest.mark.django_db
+def test_update_payment_status_paid_recebe_ar_e_cria_caixa_sem_duplicar():
+    delivery_date = date(2026, 3, 7)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("22.00"),
+        dish_name="Prato Caixa",
+        ingredient_name="Ingrediente Caixa",
+    )
+
+    order = create_order(
+        customer=None,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 2}],
+    )
+    payment = order.payments.get()
+
+    updated_payment = update_payment_status(
+        payment_id=payment.id,
+        update_data={"status": PaymentStatus.PAID, "provider_ref": "pix-001"},
+    )
+
+    assert updated_payment.status == PaymentStatus.PAID
+    assert updated_payment.paid_at is not None
+
+    receivable = ARReceivable.objects.get(
+        reference_type="ORDER",
+        reference_id=order.id,
+    )
+    assert receivable.status == ARReceivableStatus.RECEIVED
+    assert receivable.received_at is not None
+
+    movements = CashMovement.objects.filter(
+        direction=CashDirection.IN,
+        reference_type="AR",
+        reference_id=receivable.id,
+    )
+    assert movements.count() == 1
+
+    movement = movements.get()
+    assert movement.amount == order.total_amount
+    assert movement.account.name == "Caixa/Banco"
+    assert movement.account.type == AccountType.ASSET
+
+    update_payment_status(
+        payment_id=payment.id,
+        update_data={"status": PaymentStatus.PAID},
+    )
+
+    assert (
+        CashMovement.objects.filter(
+            direction=CashDirection.IN,
+            reference_type="AR",
+            reference_id=receivable.id,
+        ).count()
+        == 1
+    )
 
 
 @pytest.mark.django_db
