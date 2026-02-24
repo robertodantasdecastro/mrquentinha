@@ -161,3 +161,8 @@
   - premissa MVP documentada: receita por pedidos `DELIVERED` e CMV estimado por itens vendidos.
   - validacao de parametros `from`/`to` reaproveitada para `cashflow`, `dre` e `kpis`.
   - testes automatizados cobrindo custos, DRE/KPIs e endpoints de relatorio.
+
+- DX: testes no root (Makefile + pytest config)
+  - Makefile no root com delegacao para `workspaces/backend` (`test`, `lint`, `format`, `check`).
+  - `pytest.ini` no root para executar testes do backend.
+  - `conftest.py` no root para garantir `workspaces/backend/src` no `sys.path`.

@@ -32,3 +32,17 @@ Distribuir um app iOS **fora da App Store** tem restrições e normalmente exige
 - **Passo 2:** criar scaffold do web admin (ver `docs/templates/prompt_codex_scaffold_web.md`)
 - **Passo 3:** criar scaffold do mobile (ver `docs/templates/prompt_codex_scaffold_mobile.md`)
 
+
+## Execucao de testes (root e backend)
+No root do repositorio (`~/mrquentinha`):
+
+- `make test`
+- `pytest`
+
+Os comandos acima usam o backend em `workspaces/backend`.
+
+Direto no backend:
+
+- `cd workspaces/backend && make test`
+- `cd workspaces/backend && make lint`
+- `cd workspaces/backend && make format`
