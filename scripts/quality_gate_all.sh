@@ -17,23 +17,27 @@ activate_backend_venv() {
 }
 
 ensure_nvm_lts() {
+  if command -v npm >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+    return 0
+  fi
+
   if [[ ! -s "$HOME/.nvm/nvm.sh" ]]; then
     echo "[quality_gate] ERRO: nvm nao encontrado em ~/.nvm/nvm.sh" >&2
     exit 1
   fi
 
+  # Evita quebra com `set -u` em algumas versoes do nvm.
+  set +u
   # shellcheck disable=SC1090
   source "$HOME/.nvm/nvm.sh"
 
-  if ! command -v nvm >/dev/null 2>&1; then
-    echo "[quality_gate] ERRO: comando nvm indisponivel no shell atual." >&2
-    exit 1
+  if command -v nvm >/dev/null 2>&1; then
+    nvm use --lts >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1 || true
   fi
-
-  nvm use --lts >/dev/null
+  set -u
 
   if ! command -v npm >/dev/null 2>&1; then
-    echo "[quality_gate] ERRO: npm nao encontrado apos carregar nvm --lts." >&2
+    echo "[quality_gate] ERRO: npm nao encontrado apos carregar nvm." >&2
     exit 1
   fi
 }
