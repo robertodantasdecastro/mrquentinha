@@ -295,3 +295,21 @@
   - espelho para topo do painel criado em `.agent/rules/00_GLOBAL_RULE.md`
   - mapeamento de paths documentado em `.agent/rules/README.md`
   - docs atualizadas com compatibilidade de paths Codex/Antigravity
+
+- DX: painel operacional estilo btop para stack local
+  - novo app terminal `scripts/ops_center.py` com monitoramento de CPU, memoria, trafego e acessos HTTP
+  - controle de servicos no painel (start/stop/restart backend, portal e client)
+  - monitoramento de fontes de acesso do frontend por conexoes TCP nas portas 3000/3001
+  - launcher dedicado `scripts/ops_dashboard.sh`
+
+- DX: export de metricas do painel em JSONL/CSV
+  - `scripts/ops_center.py` recebeu flags `--export-json`, `--export-csv` e `--export-interval`
+  - export automatico diario em `.runtime/ops/exports/ops_YYYYMMDD.{jsonl,csv}`
+  - cada amostra inclui sistema (CPU/memoria/rede), servicos, eventos e fontes de acesso do frontend
+
+- Branch policy (Codex x Antigravity x Join) + smoke compativel com RBAC:
+  - definida politica anti-conflito com branch principal do Codex (`feature/etapa-4-orders`), branches `ag/<tipo>/<slug>` e branch de integracao `join/codex-ag`.
+  - criado `scripts/branch_guard.sh` para validar branch por agente em modo strict.
+  - workflows W12/W18/W21 atualizados com validacao de branch e fluxo de integracao join.
+  - smoke do stack ajustado para usar endpoint publico read-only de cardapio (`GET /api/v1/catalog/menus/today/`).
+  - backend manteve RBAC para CRUD e liberou apenas leitura minima publica (`by-date` e `today`) para MVP.

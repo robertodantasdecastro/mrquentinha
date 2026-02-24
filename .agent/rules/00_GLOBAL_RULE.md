@@ -44,6 +44,17 @@ Esta regra deve aparecer no painel `Rules > Global` do Antigravity e permanecer 
 - Backend: `services/selectors/serializers/views/urls/tests`.
 - Frontend: uso de `workspaces/web/ui`, `TemplateProvider` e layout clean/modular.
 
+## Politica de Branches (Anti-Conflito)
+- `BRANCH_CODEX_PRIMARY=feature/etapa-4-orders`
+- Codex trabalha somente em `BRANCH_CODEX_PRIMARY`.
+- Antigravity sempre cria/usa branch `ag/<tipo>/<slug>`.
+- Integracao entre agentes ocorre apenas em `join/codex-ag`.
+- Nenhum agente deve comitar em branch do outro.
+- Guard rail obrigatorio antes de commit/push:
+  - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders`
+  - `bash scripts/branch_guard.sh --agent antigravity --strict`
+  - `bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders`
+
 ## Sync Pack obrigatorio
 Atualizar quando houver mudanca de codigo, script, configuracao, endpoint, porta ou env var:
 - `docs/memory/PROJECT_STATE.md`

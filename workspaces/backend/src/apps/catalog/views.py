@@ -1,10 +1,18 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework import status, viewsets
+from django.utils import timezone
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+from apps.accounts.permissions import (
+    CATALOG_READ_ROLES,
+    CATALOG_WRITE_ROLES,
+    MENU_READ_ROLES,
+    MENU_WRITE_ROLES,
+    RoleMatrixPermission,
+)
 
 from .models import Dish, Ingredient, MenuDay
 from .selectors import get_menu_by_date, list_active_ingredients
@@ -18,7 +26,11 @@ from .services import (
 
 class IngredientViewSet(viewsets.ModelViewSet):
     serializer_class = IngredientSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": CATALOG_READ_ROLES,
+        "write": CATALOG_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         if self.action == "list":
@@ -47,7 +59,11 @@ class IngredientViewSet(viewsets.ModelViewSet):
 
 class DishViewSet(viewsets.ModelViewSet):
     serializer_class = DishSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": CATALOG_READ_ROLES,
+        "write": CATALOG_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return Dish.objects.prefetch_related("dish_ingredients__ingredient").order_by(
@@ -129,7 +145,18 @@ class DishViewSet(viewsets.ModelViewSet):
 
 class MenuDayViewSet(viewsets.ModelViewSet):
     serializer_class = MenuDaySerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": MENU_READ_ROLES,
+        "write": MENU_WRITE_ROLES,
+    }
+
+    def get_permissions(self):
+        # MVP: leitura publica minima para cardapio usado no portal/client e smoke.
+        if self.action in {"by_date", "today"}:
+            return [permissions.AllowAny()]
+
+        return super().get_permissions()
 
     def get_queryset(self):
         return MenuDay.objects.prefetch_related("items__dish").order_by("-menu_date")
@@ -167,7 +194,8 @@ class MenuDayViewSet(viewsets.ModelViewSet):
         try:
             menu_day = set_menu_for_day(
                 menu_date=serializer.validated_data.get(
-                    "menu_date", instance.menu_date
+                    "menu_date",
+                    instance.menu_date,
                 ),
                 title=serializer.validated_data.get("title", instance.title),
                 items_payload=items_payload,
@@ -199,3 +227,12 @@ class MenuDayViewSet(viewsets.ModelViewSet):
 
         output = self.get_serializer(menu)
         return Response(output.data)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="today",
+    )
+    def today(self, request):
+        menu_date = timezone.localdate().isoformat()
+        return self.by_date(request, menu_date)

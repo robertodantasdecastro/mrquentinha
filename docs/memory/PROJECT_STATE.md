@@ -9,6 +9,13 @@ Referencia de atualizacao: 24/02/2026.
 - Antigravity Rules Path: `.agent/rules/global.md`
 - Espelho para topo do painel: `.agent/rules/00_GLOBAL_RULE.md`
 
+## Politica de branches (anti-conflito)
+- `BRANCH_CODEX_PRIMARY=feature/etapa-4-orders`
+- Codex: atua apenas na branch principal.
+- Antigravity: atua apenas em `ag/<tipo>/<slug>`.
+- Join/integracao: `join/codex-ag`.
+- Guard rail: `scripts/branch_guard.sh`.
+
 ## Modulos backend ativos
 - `catalog`
 - `inventory`
@@ -27,6 +34,10 @@ Referencia de atualizacao: 24/02/2026.
 - Porta: `8000`
 - Endpoint raiz: `GET /` (API index)
 - Health: `GET /api/v1/health`
+- RBAC hardening ativo por perfil.
+- Excecao MVP (somente leitura publica):
+  - `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
+  - `GET /api/v1/catalog/menus/today/`
 
 ## Endpoints principais por dominio
 - Catalog:
@@ -34,6 +45,7 @@ Referencia de atualizacao: 24/02/2026.
   - `/api/v1/catalog/dishes/`
   - `/api/v1/catalog/menus/`
   - `/api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
+  - `/api/v1/catalog/menus/today/`
 - Inventory:
   - `/api/v1/inventory/stock-items/`
   - `/api/v1/inventory/movements/`
@@ -78,6 +90,10 @@ Referencia de atualizacao: 24/02/2026.
   - `scripts/sync_memory.sh`
   - `scripts/quality_gate_all.sh`
   - `scripts/commit_sync.sh`
+  - `scripts/branch_guard.sh`
+  - `scripts/ops_dashboard.sh`
+  - `scripts/ops_center.py`
+  - export em `.runtime/ops/exports/` (JSONL/CSV)
 
 ## Quickstart
 No root (`~/mrquentinha`), em terminais separados:
@@ -98,6 +114,7 @@ Validacao rapida:
 Sync/check final antes de commit:
 
 ```bash
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders
 bash scripts/sync_memory.sh --check
 bash scripts/quality_gate_all.sh
 ```

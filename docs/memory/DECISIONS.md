@@ -202,3 +202,27 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - pacote comum em `workspaces/web/ui` com componentes base e `TemplateProvider`.
   - frontends configurados para usar visual "clean" com tokens da marca.
   - build dos apps web padronizado com `next build --webpack` para compatibilidade com pacote compartilhado local.
+
+## 24/02/2026 - Catalogo publico read-only para smoke/frontends
+- Contexto:
+  - apos hardening de Auth/RBAC, o smoke do stack e os frontends passaram a receber `401` em `GET /api/v1/catalog/menus/`.
+- Decisao MVP:
+  - manter RBAC/`IsAuthenticated` como padrao em catalogo.
+  - liberar apenas leitura publica minima de cardapio:
+    - `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
+    - `GET /api/v1/catalog/menus/today/`
+- Justificativa:
+  - portal/client precisam de consulta publica de cardapio no MVP.
+  - nao ha liberacao de CRUD (`ingredients`, `dishes`, `menus` list/create/update/delete) para anonimos.
+- Risco controlado:
+  - superficie publica limitada somente a leitura de cardapio.
+- Opcao futura (nao implementada nesta etapa):
+  - smoke autenticado via JWT para cobrir fluxos privados com perfil de teste.
+
+## 24/02/2026 - Politica de branches Codex x Antigravity x Join
+- `BRANCH_CODEX_PRIMARY=feature/etapa-4-orders`.
+- Codex opera somente em `BRANCH_CODEX_PRIMARY`.
+- Antigravity opera somente em `ag/<tipo>/<slug>`.
+- Integracao entre agentes ocorre em `join/codex-ag`.
+- Guard rail operacional:
+  - `scripts/branch_guard.sh` em modo `--strict` antes de checkpoint/sync/merge.

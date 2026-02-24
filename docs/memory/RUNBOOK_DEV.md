@@ -20,6 +20,39 @@ Acessos:
 - Portal: `http://127.0.0.1:3000`
 - Web Cliente: `http://127.0.0.1:3001`
 
+## 1.1) Painel de operacao e monitoramento
+
+Abrir painel estilo btop (CPU, memoria, trafego, acessos e gestao de servicos):
+
+```bash
+./scripts/ops_dashboard.sh
+```
+
+Comandos dentro do painel:
+- `1/2/3`: backend start/stop/restart
+- `4/5/6`: portal start/stop/restart
+- `7/8/9`: client start/stop/restart
+- `a`: start all
+- `s`: stop all
+- `r`: restart all
+- `q`: sair
+
+Snapshot rapido (sem TUI):
+
+```bash
+python3 scripts/ops_center.py --once
+```
+
+Export continuo de metricas do painel (historico):
+
+```bash
+./scripts/ops_dashboard.sh --export-json --export-csv --export-interval 5
+```
+
+Arquivos de export:
+- `.runtime/ops/exports/ops_YYYYMMDD.jsonl`
+- `.runtime/ops/exports/ops_YYYYMMDD.csv`
+
 ## 2) Rodar smoke
 Validacao automatica ponta a ponta:
 
@@ -32,6 +65,14 @@ Validacao rapida so do client:
 ```bash
 ./scripts/smoke_client_dev.sh
 ```
+
+### 2.1) Smoke apos hardening RBAC
+- O smoke nao usa mais `GET /api/v1/catalog/menus/` (privado).
+- Endpoint publico read-only usado no smoke e nos frontends:
+  - `GET /api/v1/catalog/menus/today/`
+- Regras de seguranca mantidas:
+  - CRUD de catalogo continua protegido por RBAC.
+  - Apenas leitura minima de cardapio (`by-date` e `today`) fica publica no MVP.
 
 ## 3) Seed DEMO
 Com backend pronto:
@@ -53,7 +94,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/ \
 
 ### 4.2 Aplicar OCR em ingrediente
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/<JOB_ID>/apply/ \
+curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/\<JOB_ID\>/apply/ \
   -H "Content-Type: application/json" \
   -d '{
     "target_type": "INGREDIENT",
@@ -85,7 +126,20 @@ curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/<JOB_ID>/apply/ \
 - marcar pagamento como `PAID` e validar entrada de caixa + ledger
 - consultar `cashflow`, `dre` e `kpis`
 
-## 6) Troubleshooting
+## 6) Politica de branches (anti-conflito)
+- Codex: `feature/etapa-4-orders`
+- Antigravity: `ag/<tipo>/<slug>`
+- Integracao: `join/codex-ag`
+
+Validar branch antes de checkpoint/merge:
+
+```bash
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders
+bash scripts/branch_guard.sh --agent antigravity --strict
+bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders
+```
+
+## 7) Troubleshooting
 - DisallowedHost em DEV:
   - ajustar `ALLOWED_HOSTS` em `workspaces/backend/.env` para incluir IP/host de acesso.
   - ajustar `CSRF_TRUSTED_ORIGINS` para as origens usadas pelo portal/client.
@@ -104,7 +158,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/ocr/jobs/<JOB_ID>/apply/ \
     - `ss -ltnp | grep -E ':8000|:3000|:3001'`
   - reexecutar smoke apos liberar as portas.
 
-## 7) Qualidade antes de PR
+## 8) Qualidade antes de PR
 Backend:
 
 ```bash

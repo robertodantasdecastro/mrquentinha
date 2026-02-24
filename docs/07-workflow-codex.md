@@ -53,6 +53,19 @@ Cada prompt deve conter:
   - `NEXT_PUBLIC_API_BASE_URL`
   - `NEXT_PUBLIC_DEMO_CUSTOMER_ID`
 
+## Politica de Branches (Anti-Conflito)
+- `BRANCH_CODEX_PRIMARY=feature/etapa-4-orders`
+- Codex opera somente em `BRANCH_CODEX_PRIMARY`.
+- Antigravity opera somente em `ag/<tipo>/<slug>`.
+- Integracao entre agentes ocorre em `join/codex-ag`.
+- Validacao obrigatoria antes de commit/push:
+
+```bash
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary feature/etapa-4-orders
+bash scripts/branch_guard.sh --agent antigravity --strict
+bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa-4-orders
+```
+
 ## Regra Global de Sincronizacao
 - Sempre rodar quality gate antes de commit final.
 - Sempre rodar `bash scripts/sync_memory.sh --check` antes de commit.
