@@ -7,7 +7,7 @@ inputs:
 outputs:
   - docs/memory/LAYOUT_REFERENCES.md
 commands:
-  - ler GEMINI.md e AGENTS.md
+  - ler /home/roberto/.gemini/GEMINI.md e AGENTS.md
   - mapear padroes de layout, secoes e CTAs existentes
   - registrar referencias de mercado e estrategia de copy
   - atualizar docs/memory/LAYOUT_REFERENCES.md

@@ -1,7 +1,7 @@
 # Paths e Portas Oficiais
 
 ## Referencia
-- Fonte de politica: `GEMINI.md`
+- Fonte de politica: `/home/roberto/.gemini/GEMINI.md`
 - Estado real: `docs/memory/PROJECT_STATE.md`
 
 ## Paths principais

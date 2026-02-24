@@ -3,7 +3,8 @@
 ## Principios
 - Fonte de verdade: workflows `W09..W25`.
 - Wrappers `00..06` existem para atalhos e onboarding.
-- Nunca iniciar tarefa sem ler `AGENTS.md` e `GEMINI.md`.
+- Fonte global unica: `/home/roberto/.gemini/GEMINI.md`.
+- Nunca iniciar tarefa sem ler `AGENTS.md`, `GEMINI` global e rodar `bash scripts/gemini_check.sh`.
 
 ## Politica de branches
 - Codex: `main` (ou `main/etapa-*` em desenvolvimento por etapa).

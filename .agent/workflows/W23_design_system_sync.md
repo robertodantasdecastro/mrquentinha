@@ -7,7 +7,7 @@ inputs:
 outputs:
   - docs/memory/DESIGN_SYSTEM_STATUS.md
 commands:
-  - ler GEMINI.md e AGENTS.md
+  - ler /home/roberto/.gemini/GEMINI.md e AGENTS.md
   - auditar componentes/tokens consumidos por portal/client
   - identificar gaps de padronizacao e divergencias
   - atualizar docs/memory/DESIGN_SYSTEM_STATUS.md

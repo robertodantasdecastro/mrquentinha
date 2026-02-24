@@ -5,7 +5,7 @@ description: Wrapper de bootstrap. Fonte de verdade: W09 e W10.
 # Workflow 00 - Bootstrap (Wrapper)
 
 ## Precondicao
-- Ler `AGENTS.md` e `GEMINI.md`.
+- Ler `AGENTS.md` e `/home/roberto/.gemini/GEMINI.md`.
 
 ## Encaminhamento oficial
 1. Executar `W09_preflight_antigravity`.

@@ -10,7 +10,8 @@ outputs:
   - contexto_recarregado
   - plano_curto_de_execucao
 commands:
-  - sed -n '1,220p' GEMINI.md
+  - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
+  - bash scripts/gemini_check.sh
   - sed -n '1,220p' .agent/memory/CONTEXT_PACK.md
   - sed -n '1,220p' .agent/memory/TODO_NEXT.md
   - sed -n '1,220p' .agent/memory/IN_PROGRESS.md
@@ -33,9 +34,10 @@ memory_updates:
 
 ## Passos
 1. Recarregar contexto (`GEMINI`, `CONTEXT_PACK`, `TODO_NEXT`, `IN_PROGRESS`).
-2. Validar branch com `branch_guard`.
-3. Rodar smoke rapido (`stack` e `client`).
-4. Se `modo_escrita=sim`, registrar lock humano em `IN_PROGRESS.md`.
+2. Rodar `bash scripts/gemini_check.sh`.
+3. Validar branch com `branch_guard`.
+4. Rodar smoke rapido (`stack` e `client`).
+5. Se `modo_escrita=sim`, registrar lock humano em `IN_PROGRESS.md`.
 
 ## Criterio de saida
 - Objetivo unico definido e ambiente pronto para editar.

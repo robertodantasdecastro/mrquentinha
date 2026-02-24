@@ -7,7 +7,7 @@ inputs:
 outputs:
   - relatorio_qa
 commands:
-  - sed -n '1,220p' GEMINI.md
+  - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
   - cd workspaces/backend && source .venv/bin/activate && python manage.py check
   - cd workspaces/backend && source .venv/bin/activate && make lint
   - cd workspaces/backend && source .venv/bin/activate && make test
@@ -26,7 +26,7 @@ memory_updates:
 # W16 - Auditoria de qualidade
 
 ## Passos
-1. Ler `GEMINI.md`.
+1. Ler `/home/roberto/.gemini/GEMINI.md`.
 2. Rodar backend com venv ativa (`check`, `lint`, `test`).
 3. Rodar root (`make test`, `pytest`) com a mesma venv.
 4. Carregar Node LTS (`nvm use --lts`) e rodar lint/build de portal e client.

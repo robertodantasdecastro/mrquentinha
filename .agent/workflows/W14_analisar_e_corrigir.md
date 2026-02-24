@@ -9,7 +9,7 @@ outputs:
   - correcao_aplicada
   - troubleshooting_documentado
 commands:
-  - sed -n '1,220p' GEMINI.md
+  - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
   - coletar_logs
   - formular_hipoteses
   - isolar_causa_raiz
@@ -25,7 +25,7 @@ memory_updates:
 # W14 - Analisar e corrigir
 
 ## Passos
-1. Ler `GEMINI.md`.
+1. Ler `/home/roberto/.gemini/GEMINI.md`.
 2. Coletar logs e sinais.
 3. Isolar causa raiz com experimento reproduzivel.
 4. Aplicar solucao correta e atualizar troubleshooting.

@@ -15,9 +15,15 @@ Acessos:
 - Web Cliente: `http://127.0.0.1:3001`
 
 ## 2) Sessao e paralelo (Codex + Antigravity)
-1. Ler `AGENTS.md` e `GEMINI.md`.
-2. Ler `.agent/memory/IN_PROGRESS.md`.
-3. Validar branch:
+1. Ler `AGENTS.md` e `/home/roberto/.gemini/GEMINI.md`.
+2. Validar regra global:
+
+```bash
+bash scripts/gemini_check.sh
+```
+
+3. Ler `.agent/memory/IN_PROGRESS.md`.
+4. Validar branch:
 
 ```bash
 bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
@@ -25,24 +31,23 @@ bash scripts/branch_guard.sh --agent antigravity --strict --codex-primary main -
 bash scripts/branch_guard.sh --agent union --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
 ```
 
-4. Atualizar lock humano (`IN_PROGRESS.md`) antes de editar.
+5. Atualizar lock humano (`IN_PROGRESS.md`) antes de editar.
 
-## 3) Sincronizar GEMINI (repo -> global runtime)
-Checagem:
+## 3) GEMINI global-only
+- Fonte unica operacional: `/home/roberto/.gemini/GEMINI.md`.
+- O repositorio nao e fonte de verdade para GEMINI.
+
+Editar/validar:
 
 ```bash
-bash scripts/sync_gemini_global.sh --check
+nano ~/.gemini/GEMINI.md
+bash scripts/gemini_check.sh
 ```
 
-Sincronizar:
+Snapshot opcional para documentacao:
 
 ```bash
-bash scripts/sync_gemini_global.sh
-```
-
-Diff amigavel:
-
-```bash
+cp ~/.gemini/GEMINI.md docs/memory/GEMINI_SNAPSHOT.md
 bash scripts/diff_gemini.sh
 ```
 
@@ -66,8 +71,8 @@ bash scripts/quality_gate_all.sh
 
 ## 6) Sync obrigatorio antes de commit final
 ```bash
+bash scripts/gemini_check.sh
 bash scripts/sync_memory.sh --check
-bash scripts/sync_gemini_global.sh --check
 ```
 
 ## 7) Uniao oficial (main + AntigravityIDE)

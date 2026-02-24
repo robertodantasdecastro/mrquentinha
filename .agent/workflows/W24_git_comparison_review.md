@@ -8,7 +8,7 @@ inputs:
 outputs:
   - docs/memory/GIT_COMPARE_REPORT.md
 commands:
-  - ler GEMINI.md e AGENTS.md
+  - ler /home/roberto/.gemini/GEMINI.md e AGENTS.md
   - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
   - git fetch origin
   - git log --left-right --graph e git diff --stat entre branches alvo

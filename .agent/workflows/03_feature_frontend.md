@@ -5,7 +5,7 @@ description: Wrapper para entrega frontend. Fonte de verdade: W10/W12/W17/W21 + 
 # Workflow 03 - Feature Frontend (Wrapper)
 
 ## Precondicao
-- Ler `AGENTS.md` e `GEMINI.md`.
+- Ler `AGENTS.md` e `/home/roberto/.gemini/GEMINI.md`.
 - Validar branch do agente:
   - Codex: `bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
   - Antigravity: `bash scripts/branch_guard.sh --agent antigravity --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`

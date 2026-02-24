@@ -8,7 +8,7 @@ outputs:
   - codigo_refatorado
   - comportamento_preservado
 commands:
-  - sed -n '1,220p' GEMINI.md
+  - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
   - executar_golden_tests
   - refatorar_incrementalmente
   - rodar_lint_test_por_passo
@@ -22,7 +22,7 @@ memory_updates:
 # W15 - Refatoracao com limpeza
 
 ## Passos
-1. Ler `GEMINI.md`.
+1. Ler `/home/roberto/.gemini/GEMINI.md`.
 2. Congelar baseline com golden tests.
 3. Refatorar em lotes pequenos e validar continuamente.
 4. Confirmar ausencia de mudanca comportamental.

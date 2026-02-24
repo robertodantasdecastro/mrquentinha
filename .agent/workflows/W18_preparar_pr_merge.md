@@ -8,7 +8,8 @@ outputs:
   - union_branch_validada
   - pr_pronto_para_main
 commands:
-  - sed -n '1,220p' GEMINI.md
+  - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
+  - bash scripts/gemini_check.sh
   - bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
   - bash scripts/union_branch_build_and_test.sh
 quality_gate:

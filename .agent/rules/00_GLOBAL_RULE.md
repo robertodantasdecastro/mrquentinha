@@ -2,6 +2,13 @@
 
 Esta regra deve aparecer no painel `Rules > Global` do Antigravity e permanecer compativel com o fluxo do Codex.
 
+## Fonte unica da regra global
+- Fonte unica: `/home/roberto/.gemini/GEMINI.md`.
+- No Antigravity, `Rules > Global` deve usar esse arquivo global.
+- Nunca depender de `GEMINI.md` do repositorio para decisao operacional.
+- Validacao obrigatoria antes de fluxo com escrita:
+  - `bash scripts/gemini_check.sh`
+
 ## Contexto rapido do projeto
 - Produto: ecossistema Mr Quentinha (API + portal + client).
 - Estrutura principal:
@@ -28,6 +35,7 @@ Esta regra deve aparecer no painel `Rules > Global` do Antigravity e permanecer 
 - Seed:
   - `scripts/seed_demo.sh`
 - Qualidade/sync:
+  - `scripts/gemini_check.sh`
   - `scripts/sync_memory.sh --check`
   - `scripts/quality_gate_all.sh`
 
@@ -77,6 +85,3 @@ Qualquer mudanca em `workspaces/backend`, `workspaces/web/*` ou `scripts/` exige
 - Commits pequenos e revisaveis.
 - Em mudancas grandes, preferir separar em commits de infra/docs e feature.
 - Rodar quality gate antes de push.
-
-## Compatibilidade de fonte completa
-- Fonte oficial: `GEMINI.md`.

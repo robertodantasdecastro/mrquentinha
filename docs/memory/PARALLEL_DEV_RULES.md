@@ -4,7 +4,7 @@
 Permitir trabalho paralelo sem conflito de branch e com integracao rastreavel.
 
 ## Regras operacionais
-1. Ler `AGENTS.md` e `GEMINI.md` no inicio da sessao.
+1. Ler `AGENTS.md` e `/home/roberto/.gemini/GEMINI.md` no inicio da sessao.
 2. Validar branch com `scripts/branch_guard.sh`.
 3. Registrar lock humano em `.agent/memory/IN_PROGRESS.md` antes de editar.
 4. Nao editar os mesmos arquivos em paralelo entre agentes.

@@ -252,3 +252,12 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - `GEMINI.md` do repo pode conter cabecalho de espelho; o conteudo canonico (pos-cabecalho) deve ser identico ao global.
 - Validacao obrigatoria em sync:
   - checar chaves `BRANCH_CODEX_PRIMARY`, `BRANCH_ANTIGRAVITY` e `BRANCH_UNION`.
+
+## 24/02/2026 - GEMINI global-only (fonte unica)
+- Decisao:
+  - a unica fonte de regra global e branch policy passa a ser `/home/roberto/.gemini/GEMINI.md`.
+  - workflows e scripts nao dependem mais de `GEMINI.md` do repositorio.
+- Implicacoes:
+  - validacao obrigatoria via `bash scripts/gemini_check.sh` antes de fluxos com escrita.
+  - `scripts/sync_gemini_global.sh` permanece apenas como stub deprecado.
+  - snapshot em `docs/memory/GEMINI_SNAPSHOT.md` e opcional, somente para documentacao.

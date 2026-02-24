@@ -5,7 +5,7 @@ description: Wrapper do loop diario. Fonte de verdade: W10/W11/W16/W17/W21/W12.
 # Workflow 01 - Dev Loop (Wrapper)
 
 ## Precondicao
-- Ler `AGENTS.md` e `GEMINI.md`.
+- Ler `AGENTS.md` e `/home/roberto/.gemini/GEMINI.md`.
 
 ## Fluxo oficial do dia
 1. Sessao:

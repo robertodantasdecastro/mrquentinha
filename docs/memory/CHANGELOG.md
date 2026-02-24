@@ -342,3 +342,10 @@
     - `W24_git_comparison_review`
     - `W25_recovery_readonly`
   - documentacao/memoria atualizadas para refletir policy, scripts e fluxos de recovery.
+
+- GEMINI global-only (workflows e scripts):
+  - fonte unica definida em `/home/roberto/.gemini/GEMINI.md`.
+  - criado `scripts/gemini_check.sh` para validar chaves obrigatorias de branch policy.
+  - `scripts/sync_gemini_global.sh` desativado (stub com orientacao para `gemini_check`).
+  - workflows W10/W11/W12/W18/W21 atualizados para validar GEMINI global antes de branch/push/union.
+  - `WORKFLOW_MAP` e `USAGE_GUIDE` revisados para remover dependencia de GEMINI do repositorio.

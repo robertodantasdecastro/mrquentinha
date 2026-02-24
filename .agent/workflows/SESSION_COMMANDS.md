@@ -1,7 +1,7 @@
 # Session Commands (macros de rotina)
 
 ## Regra base
-- Ler `AGENTS.md` e `GEMINI.md` antes de qualquer macro.
+- Ler `AGENTS.md` e `/home/roberto/.gemini/GEMINI.md` antes de qualquer macro.
 - Em fluxos com commit/push/merge, executar `scripts/branch_guard.sh`.
 
 ## Mapeamento de macros (fonte de verdade W09..W25)

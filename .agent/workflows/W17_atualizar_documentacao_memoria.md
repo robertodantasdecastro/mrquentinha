@@ -7,7 +7,7 @@ inputs:
 outputs:
   - docs_sincronizadas
 commands:
-  - sed -n '1,220p' GEMINI.md
+  - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
   - atualizar docs/memory/PROJECT_STATE.md
   - atualizar docs/memory/CHANGELOG.md
   - atualizar docs/memory/DECISIONS.md
@@ -24,7 +24,7 @@ memory_updates:
 # W17 - Atualizar documentacao/memoria
 
 ## Passos
-1. Ler `GEMINI.md`.
+1. Ler `/home/roberto/.gemini/GEMINI.md`.
 2. Atualizar Sync Pack conforme impacto da entrega.
 3. Validar sincronizacao com `bash scripts/sync_memory.sh --check`.
 4. Conferir ausencia de segredos no diff.

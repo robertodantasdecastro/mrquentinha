@@ -2,7 +2,7 @@
 
 ## Mapa rapido do repo
 - `AGENTS.md` (regras centrais)
-- `GEMINI.md` (policy de branches Codex x Antigravity x Union)
+- `/home/roberto/.gemini/GEMINI.md` (fonte unica de policy de branches)
 - `docs/memory/*` (estado, decisoes, changelog, runbook, paralelo)
 - `scripts/*` (start/smoke/seed/session/sync/quality/commit/branch_guard/union)
 - `workspaces/backend` (API Django/DRF)
@@ -10,7 +10,7 @@
 - `workspaces/web/client` (frontend client)
 - `workspaces/web/ui` (Design System compartilhado)
 - `.agent/*` (workflows/prompts/rules/memory)
-- `.antigravity/*` (ponte para GEMINI)
+- `.antigravity/*` (ponte para regra global)
 
 ## Estado atual
 - Etapas concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`.
@@ -23,6 +23,7 @@
 - Seed: `scripts/seed_demo.sh`
 - Smokes: `scripts/smoke_stack_dev.sh` e `scripts/smoke_client_dev.sh`
 - Guard rail: `scripts/branch_guard.sh`
+- GEMINI check: `scripts/gemini_check.sh`
 - Union: `scripts/union_branch_build_and_test.sh`
 - Session helper: `scripts/session.sh`
 - Sync helper: `scripts/sync_memory.sh`

@@ -7,7 +7,7 @@ inputs:
 outputs:
   - docs/memory/RECOVERY_TEMPLATE.md
 commands:
-  - ler AGENTS.md, GEMINI.md e docs/memory essenciais
+  - ler AGENTS.md, /home/roberto/.gemini/GEMINI.md e docs/memory essenciais
   - coletar estado git/processos/ports/logs em modo read-only
   - mapear divergencias docs vs implementacao
   - registrar diagnostico e plano de recuperacao

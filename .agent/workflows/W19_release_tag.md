@@ -8,7 +8,7 @@ inputs:
 outputs:
   - release_publicada
 commands:
-  - sed -n '1,220p' GEMINI.md
+  - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
   - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
   - executar W16_auditoria_qualidade
   - atualizar CHANGELOG com release note curta
@@ -24,7 +24,7 @@ memory_updates:
 # W19 - Release/Tag
 
 ## Regras
-- Ler `GEMINI.md`.
+- Ler `/home/roberto/.gemini/GEMINI.md`.
 - Branch permitida para release: `main` ou `Antigravity_Codex`.
 - Antigravity nao publica release fora do fluxo de integracao.
 

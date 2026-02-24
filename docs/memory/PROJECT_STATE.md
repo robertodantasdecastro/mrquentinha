@@ -16,8 +16,8 @@ Referencia de atualizacao: 24/02/2026.
 - Guard rail: `scripts/branch_guard.sh`.
 
 ## Antigravity
-- Runtime GEMINI: `~/.gemini/GEMINI.md`
-- Fonte versionada GEMINI: `GEMINI.md`
+- Fonte unica GEMINI (runtime + policy): `/home/roberto/.gemini/GEMINI.md`
+- Check de validade GEMINI: `scripts/gemini_check.sh`
 - Rules path: `.agent/rules/global.md`
 - Espelho topo: `.agent/rules/00_GLOBAL_RULE.md`
 - Guia de uso: `.agent/workflows/USAGE_GUIDE.md`
@@ -68,12 +68,13 @@ Referencia de atualizacao: 24/02/2026.
 - Dados:
   - `scripts/seed_demo.sh`
 - Qualidade e sync:
+  - `scripts/gemini_check.sh`
   - `scripts/quality_gate_all.sh`
   - `scripts/sync_memory.sh`
   - `scripts/branch_guard.sh`
   - `scripts/union_branch_build_and_test.sh`
-  - `scripts/sync_gemini_global.sh`
-  - `scripts/diff_gemini.sh`
+  - `scripts/sync_gemini_global.sh` (desativado)
+  - `scripts/diff_gemini.sh` (snapshot opcional)
 
 ## Quickstart
 No root (`~/mrquentinha`), em terminais separados:
@@ -94,8 +95,8 @@ Validacao rapida:
 Pre-commit recomendado:
 
 ```bash
+bash scripts/gemini_check.sh
 bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
-bash scripts/sync_gemini_global.sh --check
 bash scripts/quality_gate_all.sh
 bash scripts/sync_memory.sh --check
 ```

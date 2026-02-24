@@ -1,32 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPO_GEMINI="$ROOT_DIR/GEMINI.md"
-GLOBAL_GEMINI="$HOME/.gemini/GEMINI.md"
-TMP_CANONICAL="$(mktemp)"
-cleanup() {
-  rm -f "$TMP_CANONICAL"
-}
-trap cleanup EXIT
-
-if [[ ! -f "$REPO_GEMINI" ]]; then
-  echo "[diff_gemini] ERRO: arquivo nao encontrado: $REPO_GEMINI" >&2
-  exit 1
-fi
+GLOBAL_GEMINI="/home/roberto/.gemini/GEMINI.md"
+SNAPSHOT="docs/memory/GEMINI_SNAPSHOT.md"
 
 if [[ ! -f "$GLOBAL_GEMINI" ]]; then
   echo "[diff_gemini] ERRO: arquivo global nao encontrado: $GLOBAL_GEMINI" >&2
-  exit 1
+  exit 2
 fi
 
-awk '
-  BEGIN { skip=0 }
-  /^<!-- REPO_HEADER_START -->/ { skip=1; next }
-  /^<!-- REPO_HEADER_END -->/ { skip=0; next }
-  skip==0 { print }
-' "$REPO_GEMINI" > "$TMP_CANONICAL"
+if [[ ! -f "$SNAPSHOT" ]]; then
+  echo "[diff_gemini] snapshot nao encontrado ($SNAPSHOT)." >&2
+  echo "[diff_gemini] opcional: gere snapshot manual para documentacao." >&2
+  exit 2
+fi
 
-if diff -u "$TMP_CANONICAL" "$GLOBAL_GEMINI"; then
-  echo "[diff_gemini] Sem diferencas."
+if diff -u "$SNAPSHOT" "$GLOBAL_GEMINI"; then
+  echo "[diff_gemini] Sem diferencas entre snapshot e global."
 fi

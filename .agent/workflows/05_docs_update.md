@@ -5,7 +5,7 @@ description: Wrapper de docs/memoria. Fonte de verdade: W17_atualizar_documentac
 # Workflow 05 - Docs Update (Wrapper)
 
 ## Precondicao
-- Ler `GEMINI.md`.
+- Ler `/home/roberto/.gemini/GEMINI.md`.
 
 ## Encaminhamento oficial
 1. Executar `W17_atualizar_documentacao_memoria`.

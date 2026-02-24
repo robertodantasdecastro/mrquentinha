@@ -8,7 +8,8 @@ inputs:
 outputs:
   - commit_checkpoint
 commands:
-  - sed -n '1,220p' GEMINI.md
+  - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
+  - bash scripts/gemini_check.sh
   - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
   - git diff --stat
   - cd workspaces/backend && source .venv/bin/activate && make lint && make test
@@ -17,6 +18,7 @@ commands:
   - cd workspaces/web/client && npm run build
   - git add ... && git commit -m "<mensagem>"
 quality_gate:
+  - gemini_check
   - branch_guard
   - backend lint/test + builds frontend
 memory_updates:
@@ -35,8 +37,9 @@ memory_updates:
   - nao usar como branch de desenvolvimento diario.
 
 ## Passos
-1. Ler `GEMINI.md`.
-2. Validar branch com `branch_guard`.
-3. Rodar quality gate minimo.
-4. Atualizar `CHANGELOG`.
-5. Commitar com mensagem rastreavel.
+1. Ler `/home/roberto/.gemini/GEMINI.md`.
+2. Rodar `bash scripts/gemini_check.sh`.
+3. Validar branch com `branch_guard`.
+4. Rodar quality gate minimo.
+5. Atualizar `CHANGELOG`.
+6. Commitar com mensagem rastreavel.
