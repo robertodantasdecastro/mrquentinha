@@ -243,3 +243,30 @@
     - defaults de env para `NEXT_PUBLIC_API_BASE_URL` e `NEXT_PUBLIC_DEMO_CUSTOMER_ID`.
   - novo script `scripts/smoke_client_dev.sh` para subir client em background, validar `/, /pedidos, /cardapio` e encerrar processos ao final.
   - `npm audit fix` executado sem `--force`; pendencias `high` de cadeia `eslint/minimatch` documentadas no README do client.
+
+- DX: smoke_client_dev mais robusto (wait + exit codes)
+  - espera ativa com timeout para disponibilidade do client (`/` -> 200) sem ruido de conexao no terminal.
+  - falha explicita quando o processo do client encerra antes de subir ou quando estoura timeout.
+  - em falha, imprime log do client e retorna exit code diferente de zero.
+  - cleanup via trap `EXIT` mantendo encerramento dos processos do Next e limpeza de porta.
+
+- Dynamic e2e (backend + portal + client):
+  - backend com suporte de midia (`MEDIA_URL`/`MEDIA_ROOT`) e uploads de imagens para catalogo/procurement.
+  - OCR MVP funcional com `OCRJob`, parser de rotulo/comprovante, fallback simulado por `raw_text` e endpoint de aplicacao (`/apply`).
+  - modelo nutricional no catalogo com `NutritionFact` por 100g/ml e porcao opcional.
+  - comando `seed_demo` cobrindo cadeia completa (catalogo, compras, estoque, producao, pedidos, financeiro e OCR).
+  - pacote compartilhado `workspaces/web/ui` e padrao visual clean aplicado em portal/client.
+  - portal e client com consumo dinamico da API via `NEXT_PUBLIC_API_BASE_URL`, incluindo imagens de pratos.
+  - scripts atualizados para fluxo ponta a ponta (`seed_demo.sh`, `smoke_stack_dev.sh`) e runbook dev publicado.
+
+- Docs/Workflow atualizados:
+  - novo `docs/memory/PROJECT_STATE.md` com estado real de portas, scripts, endpoints e envs (sem segredos).
+  - novo `docs/memory/RUNBOOK_DEV.md` com operacao completa de dev/seed/smoke/OCR.
+  - atualizados `docs/00-visao-geral.md`, `docs/10-plano-mvp-cronograma.md`, `docs/07-workflow-codex.md`, `docs/templates/prompt_codex_base.md`, `docs/03-modelo-de-dados.md` e `docs/memory/DECISIONS.md`.
+
+- Antigravity: regras, workflows e memoria do projeto adicionados
+  - criadas regras globais em `.antigravity/rules.md` e espelhos operacionais em `.agent/rules/`.
+  - criada memoria ativa versionada em `.agent/memory/` (`MEMORY_INDEX`, `CONTEXT_PACK`, `TODO_NEXT`).
+  - criados workflows operacionais em `.agent/workflows/` cobrindo bootstrap, loop diario, backend, frontend, quality gate, docs e release checkpoint.
+  - criados prompts base para agentes em `.agent/prompts/` (system, backend, frontend, data seed e bugfix).
+  - `docs/memory/PROJECT_STATE.md` e `docs/memory/RUNBOOK_DEV.md` atualizados com estado real, quickstart, smoke e troubleshooting.
