@@ -61,13 +61,19 @@ Referencia de atualizacao: 24/02/2026.
   - `/api/v1/ocr/jobs/<id>/apply/`
 
 ## Scripts e smokes
-- `scripts/start_backend_dev.sh`
-- `scripts/start_portal_dev.sh`
-- `scripts/start_client_dev.sh`
-- `scripts/seed_demo.sh`
-- `scripts/smoke_stack_dev.sh`
-- `scripts/smoke_client_dev.sh`
-- `scripts/session.sh`
+- Start/execucao:
+  - `scripts/start_backend_dev.sh`
+  - `scripts/start_portal_dev.sh`
+  - `scripts/start_client_dev.sh`
+- Dados e smoke:
+  - `scripts/seed_demo.sh`
+  - `scripts/smoke_stack_dev.sh`
+  - `scripts/smoke_client_dev.sh`
+- Operacao de workflow/sync:
+  - `scripts/session.sh`
+  - `scripts/sync_memory.sh`
+  - `scripts/quality_gate_all.sh`
+  - `scripts/commit_sync.sh`
 
 ## Quickstart
 No root (`~/mrquentinha`), em terminais separados:
@@ -83,6 +89,13 @@ Validacao rapida:
 ```bash
 ./scripts/smoke_stack_dev.sh
 ./scripts/smoke_client_dev.sh
+```
+
+Sync/check final antes de commit:
+
+```bash
+bash scripts/sync_memory.sh --check
+bash scripts/quality_gate_all.sh
 ```
 
 ## Variaveis de ambiente (sem segredos)

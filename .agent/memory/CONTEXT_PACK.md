@@ -3,7 +3,7 @@
 ## Mapa rapido do repo
 - `AGENTS.md` (regras centrais)
 - `docs/memory/*` (estado, decisoes, changelog, runbook)
-- `scripts/*` (start/smoke/seed/session)
+- `scripts/*` (start/smoke/seed/session/sync/quality/commit)
 - `workspaces/backend` (API Django/DRF)
 - `workspaces/web/portal` (frontend portal)
 - `workspaces/web/client` (frontend client)
@@ -20,7 +20,10 @@
 - Client: `3001` -> `scripts/start_client_dev.sh`
 - Seed: `scripts/seed_demo.sh`
 - Smokes: `scripts/smoke_stack_dev.sh` e `scripts/smoke_client_dev.sh`
-- Helper de sessao: `scripts/session.sh`
+- Session helper: `scripts/session.sh`
+- Sync helper: `scripts/sync_memory.sh`
+- Quality gate total: `scripts/quality_gate_all.sh`
+- Commit assistido: `scripts/commit_sync.sh`
 
 ## Endpoints chave
 - `GET /` (API index)

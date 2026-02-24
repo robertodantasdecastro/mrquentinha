@@ -12,6 +12,7 @@
 - `PREPARAR_PR_MERGE` -> `W18_preparar_pr_merge.md`
 - `RELEASE_TAG` -> `W19_release_tag.md`
 - `LIMPAR_AMBIENTE` -> `W20_limpar_ambiente.md`
+- `SYNC_CODEX_ANTIGRAVITY` -> `W21_sync_codex_antigravity.md`
 
 ## Macros de feature
 - `FEATURE_BACKEND` -> `02_feature_backend.md`
@@ -21,4 +22,5 @@
 - Inicio do dia: `INICIAR_SESSAO`
 - Execucao: `FEATURE_BACKEND` ou `FEATURE_FRONTEND`
 - Fechamento tecnico: `AUDITAR_QUALIDADE`
+- Sincronizacao obrigatoria: `SYNC_CODEX_ANTIGRAVITY`
 - Persistencia: `SALVAR_CHECKPOINT`

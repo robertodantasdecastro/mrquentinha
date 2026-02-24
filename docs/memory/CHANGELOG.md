@@ -282,3 +282,10 @@
   - adicionados guias `.agent/workflows/USAGE_GUIDE.md` e `.agent/workflows/WORKFLOW_MAP.md`.
   - atualizados `SESSION_COMMANDS`, `CONTEXT_PACK` e `PROJECT_STATE` para refletir o estado atual.
   - criado helper `scripts/session.sh` para atalhos `start`, `continue`, `save` e `qa`.
+
+- Infra: regra global de sync Codex <-> Antigravity + scripts de sincronizacao
+  - criada regra global unificada (`GLOBAL_SYNC_RULE`) e regra operacional (`.agent/rules/sync.md`).
+  - definido `SYNC_PACK` com arquivos obrigatorios de memoria/documentacao.
+  - criado workflow `W21_sync_codex_antigravity` para sincronizacao obrigatoria pre-commit.
+  - criados scripts `sync_memory.sh`, `quality_gate_all.sh` e `commit_sync.sh`.
+  - atualizado workflow do Codex e guia de uso do Antigravity para incluir fluxo de sync.

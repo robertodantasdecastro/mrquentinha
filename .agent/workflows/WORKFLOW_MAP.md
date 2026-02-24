@@ -13,3 +13,4 @@
 | W18 | Preparar PR/merge | branch_origem | branch_pronta_para_pr | auditoria completa + DoD | CHANGELOG (se ajuste final) |
 | W19 | Release/tag | nome_tag | release_publicada | quality gate completo | CHANGELOG |
 | W20 | Limpar ambiente | modo_limpeza | ambiente_pronto | portas livres + lock limpo | sem atualizacao obrigatoria |
+| W21 | Sync Codex <-> Antigravity | escopo_da_mudanca | sync_concluido | quality_gate_all + sync_memory + check de segredos | Sync Pack completo |

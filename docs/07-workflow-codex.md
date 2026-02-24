@@ -8,6 +8,8 @@ Antes de qualquer tarefa, manter alinhado:
 - `docs/memory/PROJECT_STATE.md`
 - `docs/memory/DECISIONS.md`
 - `docs/memory/CHANGELOG.md`
+- `docs/memory/RUNBOOK_DEV.md`
+- `.agent/memory/CONTEXT_PACK.md`
 
 ## Comandos padrao de desenvolvimento
 No root (`~/mrquentinha`):
@@ -18,12 +20,14 @@ No root (`~/mrquentinha`):
 ./scripts/start_client_dev.sh
 ```
 
-Seed e smoke:
+Seed, smoke e sync:
 
 ```bash
 ./scripts/seed_demo.sh
 ./scripts/smoke_stack_dev.sh
 ./scripts/smoke_client_dev.sh
+bash scripts/sync_memory.sh --check
+bash scripts/quality_gate_all.sh
 ```
 
 ## Estrategia de prompts
@@ -49,6 +53,12 @@ Cada prompt deve conter:
   - `NEXT_PUBLIC_API_BASE_URL`
   - `NEXT_PUBLIC_DEMO_CUSTOMER_ID`
 
+## Regra Global de Sincronizacao
+- Sempre rodar quality gate antes de commit final.
+- Sempre rodar `bash scripts/sync_memory.sh --check` antes de commit.
+- Toda mudanca em backend/frontend/scripts deve refletir docs/memory e `.agent`.
+- Nunca armazenar segredos em git (`.env` real, tokens, chaves, senhas).
+
 ## Checklist antes de PR/merge
 1. Backend
 - `python manage.py check`
@@ -64,8 +74,10 @@ Cada prompt deve conter:
 3. Validacao funcional
 - `./scripts/seed_demo.sh`
 - `./scripts/smoke_stack_dev.sh`
+- `./scripts/smoke_client_dev.sh`
 
-4. Documentacao
+4. Sync e documentacao
+- `bash scripts/sync_memory.sh --check`
 - atualizar `docs/memory/CHANGELOG.md`
 - atualizar `docs/memory/DECISIONS.md` quando houver decisao tecnica
 - manter `docs/memory/PROJECT_STATE.md` e `docs/memory/RUNBOOK_DEV.md` coerentes com o estado real
