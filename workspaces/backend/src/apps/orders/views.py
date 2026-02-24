@@ -2,8 +2,17 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+from apps.accounts.permissions import (
+    ORDER_CREATE_ROLES,
+    ORDER_READ_ROLES,
+    ORDER_STATUS_UPDATE_ROLES,
+    PAYMENT_READ_ROLES,
+    PAYMENT_WRITE_ROLES,
+    RoleMatrixPermission,
+    is_management_user,
+)
 
 from .selectors import list_orders, list_payments
 from .serializers import (
@@ -22,10 +31,22 @@ class OrderViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = OrderSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC (cliente proprio x gestao).
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "create": ORDER_CREATE_ROLES,
+        "list": ORDER_READ_ROLES,
+        "retrieve": ORDER_READ_ROLES,
+        "status": ORDER_STATUS_UPDATE_ROLES,
+    }
 
     def get_queryset(self):
-        return list_orders()
+        queryset = list_orders()
+        user = self.request.user
+
+        if is_management_user(user):
+            return queryset
+
+        return queryset.filter(customer=user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -69,10 +90,22 @@ class PaymentViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "list": PAYMENT_READ_ROLES,
+        "retrieve": PAYMENT_READ_ROLES,
+        "update": PAYMENT_WRITE_ROLES,
+        "partial_update": PAYMENT_WRITE_ROLES,
+    }
 
     def get_queryset(self):
-        return list_payments()
+        queryset = list_payments()
+        user = self.request.user
+
+        if is_management_user(user):
+            return queryset
+
+        return queryset.filter(order__customer=user)
 
     def get_serializer_class(self):
         if self.action in ["update", "partial_update"]:

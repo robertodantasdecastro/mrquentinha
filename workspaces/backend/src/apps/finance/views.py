@@ -6,9 +6,14 @@ from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from apps.accounts.permissions import (
+    FINANCE_READ_ROLES,
+    FINANCE_WRITE_ROLES,
+    RoleMatrixPermission,
+)
 
 from .models import APBillStatus, ARReceivableStatus
 from .reports import get_cashflow, get_dre, get_kpis
@@ -48,7 +53,11 @@ from .services import (
 
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": FINANCE_READ_ROLES,
+        "write": FINANCE_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return list_accounts()
@@ -56,7 +65,11 @@ class AccountViewSet(viewsets.ModelViewSet):
 
 class APBillViewSet(viewsets.ModelViewSet):
     serializer_class = APBillSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": FINANCE_READ_ROLES,
+        "write": FINANCE_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return list_ap_bills()
@@ -109,7 +122,11 @@ class APBillViewSet(viewsets.ModelViewSet):
 
 class ARReceivableViewSet(viewsets.ModelViewSet):
     serializer_class = ARReceivableSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": FINANCE_READ_ROLES,
+        "write": FINANCE_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return list_ar_receivables()
@@ -162,7 +179,11 @@ class ARReceivableViewSet(viewsets.ModelViewSet):
 
 class BankStatementViewSet(viewsets.ModelViewSet):
     serializer_class = BankStatementSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": FINANCE_READ_ROLES,
+        "write": FINANCE_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return list_bank_statements()
@@ -188,7 +209,11 @@ class BankStatementViewSet(viewsets.ModelViewSet):
 
 class StatementLineViewSet(viewsets.ModelViewSet):
     serializer_class = StatementLineSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": FINANCE_READ_ROLES,
+        "write": FINANCE_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         statement_id = self.request.query_params.get("statement")
@@ -207,7 +232,11 @@ class StatementLineViewSet(viewsets.ModelViewSet):
 
 class CashMovementViewSet(viewsets.ModelViewSet):
     serializer_class = CashMovementSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": FINANCE_READ_ROLES,
+        "write": FINANCE_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return list_cash_movements()
@@ -275,7 +304,8 @@ class CashMovementViewSet(viewsets.ModelViewSet):
 
 class LedgerEntryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = LedgerEntrySerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles = FINANCE_READ_ROLES
 
     def get_queryset(self):
         return list_ledger_entries()
@@ -288,7 +318,11 @@ class FinancialCloseViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = FinancialCloseSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": FINANCE_READ_ROLES,
+        "write": FINANCE_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return list_financial_closes()
@@ -350,7 +384,8 @@ class PeriodReportMixin:
 
 
 class CashflowReportAPIView(PeriodReportMixin, APIView):
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": FINANCE_READ_ROLES}
 
     def get(self, request):
         from_date, to_date = self._parse_period(request)
@@ -378,7 +413,8 @@ class CashflowReportAPIView(PeriodReportMixin, APIView):
 
 
 class UnreconciledReportAPIView(PeriodReportMixin, APIView):
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": FINANCE_READ_ROLES}
 
     def get(self, request):
         from_date, to_date = self._parse_period(request)
@@ -397,7 +433,8 @@ class UnreconciledReportAPIView(PeriodReportMixin, APIView):
 
 
 class DreReportAPIView(PeriodReportMixin, APIView):
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": FINANCE_READ_ROLES}
 
     def get(self, request):
         from_date, to_date = self._parse_period(request)
@@ -420,7 +457,8 @@ class DreReportAPIView(PeriodReportMixin, APIView):
 
 
 class KpisReportAPIView(PeriodReportMixin, APIView):
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": FINANCE_READ_ROLES}
 
     def get(self, request):
         from_date, to_date = self._parse_period(request)
@@ -445,7 +483,8 @@ class KpisReportAPIView(PeriodReportMixin, APIView):
 
 
 class IsClosedAPIView(APIView):
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis financeiros.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": FINANCE_READ_ROLES}
 
     def get(self, request):
         date_raw = request.query_params.get("date")

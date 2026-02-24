@@ -3,8 +3,16 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+from apps.accounts.permissions import (
+    PROCUREMENT_FROM_MENU_ROLES,
+    PROCUREMENT_PURCHASE_READ_ROLES,
+    PROCUREMENT_PURCHASE_WRITE_ROLES,
+    PROCUREMENT_REQUEST_READ_ROLES,
+    PROCUREMENT_REQUEST_WRITE_ROLES,
+    RoleMatrixPermission,
+)
 
 from .models import Purchase, PurchaseRequest, PurchaseRequestStatus
 from .serializers import (
@@ -22,7 +30,12 @@ from .services import (
 
 class PurchaseRequestViewSet(viewsets.ModelViewSet):
     serializer_class = PurchaseRequestSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": PROCUREMENT_REQUEST_READ_ROLES,
+        "write": PROCUREMENT_REQUEST_WRITE_ROLES,
+        "from_menu": PROCUREMENT_FROM_MENU_ROLES,
+    }
 
     def get_queryset(self):
         return PurchaseRequest.objects.select_related("requested_by").prefetch_related(
@@ -57,7 +70,6 @@ class PurchaseRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="from-menu")
     def from_menu(self, request, *args, **kwargs):
-        # TODO: RBAC -> permitir perfis COZINHA e COMPRAS, alem de admin.
         input_serializer = GeneratePurchaseRequestFromMenuSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
 
@@ -96,7 +108,11 @@ class PurchaseRequestViewSet(viewsets.ModelViewSet):
 
 class PurchaseViewSet(viewsets.ModelViewSet):
     serializer_class = PurchaseSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": PROCUREMENT_PURCHASE_READ_ROLES,
+        "write": PROCUREMENT_PURCHASE_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return Purchase.objects.select_related("buyer").prefetch_related(

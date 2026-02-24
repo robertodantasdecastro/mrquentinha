@@ -42,6 +42,44 @@ Somente client:
 ./scripts/smoke_client_dev.sh
 ```
 
+## Painel operacional (estilo btop)
+
+Gerenciar e monitorar backend/portal/client em um unico terminal:
+
+```bash
+./scripts/ops_dashboard.sh
+```
+
+Opcional direto em Python:
+
+```bash
+python3 scripts/ops_center.py
+```
+
+Controles no painel:
+- `1/2/3`: start/stop/restart backend
+- `4/5/6`: start/stop/restart portal
+- `7/8/9`: start/stop/restart client
+- `a`: start all
+- `s`: stop all
+- `r`: restart all
+- `q`: sair
+
+Modo snapshot (coleta unica, util para troubleshooting):
+
+```bash
+python3 scripts/ops_center.py --once
+```
+
+Export continuo para historico diario (JSONL e CSV automaticos):
+
+```bash
+./scripts/ops_dashboard.sh --export-json --export-csv --export-interval 5
+```
+
+Arquivos gerados em: `.runtime/ops/exports/`
+
+
 ## Qualidade
 ### Backend (a partir do root)
 ```bash

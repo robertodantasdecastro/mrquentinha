@@ -7,6 +7,7 @@ def test_api_index_endpoint_retorna_payload_esperado(client):
         "version": "v1",
         "endpoints": {
             "health": "/api/v1/health",
+            "accounts": "/api/v1/accounts",
             "catalog": "/api/v1/catalog",
             "orders": "/api/v1/orders",
             "finance": "/api/v1/finance",

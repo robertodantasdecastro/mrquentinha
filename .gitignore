@@ -36,3 +36,6 @@ out/
 .DS_Store
 .idea/
 .vscode/
+
+# Runtime local (ops dashboard)
+.runtime/

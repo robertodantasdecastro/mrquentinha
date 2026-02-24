@@ -2,8 +2,13 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+from apps.accounts.permissions import (
+    PRODUCTION_READ_ROLES,
+    PRODUCTION_WRITE_ROLES,
+    RoleMatrixPermission,
+)
 
 from .selectors import list_batches
 from .serializers import ProductionBatchSerializer
@@ -12,7 +17,11 @@ from .services import complete_batch, create_batch_for_date
 
 class ProductionBatchViewSet(viewsets.ModelViewSet):
     serializer_class = ProductionBatchSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": PRODUCTION_READ_ROLES,
+        "write": PRODUCTION_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return list_batches()

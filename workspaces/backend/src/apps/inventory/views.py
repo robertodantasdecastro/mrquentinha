@@ -1,8 +1,13 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import ValidationError as DRFValidationError
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+from apps.accounts.permissions import (
+    INVENTORY_READ_ROLES,
+    INVENTORY_WRITE_ROLES,
+    RoleMatrixPermission,
+)
 
 from .models import StockItem, StockMovement
 from .serializers import StockItemSerializer, StockMovementSerializer
@@ -11,7 +16,11 @@ from .services import apply_stock_movement
 
 class StockItemViewSet(viewsets.ModelViewSet):
     serializer_class = StockItemSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": INVENTORY_READ_ROLES,
+        "write": INVENTORY_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return StockItem.objects.select_related("ingredient").order_by(
@@ -26,7 +35,11 @@ class StockMovementViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = StockMovementSerializer
-    permission_classes = [AllowAny]  # TODO: aplicar RBAC por perfis.
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_action = {
+        "read": INVENTORY_READ_ROLES,
+        "write": INVENTORY_WRITE_ROLES,
+    }
 
     def get_queryset(self):
         return StockMovement.objects.select_related(
