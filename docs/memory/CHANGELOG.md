@@ -611,3 +611,11 @@
     - `cd workspaces/web/admin && npm run lint && npm run build`
     - `curl http://127.0.0.1:3002/modulos` -> `307` com redirect para `/#modulos`
     - `curl http://127.0.0.1:3002/prioridades` -> `307` com redirect para `/#prioridades`
+
+- docs(memory): fechamento de ciclo no main (T9.1.1-HF3/HF4)
+  - registro operacional atualizado em `.agent/memory/IN_PROGRESS.md` para retomada rapida da proxima sessao.
+  - checkpoint de retomada definido: abrir branch `main-etapa-9.1.2-admin-relatorios-exportacoes` e iniciar `T9.1.2`.
+  - estado confirmado no fechamento:
+    - main limpo e sincronizado com `origin/main`.
+    - admin em `3002` com `/` `200`, `/modulos` `307 -> /#modulos`, `/prioridades` `307 -> /#prioridades`.
+    - backend auth em `8000` com `POST /api/v1/accounts/token/` retornando `200` para admin `roberto`.
