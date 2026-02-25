@@ -11,6 +11,9 @@ import {
 } from "@/lib/api";
 import { hasStoredAuthSession } from "@/lib/storage";
 import type { AuthUserProfile } from "@/types/api";
+import { FinanceOpsPanel } from "@/components/modules/FinanceOpsPanel";
+import { InventoryOpsPanel } from "@/components/modules/InventoryOpsPanel";
+import { OrdersOpsPanel } from "@/components/modules/OrdersOpsPanel";
 
 type ViewState = "loading" | "anonymous" | "authenticated";
 
@@ -22,23 +25,27 @@ type LoginFormState = {
 const MODULES = [
   {
     title: "Pedidos",
-    description: "Fila do dia, status e atendimento operacional.",
+    description: "Fila do dia, mudanca de status e atendimento operacional.",
     stage: "T9.0.2",
+    status: "ativo",
   },
   {
     title: "Financeiro",
-    description: "Caixa diario, AR/AP e reconciliacao.",
+    description: "KPIs, caixa nao conciliado e visao de risco diario.",
     stage: "T9.0.2",
+    status: "ativo",
   },
   {
     title: "Estoque",
-    description: "Saldo por ingrediente, movimentos e ajustes.",
+    description: "Saldo por ingrediente, alertas e registro de movimentos.",
     stage: "T9.0.2",
+    status: "ativo",
   },
   {
     title: "Portal CMS",
     description: "Configuracao de secoes/template do portal institucional.",
     stage: "T6.3.2",
+    status: "planejado",
   },
 ];
 
@@ -149,10 +156,10 @@ export function AdminFoundation() {
   return (
     <div className="space-y-6">
       <section id="dashboard" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Etapa 9.0.1</p>
-        <h1 className="mt-1 text-2xl font-bold text-text">Admin Web - Foundation</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Etapa 9.0.2</p>
+        <h1 className="mt-1 text-2xl font-bold text-text">Admin Web - Core Ops</h1>
         <p className="mt-3 text-sm text-muted">
-          Base inicial de autenticacao e dashboard para evoluir os modulos operacionais na T9.0.2.
+          Base de autenticacao com modulos operacionais de pedidos, financeiro e estoque conectados ao backend.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
@@ -167,11 +174,11 @@ export function AdminFoundation() {
           </article>
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Trilha atual</p>
-            <p className="mt-2 text-lg font-semibold text-text">T9.0.1</p>
+            <p className="mt-2 text-lg font-semibold text-text">T9.0.2</p>
           </article>
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Proxima entrega</p>
-            <p className="mt-2 text-lg font-semibold text-text">T9.0.2</p>
+            <p className="mt-2 text-lg font-semibold text-text">T9.0.3</p>
           </article>
         </div>
       </section>
@@ -244,7 +251,7 @@ export function AdminFoundation() {
       )}
 
       <section id="modulos" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-text">Modulos planejados</h2>
+        <h2 className="text-xl font-semibold text-text">Modulos e status</h2>
         <p className="mt-2 text-sm text-muted">Roadmap imediato para operacao de pedidos, estoque e caixa.</p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {MODULES.map((moduleItem) => (
@@ -252,16 +259,27 @@ export function AdminFoundation() {
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">{moduleItem.stage}</p>
               <h3 className="mt-1 text-base font-semibold text-text">{moduleItem.title}</h3>
               <p className="mt-2 text-sm text-muted">{moduleItem.description}</p>
+              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                Status: {moduleItem.status}
+              </p>
             </article>
           ))}
         </div>
       </section>
 
+      {viewState === "authenticated" && user && (
+        <>
+          <OrdersOpsPanel />
+          <FinanceOpsPanel />
+          <InventoryOpsPanel />
+        </>
+      )}
+
       <section id="prioridades" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-text">Prioridade cronologica</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted">
-          <li>Finalizar foundation do Admin Web com quality gate local.</li>
-          <li>Entrar na T9.0.2 para modulos operacionais reais.</li>
+          <li>Consolidar T9.0.2 com validacao completa no quality gate.</li>
+          <li>Entrar na T9.0.3 para ampliar dashboard e trilha de producao.</li>
           <li>Integrar Portal CMS no portal (T6.3.2) sem conflito com Antigravity.</li>
         </ol>
       </section>

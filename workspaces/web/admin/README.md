@@ -2,11 +2,14 @@
 
 Aplicacao web de gestao interna em `workspaces/web/admin`.
 
-Escopo da subetapa `T9.0.1`:
+Escopo atual (T9.0.2 concluida):
 - shell inicial do admin;
 - autenticacao real com JWT (`token`, `refresh`, `me`);
-- dashboard inicial de operacao;
-- modulos exibidos como trilha de execucao para `T9.0.2`.
+- dashboard operacional base;
+- modulos operacionais conectados ao backend:
+  - Pedidos (fila + mudanca de status);
+  - Financeiro (KPIs + movimentos nao conciliados);
+  - Estoque (saldo + movimentos).
 
 ## Stack
 - Next.js (App Router) + TypeScript
@@ -48,4 +51,4 @@ npm run build
 ```
 
 ## Proximas etapas
-- `T9.0.2`: modulos operacionais reais (Pedidos, Financeiro, Estoque) integrados ao backend.
+- `T9.0.3`: ampliar o Admin Web com dashboard consolidado e novos modulos de gestao (cardapio, compras e producao baseline).

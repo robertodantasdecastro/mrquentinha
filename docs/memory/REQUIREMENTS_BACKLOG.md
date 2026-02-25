@@ -18,11 +18,11 @@ Escopo: consolidacao de requisitos funcionais/operacionais solicitados no chat.
 | Subir servicos por scripts oficiais | `docs/memory/PROJECT_STATE.md`, `docs/memory/RUNBOOK_DEV.md` | OK | manter |
 | Rodar smoke stack/client e quality gate | `docs/memory/RUNBOOK_DEV.md`, `.agent/workflows/W16_auditoria_qualidade.md` | OK | doc: reforcar execucao sem conflito com tmux live |
 | Evitar conflito com Antigravity no portal template (6.2) | `docs/memory/PARALLEL_DEV_RULES.md`, `docs/memory/BRANCH_POLICY.md` | parcial | doc: registrar regra explicita de ownership temporario do portal |
-| Consolidar plano completo implementado x pendente | `docs/10-plano-mvp-cronograma.md`, `docs/memory/PROJECT_STATE.md` | parcial | doc: criar `ROADMAP_MASTER.md` e `BACKLOG.md` com P0/P1/P2 |
+| Consolidar plano completo implementado x pendente | `docs/memory/ROADMAP_MASTER.md`, `docs/memory/BACKLOG.md`, `docs/memory/PROJECT_STATE.md` | OK | manter |
 | Fechar 7.1 Auth/RBAC end-to-end | `docs/memory/CHANGELOG.md`, `docs/memory/PROJECT_STATE.md`, `.agent/memory/TODO_NEXT.md` | OK | manter |
-| Planejar 7.2 pagamentos online (PIX/cartao/VR + webhooks/idempotencia) | `docs/10-plano-mvp-cronograma.md`, `docs/memory/DECISIONS.md` | parcial | doc + implementacao: detalhar subetapas e contratos |
-| Planejar 6.3 Portal CMS backend-only | referencias indiretas em `CHANGELOG` | ausente | doc + implementacao: especificar modelos/API e backlog executavel |
-| Incluir Frontend de Gestao completo (novo epico obrigatorio) | mencoes gerais em `docs/00-visao-geral.md` e `docs/templates/prompt_codex_scaffold_web.md` | ausente | doc + implementacao: criar epico com modulos, roadmap e backlog |
+| Planejar 7.2 pagamentos online (PIX/cartao/VR + webhooks/idempotencia) | `docs/10-plano-mvp-cronograma.md`, `docs/memory/DECISIONS.md`, `docs/memory/CHANGELOG.md` | OK | manter |
+| Planejar 6.3 Portal CMS backend-only | `docs/memory/ROADMAP_MASTER.md`, `docs/memory/BACKLOG.md`, `docs/memory/CHANGELOG.md` | OK | manter |
+| Incluir Frontend de Gestao completo (novo epico obrigatorio) | `docs/memory/ROADMAP_MASTER.md`, `docs/memory/BACKLOG.md`, `docs/memory/PROJECT_STATE.md` | parcial | implementacao: continuar trilha T9.x ate cobertura total dos modulos |
 | Seeds dinamicos (fotos/OCR/nutricao/produto montado) idempotentes | `docs/memory/CHANGELOG.md`, `docs/memory/DECISIONS.md` | parcial | implementacao: ampliar dataset e validacoes de qualidade de seed |
 
 ## 2) Requisitos consolidados por area (status)
@@ -48,21 +48,21 @@ Escopo: consolidacao de requisitos funcionais/operacionais solicitados no chat.
 - Remocao do modo demo: **feito**
 
 ### D) Frontend de Gestao (novo epico obrigatorio)
-- Dashboard operacional: **pendente**
+- Dashboard operacional: **feito (MVP T9.0.2)**
 - Cardapio (CRUD): **pendente**
 - Compras + anexos + OCR: **pendente**
-- Estoque: **pendente**
+- Estoque: **feito (MVP T9.0.2)**
 - Producao: **pendente**
-- Pedidos: **pendente**
-- Financeiro: **pendente**
-- Portal CMS: **pendente**
+- Pedidos: **feito (MVP T9.0.2)**
+- Financeiro: **feito (MVP T9.0.2)**
+- Portal CMS: **pendente (integracao no Admin Web)**
 - Usuarios/RBAC: **pendente**
 - Relatorios/exportacoes: **pendente**
 
 ### E) Portal CMS via DB/API
-- Config + Sections por template/pagina: **pendente**
-- API publica read-only para portal: **pendente**
-- Endpoints de administracao (backend/admin web): **pendente**
+- Config + Sections por template/pagina: **feito (T6.3.1)**
+- API publica read-only para portal: **feito (T6.3.1)**
+- Endpoints de administracao (backend/admin web): **feito no backend (T6.3.1), pendente no Admin Web**
 
 ### F) Pagamentos online (7.2)
 - PIX + cartao + VR/VA (MVP): **feito (mock provider)**
@@ -83,4 +83,4 @@ Escopo: consolidacao de requisitos funcionais/operacionais solicitados no chat.
 ## 3) Observacoes operacionais
 - Politica de branches valida: Codex (`main`, `main-etapa-*`), Antigravity (`AntigravityIDE`, `AntigravityIDE/etapa-*`), Union (`Antigravity_Codex`).
 - Enquanto a trilha visual 6.2 estiver ativa no Antigravity, evitar mudancas concorrentes de layout do portal pelo Codex.
-- Prioridade funcional atual para receita/operacao: **6.3 CMS backend-only + 9.0 Admin Web MVP**.
+- Prioridade funcional atual para receita/operacao: **9.0 Admin Web (T9.0.3) + 6.3.2 Integracao CMS no portal**.

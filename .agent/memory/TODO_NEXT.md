@@ -9,10 +9,11 @@ Historico recente:
 6. [x] T7.2.3 Client checkout online (PIX/cartao/VR) consumindo intents/status - concluida em 25/02/2026.
 7. [x] T6.3.1 Portal CMS backend-only (Config/Sections + API publica/admin) - concluida em 25/02/2026.
 8. [x] T9.0.1 Admin Web MVP foundation (auth shell + dashboard inicial) - concluida em 25/02/2026.
+9. [x] T9.0.2 Admin Web MVP operacional (Pedidos, Financeiro, Estoque) - concluida em 25/02/2026.
 
 Fila atual:
-9. [ ] T9.0.2 Admin Web MVP operacional (Pedidos, Financeiro, Estoque).
-10. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
-11. [ ] T6.3.2 Integracao CMS no portal (apos backend-only).
-12. [ ] T6.1.1 Nginx/proxy local em janela dedicada.
-13. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
+10. [ ] T9.0.3 Admin Web: expandir dashboard de gestao e iniciar modulos de cardapio/compras/producao.
+11. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
+12. [ ] T6.3.2 Integracao CMS no portal (apos lock visual 6.2 e sem conflito).
+13. [ ] T6.1.1 Nginx/proxy local em janela dedicada.
+14. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).

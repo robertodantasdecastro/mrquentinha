@@ -19,6 +19,7 @@ Referencia: 25/02/2026.
 - [x] `T7.2.3` checkout online no client com intents por metodo e polling de status.
 - [x] `T6.3.1` Portal CMS backend-only (Config/Sections + API publica/admin).
 - [x] `T9.0.1` Admin Web foundation (shell + auth + dashboard inicial).
+- [x] `T9.0.2` Admin Web operacional (Pedidos, Financeiro, Estoque).
 
 ## P0 (critico - receita/operacao)
 
@@ -44,8 +45,9 @@ Referencia: 25/02/2026.
   - `cd workspaces/web/admin && npm run lint && npm run build`
   - `bash scripts/sync_memory.sh --check`
 
-### T9.0.2 (P0)
+### T9.0.2 (CONCLUIDA)
 - Objetivo: Admin Web MVP operacional (Pedidos, Financeiro, Estoque).
+- Status: concluida em 25/02/2026.
 - Escopo: admin + backend.
 - Conflito Codex x Antigravity: medio.
 - Branch sugerida: `main-etapa-9.0-AdminWeb-CoreOps`.
@@ -54,6 +56,18 @@ Referencia: 25/02/2026.
   - `source ~/.nvm/nvm.sh && nvm use --lts`
   - `cd workspaces/web/admin && npm run lint && npm run build`
   - `bash scripts/smoke_stack_dev.sh`
+  - `bash scripts/sync_memory.sh --check`
+
+### T9.0.3 (P0)
+- Objetivo: expandir o Admin com dashboard consolidado e baseline de Cardapio/Compras/Producao.
+- Escopo: admin + backend.
+- Conflito Codex x Antigravity: medio.
+- Branch sugerida: `main-etapa-9.0-AdminWeb-Expansion`.
+- DoD:
+  - `cd workspaces/backend && source .venv/bin/activate && make test`
+  - `source ~/.nvm/nvm.sh && nvm use --lts`
+  - `cd workspaces/web/admin && npm run lint && npm run build`
+  - `bash scripts/quality_gate_all.sh`
   - `bash scripts/sync_memory.sh --check`
 
 ## P1 (escala/UX)

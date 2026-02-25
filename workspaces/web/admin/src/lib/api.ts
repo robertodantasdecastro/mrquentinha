@@ -4,7 +4,18 @@ import {
   getStoredAuthTokens,
   persistAuthTokens,
 } from "@/lib/storage";
-import type { AuthTokens, AuthUserProfile, HealthPayload } from "@/types/api";
+import type {
+  AuthTokens,
+  AuthUserProfile,
+  CreateStockMovementPayload,
+  FinanceKpisPayload,
+  FinanceUnreconciledPayload,
+  HealthPayload,
+  OrderData,
+  OrderStatus,
+  StockItemData,
+  StockMovementData,
+} from "@/types/api";
 
 export class ApiError extends Error {
   status: number;
@@ -40,6 +51,18 @@ function resolveUrl(path: string): string {
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${baseUrl}${normalizedPath}`;
+}
+
+function normalizeListPayload<T>(payload: T[] | { results?: T[] }): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload.results)) {
+    return payload.results;
+  }
+
+  return [];
 }
 
 async function parseJsonBody<T>(response: Response): Promise<T> {
@@ -105,7 +128,10 @@ async function tryRefreshAccessToken(): Promise<boolean> {
 
   persistAuthTokens({
     access: payload.access,
-    refresh: typeof payload.refresh === "string" && payload.refresh.trim() ? payload.refresh : tokens.refresh,
+    refresh:
+      typeof payload.refresh === "string" && payload.refresh.trim()
+        ? payload.refresh
+        : tokens.refresh,
   });
 
   return true;
@@ -188,6 +214,93 @@ export async function fetchHealth(): Promise<HealthPayload> {
   return requestJson<HealthPayload>("/api/v1/health", {
     method: "GET",
     cache: "no-store",
+  });
+}
+
+export async function listOrdersAdmin(): Promise<OrderData[]> {
+  const payload = await requestJson<OrderData[] | { results?: OrderData[] }>(
+    "/api/v1/orders/orders/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function updateOrderStatusAdmin(
+  orderId: number,
+  status: OrderStatus,
+): Promise<OrderData> {
+  return requestJson<OrderData>(`/api/v1/orders/orders/${orderId}/status/`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function fetchFinanceKpis(
+  from: string,
+  to: string,
+): Promise<FinanceKpisPayload> {
+  return requestJson<FinanceKpisPayload>(
+    `/api/v1/finance/reports/kpis/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function fetchFinanceUnreconciled(
+  from: string,
+  to: string,
+): Promise<FinanceUnreconciledPayload> {
+  return requestJson<FinanceUnreconciledPayload>(
+    `/api/v1/finance/reports/unreconciled/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function listStockItems(): Promise<StockItemData[]> {
+  const payload = await requestJson<StockItemData[] | { results?: StockItemData[] }>(
+    "/api/v1/inventory/stock-items/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function listStockMovements(): Promise<StockMovementData[]> {
+  const payload = await requestJson<
+    StockMovementData[] | { results?: StockMovementData[] }
+  >("/api/v1/inventory/movements/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+
+  return normalizeListPayload(payload);
+}
+
+export async function createStockMovement(
+  payload: CreateStockMovementPayload,
+): Promise<StockMovementData> {
+  return requestJson<StockMovementData>("/api/v1/inventory/movements/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
   });
 }
 

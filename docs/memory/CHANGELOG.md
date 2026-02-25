@@ -483,3 +483,25 @@
 - docs(memory): sincronizacao apos T9.0.1
   - `PROJECT_STATE`, `ROADMAP_MASTER`, `BACKLOG`, `TODO_NEXT` e `CONTEXT_PACK` atualizados para refletir `T9.0.1` concluida.
   - etapa ativa mantida em `9.0` com proxima subetapa unica `T9.0.2`.
+
+- Etapa 9.0.2 admin web operacional:
+  - `workspaces/web/admin/src/types/api.ts` expandido com contratos de Orders/Finance/Inventory.
+  - `workspaces/web/admin/src/lib/api.ts` expandido com clientes para:
+    - `GET /api/v1/orders/orders/`
+    - `PATCH /api/v1/orders/orders/<id>/status/`
+    - `GET /api/v1/finance/reports/kpis/`
+    - `GET /api/v1/finance/reports/unreconciled/`
+    - `GET/POST /api/v1/inventory/movements/`
+    - `GET /api/v1/inventory/stock-items/`
+  - novos modulos de operacao adicionados em `workspaces/web/admin/src/components/modules/`:
+    - `OrdersOpsPanel.tsx`
+    - `FinanceOpsPanel.tsx`
+    - `InventoryOpsPanel.tsx`
+  - `AdminFoundation.tsx` conectado aos modulos operacionais no estado autenticado.
+  - validacoes executadas com sucesso:
+    - `cd workspaces/web/admin && npm run lint && npm run build`
+    - `bash scripts/quality_gate_all.sh` (`112 passed`, builds portal/client/admin e smokes OK)
+
+- docs(memory): sincronizacao apos T9.0.2
+  - `PROJECT_STATE`, `ROADMAP_MASTER`, `BACKLOG`, `REQUIREMENTS_BACKLOG`, `TODO_NEXT`, `CONTEXT_PACK`, `IN_PROGRESS` e `workspaces/web/admin/README.md` atualizados.
+  - etapa ativa mantida em `9.0` com proxima subetapa unica `T9.0.3`.

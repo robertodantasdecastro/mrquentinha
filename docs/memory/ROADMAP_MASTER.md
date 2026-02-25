@@ -35,11 +35,13 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - Evidencia: `workspaces/backend/src/apps/portal/`, `workspaces/backend/tests/test_portal_api.py`, `workspaces/backend/tests/test_portal_services.py`.
 - `T9.0.1` concluida: Admin Web foundation com novo workspace `workspaces/web/admin`.
   - Evidencia: shell inicial, login JWT (`token/refresh/me`) e dashboard base com status operacional.
+- `T9.0.2` concluida: Admin Web operacional com modulos de Pedidos, Financeiro e Estoque conectados ao backend.
+  - Evidencia: `workspaces/web/admin/src/components/modules/*`, `AdminFoundation` integrado e `scripts/quality_gate_all.sh` em status `OK`.
 
 ## 2) Em progresso
 
 - Etapa ativa de negocio: `9.0` (Admin Web MVP).
-- Proxima subetapa cronologica: `T9.0.2` (Admin Web MVP operacional).
+- Proxima subetapa cronologica: `T9.0.3` (expansao de dashboard + modulos iniciais de cardapio/compras/producao).
 - Planejamento tecnico ativo (docs-first):
   - `9.0` Admin Web MVP.
   - `6.3.2` Integracao CMS no portal.
@@ -78,8 +80,9 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `cd workspaces/web/admin && npm run lint && npm run build`
   - `bash scripts/sync_memory.sh --check`
 
-#### T9.0.2 - Admin Web MVP operacional
+#### T9.0.2 - Admin Web MVP operacional [CONCLUIDA]
 - Objetivo: entregar modulos minimos de gestao para operar dia-a-dia (Pedidos, Financeiro, Estoque).
+- Status: concluida em 25/02/2026.
 - Escopo: admin web + backend integration + docs.
 - Risco de conflito: medio.
 - Branch padrao:
@@ -91,6 +94,21 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `source ~/.nvm/nvm.sh && nvm use --lts`
   - `cd workspaces/web/admin && npm run lint && npm run build`
   - `bash scripts/smoke_stack_dev.sh`
+  - `bash scripts/sync_memory.sh --check`
+
+#### T9.0.3 - Admin Web expansao operacional
+- Objetivo: consolidar dashboard de gestao e iniciar modulos de Cardapio, Compras e Producao (baseline MVP).
+- Escopo: admin web + backend integration + docs.
+- Risco de conflito: medio.
+- Branch padrao:
+  - Codex: `main-etapa-9.0-AdminWeb-Expansion`
+  - Antigravity: `AntigravityIDE/etapa-9.0-AdminWeb-Expansion`
+  - Union: `Antigravity_Codex`
+- DoD (comandos):
+  - `cd workspaces/backend && source .venv/bin/activate && make test`
+  - `source ~/.nvm/nvm.sh && nvm use --lts`
+  - `cd workspaces/web/admin && npm run lint && npm run build`
+  - `bash scripts/quality_gate_all.sh`
   - `bash scripts/sync_memory.sh --check`
 
 ### P1 (escala/UX)
