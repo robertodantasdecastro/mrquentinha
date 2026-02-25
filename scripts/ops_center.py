@@ -31,7 +31,7 @@ KEY_HELP = [
     "Admin:   g start | h stop | j restart",
     "Portal:  4 start | 5 stop | 6 restart",
     "Client:  7 start | 8 stop | 9 restart",
-    "UI:      ? ajuda | l logs | c compacto",
+    "UI:      ? ajuda | l logs | c compacto | mouse clique",
 ]
 
 HAS_SS = shutil.which("ss") is not None
@@ -55,6 +55,16 @@ class ServiceSnapshot:
     rss_mb: float | None
     hits_per_sec: int
     last_request: str
+
+
+@dataclass(frozen=True)
+class ClickTarget:
+    y1: int
+    x1: int
+    y2: int
+    x2: int
+    action: str
+    service_key: str
 
 
 SERVICES = (
@@ -710,9 +720,10 @@ def draw_dashboard(
     show_help: bool,
     show_logs: bool,
     compact: bool,
-) -> None:
+) -> list[ClickTarget]:
     stdscr.erase()
     h, w = stdscr.getmaxyx()
+    click_targets: list[ClickTarget] = []
 
     title_attr = curses.A_BOLD | color_pair_safe(7)
     safe_add(
@@ -792,69 +803,128 @@ def draw_dashboard(
 
     safe_add(stdscr, y, 0, "Servicos", curses.A_BOLD | color_pair_safe(4))
     y += 1
-    if not compact:
-        safe_add(
-            stdscr,
-            y,
-            0,
-            "Nome           Estado     PID      Porta   Uptime    RSS(MB)  Hits/s   Grafico de acessos",
-            curses.A_UNDERLINE,
-        )
-    y += 1
 
-    service_rows_left = max(1, min(len(snapshots), h - y - 12))
-    graph_space = max(8, w - 76)
     host = host_hint()
+    cards_area_height = max(6, h - y - 14)
+    card_w = 28
+    card_h = 7
+    max_cols = max(1, (w - 2) // (card_w + 2))
+    max_rows = max(1, cards_area_height // (card_h + 1))
+    total_cards = min(len(snapshots), max_cols * max_rows)
 
-    for snap in snapshots[:service_rows_left]:
-        if snap.state == "RUNNING":
-            state_attr = color_pair_safe(2)
-        elif snap.state == "EXTERNAL":
-            state_attr = color_pair_safe(3)
-        else:
-            state_attr = color_pair_safe(1)
+    def draw_box(x0: int, y0: int, width: int, height: int, attr: int) -> None:
+        safe_add(stdscr, y0, x0, "+" + "-" * (width - 2) + "+", attr)
+        for yy in range(1, height - 1):
+            safe_add(stdscr, y0 + yy, x0, "|" + " " * (width - 2) + "|", attr)
+        safe_add(stdscr, y0 + height - 1, x0, "+" + "-" * (width - 2) + "+", attr)
 
-        hist = manager.hit_history[snap.spec.key]
-        if compact:
-            row = (
-                f"{snap.spec.name[:14]:14} "
-                f"{snap.state:9} "
-                f"pid {str(snap.pid or '-'):>6} "
-                f"port {snap.spec.port:<5d} "
-                f"hits {snap.hits_per_sec:>3d}/s "
-                f"{sparkline(hist, max(6, w - 64))}"
-            )
-            safe_add(stdscr, y, 0, row, state_attr)
-            y += 1
-            continue
-
-        row = (
-            f"{snap.spec.name[:14]:14} "
-            f"{snap.state:9} "
-            f"{str(snap.pid or '-'):8} "
-            f"{snap.spec.port:5d}  "
-            f"{fmt_duration(snap.uptime_seconds):8}  "
-            f"{(f'{snap.rss_mb:7.1f}' if snap.rss_mb is not None else '-'):>7}  "
-            f"{snap.hits_per_sec:6d}   "
-            f"{sparkline(hist, graph_space)}"
+    def add_button(x0: int, y0: int, label: str, action: str, service_key: str, attr: int) -> None:
+        text = f"[{label}]"
+        safe_add(stdscr, y0, x0, text, attr)
+        click_targets.append(
+            ClickTarget(y1=y0, x1=x0, y2=y0, x2=x0 + len(text) - 1, action=action, service_key=service_key)
         )
-        safe_add(stdscr, y, 0, row, state_attr)
-        y += 1
-        if y < h - 1:
-            key_hint = {
-                "backend": "1/2/3",
-                "admin": "g/h/j",
-                "portal": "4/5/6",
-                "client": "7/8/9",
-            }.get(snap.spec.key, "-")
+
+    if compact or total_cards < len(snapshots):
+        if not compact:
             safe_add(
                 stdscr,
                 y,
-                2,
-                f"acoes {key_hint}  url http://{host}:{snap.spec.port}",
-                color_pair_safe(6),
+                0,
+                "Nome           Estado     PID      Porta   Uptime    RSS(MB)  Hits/s   Grafico de acessos",
+                curses.A_UNDERLINE,
             )
+            y += 1
+        service_rows_left = max(1, min(len(snapshots), h - y - 12))
+        graph_space = max(8, w - 76)
+        for snap in snapshots[:service_rows_left]:
+            if snap.state == "RUNNING":
+                state_attr = color_pair_safe(2)
+            elif snap.state == "EXTERNAL":
+                state_attr = color_pair_safe(3)
+            else:
+                state_attr = color_pair_safe(1)
+            hist = manager.hit_history[snap.spec.key]
+            if compact:
+                row = (
+                    f"{snap.spec.name[:14]:14} "
+                    f"{snap.state:9} "
+                    f"pid {str(snap.pid or '-'):>6} "
+                    f"port {snap.spec.port:<5d} "
+                    f"hits {snap.hits_per_sec:>3d}/s "
+                    f"{sparkline(hist, max(6, w - 64))}"
+                )
+                safe_add(stdscr, y, 0, row, state_attr)
+                y += 1
+                continue
+
+            row = (
+                f"{snap.spec.name[:14]:14} "
+                f"{snap.state:9} "
+                f"{str(snap.pid or '-'):8} "
+                f"{snap.spec.port:5d}  "
+                f"{fmt_duration(snap.uptime_seconds):8}  "
+                f"{(f'{snap.rss_mb:7.1f}' if snap.rss_mb is not None else '-'):>7}  "
+                f"{snap.hits_per_sec:6d}   "
+                f"{sparkline(hist, graph_space)}"
+            )
+            safe_add(stdscr, y, 0, row, state_attr)
+            y += 1
         y += 1
+    else:
+        idx = 0
+        for row in range(max_rows):
+            for col in range(max_cols):
+                if idx >= total_cards:
+                    break
+                snap = snapshots[idx]
+                idx += 1
+                x0 = 1 + col * (card_w + 2)
+                y0 = y + row * (card_h + 1)
+                if y0 + card_h >= h - 6:
+                    continue
+                if snap.state == "RUNNING":
+                    state_attr = color_pair_safe(2)
+                elif snap.state == "EXTERNAL":
+                    state_attr = color_pair_safe(3)
+                else:
+                    state_attr = color_pair_safe(1)
+
+                draw_box(x0, y0, card_w, card_h, color_pair_safe(4))
+                safe_add(stdscr, y0 + 1, x0 + 2, snap.spec.name[:card_w - 4], curses.A_BOLD | state_attr)
+                safe_add(
+                    stdscr,
+                    y0 + 2,
+                    x0 + 2,
+                    f"{snap.state:8}  pid {str(snap.pid or '-')[:6]:>6}",
+                    state_attr,
+                )
+                safe_add(
+                    stdscr,
+                    y0 + 3,
+                    x0 + 2,
+                    f"port {snap.spec.port}  up {fmt_duration(snap.uptime_seconds)}",
+                    color_pair_safe(6),
+                )
+                safe_add(
+                    stdscr,
+                    y0 + 4,
+                    x0 + 2,
+                    f"hits {snap.hits_per_sec:>3d}/s  {sparkline(manager.hit_history[snap.spec.key], 8)}",
+                    color_pair_safe(6),
+                )
+                safe_add(
+                    stdscr,
+                    y0 + 5,
+                    x0 + 2,
+                    f"url {host}:{snap.spec.port}",
+                    color_pair_safe(5),
+                )
+                btn_y = y0 + card_h - 2
+                add_button(x0 + 2, btn_y, "Start", "start", snap.spec.key, color_pair_safe(2))
+                add_button(x0 + 10, btn_y, "Stop", "stop", snap.spec.key, color_pair_safe(3))
+                add_button(x0 + 17, btn_y, "Rst", "restart", snap.spec.key, color_pair_safe(6))
+        y = y + max_rows * (card_h + 1)
 
     y += 1
     safe_add(
@@ -920,6 +990,7 @@ def draw_dashboard(
             safe_add(stdscr, box_y + 1 + idx, box_x + 2, line, color_pair_safe(6))
 
     stdscr.refresh()
+    return click_targets
 
 
 def handle_key(manager: OpsManager, key: str) -> str | None:
@@ -949,6 +1020,16 @@ def handle_key(manager: OpsManager, key: str) -> str | None:
         return action()
     except Exception as exc:  # pragma: no cover
         return f"Erro: {exc}"
+
+
+def handle_action(manager: OpsManager, service_key: str, action: str) -> str | None:
+    if action == "start":
+        return manager.start_service(service_key)
+    if action == "stop":
+        return manager.stop_service(service_key)
+    if action == "restart":
+        return manager.restart_service(service_key)
+    return None
 
 
 def sample_bundle(
@@ -999,6 +1080,12 @@ def run_dashboard(
     except Exception:
         pass
 
+    try:
+        curses.mousemask(curses.ALL_MOUSE_EVENTS)
+        curses.mouseinterval(0)
+    except Exception:
+        pass
+
     stdscr.nodelay(True)
     stdscr.timeout(100)
 
@@ -1032,10 +1119,24 @@ def run_dashboard(
     show_help = False
     show_logs = False
     compact = False
+    click_targets: list[ClickTarget] = []
 
     while True:
         ch = stdscr.getch()
         if ch != -1:
+            if ch == curses.KEY_MOUSE:
+                try:
+                    _id, mx, my, _z, _state = curses.getmouse()
+                    for target in click_targets:
+                        if target.x1 <= mx <= target.x2 and target.y1 <= my <= target.y2:
+                            action_msg = handle_action(manager, target.service_key, target.action)
+                            if action_msg:
+                                events.append(action_msg)
+                                event_history.append(action_msg)
+                            break
+                except Exception:
+                    pass
+                continue
             key = chr(ch).lower() if 0 <= ch <= 255 else ""
             if key == "q":
                 msg = "Encerrando painel."
@@ -1093,7 +1194,7 @@ def run_dashboard(
 
             last_sample = now
 
-        draw_dashboard(
+        click_targets = draw_dashboard(
             stdscr,
             manager,
             snapshots,
