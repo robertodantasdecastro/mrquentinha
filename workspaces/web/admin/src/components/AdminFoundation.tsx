@@ -26,42 +26,56 @@ type LoginFormState = {
   password: string;
 };
 
-const MODULES = [
+type ModuleCard = {
+  title: string;
+  description: string;
+  stage: string;
+  status: string;
+  anchor?: string;
+};
+
+const MODULES: ModuleCard[] = [
   {
     title: "Pedidos",
     description: "Fila do dia, mudanca de status e atendimento operacional.",
     stage: "T9.0.2",
     status: "ativo",
+    anchor: "#module-pedidos",
   },
   {
     title: "Financeiro",
     description: "KPIs, caixa nao conciliado e visao de risco diario.",
     stage: "T9.0.2",
     status: "ativo",
+    anchor: "#module-financeiro",
   },
   {
     title: "Estoque",
     description: "Saldo por ingrediente, alertas e registro de movimentos.",
     stage: "T9.0.2",
     status: "ativo",
+    anchor: "#module-estoque",
   },
   {
     title: "Cardapio",
     description: "Menus e pratos com baseline de planejamento operacional.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
+    anchor: "#module-cardapio",
   },
   {
     title: "Compras",
     description: "Requisicoes e compras recentes com visao de abastecimento.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
+    anchor: "#module-compras",
   },
   {
     title: "Producao",
     description: "Lotes por data com acompanhamento de planejado x produzido.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
+    anchor: "#module-producao",
   },
   {
     title: "Portal CMS",
@@ -74,6 +88,7 @@ const MODULES = [
     description: "Gestao de papeis, permissoes e trilha de auditoria basica.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
+    anchor: "#module-usuarios-rbac",
   },
 ];
 
@@ -292,6 +307,22 @@ export function AdminFoundation() {
               Sair
             </button>
           </div>
+          <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+              Acesso rapido aos modulos
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {MODULES.filter((moduleItem) => moduleItem.anchor).map((moduleItem) => (
+                <a
+                  key={moduleItem.title}
+                  href={moduleItem.anchor}
+                  className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-text transition hover:border-primary hover:text-primary"
+                >
+                  {moduleItem.title}
+                </a>
+              ))}
+            </div>
+          </div>
         </section>
       )}
 
@@ -301,28 +332,73 @@ export function AdminFoundation() {
           Visao consolidada da trilha 9.x para operar pedidos, estoque, compras e producao.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {MODULES.map((moduleItem) => (
-            <article key={moduleItem.title} className="rounded-xl border border-border bg-bg p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">{moduleItem.stage}</p>
-              <h3 className="mt-1 text-base font-semibold text-text">{moduleItem.title}</h3>
-              <p className="mt-2 text-sm text-muted">{moduleItem.description}</p>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                Status: {moduleItem.status}
-              </p>
-            </article>
-          ))}
+          {MODULES.map((moduleItem) => {
+            const isAccessible = viewState === "authenticated" && Boolean(moduleItem.anchor);
+
+            const details = (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">{moduleItem.stage}</p>
+                <h3 className="mt-1 text-base font-semibold text-text">{moduleItem.title}</h3>
+                <p className="mt-2 text-sm text-muted">{moduleItem.description}</p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  Status: {moduleItem.status}
+                </p>
+                {moduleItem.anchor && viewState !== "authenticated" && (
+                  <p className="mt-2 text-xs text-muted">Faca login para habilitar acesso ao modulo.</p>
+                )}
+                {moduleItem.anchor && viewState === "authenticated" && (
+                  <p className="mt-2 text-xs text-primary">Clique para abrir o modulo operacional.</p>
+                )}
+                {!moduleItem.anchor && (
+                  <p className="mt-2 text-xs text-muted">Modulo ainda nao implementado para operacao.</p>
+                )}
+              </>
+            );
+
+            if (isAccessible) {
+              return (
+                <a
+                  key={moduleItem.title}
+                  href={moduleItem.anchor}
+                  className="block rounded-xl border border-border bg-bg p-4 transition hover:border-primary"
+                >
+                  {details}
+                </a>
+              );
+            }
+
+            return (
+              <article key={moduleItem.title} className="rounded-xl border border-border bg-bg p-4">
+                {details}
+              </article>
+            );
+          })}
         </div>
       </section>
 
       {viewState === "authenticated" && user && (
         <>
-          <OrdersOpsPanel />
-          <FinanceOpsPanel />
-          <InventoryOpsPanel />
-          <MenuOpsPanel />
-          <ProcurementOpsPanel />
-          <ProductionOpsPanel />
-          <UsersRbacPanel />
+          <div id="module-pedidos" className="scroll-mt-24">
+            <OrdersOpsPanel />
+          </div>
+          <div id="module-financeiro" className="scroll-mt-24">
+            <FinanceOpsPanel />
+          </div>
+          <div id="module-estoque" className="scroll-mt-24">
+            <InventoryOpsPanel />
+          </div>
+          <div id="module-cardapio" className="scroll-mt-24">
+            <MenuOpsPanel />
+          </div>
+          <div id="module-compras" className="scroll-mt-24">
+            <ProcurementOpsPanel />
+          </div>
+          <div id="module-producao" className="scroll-mt-24">
+            <ProductionOpsPanel />
+          </div>
+          <div id="module-usuarios-rbac" className="scroll-mt-24">
+            <UsersRbacPanel />
+          </div>
         </>
       )}
 
