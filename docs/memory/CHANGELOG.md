@@ -619,3 +619,14 @@
     - main limpo e sincronizado com `origin/main`.
     - admin em `3002` com `/` `200`, `/modulos` `307 -> /#modulos`, `/prioridades` `307 -> /#prioridades`.
     - backend auth em `8000` com `POST /api/v1/accounts/token/` retornando `200` para admin `roberto`.
+
+- docs(memory): plano T9.1.2 Admin Web (relatorios/exportacoes + UX/IX)
+  - registrado plano detalhado com escopo funcional, UX/IX, entregaveis e criterios de aceite.
+  - arquivo: `docs/memory/PLANO_T9_1_2_ADMIN_RELATORIOS_UX.md`.
+
+- T9.1.2 (parcial): hotpages e UX/IX do Admin Web
+  - nova base de navegacao por modulo com hotpages e menu contextual.
+  - pagina de modulos e prioridades agora sao views dedicadas (sem redirect por ancora).
+  - relatorios inaugurados com pagina dedicada e graficos placeholder + exportacao CSV (UI).
+  - dashboard do Admin reestruturado como hub com links diretos por modulo.
+  - novos componentes de graficos simples (`Sparkline`, `MiniBarChart`) e shell de pagina de modulo.

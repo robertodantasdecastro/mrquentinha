@@ -64,8 +64,9 @@ Referencia de atualizacao: 25/02/2026.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF1`): correcoes de `onChange` para evitar crash client-side no login e ajuste de `allowedDevOrigins` no Next 16 para acesso em `10.211.55.21:3002`.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF2`): liberacao de CORS do backend para origem `:3002`, fallback automatico da API no Admin Web e exibicao de erros diretamente no card de login.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF3`): padronizacao visual global com cores de status (success/warning/danger/info) e aplicacao da logo oficial (PNG original) no Admin Web, Portal e Client.
-- Hotfix aplicado em 25/02/2026 (`T9.1.1-HF4`): rotas diretas `/modulos` e `/prioridades` no Admin Web agora redirecionam para `/#modulos` e `/#prioridades`, evitando erro 404 em acesso por URL/bookmark.
+- Hotfix aplicado em 25/02/2026 (`T9.1.1-HF4`): rotas diretas `/modulos` e `/prioridades` com redirect para `/#modulos` e `/#prioridades`, evitando erro 404 em acesso por URL/bookmark (substituido pela navegacao por hotpages).
 - Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao estaveis com fluxo operacional, Usuarios/RBAC com atribuicao de papeis e status visuais coloridos alinhados a identidade oficial da marca.
+- Atualizacao em andamento: hotpages por modulo com menu contextual e graficos, incluindo pagina de Relatorios integrada (CSV).
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo: hardening final de UX e relatorios exportaveis no bloco Admin Web apos alinhamento de prioridades.
 

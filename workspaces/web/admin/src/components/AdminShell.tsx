@@ -6,13 +6,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/#dashboard", label: "Dashboard" },
-  { href: "/#modulos", label: "Modulos" },
-  { href: "/#prioridades", label: "Prioridades" },
+  { href: "/", label: "Dashboard" },
+  { href: "/modulos", label: "Modulos" },
+  { href: "/modulos/relatorios", label: "Relatorios" },
+  { href: "/prioridades", label: "Prioridades" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  return pathname === "/" && href === "/#dashboard";
+  if (href === "/") {
+    return pathname === "/";
+  }
+
+  if (href === "/modulos") {
+    return pathname === "/modulos";
+  }
+
+  return pathname === href;
 }
 
 export function AdminShell() {
