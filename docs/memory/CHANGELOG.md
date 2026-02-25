@@ -465,3 +465,21 @@
 - docs(memory): sincronizacao apos T6.3.1
   - `PROJECT_STATE`, `TODO_NEXT` e `CONTEXT_PACK` atualizados.
   - proxima subetapa recomendada: `T9.0.1` (Admin Web MVP foundation).
+
+- Etapa 9.0.1 admin web foundation:
+  - criado novo workspace `workspaces/web/admin` (Next.js 16 + TypeScript + Tailwind + `@mrquentinha/ui`).
+  - implementado shell inicial do Admin com tema light/dark e identidade visual da marca.
+  - implementado fluxo de autenticacao real via JWT:
+    - login em `POST /api/v1/accounts/token/`;
+    - refresh automatico em `POST /api/v1/accounts/token/refresh/`;
+    - bootstrap de sessao com `GET /api/v1/accounts/me/`.
+  - dashboard inicial entregue com status da API (`GET /api/v1/health`) e cards de prioridade para trilhas `T9.0.2` e `T6.3.2`.
+  - documentacao do admin adicionada em `workspaces/web/admin/README.md`.
+  - validacoes executadas com sucesso:
+    - `source ~/.nvm/nvm.sh && nvm use --lts`
+    - `cd workspaces/web/admin && npm run lint`
+    - `cd workspaces/web/admin && npm run build`
+
+- docs(memory): sincronizacao apos T9.0.1
+  - `PROJECT_STATE`, `ROADMAP_MASTER`, `BACKLOG`, `TODO_NEXT` e `CONTEXT_PACK` atualizados para refletir `T9.0.1` concluida.
+  - etapa ativa mantida em `9.0` com proxima subetapa unica `T9.0.2`.

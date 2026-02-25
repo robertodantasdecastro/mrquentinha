@@ -29,16 +29,20 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 - `T7.2.2` concluida: webhook idempotente + reconciliacao financeira (`AR/Cash/Ledger`).
   - Evidencia: modelo `PaymentWebhookEvent`, endpoint `/api/v1/orders/payments/webhook/`, testes API de replay e reconciliacao.
 - `T7.2.3` concluida: checkout online no client com selecao de metodo (PIX/CARD/VR), criacao de intent e polling de status.
+
+### Etapas 6.3 e 9.0
 - `T6.3.1` concluida: Portal CMS backend-only com Config/Sections, API publica read-only e endpoints admin.
   - Evidencia: `workspaces/backend/src/apps/portal/`, `workspaces/backend/tests/test_portal_api.py`, `workspaces/backend/tests/test_portal_services.py`.
+- `T9.0.1` concluida: Admin Web foundation com novo workspace `workspaces/web/admin`.
+  - Evidencia: shell inicial, login JWT (`token/refresh/me`) e dashboard base com status operacional.
 
 ## 2) Em progresso
 
 - Etapa ativa de negocio: `9.0` (Admin Web MVP).
-- Proxima subetapa cronologica: `T9.0.1` (Admin Web MVP foundation).
+- Proxima subetapa cronologica: `T9.0.2` (Admin Web MVP operacional).
 - Planejamento tecnico ativo (docs-first):
-  - `6.3` Portal CMS backend-only.
   - `9.0` Admin Web MVP.
+  - `6.3.2` Integracao CMS no portal.
 - Observacao de paralelo:
   - Trilha visual do portal `6.2` pode estar em progresso no Antigravity; Codex deve evitar alteracoes concorrentes de layout enquanto houver lock ativo.
 
@@ -60,8 +64,9 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `bash scripts/smoke_stack_dev.sh`
   - `bash scripts/sync_memory.sh --check`
 
-#### T9.0.1 - Admin Web MVP foundation
+#### T9.0.1 - Admin Web MVP foundation [CONCLUIDA]
 - Objetivo: criar app web de gestao (shell + auth + dashboard inicial).
+- Status: concluida em 25/02/2026.
 - Escopo: admin web + ui shared + docs.
 - Risco de conflito: baixo.
 - Branch padrao:

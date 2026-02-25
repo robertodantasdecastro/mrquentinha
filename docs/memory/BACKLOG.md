@@ -18,6 +18,7 @@ Referencia: 25/02/2026.
 - [x] `T7.2.2` webhook de pagamento + reconciliacao `AR/Cash/Ledger`.
 - [x] `T7.2.3` checkout online no client com intents por metodo e polling de status.
 - [x] `T6.3.1` Portal CMS backend-only (Config/Sections + API publica/admin).
+- [x] `T9.0.1` Admin Web foundation (shell + auth + dashboard inicial).
 
 ## P0 (critico - receita/operacao)
 
@@ -32,8 +33,9 @@ Referencia: 25/02/2026.
   - `bash scripts/smoke_stack_dev.sh`
   - `bash scripts/sync_memory.sh --check`
 
-### T9.0.1 (P0)
+### T9.0.1 (CONCLUIDA)
 - Objetivo: Admin Web foundation (auth shell + dashboard inicial).
+- Status: concluida em 25/02/2026.
 - Escopo: admin web novo workspace.
 - Conflito Codex x Antigravity: baixo.
 - Branch sugerida: `main-etapa-9.0-AdminWeb-Foundation`.

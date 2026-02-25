@@ -3,6 +3,22 @@
 Atualize este arquivo no inicio de qualquer sessao em modo escrita.
 
 ## Registro atual
+- data_hora: 2026-02-25 14:05
+- agente: codex
+- branch: main-etapa-9.0-AdminWeb-Foundation
+- etapa: T9.0.1 Admin Web foundation
+- areas_ou_arquivos_tocados:
+  - workspaces/web/admin/*
+  - docs/memory/PROJECT_STATE.md
+  - docs/memory/ROADMAP_MASTER.md
+  - docs/memory/BACKLOG.md
+  - docs/memory/CHANGELOG.md
+  - .agent/memory/TODO_NEXT.md
+  - .agent/memory/CONTEXT_PACK.md
+- objetivo_imediato: Finalizar sincronizacao de memoria da T9.0.1 e preparar inicio da T9.0.2.
+- proximo_comando: bash scripts/sync_memory.sh --check
+
+## Registro anterior (manter historico curto)
 - data_hora: 2026-02-25 13:09
 - agente: codex
 - branch: main-etapa-6.3-PortalCMS-BackendOnly
@@ -20,18 +36,4 @@ Atualize este arquivo no inicio de qualquer sessao em modo escrita.
   - .agent/memory/TODO_NEXT.md
   - .agent/memory/CONTEXT_PACK.md
 - objetivo_imediato: Finalizar T6.3.1 com validacoes de qualidade e sincronizar memoria para iniciar T9.0.1.
-- proximo_comando: bash scripts/quality_gate_all.sh
-
-## Registro anterior (manter historico curto)
-- data_hora: 2026-02-24 23:20
-- agente: codex
-- branch: main
-- etapa: 7.1.1 Backend Auth/RBAC (orders/payments por usuario)
-- areas_ou_arquivos_tocados:
-  - workspaces/backend/src/apps/orders/services.py
-  - workspaces/backend/src/apps/orders/views.py
-  - workspaces/backend/tests/conftest.py
-  - workspaces/backend/tests/test_orders_api.py
-  - workspaces/backend/tests/test_orders_services.py
-- objetivo_imediato: Finalizar 7.1.1 com RBAC por ownership + papéis de gestão, validar quality gate e preparar proximo passo 7.1.2.
 - proximo_comando: bash scripts/quality_gate_all.sh

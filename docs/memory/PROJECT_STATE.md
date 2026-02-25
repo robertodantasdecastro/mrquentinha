@@ -3,9 +3,9 @@
 Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `9.0.1`.
 - Em progresso: `9.0` (Admin Web MVP).
-- Proxima execucao recomendada (unica): `T9.0.1`.
+- Proxima execucao recomendada (unica): `T9.0.2`.
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -59,14 +59,16 @@ Referencia de atualizacao: 25/02/2026.
 - Pedido/historico: escopo autenticado sem demo.
 - Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
 
-### Admin Web (planejado)
-- Status: nao iniciado no `main`.
-- Epico alvo: `9.0` (MVP operacional) e `9.1` (completo).
+### Admin Web (Next.js - 3002)
+- Status: foundation concluida em `T9.0.1` (shell + auth + dashboard inicial).
+- Workspace ativo: `workspaces/web/admin`.
+- Proximo alvo: `T9.0.2` (modulos operacionais: Pedidos, Financeiro, Estoque).
 
 ## Portas e scripts oficiais
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
 - Portal: `3000` -> `scripts/start_portal_dev.sh`
 - Client: `3001` -> `scripts/start_client_dev.sh`
+- Admin Web: `3002` -> `cd workspaces/web/admin && npm run dev -- --hostname 0.0.0.0 --port 3002`
 - Smoke: `scripts/smoke_stack_dev.sh`, `scripts/smoke_client_dev.sh`
 - Seed: `scripts/seed_demo.sh`
 - Quality gate: `scripts/quality_gate_all.sh`
@@ -93,6 +95,6 @@ Referencia de atualizacao: 25/02/2026.
 
 ## Plano da etapa ativa
 - Trilha principal: `9.0 Admin Web MVP`.
-- Etapa 6.3.1 concluida (Portal CMS backend-only: Config/Sections + API publica/admin).
-- Proxima subetapa unica: `T9.0.1` (Admin Web MVP foundation).
-- Trilhas correlatas apos 9.0.1: `T9.0.2`, `T6.3.2`.
+- T9.0.1 concluida (Admin Web foundation: shell + auth + dashboard inicial).
+- Proxima subetapa unica: `T9.0.2` (Admin Web MVP operacional).
+- Trilhas correlatas apos 9.0.2: `T6.3.2`, `T6.2.1`.
