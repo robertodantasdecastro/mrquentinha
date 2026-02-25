@@ -3,8 +3,10 @@
 ## 25/02/2026
 - Ops Center atualizado com Admin Web (porta 3002), atalhos g/h/j e layout mais amigavel.
 - Ops Center ganhou modos de ajuda, logs e compacto para operacao diaria, com cards clicaveis por servico.
+- Ops Center ganhou modal de conexoes SSH + logs de autenticacao e botao [SSH] no header.
 - Novo launcher `scripts/ops_dashboard.py` (mantendo `ops_dashboard.sh` como entrypoint).
 - Script `scripts/start_admin_dev.sh` adicionado para subir o Admin Web.
+- T9.1.1 concluida: modulo Usuarios/RBAC no backend e Admin Web (listagem de usuarios, listagem de papeis e atribuicao de roles com escopo ADMIN).
 - `docs/memory/PATHS_AND_PORTS.md` e README atualizados com porta e caminho do Admin Web.
 
 ## Sprint 0

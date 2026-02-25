@@ -3,9 +3,9 @@
 Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `9.0.1`, `9.0.2`, `9.0.3`.
-- Em progresso: `9.1` (Admin Web completo).
-- Proxima execucao recomendada (unica): `T9.1.1`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`.
+- Em progresso: `6.2` (Portal template no fluxo Antigravity).
+- Proxima execucao recomendada (unica): `T6.1.1`.
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -60,10 +60,10 @@ Referencia de atualizacao: 25/02/2026.
 - Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
 
 ### Admin Web (Next.js - 3002)
-- Status: `T9.1.1` em progresso (parcial: Cardapio, Compras e Producao operacionais no Admin Web).
-- Entrega atual: modulos de Pedidos/Financeiro/Estoque estaveis + Cardapio/Compras/Producao com fluxo operacional inicial (create/update/complete) no Admin Web.
+- Status: `T9.1.1` concluida (Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao + Usuarios/RBAC operacionais).
+- Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao estaveis com fluxo operacional e modulo Usuarios/RBAC com atribuicao de papeis.
 - Workspace ativo: `workspaces/web/admin`.
-- Proximo alvo: concluir `T9.1.1` com modulo de Usuarios/RBAC e ajustes finais de UX/validacoes.
+- Proximo alvo: hardening final de UX e relatorios exportaveis no bloco Admin Web apos alinhamento de prioridades.
 
 ## Portas e scripts oficiais
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
@@ -82,6 +82,10 @@ Referencia de atualizacao: 25/02/2026.
 - `POST /api/v1/accounts/token/`
 - `POST /api/v1/accounts/token/refresh/`
 - `GET /api/v1/accounts/me/`
+- `GET /api/v1/accounts/roles/`
+- `GET /api/v1/accounts/users/`
+- `GET /api/v1/accounts/users/<id>/`
+- `POST /api/v1/accounts/users/<id>/roles/`
 - Publicos read-only de menu:
   - `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
   - `GET /api/v1/catalog/menus/today/`
@@ -99,6 +103,6 @@ Referencia de atualizacao: 25/02/2026.
 - T9.0.1 concluida (Admin Web foundation: shell + auth + dashboard inicial).
 - T9.0.2 concluida (Admin Web operacional: Pedidos, Financeiro e Estoque conectados ao backend).
 - T9.0.3 concluida (Admin Web expansion: baseline de Cardapio, Compras e Producao).
-- T9.1.1 em progresso (parcial entregue: Cardapio operacional, Compras operacional, Producao operacional).
-- Proxima subetapa unica: finalizar `T9.1.1` (Usuarios/RBAC + hardening).
+- T9.1.1 concluida (modulo Usuarios/RBAC entregue com endpoints admin + painel no Admin Web).
+- Proxima subetapa unica: executar `T6.1.1` (Nginx/proxy local em janela dedicada).
 - Trilhas correlatas apos 9.1.1: `T6.3.2`, `T6.2.1`.
