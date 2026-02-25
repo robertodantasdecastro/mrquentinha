@@ -82,6 +82,7 @@ Qualquer mudanca em `workspaces/backend`, `workspaces/web/*` ou `scripts/` exige
 - O repositorio deve conter apenas `.env.example` com placeholders.
 
 ## Git hygiene
+- Regra global Codex: antes de qualquer comando git (commit, push, pull, merge, rebase, cherry-pick), confirme a branch correta com git branch --show-current e execute scripts/branch_guard.sh no modo do agente atual.
 - Commits pequenos e revisaveis.
 - Em mudancas grandes, preferir separar em commits de infra/docs e feature.
 - Rodar quality gate antes de push.

@@ -1,8 +1,8 @@
-import { TemplateProvider } from "@mrquentinha/ui";
 import type { Metadata } from "next";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { PortalTemplateProvider } from "@/components/TemplateProvider";
 
 import "./globals.css";
 
@@ -44,7 +44,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: initThemeScript }} />
       </head>
       <body className="bg-bg text-text antialiased">
-        <TemplateProvider template="clean">
+        <PortalTemplateProvider>
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-6 md:py-10">
@@ -52,7 +52,7 @@ export default function RootLayout({
             </main>
             <Footer />
           </div>
-        </TemplateProvider>
+        </PortalTemplateProvider>
       </body>
     </html>
   );

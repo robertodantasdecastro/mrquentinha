@@ -105,11 +105,11 @@ case "$AGENT" in
     ;;
 
   antigravity)
-    if [[ "$CURRENT_BRANCH" != "$ANTIGRAVITY_BRANCH" && "$CURRENT_BRANCH" != "$ANTIGRAVITY_BRANCH"/etapa-* ]]; then
-      fail_msg "[branch-guard] Violacao: Antigravity so pode operar em '$ANTIGRAVITY_BRANCH' ou '$ANTIGRAVITY_BRANCH/etapa-*'."
+    if [[ "$CURRENT_BRANCH" != "$ANTIGRAVITY_BRANCH" && "$CURRENT_BRANCH" != "$ANTIGRAVITY_BRANCH"/etapa-* && "$CURRENT_BRANCH" != "$ANTIGRAVITY_BRANCH"-etapa-* ]]; then
+      fail_msg "[branch-guard] Violacao: Antigravity so pode operar em '$ANTIGRAVITY_BRANCH' ou '$ANTIGRAVITY_BRANCH/etapa-*' (ou com hifen)."
       echo "[branch-guard] Branch atual: '$CURRENT_BRANCH'" >&2
       echo "[branch-guard] Correcao (principal): git checkout '$ANTIGRAVITY_BRANCH'" >&2
-      echo "[branch-guard] Correcao (etapa): git checkout -b '$ANTIGRAVITY_BRANCH/etapa-7.1-Auth-RBAC' '$ANTIGRAVITY_BRANCH'" >&2
+      echo "[branch-guard] Correcao (etapa): git checkout -b '$ANTIGRAVITY_BRANCH-etapa-7.1-Auth-RBAC' '$ANTIGRAVITY_BRANCH'" >&2
     fi
 
     if [[ "$CURRENT_BRANCH" == "$CODEX_PRIMARY" || "$CURRENT_BRANCH" == "$CODEX_PRIMARY"/etapa-* ]]; then

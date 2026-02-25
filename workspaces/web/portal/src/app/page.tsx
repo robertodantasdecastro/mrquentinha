@@ -1,11 +1,12 @@
 import Link from "next/link";
-
 import { Hero } from "@/components/Hero";
+import { CardapioList } from "@/components/CardapioList";
+import { HeroLetsFit, BenefitsBar, Categories, KitSimulator, HowToHeat, Faq } from "@/components/letsfit";
 
 const ADMIN_URL = "https://admin.mrquentinha.com.br";
 const CLIENT_AREA_URL = "https://app.mrquentinha.com.br";
 
-export default function HomePage() {
+function HomeClassic() {
   return (
     <div className="space-y-8 md:space-y-10">
       <Hero />
@@ -85,4 +86,29 @@ export default function HomePage() {
       </section>
     </div>
   );
+}
+
+function HomeLetsFit() {
+  return (
+    <div className="flex flex-col w-full">
+      <HeroLetsFit />
+      <BenefitsBar />
+      <Categories />
+      <KitSimulator />
+      <div className="my-16">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-text">Cardápio de Hoje</h2>
+          <p className="text-muted mt-2">Peça até 11h para entrega no mesmo dia</p>
+        </div>
+        <CardapioList />
+      </div>
+      <HowToHeat />
+      <Faq />
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const isLetsFit = process.env.NEXT_PUBLIC_PORTAL_TEMPLATE === "letsfit-clean";
+  return isLetsFit ? <HomeLetsFit /> : <HomeClassic />;
 }

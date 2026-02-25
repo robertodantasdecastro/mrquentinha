@@ -77,8 +77,13 @@ export function CardapioList() {
       }
 
       try {
+        const isToday = selectedDate === getDefaultDate();
+        const endpoint = isToday
+          ? `/api/v1/catalog/menus/today/`
+          : `/api/v1/catalog/menus/by-date/${selectedDate}/`;
+
         const response = await fetch(
-          `${apiBaseUrl}/api/v1/catalog/menus/by-date/${selectedDate}/`,
+          `${apiBaseUrl}${endpoint}`,
           {
             cache: "no-store",
           },

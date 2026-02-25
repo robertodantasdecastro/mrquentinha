@@ -1,8 +1,13 @@
 # Portal Institucional - Mr Quentinha
 
-Frontend institucional em Next.js (App Router) para `www.mrquentinha.com.br`.
+Frontend institucional em Next.js (App Router) para `www.mrquentinha.com.br`. Neste workspace ficam os componentes e páginas relativas ao site institucional e portal de vendas. Ele consome o design system do `@mrquentinha/ui`.
 
-## Escopo da Etapa 6.0
+## Variáveis de Ambiente e Templates
+O portal suporta diferentes de layouts via provedor de template embutido. Você pode configurar o comportamento gráfico inicial através da `.env` global `NEXT_PUBLIC_PORTAL_TEMPLATE`:
+- `classic`: (Padrão) O portal tradicional, compatível com o design original unificado.
+- `letsfit-clean`: Uma versão esteticamente baseada em landing pages clean de refeições saudáveis (ex: Liv Up / LetsFit).
+
+## Scripts locais Etapa 6.0
 - Home institucional em `/`
 - Consulta de cardapio em `/cardapio`
 - Pagina do app com QR Code em `/app`

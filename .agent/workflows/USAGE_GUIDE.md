@@ -10,6 +10,7 @@
 - Codex: `main` (ou `main/etapa-*` em desenvolvimento por etapa).
 - Antigravity: `AntigravityIDE` (ou `AntigravityIDE/etapa-*`).
 - Integracao: `Antigravity_Codex`.
+- Regra global Codex: antes de qualquer comando git, confirme branch correta com git branch --show-current e rode o guard rail correspondente.
 - Guard rail obrigatorio:
   - `bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
   - `bash scripts/branch_guard.sh --agent antigravity --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex`
