@@ -161,12 +161,22 @@ def has_global_order_access(user) -> bool:
 
 
 @transaction.atomic
-def create_order(*, customer, delivery_date: date, items_payload: list[dict]) -> Order:
+def create_order(
+    *,
+    customer,
+    delivery_date: date,
+    items_payload: list[dict],
+    payment_method: str = PaymentMethod.PIX,
+) -> Order:
     _assert_items_payload(items_payload)
     _validate_menu_items_for_delivery_date(
         delivery_date=delivery_date,
         items_payload=items_payload,
     )
+
+    method_choices = {choice for choice, _ in PaymentMethod.choices}
+    if payment_method not in method_choices:
+        raise ValidationError("Metodo de pagamento invalido.")
 
     total_amount = _calculate_total_amount(items_payload)
 
@@ -191,7 +201,7 @@ def create_order(*, customer, delivery_date: date, items_payload: list[dict]) ->
 
     Payment.objects.create(
         order=order,
-        method=PaymentMethod.PIX,
+        method=payment_method,
         status=PaymentStatus.PENDING,
         amount=total_amount,
     )

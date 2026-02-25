@@ -749,3 +749,46 @@ def test_payment_webhook_failed_marca_pagamento_failed_sem_entrada_caixa(
         reference_id=ar_item["id"],
     )
     assert movements.count() == 0
+
+
+@pytest.mark.django_db
+def test_orders_create_com_payment_method_card_permite_intent_card(
+    create_user_with_roles,
+):
+    delivery_date = date(2026, 4, 2)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    customer = create_user_with_roles(
+        username="cliente_checkout_card",
+        role_codes=[SystemRole.CLIENTE],
+    )
+    customer_client = _auth_client(customer)
+
+    create_response = customer_client.post(
+        "/api/v1/orders/orders/",
+        data=json.dumps(
+            {
+                "delivery_date": delivery_date.isoformat(),
+                "payment_method": "CARD",
+                "items": [{"menu_item": menu_item.id, "qty": 1}],
+            }
+        ),
+        content_type="application/json",
+    )
+    assert create_response.status_code == 201
+
+    order_body = create_response.json()
+    assert order_body["payments"][0]["method"] == "CARD"
+
+    payment_id = order_body["payments"][0]["id"]
+    intent_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment_id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-card-api-001",
+    )
+
+    assert intent_response.status_code == 201
+    intent_body = intent_response.json()
+    assert intent_body["client_payload"]["method"] == "CARD"
+    assert "card" in intent_body["client_payload"]

@@ -9,6 +9,7 @@ from .models import (
     Payment,
     PaymentIntent,
     PaymentIntentStatus,
+    PaymentMethod,
     PaymentStatus,
     PaymentWebhookEvent,
 )
@@ -35,6 +36,12 @@ class PaymentSummarySerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemWriteSerializer(many=True, write_only=True, required=False)
+    payment_method = serializers.ChoiceField(
+        choices=PaymentMethod.choices,
+        write_only=True,
+        required=False,
+        default=PaymentMethod.PIX,
+    )
     order_items = OrderItemReadSerializer(source="items", many=True, read_only=True)
     payments = PaymentSummarySerializer(many=True, read_only=True)
 
@@ -45,6 +52,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "customer",
             "order_date",
             "delivery_date",
+            "payment_method",
             "status",
             "total_amount",
             "created_at",
