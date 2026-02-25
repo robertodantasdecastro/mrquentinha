@@ -12,6 +12,7 @@ from .serializers import (
     MeSerializer,
     RegisterSerializer,
     RoleSerializer,
+    UserAdminSerializer,
 )
 from .services import SystemRole, get_user_role_codes
 
@@ -52,6 +53,20 @@ class RoleViewSet(
 
     def get_queryset(self):
         return list_roles()
+
+
+class UserAdminViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = UserAdminSerializer
+    permission_classes = [RoleMatrixPermission]
+    required_roles = (SystemRole.ADMIN,)
+
+    def get_queryset(self):
+        User = get_user_model()
+        return User.objects.order_by("id").prefetch_related("user_roles__role")
 
 
 class UserRoleAssignmentAPIView(APIView):

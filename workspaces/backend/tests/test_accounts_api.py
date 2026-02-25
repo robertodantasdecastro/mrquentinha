@@ -122,3 +122,72 @@ def test_catalog_menu_publico_readonly_sem_auth(anonymous_client):
 
     today_response = anonymous_client.get("/api/v1/catalog/menus/today/")
     assert today_response.status_code in {200, 404}
+
+
+@pytest.mark.django_db
+def test_accounts_users_list_requer_admin(client, anonymous_client):
+    User = get_user_model()
+
+    target_user = User.objects.create_user(
+        username="operador_financeiro",
+        password="operador_financeiro_123",
+        email="operador_financeiro@example.com",
+        first_name="Operador",
+        last_name="Financeiro",
+    )
+
+    ensure_default_roles()
+    assign_roles_to_user(
+        user=target_user,
+        role_codes=[SystemRole.FINANCEIRO],
+        replace=True,
+    )
+
+    allowed_response = client.get("/api/v1/accounts/users/")
+    assert allowed_response.status_code == 200
+
+    payload = allowed_response.json()
+    assert isinstance(payload, list)
+
+    created_payload = next(item for item in payload if item["id"] == target_user.id)
+    assert created_payload["username"] == "operador_financeiro"
+    assert set(created_payload["roles"]) == {SystemRole.FINANCEIRO}
+
+    operador_cliente = User.objects.create_user(
+        username="operador_cliente_list",
+        password="operador_cliente_list_123",
+    )
+    assign_roles_to_user(
+        user=operador_cliente,
+        role_codes=[SystemRole.CLIENTE],
+        replace=True,
+    )
+
+    anonymous_client.force_authenticate(user=operador_cliente)
+    forbidden_response = anonymous_client.get("/api/v1/accounts/users/")
+    assert forbidden_response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_accounts_users_retrieve_retorna_roles(client):
+    User = get_user_model()
+
+    target_user = User.objects.create_user(
+        username="estoquista_1",
+        password="estoquista_123",
+    )
+
+    ensure_default_roles()
+    assign_roles_to_user(
+        user=target_user,
+        role_codes=[SystemRole.ESTOQUE, SystemRole.COMPRAS],
+        replace=True,
+    )
+
+    response = client.get(f"/api/v1/accounts/users/{target_user.id}/")
+    assert response.status_code == 200
+
+    payload = response.json()
+    assert payload["id"] == target_user.id
+    assert payload["username"] == "estoquista_1"
+    assert set(payload["roles"]) == {SystemRole.ESTOQUE, SystemRole.COMPRAS}

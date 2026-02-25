@@ -17,6 +17,7 @@ import { MenuOpsPanel } from "@/components/modules/MenuOpsPanel";
 import { OrdersOpsPanel } from "@/components/modules/OrdersOpsPanel";
 import { ProcurementOpsPanel } from "@/components/modules/ProcurementOpsPanel";
 import { ProductionOpsPanel } from "@/components/modules/ProductionOpsPanel";
+import { UsersRbacPanel } from "@/components/modules/UsersRbacPanel";
 
 type ViewState = "loading" | "anonymous" | "authenticated";
 
@@ -47,19 +48,19 @@ const MODULES = [
   {
     title: "Cardapio",
     description: "Menus e pratos com baseline de planejamento operacional.",
-    stage: "T9.0.3",
+    stage: "T9.1.1",
     status: "ativo (baseline)",
   },
   {
     title: "Compras",
     description: "Requisicoes e compras recentes com visao de abastecimento.",
-    stage: "T9.0.3",
+    stage: "T9.1.1",
     status: "ativo (baseline)",
   },
   {
     title: "Producao",
     description: "Lotes por data com acompanhamento de planejado x produzido.",
-    stage: "T9.0.3",
+    stage: "T9.1.1",
     status: "ativo (baseline)",
   },
   {
@@ -72,7 +73,7 @@ const MODULES = [
     title: "Usuarios/RBAC",
     description: "Gestao de papeis, permissoes e trilha de auditoria basica.",
     stage: "T9.1.1",
-    status: "planejado",
+    status: "ativo (baseline)",
   },
 ];
 
@@ -183,10 +184,10 @@ export function AdminFoundation() {
   return (
     <div className="space-y-6">
       <section id="dashboard" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Etapa 9.0.3</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Etapa 9.1.1</p>
         <h1 className="mt-1 text-2xl font-bold text-text">Admin Web - Expansion</h1>
         <p className="mt-3 text-sm text-muted">
-          Expansao dos modulos de gestao com baseline de Cardapio, Compras e Producao sobre a base da T9.0.2.
+          Expansao dos modulos de gestao com baseline de Cardapio, Compras, Producao e Usuarios/RBAC sobre a base da T9.0.2.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
@@ -201,11 +202,11 @@ export function AdminFoundation() {
           </article>
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Trilha atual</p>
-            <p className="mt-2 text-lg font-semibold text-text">T9.0.3</p>
+            <p className="mt-2 text-lg font-semibold text-text">T9.1.1</p>
           </article>
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Modulos ativos</p>
-            <p className="mt-2 text-lg font-semibold text-text">6</p>
+            <p className="mt-2 text-lg font-semibold text-text">7</p>
           </article>
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Proxima entrega</p>
@@ -308,13 +309,14 @@ export function AdminFoundation() {
           <MenuOpsPanel />
           <ProcurementOpsPanel />
           <ProductionOpsPanel />
+          <UsersRbacPanel />
         </>
       )}
 
       <section id="prioridades" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-text">Prioridade cronologica</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted">
-          <li>Consolidar T9.0.3 com validacao completa no quality gate.</li>
+          <li>Consolidar T9.1.1 com validacao completa no quality gate.</li>
           <li>Entrar na T9.1.1 para cobertura completa dos modulos de gestao.</li>
           <li>Integrar Portal CMS no portal (T6.3.2) sem conflito com Antigravity.</li>
         </ol>

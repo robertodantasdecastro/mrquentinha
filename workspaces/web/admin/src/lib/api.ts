@@ -7,6 +7,9 @@ import {
 import type {
   AuthTokens,
   AuthUserProfile,
+  AdminUserData,
+  AssignUserRolesPayload,
+  AssignUserRolesResultData,
   CreateStockMovementPayload,
   CreateProductionBatchPayload,
   DishData,
@@ -21,6 +24,7 @@ import type {
   PurchaseRequestData,
   PurchaseRequestFromMenuResultData,
   ProcurementRequestStatus,
+  RoleData,
   StockItemData,
   StockMovementData,
   UpsertMenuDayPayload,
@@ -216,6 +220,43 @@ export async function fetchMe(): Promise<AuthUserProfile> {
     method: "GET",
     auth: true,
     cache: "no-store",
+  });
+}
+
+export async function listUsersAdmin(): Promise<AdminUserData[]> {
+  const payload = await requestJson<AdminUserData[] | { results?: AdminUserData[] }>(
+    "/api/v1/accounts/users/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function listRolesAdmin(): Promise<RoleData[]> {
+  const payload = await requestJson<RoleData[] | { results?: RoleData[] }>(
+    "/api/v1/accounts/roles/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function assignUserRolesAdmin(
+  userId: number,
+  payload: AssignUserRolesPayload,
+): Promise<AssignUserRolesResultData> {
+  return requestJson<AssignUserRolesResultData>(`/api/v1/accounts/users/${userId}/roles/`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
   });
 }
 

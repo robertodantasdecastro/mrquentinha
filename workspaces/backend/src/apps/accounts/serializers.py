@@ -38,6 +38,21 @@ class MeSerializer(serializers.Serializer):
         return sorted(get_user_role_codes(obj))
 
 
+class UserAdminSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    username = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True, allow_blank=True)
+    first_name = serializers.CharField(read_only=True)
+    last_name = serializers.CharField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
+    is_staff = serializers.BooleanField(read_only=True)
+    date_joined = serializers.DateTimeField(read_only=True)
+    roles = serializers.SerializerMethodField()
+
+    def get_roles(self, obj):
+        return sorted(get_user_role_codes(obj))
+
+
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(min_length=8, write_only=True)

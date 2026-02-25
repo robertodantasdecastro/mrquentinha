@@ -12,6 +12,39 @@ export type AuthUserProfile = {
   roles: string[];
 };
 
+export type RoleData = {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminUserData = {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  is_active: boolean;
+  is_staff: boolean;
+  date_joined: string;
+  roles: string[];
+};
+
+export type AssignUserRolesPayload = {
+  role_codes: string[];
+  replace?: boolean;
+};
+
+export type AssignUserRolesResultData = {
+  user_id: number;
+  username: string;
+  role_codes: string[];
+};
+
 export type HealthPayload = {
   status?: string;
   service?: string;
