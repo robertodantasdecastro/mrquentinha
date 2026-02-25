@@ -25,6 +25,27 @@ Portas padrao:
 - admin web: `3002`
 - portal: `3000`
 - client: `3001`
+- proxy local nginx: `8088`
+
+## Proxy local nginx (T6.1.1)
+Roteamento local por host para backend/portal/client/admin:
+
+```bash
+./scripts/start_proxy_dev.sh
+./scripts/smoke_proxy_dev.sh
+```
+
+Hosts roteados via `http://127.0.0.1:8088`:
+- `api.mrquentinha.local` -> backend
+- `www.mrquentinha.local` -> portal
+- `app.mrquentinha.local` -> client
+- `admin.mrquentinha.local` -> admin
+
+Parar proxy:
+
+```bash
+./scripts/stop_proxy_dev.sh
+```
 
 ## Seed de dados demo
 ```bash
@@ -42,6 +63,12 @@ Somente client:
 
 ```bash
 ./scripts/smoke_client_dev.sh
+```
+
+Somente proxy local:
+
+```bash
+./scripts/smoke_proxy_dev.sh
 ```
 
 ## Painel operacional (estilo btop)
@@ -82,7 +109,6 @@ Export continuo para historico diario (JSONL e CSV automaticos):
 
 Arquivos gerados em: `.runtime/ops/exports/`
 
-
 ## Qualidade
 ### Backend (a partir do root)
 ```bash
@@ -108,6 +134,12 @@ npm run build
 
 ```bash
 cd workspaces/web/client
+npm run lint
+npm run build
+```
+
+```bash
+cd workspaces/web/admin
 npm run lint
 npm run build
 ```

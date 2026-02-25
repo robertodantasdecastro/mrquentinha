@@ -180,3 +180,31 @@ Checks de API:
 curl "http://127.0.0.1:8000/api/v1/portal/config/?page=home"
 curl "http://127.0.0.1:8000/api/v1/portal/config/version"
 ```
+
+## 14) Proxy local nginx (T6.1.1)
+Pre-requisito (Ubuntu VM):
+```bash
+sudo apt-get update
+sudo apt-get install -y nginx
+```
+
+Subir proxy local em `127.0.0.1:8088`:
+```bash
+./scripts/start_proxy_dev.sh
+```
+
+Validar roteamento:
+```bash
+./scripts/smoke_proxy_dev.sh
+```
+
+Parar proxy:
+```bash
+./scripts/stop_proxy_dev.sh
+```
+
+Diagnostico rapido:
+```bash
+ss -ltnp | egrep ':8088|:8000|:3000|:3001|:3002' || true
+curl -H 'Host: api.mrquentinha.local' http://127.0.0.1:8088/api/v1/health
+```
