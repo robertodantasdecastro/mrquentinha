@@ -61,6 +61,7 @@ Referencia de atualizacao: 25/02/2026.
 
 ### Admin Web (Next.js - 3002)
 - Status: `T9.1.1` concluida (Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao + Usuarios/RBAC operacionais).
+- Hotfix aplicado em 25/02/2026 (`T9.1.1-HF1`): correcoes de `onChange` para evitar crash client-side no login e ajuste de `allowedDevOrigins` no Next 16 para acesso em `10.211.55.21:3002`.
 - Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao estaveis com fluxo operacional e modulo Usuarios/RBAC com atribuicao de papeis.
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo: hardening final de UX e relatorios exportaveis no bloco Admin Web apos alinhamento de prioridades.
@@ -105,5 +106,6 @@ Referencia de atualizacao: 25/02/2026.
 - T9.0.2 concluida (Admin Web operacional: Pedidos, Financeiro e Estoque conectados ao backend).
 - T9.0.3 concluida (Admin Web expansion: baseline de Cardapio, Compras e Producao).
 - T9.1.1 concluida (modulo Usuarios/RBAC entregue com endpoints admin + painel no Admin Web).
+- T9.1.1-HF1 concluida (hotfix de login no Admin Web: crash client-side ao digitar usuario + ajuste de allowedDevOrigins para acesso via IP).
 - Proxima subetapa unica: executar `T9.1.2` (relatorios/exportacoes no Admin Web).
 - Trilhas correlatas apos 9.1.1: `T6.2.1` (Antigravity), `T6.3.2` (Codex apos lock visual), `T9.1.2`.

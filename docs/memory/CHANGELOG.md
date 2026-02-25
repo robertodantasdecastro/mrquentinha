@@ -566,3 +566,13 @@
 - validacao completa apos entregas parciais da T9.1.1:
   - `bash scripts/quality_gate_all.sh` em status `OK`.
   - backend `112 passed`; builds portal/client/admin e smokes em `OK`.
+
+- Etapa 9.1.1-HF1 hotfix Admin Web login (prioridade):
+  - corrigido crash client-side ao digitar no formulario de login em `AdminFoundation` (captura de `event.currentTarget.value` antes de updater assincrono de estado).
+  - aplicado o mesmo hardening de `onChange` em modulos de `Orders`, `Procurement` e `Production` para evitar regressao do mesmo padrao.
+  - ajustado `workspaces/web/admin/next.config.ts` para `allowedDevOrigins` no formato esperado pelo Next 16 (hostnames), liberando acesso em `http://10.211.55.21:3002`.
+  - validacoes executadas com sucesso:
+    - `cd workspaces/web/admin && npm run lint && npm run build`
+    - `./scripts/quality_gate_all.sh`
+    - smoke manual de origem: `Origin 10.211.55.21 -> 200` e origem nao permitida -> `403` em `/_next/static/chunks/webpack.js`.
+    - autenticacao backend validada para usuario admin `roberto` via `POST /api/v1/accounts/token/` (`200`).

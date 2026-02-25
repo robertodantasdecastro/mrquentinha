@@ -11,11 +11,12 @@ Historico recente:
 8. [x] T9.0.1 Admin Web MVP foundation (auth shell + dashboard inicial) - concluida em 25/02/2026.
 9. [x] T9.0.2 Admin Web MVP operacional (Pedidos, Financeiro, Estoque) - concluida em 25/02/2026.
 10. [x] T9.0.3 Admin Web expansion (baseline Cardapio/Compras/Producao) - concluida em 25/02/2026.
+11. [x] T9.1.1 Admin Web completo: fluxo operacional de Cardapio/Compras/Producao + Usuarios/RBAC - concluida em 25/02/2026.
+12. [x] T6.1.1 Nginx/proxy local em janela dedicada - concluida em 25/02/2026.
+13. [x] T9.1.1-HF1 Hotfix Admin Web login: corrigir crash client-side ao digitar usuario e liberar `allowedDevOrigins` para acesso via IP - concluida em 25/02/2026.
 
 Fila atual:
-11. [x] T9.1.1 Admin Web completo: fluxo operacional de Cardapio/Compras/Producao + Usuarios/RBAC - concluida em 25/02/2026.
-12. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
-13. [ ] T6.3.2 Integracao CMS no portal (Codex apos lock visual 6.2, sem conflito).
-14. [x] T6.1.1 Nginx/proxy local em janela dedicada - concluida em 25/02/2026.
-15. [ ] T9.1.2 Admin Web relatorios/exportacoes (proxima execucao recomendada para Codex).
-16. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
+14. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
+15. [ ] T6.3.2 Integracao CMS no portal (Codex apos lock visual 6.2, sem conflito).
+16. [ ] T9.1.2 Admin Web relatorios/exportacoes (proxima execucao recomendada para Codex).
+17. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).

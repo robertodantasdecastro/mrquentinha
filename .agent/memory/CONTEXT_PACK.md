@@ -13,10 +13,10 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
-- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `9.0.1`, `9.0.2`, `9.0.3`.
-- Etapa ativa: `9.1` (proxima subetapa: concluir `T9.1.1`).
-- Planejamento mestre ativo: `9.1` (Admin Web completo) e `6.3.2` (Integracao CMS no portal).
-- T9.1.1 parcial entregue: Cardapio operacional, Compras operacional e Producao operacional no Admin Web.
+- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `T9.1.1-HF1`.
+- Etapa ativa: `9.1` (Admin Web completo).
+- Proxima subetapa recomendada: `T9.1.2` (relatorios/exportacoes no Admin Web).
+- Hotfix mais recente: login do Admin Web estabilizado em `http://10.211.55.21:3002` (correcao de `onChange` + `allowedDevOrigins`).
 
 ## Fonte de planejamento
 - `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -28,12 +28,13 @@
 - Backend `8000` -> `scripts/start_backend_dev.sh`
 - Portal `3000` -> `scripts/start_portal_dev.sh`
 - Client `3001` -> `scripts/start_client_dev.sh`
-- Admin `3002` -> `cd workspaces/web/admin && npm run dev -- --hostname 0.0.0.0 --port 3002`
-- Smokes -> `scripts/smoke_stack_dev.sh`, `scripts/smoke_client_dev.sh`
+- Admin `3002` -> `scripts/start_admin_dev.sh`
+- Proxy local `8088` -> `scripts/start_proxy_dev.sh`
+- Smokes -> `scripts/smoke_stack_dev.sh`, `scripts/smoke_client_dev.sh`, `scripts/smoke_proxy_dev.sh`
 - Quality -> `scripts/quality_gate_all.sh`
 - Sync -> `scripts/sync_memory.sh --check`
 
 ## Regra critica
 - Sem segredos no repositorio.
 - Evitar conflito de portal enquanto `6.2` estiver ativo no Antigravity.
-- Proximo passo unico recomendado: finalizar `T9.1.1` com modulo de Usuarios/RBAC.
+- Branch Codex por tarefa (`main-etapa-*`) e merge rapido de volta em `main` apos quality gate.
