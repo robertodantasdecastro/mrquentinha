@@ -37,6 +37,15 @@ class PaymentStatus(models.TextChoices):
     REFUNDED = "REFUNDED", "REFUNDED"
 
 
+class PaymentIntentStatus(models.TextChoices):
+    REQUIRES_ACTION = "REQUIRES_ACTION", "REQUIRES_ACTION"
+    PROCESSING = "PROCESSING", "PROCESSING"
+    SUCCEEDED = "SUCCEEDED", "SUCCEEDED"
+    FAILED = "FAILED", "FAILED"
+    CANCELED = "CANCELED", "CANCELED"
+    EXPIRED = "EXPIRED", "EXPIRED"
+
+
 class Order(TimeStampedModel):
     AR_REFERENCE_TYPE = "ORDER"
 
@@ -129,3 +138,33 @@ class Payment(models.Model):
 
     def __str__(self) -> str:
         return f"Pagamento-{self.id} ({self.status})"
+
+
+class PaymentIntent(TimeStampedModel):
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.CASCADE,
+        related_name="intents",
+    )
+    provider = models.CharField(max_length=40)
+    status = models.CharField(
+        max_length=24,
+        choices=PaymentIntentStatus.choices,
+        default=PaymentIntentStatus.REQUIRES_ACTION,
+    )
+    idempotency_key = models.CharField(max_length=128)
+    provider_intent_ref = models.CharField(max_length=180, null=True, blank=True)
+    client_payload = models.JSONField(default=dict, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["payment", "idempotency_key"],
+                name="orders_paymentintent_payment_idempotency_unique",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"Intent-{self.id} pagamento-{self.payment_id} ({self.status})"

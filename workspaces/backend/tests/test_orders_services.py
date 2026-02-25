@@ -373,3 +373,132 @@ def test_update_payment_status_permite_papel_gestao_em_pagamento_de_terceiro(
     )
 
     assert updated_payment.status == PaymentStatus.PAID
+
+
+@pytest.mark.django_db
+def test_create_or_get_payment_intent_replay_idempotente():
+    from apps.orders.models import PaymentIntentStatus
+    from apps.orders.services import create_or_get_payment_intent
+
+    delivery_date = date(2026, 3, 18)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("19.00"),
+        dish_name="Prato Intent Replay",
+        ingredient_name="Ingrediente Intent Replay",
+    )
+
+    order = create_order(
+        customer=None,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    intent_1, created_1 = create_or_get_payment_intent(
+        payment_id=payment.id,
+        idempotency_key="intent-replay-001",
+    )
+    intent_2, created_2 = create_or_get_payment_intent(
+        payment_id=payment.id,
+        idempotency_key="intent-replay-001",
+    )
+
+    assert created_1 is True
+    assert created_2 is False
+    assert intent_1.id == intent_2.id
+    assert intent_1.status == PaymentIntentStatus.REQUIRES_ACTION
+
+
+@pytest.mark.django_db
+def test_create_or_get_payment_intent_bloqueia_segundo_intent_ativo_com_outra_chave():
+    from apps.orders.services import (
+        PaymentIntentConflictError,
+        create_or_get_payment_intent,
+    )
+
+    delivery_date = date(2026, 3, 19)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("17.00"),
+        dish_name="Prato Intent Conflito",
+        ingredient_name="Ingrediente Intent Conflito",
+    )
+
+    order = create_order(
+        customer=None,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    create_or_get_payment_intent(
+        payment_id=payment.id,
+        idempotency_key="intent-conflito-001",
+    )
+
+    with pytest.raises(PaymentIntentConflictError, match="intent ativo"):
+        create_or_get_payment_intent(
+            payment_id=payment.id,
+            idempotency_key="intent-conflito-002",
+        )
+
+
+@pytest.mark.django_db
+def test_create_or_get_payment_intent_bloqueia_pagamento_ja_pago():
+    from apps.orders.services import (
+        PaymentIntentConflictError,
+        create_or_get_payment_intent,
+    )
+
+    delivery_date = date(2026, 3, 20)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("20.00"),
+        dish_name="Prato Intent Pago",
+        ingredient_name="Ingrediente Intent Pago",
+    )
+
+    order = create_order(
+        customer=None,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+    payment.status = PaymentStatus.PAID
+    payment.save(update_fields=["status"])
+
+    with pytest.raises(PaymentIntentConflictError, match="Pagamento ja confirmado"):
+        create_or_get_payment_intent(
+            payment_id=payment.id,
+            idempotency_key="intent-paid-001",
+        )
+
+
+@pytest.mark.django_db
+def test_create_or_get_payment_intent_bloqueia_metodo_cash():
+    from apps.orders.models import PaymentMethod
+    from apps.orders.services import create_or_get_payment_intent
+
+    delivery_date = date(2026, 3, 21)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("21.00"),
+        dish_name="Prato Intent Cash",
+        ingredient_name="Ingrediente Intent Cash",
+    )
+
+    order = create_order(
+        customer=None,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+    payment.method = PaymentMethod.CASH
+    payment.save(update_fields=["method"])
+
+    with pytest.raises(ValidationError, match="nao suporta intent online"):
+        create_or_get_payment_intent(
+            payment_id=payment.id,
+            idempotency_key="intent-cash-001",
+        )

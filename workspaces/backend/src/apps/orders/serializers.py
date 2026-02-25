@@ -2,7 +2,14 @@ from rest_framework import serializers
 
 from apps.catalog.models import MenuItem
 
-from .models import Order, OrderItem, OrderStatus, Payment, PaymentStatus
+from .models import (
+    Order,
+    OrderItem,
+    OrderStatus,
+    Payment,
+    PaymentIntent,
+    PaymentStatus,
+)
 
 
 class OrderItemWriteSerializer(serializers.Serializer):
@@ -104,3 +111,23 @@ class PaymentStatusUpdateSerializer(serializers.Serializer):
         allow_null=True,
     )
     paid_at = serializers.DateTimeField(required=False, allow_null=True)
+
+
+class PaymentIntentSerializer(serializers.ModelSerializer):
+    payment_id = serializers.IntegerField(source="payment.id", read_only=True)
+
+    class Meta:
+        model = PaymentIntent
+        fields = [
+            "id",
+            "payment_id",
+            "provider",
+            "status",
+            "idempotency_key",
+            "provider_intent_ref",
+            "client_payload",
+            "expires_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields

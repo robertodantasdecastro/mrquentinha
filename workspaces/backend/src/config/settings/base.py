@@ -89,6 +89,15 @@ MEDIA_ROOT = ROOT_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+PAYMENTS_PROVIDER_DEFAULT = env(
+    "PAYMENTS_PROVIDER_DEFAULT",
+    default="mock",
+)
+PAYMENTS_INTENT_TTL_MINUTES = env.int(
+    "PAYMENTS_INTENT_TTL_MINUTES",
+    default=15,
+)
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",

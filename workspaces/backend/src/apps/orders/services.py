@@ -1,3 +1,4 @@
+import string
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -13,12 +14,47 @@ from .models import (
     OrderItem,
     OrderStatus,
     Payment,
+    PaymentIntent,
+    PaymentIntentStatus,
     PaymentMethod,
     PaymentStatus,
 )
+from .payment_providers import get_payment_provider
 from .selectors import get_menu_day_for_delivery
 
 MONEY_DECIMAL_PLACES = Decimal("0.01")
+IDEMPOTENCY_ALLOWED_CHARS = set(string.ascii_letters + string.digits + "-_.:")
+IDEMPOTENCY_KEY_MAX_LENGTH = 128
+ONLINE_INTENT_METHODS = {PaymentMethod.PIX, PaymentMethod.CARD, PaymentMethod.VR}
+INTENT_ACTIVE_STATUSES = {
+    PaymentIntentStatus.REQUIRES_ACTION,
+    PaymentIntentStatus.PROCESSING,
+}
+
+
+class PaymentIntentConflictError(Exception):
+    pass
+
+
+def normalize_idempotency_key(idempotency_key: str) -> str:
+    normalized_key = (idempotency_key or "").strip()
+
+    if not normalized_key:
+        raise ValidationError("Header Idempotency-Key obrigatorio.")
+
+    if len(normalized_key) > IDEMPOTENCY_KEY_MAX_LENGTH:
+        raise ValidationError(
+            "Idempotency-Key deve ter no maximo "
+            f"{IDEMPOTENCY_KEY_MAX_LENGTH} caracteres."
+        )
+
+    if any(char not in IDEMPOTENCY_ALLOWED_CHARS for char in normalized_key):
+        raise ValidationError(
+            "Idempotency-Key contem caracteres invalidos. Use apenas letras, "
+            "numeros e -_.:."
+        )
+
+    return normalized_key
 
 
 def _quantize_money(value: Decimal) -> Decimal:
@@ -220,6 +256,96 @@ def update_payment_status(
     payment.save()
 
     if payment.status == PaymentStatus.PAID:
+        PaymentIntent.objects.filter(
+            payment=payment,
+            status__in=INTENT_ACTIVE_STATUSES,
+        ).update(
+            status=PaymentIntentStatus.SUCCEEDED,
+            updated_at=timezone.now(),
+        )
         _sync_paid_payment_cash_flow(payment=payment)
 
     return payment
+
+
+@transaction.atomic
+def create_or_get_payment_intent(
+    *,
+    payment_id: int,
+    idempotency_key: str,
+    actor_user=None,
+) -> tuple[PaymentIntent, bool]:
+    normalized_key = normalize_idempotency_key(idempotency_key)
+
+    try:
+        payment = (
+            Payment.objects.select_for_update()
+            .select_related("order")
+            .get(pk=payment_id)
+        )
+    except Payment.DoesNotExist as exc:
+        raise ValidationError("Pagamento nao encontrado.") from exc
+
+    if actor_user is not None and not has_global_order_access(actor_user):
+        if payment.order.customer_id != getattr(actor_user, "id", None):
+            raise ValidationError("Pagamento nao encontrado.")
+
+    if payment.method not in ONLINE_INTENT_METHODS:
+        raise ValidationError("Metodo de pagamento nao suporta intent online.")
+
+    if payment.status == PaymentStatus.PAID:
+        raise PaymentIntentConflictError(
+            "Pagamento ja confirmado. Nao e permitido abrir novo intent."
+        )
+
+    existing = PaymentIntent.objects.filter(
+        payment=payment,
+        idempotency_key=normalized_key,
+    ).first()
+    if existing is not None:
+        return existing, False
+
+    conflicting_intent = (
+        PaymentIntent.objects.filter(payment=payment, status__in=INTENT_ACTIVE_STATUSES)
+        .exclude(idempotency_key=normalized_key)
+        .first()
+    )
+    if conflicting_intent is not None:
+        raise PaymentIntentConflictError(
+            "Ja existe um intent ativo para este pagamento."
+        )
+
+    provider = get_payment_provider()
+    provider_result = provider.create_intent(
+        payment=payment,
+        idempotency_key=normalized_key,
+    )
+
+    intent = PaymentIntent.objects.create(
+        payment=payment,
+        provider=provider_result.provider,
+        status=provider_result.status,
+        idempotency_key=normalized_key,
+        provider_intent_ref=provider_result.provider_intent_ref,
+        client_payload=provider_result.client_payload,
+        expires_at=provider_result.expires_at,
+    )
+
+    return intent, True
+
+
+def get_latest_payment_intent(
+    *,
+    payment_id: int,
+    actor_user=None,
+) -> PaymentIntent | None:
+    try:
+        payment = Payment.objects.select_related("order").get(pk=payment_id)
+    except Payment.DoesNotExist as exc:
+        raise ValidationError("Pagamento nao encontrado.") from exc
+
+    if actor_user is not None and not has_global_order_access(actor_user):
+        if payment.order.customer_id != getattr(actor_user, "id", None):
+            raise ValidationError("Pagamento nao encontrado.")
+
+    return payment.intents.order_by("-created_at", "-id").first()

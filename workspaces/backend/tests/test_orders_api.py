@@ -317,3 +317,216 @@ def test_financeiro_lista_todos_e_atualiza_pagamento_de_terceiro(
     )
     assert payment_response.status_code == 200
     assert payment_response.json()["status"] == "PAID"
+
+
+@pytest.mark.django_db
+def test_payment_intent_post_cria_e_retry_idempotente(create_user_with_roles):
+    delivery_date = date(2026, 3, 22)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    customer = create_user_with_roles(
+        username="cliente_intent_post",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+    endpoint = f"/api/v1/orders/payments/{payment.id}/intent/"
+
+    create_response = customer_client.post(
+        endpoint,
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-api-001",
+    )
+    assert create_response.status_code == 201
+
+    create_body = create_response.json()
+    assert create_body["idempotent_replay"] is False
+    assert create_body["payment_id"] == payment.id
+
+    retry_response = customer_client.post(
+        endpoint,
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-api-001",
+    )
+    assert retry_response.status_code == 200
+
+    retry_body = retry_response.json()
+    assert retry_body["id"] == create_body["id"]
+    assert retry_body["idempotent_replay"] is True
+
+
+@pytest.mark.django_db
+def test_payment_intent_post_retorna_400_sem_header_idempotency_key(
+    create_user_with_roles,
+):
+    delivery_date = date(2026, 3, 23)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    customer = create_user_with_roles(
+        username="cliente_intent_sem_header",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+    response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert "Idempotency-Key" in str(response.json())
+
+
+@pytest.mark.django_db
+def test_payment_intent_post_retorna_404_para_pagamento_de_outro_cliente(
+    create_user_with_roles,
+):
+    delivery_date = date(2026, 3, 24)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    owner = create_user_with_roles(
+        username="cliente_intent_owner",
+        role_codes=[SystemRole.CLIENTE],
+    )
+    other = create_user_with_roles(
+        username="cliente_intent_other",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    other_client = _auth_client(other)
+    response = other_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-other-001",
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_payment_intent_post_retorna_409_para_pagamento_ja_pago(create_user_with_roles):
+    delivery_date = date(2026, 3, 25)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    customer = create_user_with_roles(
+        username="cliente_intent_paid",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+    payment.status = "PAID"
+    payment.save(update_fields=["status"])
+
+    customer_client = _auth_client(customer)
+    response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-paid-api-001",
+    )
+
+    assert response.status_code == 409
+    assert "Pagamento ja confirmado" in response.json()["detail"]
+
+
+@pytest.mark.django_db
+def test_payment_intent_latest_retorna_intent_mais_recente(create_user_with_roles):
+    delivery_date = date(2026, 3, 26)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    customer = create_user_with_roles(
+        username="cliente_intent_latest",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+    create_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-latest-001",
+    )
+    assert create_response.status_code == 201
+    created_intent_id = create_response.json()["id"]
+
+    latest_response = customer_client.get(
+        f"/api/v1/orders/payments/{payment.id}/intent/latest/"
+    )
+
+    assert latest_response.status_code == 200
+    assert latest_response.json()["id"] == created_intent_id
+
+
+@pytest.mark.django_db
+def test_payment_intent_post_retorna_409_para_chave_diferente_com_intent_ativo(
+    create_user_with_roles,
+):
+    delivery_date = date(2026, 3, 27)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    customer = create_user_with_roles(
+        username="cliente_intent_conflict",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+
+    first_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-conflict-001",
+    )
+    assert first_response.status_code == 201
+
+    conflict_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-conflict-002",
+    )
+    assert conflict_response.status_code == 409

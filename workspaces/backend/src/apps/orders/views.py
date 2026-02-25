@@ -18,12 +18,17 @@ from .selectors import list_orders, list_payments
 from .serializers import (
     OrderSerializer,
     OrderStatusUpdateSerializer,
+    PaymentIntentSerializer,
     PaymentSerializer,
     PaymentStatusUpdateSerializer,
 )
 from .services import (
+    PaymentIntentConflictError,
+    create_or_get_payment_intent,
     create_order,
+    get_latest_payment_intent,
     has_global_order_access,
+    normalize_idempotency_key,
     update_order_status,
     update_payment_status,
 )
@@ -104,6 +109,8 @@ class PaymentViewSet(
         "retrieve": PAYMENT_READ_ROLES,
         "update": (*PAYMENT_WRITE_ROLES, SystemRole.CLIENTE),
         "partial_update": (*PAYMENT_WRITE_ROLES, SystemRole.CLIENTE),
+        "intent": (*PAYMENT_WRITE_ROLES, SystemRole.CLIENTE),
+        "intent_latest": PAYMENT_READ_ROLES,
     }
 
     def get_queryset(self):
@@ -142,3 +149,57 @@ class PaymentViewSet(
 
         output = PaymentSerializer(updated_payment)
         return Response(output.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="intent")
+    def intent(self, request, pk=None):
+        payment = self.get_object()
+
+        try:
+            idempotency_key = normalize_idempotency_key(
+                request.headers.get("Idempotency-Key", "")
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        try:
+            intent, created = create_or_get_payment_intent(
+                payment_id=payment.id,
+                idempotency_key=idempotency_key,
+                actor_user=request.user,
+            )
+        except PaymentIntentConflictError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        payload = PaymentIntentSerializer(intent).data
+        payload["idempotent_replay"] = not created
+
+        return Response(
+            payload,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["get"], url_path="intent/latest")
+    def intent_latest(self, request, pk=None):
+        payment = self.get_object()
+
+        try:
+            intent = get_latest_payment_intent(
+                payment_id=payment.id,
+                actor_user=request.user,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        if intent is None:
+            return Response(
+                {"detail": "Intent de pagamento nao encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        payload = PaymentIntentSerializer(intent)
+        return Response(payload.data, status=status.HTTP_200_OK)
