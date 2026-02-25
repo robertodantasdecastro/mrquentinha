@@ -17,11 +17,13 @@ Referencia: 25/02/2026.
 - [x] `T7.2.1` payment intents com idempotencia.
 - [x] `T7.2.2` webhook de pagamento + reconciliacao `AR/Cash/Ledger`.
 - [x] `T7.2.3` checkout online no client com intents por metodo e polling de status.
+- [x] `T6.3.1` Portal CMS backend-only (Config/Sections + API publica/admin).
 
 ## P0 (critico - receita/operacao)
 
-### T6.3.1 (P0)
+### T6.3.1 (CONCLUIDA)
 - Objetivo: Portal CMS backend-only (Config + Sections + API publica/admin).
+- Status: concluida em 25/02/2026.
 - Escopo: backend + docs.
 - Conflito Codex x Antigravity: medio (intersecao funcional com portal 6.2).
 - Branch sugerida: `main-etapa-6.3-PortalCMS-BackendOnly`.

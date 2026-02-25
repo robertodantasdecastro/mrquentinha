@@ -300,3 +300,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - compartilhar componentes/tokens via `workspaces/web/ui` quando aplicavel.
 - Consequencia:
   - clareza de fronteira entre canal institucional (portal), canal cliente (client) e canal interno (admin).
+
+## 25/02/2026 - Contrato do Portal CMS backend-only (T6.3.1)
+- Status: aceito.
+- Decisao:
+  - app dedicado `portal` no backend para concentrar configuracao e secoes do portal institucional.
+  - configuracao global em `PortalConfig` (singleton) e conteudo por template/pagina em `PortalSection` com `JSONField`.
+  - API publica read-only para render do portal:
+    - `GET /api/v1/portal/config/`
+    - `GET /api/v1/portal/config/version`
+  - API de administracao mantida autenticada (MVP) via endpoints `admin/config` e `admin/sections`.
+- Consequencia:
+  - desacopla conteudo do portal institucional do frontend.
+  - prepara terreno para a etapa `T6.3.2` (portal consumindo CMS) sem bloquear trilha visual do Antigravity.

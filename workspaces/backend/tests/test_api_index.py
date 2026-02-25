@@ -13,6 +13,7 @@ def test_api_index_endpoint_retorna_payload_esperado(client):
             "finance": "/api/v1/finance",
             "production": "/api/v1/production",
             "ocr": "/api/v1/ocr",
+            "portal": "/api/v1/portal",
         },
     }
 

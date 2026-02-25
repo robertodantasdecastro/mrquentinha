@@ -29,12 +29,13 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 - `T7.2.2` concluida: webhook idempotente + reconciliacao financeira (`AR/Cash/Ledger`).
   - Evidencia: modelo `PaymentWebhookEvent`, endpoint `/api/v1/orders/payments/webhook/`, testes API de replay e reconciliacao.
 - `T7.2.3` concluida: checkout online no client com selecao de metodo (PIX/CARD/VR), criacao de intent e polling de status.
-  - Evidencia: `workspaces/web/client/src/components/MenuPage.tsx`, `CartDrawer.tsx`, `lib/api.ts`, testes backend de `payment_method` e intent CARD.
+- `T6.3.1` concluida: Portal CMS backend-only com Config/Sections, API publica read-only e endpoints admin.
+  - Evidencia: `workspaces/backend/src/apps/portal/`, `workspaces/backend/tests/test_portal_api.py`, `workspaces/backend/tests/test_portal_services.py`.
 
 ## 2) Em progresso
 
-- Etapa ativa de negocio: `6.3` (Portal CMS backend-only).
-- Proxima subetapa cronologica: `T6.3.1` (Config/Sections + API publica/admin).
+- Etapa ativa de negocio: `9.0` (Admin Web MVP).
+- Proxima subetapa cronologica: `T9.0.1` (Admin Web MVP foundation).
 - Planejamento tecnico ativo (docs-first):
   - `6.3` Portal CMS backend-only.
   - `9.0` Admin Web MVP.
@@ -45,8 +46,9 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 
 ### P0 (desbloqueia operacao/receita)
 
-#### T6.3.1 - Portal CMS backend-only (MVP)
+#### T6.3.1 - Portal CMS backend-only (MVP) [CONCLUIDA]
 - Objetivo: entregar backend do CMS (Config + Sections por template/pagina) com API publica read-only e endpoints de administracao.
+- Status: concluida em 25/02/2026.
 - Escopo: backend + docs.
 - Risco de conflito: medio (interseca funcionalmente com portal 6.2; sem mexer no layout).
 - Branch padrao:

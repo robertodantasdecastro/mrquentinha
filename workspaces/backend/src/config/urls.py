@@ -23,6 +23,7 @@ def api_index_view(_request):
                 "finance": "/api/v1/finance",
                 "production": "/api/v1/production",
                 "ocr": "/api/v1/ocr",
+                "portal": "/api/v1/portal",
             },
         }
     )
@@ -51,6 +52,7 @@ urlpatterns = [
     path("api/v1/production/", include("apps.production.urls")),
     path("api/v1/finance/", include("apps.finance.urls")),
     path("api/v1/ocr/", include("apps.ocr_ai.urls")),
+    path("api/v1/portal/", include("apps.portal.urls")),
 ]
 
 if settings.DEBUG:

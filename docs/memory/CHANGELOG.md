@@ -448,3 +448,20 @@
 - docs(memory): sincronizacao de estado apos T7.2.3
   - `PROJECT_STATE`, `TODO_NEXT`, `CONTEXT_PACK`, `ROADMAP_MASTER` e `BACKLOG` atualizados.
   - etapa ativa movida para `6.3` com proxima subetapa unica `T6.3.1`.
+
+- Etapa 6.3.1 portal cms backend-only:
+  - novo app backend `portal` com modelos `PortalConfig` (singleton) e `PortalSection` (template/page/key + `body_json`).
+  - novos endpoints:
+    - publico: `GET /api/v1/portal/config/`, `GET /api/v1/portal/config/version`.
+    - admin (MVP): `/api/v1/portal/admin/config/` e `/api/v1/portal/admin/sections/`.
+  - comando idempotente de seed: `python manage.py seed_portal_default` para carga default (`classic` e `letsfit-clean`).
+  - integracao no indice da API (`/`) e no roteamento principal (`config/urls.py`).
+  - cobertura de testes adicionada em `tests/test_portal_services.py` e `tests/test_portal_api.py`.
+  - validacoes executadas:
+    - `cd workspaces/backend && source .venv/bin/activate && python manage.py check`
+    - `cd workspaces/backend && source .venv/bin/activate && make lint`
+    - `cd workspaces/backend && source .venv/bin/activate && pytest -q tests/test_portal_services.py tests/test_portal_api.py tests/test_api_index.py`
+
+- docs(memory): sincronizacao apos T6.3.1
+  - `PROJECT_STATE`, `TODO_NEXT` e `CONTEXT_PACK` atualizados.
+  - proxima subetapa recomendada: `T9.0.1` (Admin Web MVP foundation).

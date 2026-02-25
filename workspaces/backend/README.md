@@ -629,3 +629,43 @@ Via script no root:
 ```
 
 O seed cria dados realistas de catalogo, menu, compras, estoque, producao, pedidos, financeiro e OCR simulado.
+
+## Portal CMS (Etapa 6.3 - backend-only)
+
+### Objetivo
+Disponibilizar configuracao e conteudo dinamico do portal via API, com suporte a multiplos templates sem alterar codigo frontend.
+
+### Endpoints publicos (AllowAny)
+- `GET /api/v1/portal/config/`
+- `GET /api/v1/portal/config/version`
+
+`GET /api/v1/portal/config/` aceita query param opcional `page` (ex.: `home`, `sobre`, `contato`).
+A resposta usa o `active_template` atual e retorna apenas secoes habilitadas (`is_enabled=true`) ordenadas por `sort_order`.
+
+Exemplo:
+```bash
+curl "http://127.0.0.1:8000/api/v1/portal/config/?page=home"
+curl "http://127.0.0.1:8000/api/v1/portal/config/version"
+```
+
+### Endpoints privados (admin/staff MVP)
+- `GET /api/v1/portal/admin/config/`
+- `POST /api/v1/portal/admin/config/`
+- `PATCH /api/v1/portal/admin/config/<id>/`
+- `POST /api/v1/portal/admin/config/publish/`
+- `GET/POST/PATCH/DELETE /api/v1/portal/admin/sections/`
+
+Regra MVP atual:
+- acesso admin por `is_superuser`/`is_staff`;
+- fallback temporario para papel `ADMIN`.
+
+### Seed default do Portal CMS
+Comando para criar/atualizar configuracao default e secoes dos templates `classic` e `letsfit-clean`:
+
+```bash
+cd workspaces/backend
+source .venv/bin/activate
+python manage.py seed_portal_default
+```
+
+O comando e idempotente: pode ser executado repetidas vezes sem duplicar secoes.
