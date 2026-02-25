@@ -22,7 +22,7 @@ export const CARDAPIO_MENU_ITEMS = [
   { key: "all", label: "Todos", href: CARDAPIO_BASE_PATH },
   { key: "planejamento", label: "Planejamento", href: `${CARDAPIO_BASE_PATH}/planejamento#planejamento` },
   { key: "menus", label: "Menus", href: `${CARDAPIO_BASE_PATH}/menus#menus` },
-  { key: "tendencias", label: "Tendencias", href: `${CARDAPIO_BASE_PATH}/tendencias#tendencias` },
+  { key: "tendencias", label: "Tendências", href: `${CARDAPIO_BASE_PATH}/tendencias#tendencias` },
 ];
 
 export type CardapioSectionKey =
@@ -54,7 +54,7 @@ function resolveErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Falha inesperada ao carregar dados do cardapio.";
+  return "Falha inesperada ao carregar dados do cardápio.";
 }
 
 export function CardapioSections({ activeSection = "all" }: CardapioSectionsProps) {
@@ -143,11 +143,11 @@ export function CardapioSections({ activeSection = "all" }: CardapioSectionsProp
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-text">Planejamento do dia</h2>
-              <p className="mt-1 text-sm text-muted">Resumo do cardapio ativo e porcoes previstas.</p>
+              <p className="mt-1 text-sm text-muted">Resumo do cardápio ativo e porções previstas.</p>
             </div>
             <StatusPill tone="brand">Menu ativo</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando resumo do cardapio...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando resumo do cardápio...</p>}
           {!loading && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -159,7 +159,7 @@ export function CardapioSections({ activeSection = "all" }: CardapioSectionsProp
                 <p className="mt-1 text-2xl font-semibold text-text">{pratosDoDia}</p>
               </article>
               <article className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Porcoes previstas</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Porções previstas</p>
                 <p className="mt-1 text-2xl font-semibold text-text">{porcoesPrevistas}</p>
               </article>
             </div>
@@ -177,20 +177,20 @@ export function CardapioSections({ activeSection = "all" }: CardapioSectionsProp
         <section id="tendencias" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Tendencias do cardapio</h2>
+              <h2 className="text-lg font-semibold text-text">Tendências do cardápio</h2>
               <p className="mt-1 text-sm text-muted">Demanda e sazonalidade por prato.</p>
             </div>
             <StatusPill tone="info">{dishes.length} pratos cadastrados</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando tendencias...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando tendências...</p>}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Porcoes planejadas (7 dias)</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Porções planejadas (7 dias)</p>
                 <Sparkline values={trendValues} className="mt-3" />
               </div>
               <div className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Top pratos (ultimos dias)</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Top pratos (últimos dias)</p>
                 <div className="mt-4">
                   <MiniBarChart values={topDishValues} />
                 </div>

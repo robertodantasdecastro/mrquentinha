@@ -19,9 +19,9 @@ export const USUARIOS_RBAC_BASE_PATH = "/modulos/usuarios-rbac";
 
 export const USUARIOS_RBAC_MENU_ITEMS = [
   { key: "all", label: "Todos", href: USUARIOS_RBAC_BASE_PATH },
-  { key: "visao-geral", label: "Visao geral", href: `${USUARIOS_RBAC_BASE_PATH}/visao-geral#visao-geral` },
-  { key: "usuarios", label: "Usuarios", href: `${USUARIOS_RBAC_BASE_PATH}/usuarios#usuarios` },
-  { key: "tendencias", label: "Tendencias", href: `${USUARIOS_RBAC_BASE_PATH}/tendencias#tendencias` },
+  { key: "visao-geral", label: "Visão geral", href: `${USUARIOS_RBAC_BASE_PATH}/visao-geral#visao-geral` },
+  { key: "usuarios", label: "Usuários", href: `${USUARIOS_RBAC_BASE_PATH}/usuarios#usuarios` },
+  { key: "tendencias", label: "Tendências", href: `${USUARIOS_RBAC_BASE_PATH}/tendencias#tendencias` },
 ];
 
 export type UsuariosRbacSectionKey =
@@ -125,16 +125,16 @@ export function UsuariosRbacSections({ activeSection = "all" }: UsuariosRbacSect
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Visao geral</h2>
-              <p className="mt-1 text-sm text-muted">Distribuicao de papeis e acessos criticos.</p>
+              <h2 className="text-lg font-semibold text-text">Visão geral</h2>
+              <p className="mt-1 text-sm text-muted">Distribuição de papéis e acessos críticos.</p>
             </div>
             <StatusPill tone="info">Roles ativos</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando resumo de usuarios...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando resumo de usuários...</p>}
           {!loading && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <article className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Usuarios ativos</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Usuários ativos</p>
                 <p className="mt-1 text-2xl font-semibold text-text">{users.length}</p>
               </article>
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -142,7 +142,7 @@ export function UsuariosRbacSections({ activeSection = "all" }: UsuariosRbacSect
                 <p className="mt-1 text-2xl font-semibold text-text">{adminCount}</p>
               </article>
               <article className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Papeis ativos</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Papéis ativos</p>
                 <p className="mt-1 text-2xl font-semibold text-text">{roles.length}</p>
               </article>
             </div>
@@ -160,20 +160,20 @@ export function UsuariosRbacSections({ activeSection = "all" }: UsuariosRbacSect
         <section id="tendencias" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Tendencias de acesso</h2>
-              <p className="mt-1 text-sm text-muted">Ativacoes recentes e distribuicao de roles.</p>
+              <h2 className="text-lg font-semibold text-text">Tendências de acesso</h2>
+              <p className="mt-1 text-sm text-muted">Ativações recentes e distribuição de roles.</p>
             </div>
-            <StatusPill tone="brand">Usuarios ativos</StatusPill>
+            <StatusPill tone="brand">Usuários ativos</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando tendencias...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando tendências...</p>}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Ativacoes semanais</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Ativações semanais</p>
                 <Sparkline values={usersSeries} className="mt-3" />
               </div>
               <div className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Distribuicao de roles</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Distribuição de roles</p>
                 <div className="mt-4">
                   <MiniBarChart values={roleValues} />
                 </div>

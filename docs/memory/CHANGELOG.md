@@ -648,3 +648,4 @@
   - filtros de periodo adicionados ao modulo de Relatorios com validacao de intervalo.
   - exportacao CSV conectada aos endpoints do backend (fluxo de caixa, compras, producao, pedidos e DRE).
   - textos ajustados para pt-BR (Relatorios/Modulos/Exportacao/Producao).
+  - padronizacao de acentuacao em telas de Cardapio, Estoque, Compras, Pedidos, Financeiro e Usuarios/RBAC.

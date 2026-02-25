@@ -8,7 +8,7 @@ export default function ProducaoModulePage() {
   return (
     <AdminSessionGate>
       <ModulePageShell
-        title="Producao"
+        title="Produção"
         description="Acompanhe lotes, rendimento e comparativo planejado x produzido."
         statusLabel="Baseline ativo"
         statusTone="info"

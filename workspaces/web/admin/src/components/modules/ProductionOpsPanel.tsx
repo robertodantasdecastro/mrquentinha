@@ -247,7 +247,7 @@ export function ProductionOpsPanel() {
     <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-text">Producao</h3>
+          <h3 className="text-lg font-semibold text-text">Produção</h3>
           <p className="text-sm text-muted">
             Fluxo operacional: criar lotes por cardapio e concluir execucao do dia.
           </p>

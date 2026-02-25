@@ -20,7 +20,7 @@ function resolveErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Falha inesperada ao carregar modulo de Usuarios/RBAC.";
+  return "Falha inesperada ao carregar módulo de Usuários/RBAC.";
 }
 
 function formatDateTime(valueRaw: string): string {
@@ -123,12 +123,12 @@ export function UsersRbacPanel() {
 
   async function handleSaveRoles() {
     if (!selectedUser) {
-      setErrorMessage("Selecione um usuario para atualizar papeis.");
+      setErrorMessage("Selecione um usuário para atualizar papéis.");
       return;
     }
 
     if (selectedRoleCodes.length === 0) {
-      setErrorMessage("Selecione ao menos um papel para o usuario.");
+      setErrorMessage("Selecione ao menos um papel para o usuário.");
       return;
     }
 
@@ -143,7 +143,7 @@ export function UsersRbacPanel() {
       });
 
       setMessage(
-        `Papeis de ${result.username} atualizados: ${result.role_codes.join(", ")}.`,
+        `Papéis de ${result.username} atualizados: ${result.role_codes.join(", ")}.`,
       );
       await loadUsersRbac({ silent: true });
     } catch (error) {
@@ -157,9 +157,9 @@ export function UsersRbacPanel() {
     <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-text">Usuarios e RBAC</h3>
+          <h3 className="text-lg font-semibold text-text">Usuários e RBAC</h3>
           <p className="text-sm text-muted">
-            Gestao de papeis por usuario com escopo administrativo (ADMIN).
+            Gestão de papéis por usuário com escopo administrativo (ADMIN).
           </p>
         </div>
         <button
@@ -172,13 +172,13 @@ export function UsersRbacPanel() {
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando modulo de Usuarios/RBAC...</p>}
+      {loading && <p className="mt-4 text-sm text-muted">Carregando módulo de Usuários/RBAC...</p>}
 
       {!loading && (
         <>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <article className="rounded-xl border border-border bg-bg p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Usuarios</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Usuários</p>
               <p className="mt-1 text-2xl font-semibold text-text">{users.length}</p>
             </article>
             <article className="rounded-xl border border-border bg-bg p-4">
@@ -186,16 +186,16 @@ export function UsersRbacPanel() {
               <p className="mt-1 text-2xl font-semibold text-text">{adminUsersCount}</p>
             </article>
             <article className="rounded-xl border border-border bg-bg p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Papeis ativos</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Papéis ativos</p>
               <p className="mt-1 text-2xl font-semibold text-text">{roles.length}</p>
             </article>
           </div>
 
           <div className="mt-4 grid gap-4 xl:grid-cols-2">
             <section className="rounded-xl border border-border bg-bg p-4">
-              <h4 className="text-base font-semibold text-text">Usuarios</h4>
+              <h4 className="text-base font-semibold text-text">Usuários</h4>
               {users.length === 0 && (
-                <p className="mt-3 text-sm text-muted">Nenhum usuario encontrado.</p>
+                <p className="mt-3 text-sm text-muted">Nenhum usuário encontrado.</p>
               )}
               {users.length > 0 && (
                 <div className="mt-3 space-y-2">
@@ -233,7 +233,7 @@ export function UsersRbacPanel() {
                           </button>
                         </div>
                         <p className="mt-2 text-xs text-muted">
-                          Papeis: {user.roles.length > 0 ? user.roles.join(", ") : "sem papeis"}
+                          Papéis: {user.roles.length > 0 ? user.roles.join(", ") : "sem papéis"}
                         </p>
                       </article>
                     );
@@ -243,17 +243,17 @@ export function UsersRbacPanel() {
             </section>
 
             <section className="rounded-xl border border-border bg-bg p-4">
-              <h4 className="text-base font-semibold text-text">Atribuicao de papeis</h4>
+              <h4 className="text-base font-semibold text-text">Atribuição de papéis</h4>
               {!selectedUser && (
                 <p className="mt-3 text-sm text-muted">
-                  Selecione um usuario para editar papeis.
+                  Selecione um usuário para editar papéis.
                 </p>
               )}
 
               {selectedUser && (
                 <div className="mt-3 space-y-3">
                   <p className="text-sm text-muted">
-                    Editando papeis de <strong className="text-text">{selectedUser.username}</strong>.
+                    Editando papéis de <strong className="text-text">{selectedUser.username}</strong>.
                   </p>
 
                   <div className="space-y-2">
@@ -287,7 +287,7 @@ export function UsersRbacPanel() {
                       disabled={saving || roles.length === 0}
                       className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {saving ? "Salvando..." : "Salvar papeis"}
+                      {saving ? "Salvando..." : "Salvar papéis"}
                     </button>
                   </div>
                 </div>

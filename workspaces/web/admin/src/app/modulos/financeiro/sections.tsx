@@ -32,10 +32,10 @@ export const FINANCEIRO_BASE_PATH = "/modulos/financeiro";
 
 export const FINANCEIRO_MENU_ITEMS = [
   { key: "all", label: "Todos", href: FINANCEIRO_BASE_PATH },
-  { key: "visao-geral", label: "Visao geral", href: `${FINANCEIRO_BASE_PATH}/visao-geral#visao-geral` },
-  { key: "conciliacao", label: "Conciliacao", href: `${FINANCEIRO_BASE_PATH}/conciliacao#conciliacao` },
-  { key: "tendencias", label: "Tendencias", href: `${FINANCEIRO_BASE_PATH}/tendencias#tendencias` },
-  { key: "exportacao", label: "Exportacao", href: `${FINANCEIRO_BASE_PATH}/exportacao#exportacao` },
+  { key: "visao-geral", label: "Visão geral", href: `${FINANCEIRO_BASE_PATH}/visao-geral#visao-geral` },
+  { key: "conciliacao", label: "Conciliação", href: `${FINANCEIRO_BASE_PATH}/conciliacao#conciliacao` },
+  { key: "tendencias", label: "Tendências", href: `${FINANCEIRO_BASE_PATH}/tendencias#tendencias` },
+  { key: "exportacao", label: "Exportação", href: `${FINANCEIRO_BASE_PATH}/exportacao#exportacao` },
 ];
 
 export type FinanceiroSectionKey =
@@ -217,7 +217,7 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
         <section id="conciliacao" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Conciliacao global</h2>
+              <h2 className="text-lg font-semibold text-text">Conciliação global</h2>
               <p className="mt-1 text-sm text-muted">Movimentos pendentes e origem financeira por modulo.</p>
             </div>
             <StatusPill tone="warning">Pendencias {pendencias}</StatusPill>
@@ -234,7 +234,7 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
                 <p className="mt-1 text-xl font-semibold text-text">{formatCurrency(comprasTotal)}</p>
               </article>
               <article className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Producao</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Produção</p>
                 <p className="mt-1 text-xl font-semibold text-text">{lotesPeriodo} lotes</p>
               </article>
             </div>
@@ -246,7 +246,7 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
         <section id="tendencias" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Tendencias financeiras</h2>
+              <h2 className="text-lg font-semibold text-text">Tendências financeiras</h2>
               <p className="mt-1 text-sm text-muted">Receita, despesas e margem por periodo.</p>
             </div>
             <StatusPill tone="brand">
@@ -273,7 +273,7 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
 
       {(showAll || activeSection === "exportacao") && (
         <section id="exportacao" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-text">Exportacao CSV</h2>
+          <h2 className="text-lg font-semibold text-text">Exportação CSV</h2>
           <p className="mt-1 text-sm text-muted">Exporte fluxos consolidados e demonstrativos por periodo.</p>
           <button className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90" type="button">
             Exportar financeiro (CSV)

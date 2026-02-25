@@ -20,10 +20,10 @@ export const PRODUCAO_BASE_PATH = "/modulos/producao";
 
 export const PRODUCAO_MENU_ITEMS = [
   { key: "all", label: "Todos", href: PRODUCAO_BASE_PATH },
-  { key: "visao-geral", label: "Visao geral", href: `${PRODUCAO_BASE_PATH}/visao-geral#visao-geral` },
+  { key: "visao-geral", label: "Visão geral", href: `${PRODUCAO_BASE_PATH}/visao-geral#visao-geral` },
   { key: "lotes", label: "Lotes", href: `${PRODUCAO_BASE_PATH}/lotes#lotes` },
-  { key: "tendencias", label: "Tendencias", href: `${PRODUCAO_BASE_PATH}/tendencias#tendencias` },
-  { key: "exportacao", label: "Exportacao", href: `${PRODUCAO_BASE_PATH}/exportacao#exportacao` },
+  { key: "tendencias", label: "Tendências", href: `${PRODUCAO_BASE_PATH}/tendencias#tendencias` },
+  { key: "exportacao", label: "Exportação", href: `${PRODUCAO_BASE_PATH}/exportacao#exportacao` },
 ];
 
 export type ProducaoSectionKey =
@@ -46,7 +46,7 @@ function resolveErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Falha inesperada ao carregar dados de producao.";
+  return "Falha inesperada ao carregar dados de produção.";
 }
 
 function sumPlanned(batch: ProductionBatchData): number {
@@ -149,12 +149,12 @@ export function ProducaoSections({ activeSection = "all" }: ProducaoSectionsProp
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Visao geral</h2>
-              <p className="mt-1 text-sm text-muted">Controle de lotes e alertas de divergencia.</p>
+              <h2 className="text-lg font-semibold text-text">Visão geral</h2>
+              <p className="mt-1 text-sm text-muted">Controle de lotes e alertas de divergência.</p>
             </div>
             <StatusPill tone="warning">{lotesDoDia} lotes hoje</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando resumo de producao...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando resumo de produção...</p>}
           {!loading && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -184,12 +184,12 @@ export function ProducaoSections({ activeSection = "all" }: ProducaoSectionsProp
         <section id="tendencias" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Tendencias de producao</h2>
+              <h2 className="text-lg font-semibold text-text">Tendências de produção</h2>
               <p className="mt-1 text-sm text-muted">Comparativo planejado x produzido por semana.</p>
             </div>
             <StatusPill tone="info">{batches.length} lotes</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando tendencias...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando tendências...</p>}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
@@ -209,13 +209,13 @@ export function ProducaoSections({ activeSection = "all" }: ProducaoSectionsProp
 
       {(showAll || activeSection === "exportacao") && (
         <section id="exportacao" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-text">Exportacao CSV</h2>
-          <p className="mt-1 text-sm text-muted">Relatorios de producao para comparativo operacional.</p>
+          <h2 className="text-lg font-semibold text-text">Exportação CSV</h2>
+          <p className="mt-1 text-sm text-muted">Relatórios de produção para comparativo operacional.</p>
           <button
             type="button"
             className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
           >
-            Exportar producao (CSV)
+            Exportar produção (CSV)
           </button>
         </section>
       )}

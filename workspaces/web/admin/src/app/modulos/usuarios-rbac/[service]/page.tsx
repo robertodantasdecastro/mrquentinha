@@ -27,8 +27,8 @@ export default function UsuariosRbacServicePage() {
   return (
     <AdminSessionGate>
       <ModulePageShell
-        title="Usuarios e RBAC"
-        description="Gestao de papeis, permissoes e trilha basica de auditoria."
+        title="Usuários e RBAC"
+        description="Gestão de papéis, permissões e trilha básica de auditoria."
         statusLabel="Baseline ativo"
         statusTone="info"
         menuItems={USUARIOS_RBAC_MENU_ITEMS}

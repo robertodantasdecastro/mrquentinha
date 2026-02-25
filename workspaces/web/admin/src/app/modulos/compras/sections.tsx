@@ -27,10 +27,10 @@ export const COMPRAS_BASE_PATH = "/modulos/compras";
 
 export const COMPRAS_MENU_ITEMS = [
   { key: "all", label: "Todos", href: COMPRAS_BASE_PATH },
-  { key: "visao-geral", label: "Visao geral", href: `${COMPRAS_BASE_PATH}/visao-geral#visao-geral` },
-  { key: "operacao", label: "Operacao", href: `${COMPRAS_BASE_PATH}/operacao#operacao` },
+  { key: "visao-geral", label: "Visão geral", href: `${COMPRAS_BASE_PATH}/visao-geral#visao-geral` },
+  { key: "operacao", label: "Operação", href: `${COMPRAS_BASE_PATH}/operacao#operacao` },
   { key: "impacto", label: "Impacto", href: `${COMPRAS_BASE_PATH}/impacto#impacto` },
-  { key: "exportacao", label: "Exportacao", href: `${COMPRAS_BASE_PATH}/exportacao#exportacao` },
+  { key: "exportacao", label: "Exportação", href: `${COMPRAS_BASE_PATH}/exportacao#exportacao` },
 ];
 
 export type ComprasSectionKey =
@@ -165,7 +165,7 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Visao geral</h2>
+              <h2 className="text-lg font-semibold text-text">Visão geral</h2>
               <p className="mt-1 text-sm text-muted">Acompanhe requisicoes abertas e compras do periodo.</p>
             </div>
             <StatusPill tone="warning">Pendencias {openRequests}</StatusPill>
@@ -225,7 +225,7 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
 
       {(showAll || activeSection === "exportacao") && (
         <section id="exportacao" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-text">Exportacao CSV</h2>
+          <h2 className="text-lg font-semibold text-text">Exportação CSV</h2>
           <p className="mt-1 text-sm text-muted">Gere relatorios de compras consolidados por periodo.</p>
           <button
             type="button"

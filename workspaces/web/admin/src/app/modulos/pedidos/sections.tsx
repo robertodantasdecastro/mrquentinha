@@ -20,10 +20,10 @@ export const PEDIDOS_BASE_PATH = "/modulos/pedidos";
 
 export const PEDIDOS_MENU_ITEMS = [
   { key: "all", label: "Todos", href: PEDIDOS_BASE_PATH },
-  { key: "visao-geral", label: "Visao geral", href: `${PEDIDOS_BASE_PATH}/visao-geral#visao-geral` },
-  { key: "operacao", label: "Operacao", href: `${PEDIDOS_BASE_PATH}/operacao#operacao` },
-  { key: "tendencias", label: "Tendencias", href: `${PEDIDOS_BASE_PATH}/tendencias#tendencias` },
-  { key: "exportacao", label: "Exportacao", href: `${PEDIDOS_BASE_PATH}/exportacao#exportacao` },
+  { key: "visao-geral", label: "Visão geral", href: `${PEDIDOS_BASE_PATH}/visao-geral#visao-geral` },
+  { key: "operacao", label: "Operação", href: `${PEDIDOS_BASE_PATH}/operacao#operacao` },
+  { key: "tendencias", label: "Tendências", href: `${PEDIDOS_BASE_PATH}/tendencias#tendencias` },
+  { key: "exportacao", label: "Exportação", href: `${PEDIDOS_BASE_PATH}/exportacao#exportacao` },
 ];
 
 export type PedidosSectionKey =
@@ -133,9 +133,9 @@ export function PedidosSections({ activeSection = "all" }: PedidosSectionsProps)
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Visao geral</h2>
+              <h2 className="text-lg font-semibold text-text">Visão geral</h2>
               <p className="mt-1 text-sm text-muted">
-                Fluxo operacional do dia com foco em conversao e atendimento.
+                Fluxo operacional do dia com foco em conversão e atendimento.
               </p>
             </div>
             <StatusPill tone="info">Hoje</StatusPill>
@@ -170,12 +170,12 @@ export function PedidosSections({ activeSection = "all" }: PedidosSectionsProps)
         <section id="tendencias" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Tendencias de pedidos</h2>
-              <p className="mt-1 text-sm text-muted">Volume por hora e conversao nos ultimos dias.</p>
+              <h2 className="text-lg font-semibold text-text">Tendências de pedidos</h2>
+              <p className="mt-1 text-sm text-muted">Volume por hora e conversão nos últimos dias.</p>
             </div>
             <StatusPill tone="brand">{orders.length} pedidos</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando tendencias...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando tendências...</p>}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
@@ -183,7 +183,7 @@ export function PedidosSections({ activeSection = "all" }: PedidosSectionsProps)
                 <Sparkline values={ordersSeries} className="mt-3" />
               </div>
               <div className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Metodos de pagamento</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Métodos de pagamento</p>
                 <div className="mt-4">
                   <MiniBarChart values={paymentValues} />
                 </div>
@@ -195,9 +195,9 @@ export function PedidosSections({ activeSection = "all" }: PedidosSectionsProps)
 
       {(showAll || activeSection === "exportacao") && (
         <section id="exportacao" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-text">Exportacao CSV</h2>
+          <h2 className="text-lg font-semibold text-text">Exportação CSV</h2>
           <p className="mt-1 text-sm text-muted">
-            Gere arquivos CSV com filtros aplicados para reconciliacao financeira.
+            Gere arquivos CSV com filtros aplicados para reconciliação financeira.
           </p>
           <button
             type="button"

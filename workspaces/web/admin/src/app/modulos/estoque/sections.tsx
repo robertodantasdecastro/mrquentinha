@@ -24,9 +24,9 @@ export const ESTOQUE_BASE_PATH = "/modulos/estoque";
 
 export const ESTOQUE_MENU_ITEMS = [
   { key: "all", label: "Todos", href: ESTOQUE_BASE_PATH },
-  { key: "visao-geral", label: "Visao geral", href: `${ESTOQUE_BASE_PATH}/visao-geral#visao-geral` },
+  { key: "visao-geral", label: "Visão geral", href: `${ESTOQUE_BASE_PATH}/visao-geral#visao-geral` },
   { key: "movimentos", label: "Movimentos", href: `${ESTOQUE_BASE_PATH}/movimentos#movimentos` },
-  { key: "tendencias", label: "Tendencias", href: `${ESTOQUE_BASE_PATH}/tendencias#tendencias` },
+  { key: "tendencias", label: "Tendências", href: `${ESTOQUE_BASE_PATH}/tendencias#tendencias` },
 ];
 
 export type EstoqueSectionKey =
@@ -156,8 +156,8 @@ export function EstoqueSections({ activeSection = "all" }: EstoqueSectionsProps)
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Visao geral</h2>
-              <p className="mt-1 text-sm text-muted">Itens criticos e reposicao planejada.</p>
+              <h2 className="text-lg font-semibold text-text">Visão geral</h2>
+              <p className="mt-1 text-sm text-muted">Itens críticos e reposição planejada.</p>
             </div>
             <StatusPill tone="warning">{alertCount} alertas</StatusPill>
           </div>
@@ -169,7 +169,7 @@ export function EstoqueSections({ activeSection = "all" }: EstoqueSectionsProps)
                 <p className="mt-1 text-2xl font-semibold text-text">{alertCount}</p>
               </article>
               <article className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Reposicoes hoje</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Reposições hoje</p>
                 <p className="mt-1 text-2xl font-semibold text-text">{reposicoesHoje}</p>
               </article>
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -191,12 +191,12 @@ export function EstoqueSections({ activeSection = "all" }: EstoqueSectionsProps)
         <section id="tendencias" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Tendencias de consumo</h2>
-              <p className="mt-1 text-sm text-muted">Saidas diarias e reposicao planejada.</p>
+              <h2 className="text-lg font-semibold text-text">Tendências de consumo</h2>
+              <p className="mt-1 text-sm text-muted">Saídas diárias e reposição planejada.</p>
             </div>
             <StatusPill tone="info">{movements.length} movimentos</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando tendencias...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando tendências...</p>}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
@@ -204,7 +204,7 @@ export function EstoqueSections({ activeSection = "all" }: EstoqueSectionsProps)
                 <Sparkline values={consumoSeries} className="mt-3" />
               </div>
               <div className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Reposicoes por dia</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Reposições por dia</p>
                 <div className="mt-4">
                   <MiniBarChart values={reposicaoSeries} />
                 </div>
