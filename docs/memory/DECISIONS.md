@@ -261,3 +261,42 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - validacao obrigatoria via `bash scripts/gemini_check.sh` antes de fluxos com escrita.
   - `scripts/sync_gemini_global.sh` permanece apenas como stub deprecado.
   - snapshot em `docs/memory/GEMINI_SNAPSHOT.md` e opcional, somente para documentacao.
+
+## 25/02/2026 - Planejamento mestre (docs-first)
+
+### Decisao: Postgres + JSONField para CMS e nutricao variavel
+- Status: aceito.
+- Contexto: Portal CMS e campos de nutricao/OCR possuem estrutura parcialmente variavel por template/fonte.
+- Decisao:
+  - manter Postgres como banco unico.
+  - usar `JSONField` para blocos dinamicos de CMS (config/sections por template/pagina) e payloads variaveis de OCR/nutricao.
+- Consequencia:
+  - maior flexibilidade no MVP sem proliferar migracoes para cada variacao de bloco.
+  - exigir validacao em service/serializer para garantir contrato de leitura no frontend.
+
+### Decisao: Politica de endpoints publicos x privados
+- Status: aceito.
+- Decisao:
+  - publico read-only: `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`, `GET /api/v1/catalog/menus/today/`, health/index.
+  - privado autenticado (RBAC): operacoes de escrita e dados operacionais internos.
+  - CMS publico (planejado 6.3): somente leitura de secoes aprovadas/publicadas.
+- Consequencia:
+  - reduz superficie anonima e preserva distribuicao publica do cardapio/portal.
+
+### Decisao: Estrategia de templates e ownership entre agentes
+- Status: aceito.
+- Decisao:
+  - template visual do portal (6.2) segue ownership primario do Antigravity enquanto houver lock ativo.
+  - Codex prioriza backend, client, pagamentos, CMS backend-only e Admin Web para evitar conflito de layout.
+  - integracao entre trilhas via `Antigravity_Codex` + testes completos.
+- Consequencia:
+  - menor risco de retrabalho em UI e merges mais previsiveis.
+
+### Decisao: Estrategia do Admin Web (epico obrigatorio)
+- Status: aceito.
+- Decisao:
+  - criar trilha dedicada de Admin Web (`9.0` MVP e `9.1` completo), desacoplada do portal institucional.
+  - Admin Web cobre modulos operacionais internos (Dashboard, Cardapio, Compras, Estoque, Producao, Pedidos, Financeiro, Portal CMS, Usuarios/RBAC, Relatorios).
+  - compartilhar componentes/tokens via `workspaces/web/ui` quando aplicavel.
+- Consequencia:
+  - clareza de fronteira entre canal institucional (portal), canal cliente (client) e canal interno (admin).

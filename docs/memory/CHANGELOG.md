@@ -380,3 +380,11 @@
   - sessoes tmux operacionais consolidadas: `backend_live`, `portal_live`, `client_live` e `codex`.
   - memoria da etapa atualizada em `PROJECT_STATE`, `CONTEXT_PACK` e `TODO_NEXT`.
   - etapa ativa movida para 7.2 (pagamentos online: PIX/cartao/VR).
+
+- docs(plan): roadmap master + backlog + admin web + requisitos do chat
+  - criada matriz de alinhamento do chat em `docs/memory/REQUIREMENTS_BACKLOG.md`.
+  - criado roadmap consolidado em `docs/memory/ROADMAP_MASTER.md`.
+  - criado backlog executavel P0/P1/P2 em `docs/memory/BACKLOG.md`.
+  - `PROJECT_STATE`, `CONTEXT_PACK` e `TODO_NEXT` atualizados com etapa ativa 7.2 e trilhas 6.3/9.0.
+  - `DECISIONS` atualizada com diretrizes de JSONField (CMS/nutricao), politica publico/privado, estrategia de templates e Admin Web.
+  - `RUNBOOK_DEV` atualizado com procedimento de quality gate sem conflito com tmux live, recovery de conexao e tratamento de locks/nvm/venv.

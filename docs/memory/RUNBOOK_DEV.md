@@ -100,3 +100,69 @@ Quando houver travamento/divergencia e necessario diagnostico sem alterar nada:
   - remover apenas `workspaces/web/client/.next/dev/lock` apos encerrar processo.
 - Porta ocupada:
   - `ss -ltnp | grep -E ':8000|:3000|:3001'`
+
+## 10) Quality gate sem conflito com tmux live
+Quando houver sessoes live (`backend_live`, `portal_live`, `client_live`) ativas, o `quality_gate_all.sh` pode falhar em smoke por porta ocupada.
+
+Fluxo recomendado:
+
+```bash
+# 1) pausar servicos live
+tmux send-keys -t backend_live C-c
+tmux send-keys -t portal_live C-c
+tmux send-keys -t client_live C-c
+
+# 2) validar portas livres
+ss -ltnp | egrep ':8000|:3000|:3001' || true
+
+# 3) executar gate completo
+bash scripts/quality_gate_all.sh
+
+# 4) religar servicos oficiais
+tmux send-keys -t backend_live 'cd ~/mrquentinha && ./scripts/start_backend_dev.sh' C-m
+tmux send-keys -t portal_live 'cd ~/mrquentinha && ./scripts/start_portal_dev.sh' C-m
+tmux send-keys -t client_live 'cd ~/mrquentinha && ./scripts/start_client_dev.sh' C-m
+```
+
+## 11) Recovery rapido de travamento de conexao/SSH
+1. Reconectar na VM e entrar no repo:
+```bash
+ssh mrquentinha
+cd ~/mrquentinha
+```
+2. Validar estado minimo:
+```bash
+bash scripts/gemini_check.sh
+git branch --show-current
+git status -sb
+bash scripts/branch_guard.sh --agent codex --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
+```
+3. Reanexar tmux do agente:
+```bash
+tmux attach -d -t codex
+```
+4. Conferir sessoes de servico:
+```bash
+tmux ls
+```
+
+## 12) Locks Next.js + nvm/venv (recuperacao)
+
+### Lock orfao do Next
+Remover somente quando nao houver `next dev` ativo para o app:
+```bash
+pgrep -f 'workspaces/web/client/node_modules/.bin/next dev' || true
+rm -f workspaces/web/client/.next/dev/lock
+```
+
+### Recarregar Python venv (backend)
+```bash
+cd ~/mrquentinha/workspaces/backend
+source .venv/bin/activate
+```
+
+### Recarregar Node LTS (frontend)
+```bash
+source ~/.nvm/nvm.sh
+nvm use --lts
+```
