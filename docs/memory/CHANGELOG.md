@@ -373,3 +373,10 @@
   - modo demo removido do fluxo principal de pedidos: checkout e historico agora dependem de sessao autenticada.
   - README do client atualizado com endpoints de auth da etapa 7.1.
   - validacoes executadas: `npm run lint`, `npm run build`, `pytest tests/test_accounts_api.py tests/test_orders_api.py` e `bash scripts/quality_gate_all.sh` (OK).
+
+- Etapa 7.1.3 fechamento auth/rbac end-to-end:
+  - regressao completa executada com `bash scripts/quality_gate_all.sh` (lint + testes + builds + `smoke_stack_dev` + `smoke_client_dev`) com status OK.
+  - servicos live em tmux pausados durante o quality gate para evitar conflito de porta no smoke do portal; apos o gate, stack live reativada.
+  - sessoes tmux operacionais consolidadas: `backend_live`, `portal_live`, `client_live` e `codex`.
+  - memoria da etapa atualizada em `PROJECT_STATE`, `CONTEXT_PACK` e `TODO_NEXT`.
+  - etapa ativa movida para 7.2 (pagamentos online: PIX/cartao/VR).

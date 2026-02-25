@@ -1,6 +1,6 @@
 # Plano do MVP e cronograma
 
-Data de referencia: 24/02/2026.
+Data de referencia: 25/02/2026.
 
 ## Status atual do roadmap
 - Etapa 0: concluida
@@ -11,6 +11,7 @@ Data de referencia: 24/02/2026.
 - Etapa 5.0 a 5.6.3: concluida
 - Etapa 6.0 e 6.0.1: concluida
 - Etapa 7.0: concluida
+- Etapa 7.1 (7.1.1 a 7.1.3): concluida em 25/02/2026
 
 ## Fechamento do MVP operacional
 O MVP operacional foi fechado com o backend cobrindo:
@@ -25,14 +26,9 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase operacao: Etapas 3, 3.1 e 4
 - Fase financeira: Etapa 5 (5.0 a 5.6.3)
 - Fase canais web iniciais: Etapa 6.0/6.0.1 e 7.0
+- Fase auth/rbac cliente real: Etapa 7.1
 
 ## Proximas fases (planejado)
-### 7.1 Auth + RBAC
-Dependencias:
-- modelo de papeis por modulo consolidado
-- estrategia de sessao/token definida para web cliente e gestao
-- hardening de permissao nos endpoints hoje com TODO de `AllowAny`
-
 ### 7.2 Pagamentos online
 Dependencias:
 - auth e identificacao de cliente final (7.1)

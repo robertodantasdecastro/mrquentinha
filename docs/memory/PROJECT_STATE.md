@@ -1,13 +1,15 @@
 # Project State (dev)
 
-Referencia de atualizacao: 24/02/2026.
+Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: 0 -> 5.6.3, 6.0, 6.0.1, 7.0, 7.1.1, 7.1.2.
-- Em progresso: 7.1.3 (fechamento Auth/RBAC end-to-end).
+- Concluidas: 0 -> 5.6.3, 6.0, 6.0.1, 7.0, 7.1.1, 7.1.2, 7.1.3.
+- Em progresso: 7.2 (pagamentos online para cliente final).
 - Subetapas concluidas em 24/02/2026:
   - 7.1.1 Backend Auth/RBAC (escopo de pedidos/pagamentos por ownership + papeis de gestao).
   - 7.1.2 Client Auth (login/register/me + refresh token, sem modo demo).
+- Subetapa concluida em 25/02/2026:
+  - 7.1.3 Fechamento Auth/RBAC com regressao completa (`quality_gate_all` + smokes) e memoria atualizada.
 
 ## Politica de branches (anti-conflito)
 - `BRANCH_CODEX_PRIMARY=main`
@@ -34,16 +36,16 @@ Referencia de atualizacao: 24/02/2026.
 ## Estado por Componente
 
 ### Backend (Django)
-- **Status:** Operacional (Autenticação JWT, Cartões de Crédito, Mock OCR, Perfis Lojista/Cliente)
+- **Status:** Operacional (Autenticacao JWT, Cartoes de Credito, Mock OCR, Perfis Lojista/Cliente)
 - **Banco de Dados:** PostgreSQL (`mrquentinhabd`)
 - **App Principal:** `core`, `accounts`, `catalog`, `inventory`, `orders`, `finance`, `production`, `ocr_ai`
 - **Cobertura de Testes:** Boa (~85%)
 
 ### Web Portal (Next.js - 3000)
 - **Status:** Landing page institucional
-- **Features:** Estrutura unificada, `CardapioList` dinâmico integrado à API (`/today/` e `/by-date/`).
+- **Features:** Estrutura unificada, `CardapioList` dinamico integrado a API (`/today/` e `/by-date/`).
 - **Templates:** Suporte a chaveamento de templates via `NEXT_PUBLIC_PORTAL_TEMPLATE`.
-  - Padrões suportados: `classic` e `letsfit-clean`.
+  - Padroes suportados: `classic` e `letsfit-clean`.
 
 ### Web Client (Next.js - 3001)
 - **Status:** Auth JWT real habilitada (login, cadastro, sessao e logout).
@@ -128,9 +130,9 @@ bash scripts/sync_memory.sh --check
 - Repositorio deve conter placeholders em `.env.example`.
 
 ## Plano da etapa ativa
-- Etapa ativa: 7.1.3 (fechamento Auth/RBAC end-to-end).
+- Etapa ativa: 7.2 (pagamentos online: PIX/Cartao/VR).
 - Branch Codex da etapa: main (guard ativo para codex; namespace main/etapa-* indisponivel no repo atual).
 - Foco imediato:
-  1) consolidar memoria da etapa (PROJECT_STATE, CHANGELOG, CONTEXT_PACK, TODO_NEXT) e validar `sync_memory --check`.
-  2) executar regressao final da etapa 7.1 (quality gate + smokes) e confirmar estabilidade.
-  3) preparar inicio da etapa 7.2 (pagamentos online) apos fechamento formal da 7.1.
+  1) definir desenho de integracao com provider (PIX/cartao/VR) e contratos de callback/webhook.
+  2) modelar conciliacao com `provider_ref` e idempotencia transacional em pedidos/pagamentos.
+  3) preparar backlog de implementacao backend/client para checkout com pagamento online.

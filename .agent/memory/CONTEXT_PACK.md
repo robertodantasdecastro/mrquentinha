@@ -13,8 +13,9 @@
 - `.antigravity/*` (ponte para regra global)
 
 ## Estado atual
-- Etapas concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`.
-- Etapa atual: `7.1.3` (fechamento de Auth/RBAC end-to-end).
+- Etapas concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`.
+- Etapa atual: `7.2` (pagamentos online: PIX/Cartao/VR).
+- Fechamento 7.1 validado em 25/02/2026 com `bash scripts/quality_gate_all.sh` (inclui smokes).
 
 ## Portas e scripts
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
