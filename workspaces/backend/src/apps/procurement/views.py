@@ -1,9 +1,12 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.permissions import (
     PROCUREMENT_FROM_MENU_ROLES,
@@ -13,8 +16,11 @@ from apps.accounts.permissions import (
     PROCUREMENT_REQUEST_WRITE_ROLES,
     RoleMatrixPermission,
 )
+from apps.common.csv_export import build_csv_response
+from apps.common.reports import parse_period
 
 from .models import Purchase, PurchaseRequest, PurchaseRequestStatus
+from .selectors import list_purchases_by_period
 from .serializers import (
     GeneratePurchaseRequestFromMenuSerializer,
     PurchaseRequestFromMenuResultSerializer,
@@ -162,6 +168,56 @@ class PurchaseViewSet(viewsets.ModelViewSet):
 
         output = self.get_serializer(purchase)
         return Response(output.data, status=status.HTTP_200_OK)
+
+
+class PurchasesExportAPIView(APIView):
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": PROCUREMENT_PURCHASE_READ_ROLES}
+
+    def get(self, request):
+        from_date, to_date = parse_period(
+            from_raw=request.query_params.get("from"),
+            to_raw=request.query_params.get("to"),
+        )
+        purchases = list_purchases_by_period(from_date=from_date, to_date=to_date)
+
+        header = [
+            "compra_id",
+            "data_compra",
+            "fornecedor",
+            "nota_fiscal",
+            "ingrediente",
+            "quantidade",
+            "unidade",
+            "preco_unitario",
+            "imposto",
+            "total_item",
+            "total_compra",
+        ]
+
+        rows = []
+        for purchase in purchases:
+            for item in purchase.items.all():
+                item_total = item.qty * item.unit_price
+                tax_amount = item.tax_amount or Decimal("0")
+                rows.append(
+                    [
+                        purchase.id,
+                        purchase.purchase_date.isoformat(),
+                        purchase.supplier_name,
+                        purchase.invoice_number or "",
+                        item.ingredient.name,
+                        f"{item.qty:.3f}",
+                        item.unit,
+                        f"{item.unit_price:.2f}",
+                        f"{tax_amount:.2f}",
+                        f"{item_total:.2f}",
+                        f"{purchase.total_amount:.2f}",
+                    ]
+                )
+
+        filename = f"compras_{from_date.isoformat()}_{to_date.isoformat()}.csv"
+        return build_csv_response(filename=filename, header=header, rows=rows)
 
     def update(self, request, *args, **kwargs):
         if "items" in request.data:

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import mixins, status, viewsets
@@ -8,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import (
+    MANAGEMENT_ROLES,
     ORDER_CREATE_ROLES,
     ORDER_READ_ROLES,
     ORDER_STATUS_UPDATE_ROLES,
@@ -16,8 +19,11 @@ from apps.accounts.permissions import (
     RoleMatrixPermission,
 )
 from apps.accounts.services import SystemRole
+from apps.common.csv_export import build_csv_response
+from apps.common.reports import parse_period
 
-from .selectors import list_orders, list_payments
+from .models import PaymentStatus
+from .selectors import list_orders, list_orders_by_period, list_payments
 from .serializers import (
     OrderSerializer,
     OrderStatusUpdateSerializer,
@@ -257,3 +263,62 @@ class PaymentViewSet(
 
         payload = PaymentIntentSerializer(intent)
         return Response(payload.data, status=status.HTTP_200_OK)
+
+
+class OrdersExportAPIView(APIView):
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": MANAGEMENT_ROLES}
+
+    def get(self, request):
+        from_date, to_date = parse_period(
+            from_raw=request.query_params.get("from"),
+            to_raw=request.query_params.get("to"),
+        )
+        orders = list_orders_by_period(from_date=from_date, to_date=to_date)
+
+        header = [
+            "pedido_id",
+            "data_entrega",
+            "status",
+            "valor_total",
+            "cliente_id",
+            "cliente_nome",
+            "metodos_pagamento",
+            "total_pago",
+        ]
+
+        rows = []
+        for order in orders:
+            customer = order.customer
+            customer_name = ""
+            if customer:
+                full_name = f"{customer.first_name} {customer.last_name}".strip()
+                customer_name = full_name or customer.username
+
+            payment_methods = sorted(
+                {payment.method for payment in order.payments.all()}
+            )
+            paid_total = sum(
+                (
+                    payment.amount
+                    for payment in order.payments.all()
+                    if payment.status == PaymentStatus.PAID
+                ),
+                Decimal("0"),
+            )
+
+            rows.append(
+                [
+                    order.id,
+                    order.delivery_date.isoformat(),
+                    order.status,
+                    f"{order.total_amount:.2f}",
+                    customer.id if customer else "",
+                    customer_name,
+                    ";".join(payment_methods),
+                    f"{paid_total:.2f}",
+                ]
+            )
+
+        filename = f"pedidos_{from_date.isoformat()}_{to_date.isoformat()}.csv"
+        return build_csv_response(filename=filename, header=header, rows=rows)

@@ -13,6 +13,8 @@ import type {
   CreateStockMovementPayload,
   CreateProductionBatchPayload,
   DishData,
+  FinanceCashflowPayload,
+  FinanceDrePayload,
   FinanceKpisPayload,
   FinanceUnreconciledPayload,
   HealthPayload,
@@ -337,6 +339,34 @@ export async function fetchFinanceKpis(
   );
 }
 
+export async function fetchFinanceCashflow(
+  from: string,
+  to: string,
+): Promise<FinanceCashflowPayload> {
+  return requestJson<FinanceCashflowPayload>(
+    `/api/v1/finance/reports/cashflow/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function fetchFinanceDre(
+  from: string,
+  to: string,
+): Promise<FinanceDrePayload> {
+  return requestJson<FinanceDrePayload>(
+    `/api/v1/finance/reports/dre/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
 export async function fetchFinanceUnreconciled(
   from: string,
   to: string,
@@ -454,7 +484,7 @@ export async function updatePurchaseRequestStatusAdmin(
   requestId: number,
   status: ProcurementRequestStatus,
 ): Promise<PurchaseRequestData> {
-  return requestJson<PurchaseRequestData>(`/api/v1/procurement/requests//`, {
+  return requestJson<PurchaseRequestData>(`/api/v1/procurement/requests/${requestId}/`, {
     method: "PATCH",
     auth: true,
     body: JSON.stringify({ status }),

@@ -14,6 +14,8 @@ from apps.accounts.permissions import (
     FINANCE_WRITE_ROLES,
     RoleMatrixPermission,
 )
+from apps.common.csv_export import build_csv_response
+from apps.common.reports import parse_period
 
 from .models import APBillStatus, ARReceivableStatus
 from .reports import get_cashflow, get_dre, get_kpis
@@ -383,6 +385,10 @@ class PeriodReportMixin:
         return f"{value:.2f}"
 
 
+def _format_money(value: Decimal) -> str:
+    return f"{value:.2f}"
+
+
 class CashflowReportAPIView(PeriodReportMixin, APIView):
     permission_classes = [RoleMatrixPermission]
     required_roles_by_method = {"GET": FINANCE_READ_ROLES}
@@ -480,6 +486,63 @@ class KpisReportAPIView(PeriodReportMixin, APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class CashflowExportAPIView(APIView):
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": FINANCE_READ_ROLES}
+
+    def get(self, request):
+        from_date, to_date = parse_period(
+            from_raw=request.query_params.get("from"),
+            to_raw=request.query_params.get("to"),
+        )
+        cashflow_items = get_cashflow(from_date=from_date, to_date=to_date)
+
+        header = [
+            "data",
+            "total_entradas",
+            "total_saidas",
+            "saldo_dia",
+            "saldo_acumulado",
+        ]
+        rows = [
+            [
+                item["date"].isoformat(),
+                _format_money(item["total_in"]),
+                _format_money(item["total_out"]),
+                _format_money(item["net"]),
+                _format_money(item["running_balance"]),
+            ]
+            for item in cashflow_items
+        ]
+
+        filename = f"fluxo_caixa_{from_date.isoformat()}_{to_date.isoformat()}.csv"
+        return build_csv_response(filename=filename, header=header, rows=rows)
+
+
+class DreExportAPIView(APIView):
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": FINANCE_READ_ROLES}
+
+    def get(self, request):
+        from_date, to_date = parse_period(
+            from_raw=request.query_params.get("from"),
+            to_raw=request.query_params.get("to"),
+        )
+        dre = get_dre(from_date=from_date, to_date=to_date)
+
+        header = ["indicador", "valor"]
+        rows = [
+            ["receita_total", _format_money(dre["receita_total"])],
+            ["despesas_total", _format_money(dre["despesas_total"])],
+            ["cmv_estimado", _format_money(dre["cmv_estimado"])],
+            ["lucro_bruto", _format_money(dre["lucro_bruto"])],
+            ["resultado", _format_money(dre["resultado"])],
+        ]
+
+        filename = f"dre_{from_date.isoformat()}_{to_date.isoformat()}.csv"
+        return build_csv_response(filename=filename, header=header, rows=rows)
 
 
 class IsClosedAPIView(APIView):

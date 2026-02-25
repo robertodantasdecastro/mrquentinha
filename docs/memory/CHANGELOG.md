@@ -1,6 +1,14 @@
 # Changelog (por sprint)
 
 ## 25/02/2026
+- Backend: adicionadas exportacoes CSV (pedidos, compras, producao, fluxo de caixa e DRE) com headers em pt-BR.
+- Admin Web: modulo `/modulos` agora e client component; hotpages divididas em `sections.tsx` para evitar export nomeado em `page.tsx` (fix do `next build`).
+- Admin Web: corrigido uso de `yield_portions` no cardapio para evitar erro de tipagem.
+- Admin Web: rota `/modulos` marcada como client component para evitar erro de build ao importar `AdminSessionGate`.
+- Admin Web: modulos agora possuem subpaginas por servico (`/modulos/<modulo>/<secao>`), com menus atualizados.
+- Admin Web: dashboards dos modulos (cardapio, compras, estoque, pedidos, producao, financeiro, relatorios, usuarios/RBAC) ligados a dados reais do backend.
+- Admin Web: adicionados consumos de relatorios financeiros (cashflow) e correcao de endpoint em compras.
+- Backend: `seed_demo` ampliado com novos ingredientes e pratos (marmitas/acompanhaments) para dados ficticios mais realistas.
 - Ops Center atualizado com Admin Web (porta 3002), atalhos g/h/j e layout mais amigavel.
 - Ops Center ganhou modos de ajuda, logs e compacto para operacao diaria, com cards clicaveis por servico.
 - Ops Center ganhou modal de conexoes SSH + logs de autenticacao e botao [SSH] no header.

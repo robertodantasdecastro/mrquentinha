@@ -23,6 +23,10 @@ def list_orders() -> QuerySet[Order]:
     )
 
 
+def list_orders_by_period(*, from_date: date, to_date: date) -> QuerySet[Order]:
+    return list_orders().filter(delivery_date__range=(from_date, to_date))
+
+
 def get_order_detail(order_id: int) -> Order | None:
     return list_orders().filter(pk=order_id).first()
 

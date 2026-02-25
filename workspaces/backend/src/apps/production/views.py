@@ -3,14 +3,17 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.permissions import (
     PRODUCTION_READ_ROLES,
     PRODUCTION_WRITE_ROLES,
     RoleMatrixPermission,
 )
+from apps.common.csv_export import build_csv_response
+from apps.common.reports import parse_period
 
-from .selectors import list_batches
+from .selectors import list_batches, list_batches_by_period
 from .serializers import ProductionBatchSerializer
 from .services import complete_batch, create_batch_for_date
 
@@ -69,3 +72,44 @@ class ProductionBatchViewSet(viewsets.ModelViewSet):
                 ["Atualizacao de itens exige fluxo dedicado de producao."]
             )
         return super().partial_update(request, *args, **kwargs)
+
+
+class ProductionExportAPIView(APIView):
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": PRODUCTION_READ_ROLES}
+
+    def get(self, request):
+        from_date, to_date = parse_period(
+            from_raw=request.query_params.get("from"),
+            to_raw=request.query_params.get("to"),
+        )
+        batches = list_batches_by_period(from_date=from_date, to_date=to_date)
+
+        header = [
+            "lote_id",
+            "data_producao",
+            "status",
+            "prato",
+            "quantidade_planejada",
+            "quantidade_produzida",
+            "quantidade_perdas",
+        ]
+
+        rows = []
+        for batch in batches:
+            for item in batch.items.all():
+                dish_name = item.menu_item.dish.name
+                rows.append(
+                    [
+                        batch.id,
+                        batch.production_date.isoformat(),
+                        batch.status,
+                        dish_name,
+                        item.qty_planned,
+                        item.qty_produced,
+                        item.qty_waste,
+                    ]
+                )
+
+        filename = f"producao_{from_date.isoformat()}_{to_date.isoformat()}.csv"
+        return build_csv_response(filename=filename, header=header, rows=rows)

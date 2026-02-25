@@ -1,24 +1,24 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, createContext, useContext, useEffect, useState } from "react";
 
 import { ApiError, fetchHealth, fetchMe, loginAccount, logoutAccount } from "@/lib/api";
 import { hasStoredAuthSession } from "@/lib/storage";
 import type { AuthUserProfile } from "@/types/api";
+
+const SessionContext = createContext<SessionContextValue | null>(null);
+
+type SessionContextValue = {
+  user: AuthUserProfile;
+  healthStatus: string;
+  onLogout: () => void;
+};
 
 type ViewState = "loading" | "anonymous" | "authenticated";
 
 type LoginFormState = {
   username: string;
   password: string;
-};
-
-type AdminSessionGateProps = {
-  children: (params: {
-    user: AuthUserProfile;
-    onLogout: () => void;
-    healthStatus: string;
-  }) => React.ReactNode;
 };
 
 const INPUT_CLASS =
@@ -36,22 +36,22 @@ function resolveErrorMessage(error: unknown): string {
   return "Falha inesperada. Tente novamente.";
 }
 
-function formatRoles(user: AuthUserProfile): string {
-  if (!Array.isArray(user.roles) || user.roles.length === 0) {
-    return "Sem papeis definidos";
+export function useAdminSession() {
+  const context = useContext(SessionContext);
+  if (!context) {
+    throw new Error("useAdminSession must be used inside AdminSessionGate");
   }
-
-  return user.roles.join(", ");
+  return context;
 }
 
-export function AdminSessionGate({ children }: AdminSessionGateProps) {
+export function AdminSessionGate({ children }: { children: React.ReactNode }) {
   const [viewState, setViewState] = useState<ViewState>("loading");
   const [loginForm, setLoginForm] = useState<LoginFormState>({ username: "", password: "" });
-  const [busy, setBusy] = useState<boolean>(false);
+  const [busy, setBusy] = useState(false);
   const [user, setUser] = useState<AuthUserProfile | null>(null);
-  const [healthStatus, setHealthStatus] = useState<string>("indisponivel");
-  const [message, setMessage] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [healthStatus, setHealthStatus] = useState("indisponivel");
+  const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -174,8 +174,7 @@ export function AdminSessionGate({ children }: AdminSessionGateProps) {
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-          >
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70">
             {busy ? "Entrando..." : "Entrar"}
           </button>
         </form>
@@ -194,33 +193,34 @@ export function AdminSessionGate({ children }: AdminSessionGateProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold text-text">Sessao ativa</h2>
-            <p className="mt-1 text-sm text-muted">
-              Usuario <strong className="text-text">{user.username}</strong> com papeis: {formatRoles(user)}.
-            </p>
+    <SessionContext.Provider value={{ user, healthStatus, onLogout: handleLogout }}>
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-text">Sessao ativa</h2>
+              <p className="mt-1 text-sm text-muted">
+                Usuario <strong className="text-text">{user.username}</strong> com papeis: {user.roles?.join(", ") || "Sem papeis"}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary">
+              Sair
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
-          >
-            Sair
-          </button>
-        </div>
-      </section>
-
-      {children({ user, onLogout: handleLogout, healthStatus })}
-
-      {(message || errorMessage) && (
-        <section className="rounded-xl border border-border bg-bg px-4 py-3 text-sm">
-          {message && <p className="text-primary">{message}</p>}
-          {errorMessage && <p className="text-rose-600">{errorMessage}</p>}
         </section>
-      )}
-    </div>
+
+        {children}
+
+        {(message || errorMessage) && (
+          <section className="rounded-xl border border-border bg-bg px-4 py-3 text-sm">
+            {message && <p className="text-primary">{message}</p>}
+            {errorMessage && <p className="text-rose-600">{errorMessage}</p>}
+          </section>
+        )}
+      </div>
+    </SessionContext.Provider>
   );
 }

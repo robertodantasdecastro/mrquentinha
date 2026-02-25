@@ -61,6 +61,19 @@ class Command(BaseCommand):
             },
         },
         {
+            "name": "arroz integral",
+            "unit": IngredientUnit.KILOGRAM,
+            "nutrition": {
+                "energy_kcal_100g": Decimal("123"),
+                "carbs_g_100g": Decimal("25.6"),
+                "protein_g_100g": Decimal("2.7"),
+                "fat_g_100g": Decimal("1.0"),
+                "sat_fat_g_100g": Decimal("0.2"),
+                "fiber_g_100g": Decimal("1.6"),
+                "sodium_mg_100g": Decimal("2"),
+            },
+        },
+        {
             "name": "feijao carioca",
             "unit": IngredientUnit.KILOGRAM,
             "nutrition": {
@@ -111,6 +124,39 @@ class Command(BaseCommand):
                 "fiber_g_100g": Decimal("0"),
                 "sodium_mg_100g": Decimal("52"),
             },
+        },
+        {
+            "name": "carne bovina",
+            "unit": IngredientUnit.KILOGRAM,
+            "nutrition": {
+                "energy_kcal_100g": Decimal("217"),
+                "carbs_g_100g": Decimal("0"),
+                "protein_g_100g": Decimal("26.0"),
+                "fat_g_100g": Decimal("12.0"),
+                "sat_fat_g_100g": Decimal("5.0"),
+                "fiber_g_100g": Decimal("0"),
+                "sodium_mg_100g": Decimal("70"),
+            },
+        },
+        {
+            "name": "batata doce",
+            "unit": IngredientUnit.KILOGRAM,
+        },
+        {
+            "name": "alface",
+            "unit": IngredientUnit.KILOGRAM,
+        },
+        {
+            "name": "tomate",
+            "unit": IngredientUnit.KILOGRAM,
+        },
+        {
+            "name": "pepino",
+            "unit": IngredientUnit.KILOGRAM,
+        },
+        {
+            "name": "ovo",
+            "unit": IngredientUnit.UNIT,
         },
         {"name": "cenoura", "unit": IngredientUnit.KILOGRAM},
         {"name": "abobrinha", "unit": IngredientUnit.KILOGRAM},
@@ -179,6 +225,21 @@ class Command(BaseCommand):
             ],
         },
         {
+            "name": "arroz integral",
+            "description": "Arroz integral cozido.",
+            "yield_portions": 30,
+            "ingredients": [
+                {
+                    "ingredient": "arroz integral",
+                    "quantity": Decimal("4.200"),
+                    "unit": "kg",
+                },
+                {"ingredient": "alho", "quantity": Decimal("0.060"), "unit": "kg"},
+                {"ingredient": "sal", "quantity": Decimal("0.020"), "unit": "kg"},
+                {"ingredient": "azeite", "quantity": Decimal("0.100"), "unit": "l"},
+            ],
+        },
+        {
             "name": "feijao caseiro",
             "description": "Feijao temperado no alho e cebola.",
             "yield_portions": 30,
@@ -204,6 +265,60 @@ class Command(BaseCommand):
                 {"ingredient": "azeite", "quantity": Decimal("0.100"), "unit": "l"},
             ],
         },
+        {
+            "name": "pure de batata doce",
+            "description": "Pure de batata doce com azeite.",
+            "yield_portions": 25,
+            "ingredients": [
+                {
+                    "ingredient": "batata doce",
+                    "quantity": Decimal("4.000"),
+                    "unit": "kg",
+                },
+                {"ingredient": "sal", "quantity": Decimal("0.020"), "unit": "kg"},
+                {"ingredient": "azeite", "quantity": Decimal("0.080"), "unit": "l"},
+            ],
+        },
+        {
+            "name": "salada verde",
+            "description": "Folhas e legumes frescos.",
+            "yield_portions": 30,
+            "ingredients": [
+                {"ingredient": "alface", "quantity": Decimal("1.500"), "unit": "kg"},
+                {"ingredient": "tomate", "quantity": Decimal("1.200"), "unit": "kg"},
+                {"ingredient": "pepino", "quantity": Decimal("1.000"), "unit": "kg"},
+                {"ingredient": "cenoura", "quantity": Decimal("0.800"), "unit": "kg"},
+            ],
+        },
+        {
+            "name": "omelete de legumes",
+            "description": "Omelete com legumes salteados.",
+            "yield_portions": 20,
+            "ingredients": [
+                {"ingredient": "ovo", "quantity": Decimal("60"), "unit": "unidade"},
+                {"ingredient": "cenoura", "quantity": Decimal("0.600"), "unit": "kg"},
+                {"ingredient": "abobrinha", "quantity": Decimal("0.600"), "unit": "kg"},
+                {"ingredient": "cebola", "quantity": Decimal("0.300"), "unit": "kg"},
+                {"ingredient": "sal", "quantity": Decimal("0.020"), "unit": "kg"},
+                {"ingredient": "azeite", "quantity": Decimal("0.060"), "unit": "l"},
+            ],
+        },
+        {
+            "name": "carne de panela",
+            "description": "Carne bovina cozida lentamente com temperos.",
+            "yield_portions": 20,
+            "ingredients": [
+                {
+                    "ingredient": "carne bovina",
+                    "quantity": Decimal("3.200"),
+                    "unit": "kg",
+                },
+                {"ingredient": "cebola", "quantity": Decimal("0.400"), "unit": "kg"},
+                {"ingredient": "alho", "quantity": Decimal("0.080"), "unit": "kg"},
+                {"ingredient": "sal", "quantity": Decimal("0.030"), "unit": "kg"},
+                {"ingredient": "azeite", "quantity": Decimal("0.120"), "unit": "l"},
+            ],
+        },
     ]
 
     PURCHASE_SPECS = [
@@ -217,6 +332,12 @@ class Command(BaseCommand):
                     "qty": Decimal("20.000"),
                     "unit_price": Decimal("6.80"),
                     "tax_amount": Decimal("2.50"),
+                },
+                {
+                    "ingredient": "arroz integral",
+                    "qty": Decimal("16.000"),
+                    "unit_price": Decimal("7.90"),
+                    "tax_amount": Decimal("2.00"),
                 },
                 {
                     "ingredient": "feijao carioca",
@@ -249,6 +370,12 @@ class Command(BaseCommand):
                     "unit_price": Decimal("21.30"),
                     "tax_amount": Decimal("3.90"),
                 },
+                {
+                    "ingredient": "carne bovina",
+                    "qty": Decimal("14.000"),
+                    "unit_price": Decimal("23.50"),
+                    "tax_amount": Decimal("4.10"),
+                },
             ],
         },
         {
@@ -256,6 +383,12 @@ class Command(BaseCommand):
             "supplier_name": "Horti Prime",
             "purchase_date_offset": -5,
             "items": [
+                {
+                    "ingredient": "batata doce",
+                    "qty": Decimal("14.000"),
+                    "unit_price": Decimal("4.90"),
+                    "tax_amount": Decimal("1.20"),
+                },
                 {
                     "ingredient": "cenoura",
                     "qty": Decimal("12.000"),
@@ -275,10 +408,41 @@ class Command(BaseCommand):
                     "tax_amount": Decimal("0.90"),
                 },
                 {
+                    "ingredient": "alface",
+                    "qty": Decimal("6.000"),
+                    "unit_price": Decimal("3.80"),
+                    "tax_amount": Decimal("0.60"),
+                },
+                {
+                    "ingredient": "tomate",
+                    "qty": Decimal("10.000"),
+                    "unit_price": Decimal("5.40"),
+                    "tax_amount": Decimal("1.10"),
+                },
+                {
+                    "ingredient": "pepino",
+                    "qty": Decimal("6.000"),
+                    "unit_price": Decimal("4.20"),
+                    "tax_amount": Decimal("0.70"),
+                },
+                {
                     "ingredient": "azeite",
                     "qty": Decimal("6.000"),
                     "unit_price": Decimal("18.00"),
                     "tax_amount": Decimal("2.20"),
+                },
+            ],
+        },
+        {
+            "invoice_number": "DEMO-NF-004",
+            "supplier_name": "Granja Santa Luzia",
+            "purchase_date_offset": -3,
+            "items": [
+                {
+                    "ingredient": "ovo",
+                    "qty": Decimal("200"),
+                    "unit_price": Decimal("0.85"),
+                    "tax_amount": Decimal("0.00"),
                 },
             ],
         },
@@ -462,17 +626,26 @@ class Command(BaseCommand):
             dishes["frango grelhado"],
             dishes["carne moida acebolada"],
             dishes["tilapia assada"],
-            dishes["frango grelhado"],
-            dishes["carne moida acebolada"],
+            dishes["carne de panela"],
+            dishes["omelete de legumes"],
         ]
 
         menu_days: list[MenuDay] = []
 
         for idx, menu_date in enumerate(weekdays):
             protein = protein_cycle[idx % len(protein_cycle)]
+            base_dish = (
+                dishes["arroz integral"] if idx % 2 == 0 else dishes["arroz soltinho"]
+            )
+            acompanhamento_extra = (
+                dishes["pure de batata doce"]
+                if idx % 3 == 0
+                else dishes["salada verde"]
+            )
+
             items_payload = [
                 {
-                    "dish": dishes["arroz soltinho"],
+                    "dish": base_dish,
                     "sale_price": Decimal("9.90"),
                     "available_qty": 80,
                     "is_active": True,
@@ -487,6 +660,12 @@ class Command(BaseCommand):
                     "dish": dishes["legumes salteados"],
                     "sale_price": Decimal("11.90"),
                     "available_qty": 60,
+                    "is_active": True,
+                },
+                {
+                    "dish": acompanhamento_extra,
+                    "sale_price": Decimal("12.90"),
+                    "available_qty": 50,
                     "is_active": True,
                 },
                 {

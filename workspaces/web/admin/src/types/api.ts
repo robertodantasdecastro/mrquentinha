@@ -104,6 +104,32 @@ export type FinanceKpisPayload = {
   };
 };
 
+export type FinanceCashflowItem = {
+  date: string;
+  total_in: string;
+  total_out: string;
+  net: string;
+  running_balance: string;
+};
+
+export type FinanceCashflowPayload = {
+  from: string;
+  to: string;
+  items: FinanceCashflowItem[];
+};
+
+export type FinanceDrePayload = {
+  from: string;
+  to: string;
+  dre: {
+    receita_total: string;
+    despesas_total: string;
+    cmv_estimado: string;
+    lucro_bruto: string;
+    resultado: string;
+  };
+};
+
 export type CashMovementData = {
   id: number;
   movement_date: string;

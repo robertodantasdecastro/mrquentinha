@@ -16,6 +16,12 @@ def list_batches() -> QuerySet[ProductionBatch]:
     )
 
 
+def list_batches_by_period(
+    *, from_date: date, to_date: date
+) -> QuerySet[ProductionBatch]:
+    return list_batches().filter(production_date__range=(from_date, to_date))
+
+
 def get_batch_detail(batch_id: int) -> ProductionBatch | None:
     return list_batches().filter(pk=batch_id).first()
 

@@ -6,8 +6,10 @@ from .views import (
     APBillViewSet,
     ARReceivableViewSet,
     BankStatementViewSet,
+    CashflowExportAPIView,
     CashflowReportAPIView,
     CashMovementViewSet,
+    DreExportAPIView,
     DreReportAPIView,
     FinancialCloseViewSet,
     IsClosedAPIView,
@@ -46,11 +48,21 @@ router.register(r"closes", FinancialCloseViewSet, basename="finance-closes")
 urlpatterns = [
     path("reports/cashflow/", CashflowReportAPIView.as_view(), name="finance-cashflow"),
     path(
+        "reports/cashflow/export/",
+        CashflowExportAPIView.as_view(),
+        name="finance-cashflow-export",
+    ),
+    path(
         "reports/unreconciled/",
         UnreconciledReportAPIView.as_view(),
         name="finance-unreconciled",
     ),
     path("reports/dre/", DreReportAPIView.as_view(), name="finance-dre"),
+    path(
+        "reports/dre/export/",
+        DreExportAPIView.as_view(),
+        name="finance-dre-export",
+    ),
     path("reports/kpis/", KpisReportAPIView.as_view(), name="finance-kpis"),
     path("closes/is-closed/", IsClosedAPIView.as_view(), name="finance-is-closed"),
     path("", include(router.urls)),
