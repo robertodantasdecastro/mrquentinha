@@ -844,25 +844,23 @@ def draw_dashboard(
         f"Mr Quentinha Ops Center  |  {dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  |  q sair",
         title_attr,
     )
-    btn_ssh_x = min(w - 8, 56)
-    safe_add(stdscr, 0, btn_ssh_x, "[SSH]", color_pair_safe(6))
-    click_targets.append(
-        ClickTarget(
-            y1=0,
-            x1=btn_ssh_x,
-            y2=0,
-            x2=btn_ssh_x + 4,
-            action="open_ssh",
-            service_key="",
+    action_line = (
+        "Acoes rapidas: [SSH] | [a] start all  [s] stop all  [r] restart all  |  "
+        "Servicos: [1/2/3] Backend  [g/h/j] Admin  [4/5/6] Portal  [7/8/9] Client"
+    )
+    safe_add(stdscr, 1, 0, action_line, color_pair_safe(6))
+    ssh_x = action_line.find("[SSH]")
+    if ssh_x >= 0:
+        click_targets.append(
+            ClickTarget(
+                y1=1,
+                x1=ssh_x,
+                y2=1,
+                x2=ssh_x + 4,
+                action="open_ssh",
+                service_key="",
+            )
         )
-    )
-    safe_add(
-        stdscr,
-        1,
-        0,
-        "Acoes rapidas: [a] start all  [s] stop all  [r] restart all  |  Servicos: [1/2/3] Backend  [g/h/j] Admin  [4/5/6] Portal  [7/8/9] Client",
-        color_pair_safe(6),
-    )
     safe_add(stdscr, 2, 0, export_status, color_pair_safe(5))
 
     status_parts = []
