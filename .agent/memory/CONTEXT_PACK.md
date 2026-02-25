@@ -12,8 +12,8 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
-- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`.
-- Etapa ativa: `7.2` (proxima subetapa: `T7.2.3`).
+- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`.
+- Etapa ativa: `6.3` (proxima subetapa: `T6.3.1`).
 - Planejamento mestre ativo: `6.3` (Portal CMS backend-only) e `9.0` (Admin Web MVP).
 
 ## Fonte de planejamento
@@ -33,4 +33,4 @@
 ## Regra critica
 - Sem segredos no repositorio.
 - Evitar conflito de portal enquanto `6.2` estiver ativo no Antigravity.
-- Proximo passo unico recomendado: `T7.2.3`.
+- Proximo passo unico recomendado: `T6.3.1`.

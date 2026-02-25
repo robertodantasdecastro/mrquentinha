@@ -56,7 +56,7 @@ Esta regra deve aparecer no painel `Rules > Global` do Antigravity e permanecer 
 - `BRANCH_CODEX_PRIMARY=main`
 - `BRANCH_ANTIGRAVITY=AntigravityIDE`
 - `BRANCH_UNION=Antigravity_Codex`
-- Codex: somente `main` e `main/etapa-*`.
+- Codex: somente `main` e `main-etapa-*`.
 - Antigravity: somente `AntigravityIDE` e `AntigravityIDE/etapa-*`.
 - Union: somente `Antigravity_Codex` para merge/cherry-pick/PR.
 - Nenhum agente deve comitar em branch principal do outro.

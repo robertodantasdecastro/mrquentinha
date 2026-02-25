@@ -28,11 +28,13 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - Evidencia: commit `d09fd5d`, testes de intents e ownership.
 - `T7.2.2` concluida: webhook idempotente + reconciliacao financeira (`AR/Cash/Ledger`).
   - Evidencia: modelo `PaymentWebhookEvent`, endpoint `/api/v1/orders/payments/webhook/`, testes API de replay e reconciliacao.
+- `T7.2.3` concluida: checkout online no client com selecao de metodo (PIX/CARD/VR), criacao de intent e polling de status.
+  - Evidencia: `workspaces/web/client/src/components/MenuPage.tsx`, `CartDrawer.tsx`, `lib/api.ts`, testes backend de `payment_method` e intent CARD.
 
 ## 2) Em progresso
 
-- Etapa ativa de negocio: `7.2` (pagamentos online PIX/cartao/VR).
-- Proxima subetapa cronologica: `T7.2.3` (checkout online no client consumindo intents/status).
+- Etapa ativa de negocio: `6.3` (Portal CMS backend-only).
+- Proxima subetapa cronologica: `T6.3.1` (Config/Sections + API publica/admin).
 - Planejamento tecnico ativo (docs-first):
   - `6.3` Portal CMS backend-only.
   - `9.0` Admin Web MVP.
@@ -43,27 +45,12 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 
 ### P0 (desbloqueia operacao/receita)
 
-#### T7.2.3 - Checkout client com pagamentos online
-- Objetivo: integrar client ao fluxo de intent/status de pagamento online (PIX/cartao/VR).
-- Escopo: client + contrato backend + docs.
-- Risco de conflito: medio (depende de `T7.2.1` e `T7.2.2`).
-- Branch padrao:
-  - Codex: `main/etapa-7.2-CheckoutClient`
-  - Antigravity: `AntigravityIDE/etapa-7.2-CheckoutClient`
-  - Union: `Antigravity_Codex`
-- DoD (comandos):
-  - `source ~/.nvm/nvm.sh && nvm use --lts`
-  - `cd workspaces/web/client && npm run lint && npm run build`
-  - `bash scripts/smoke_client_dev.sh`
-  - `bash scripts/sync_memory.sh --check`
-- Artefatos esperados: fluxo de checkout online com estados de sucesso/falha e polling.
-
 #### T6.3.1 - Portal CMS backend-only (MVP)
 - Objetivo: entregar backend do CMS (Config + Sections por template/pagina) com API publica read-only e endpoints de administracao.
 - Escopo: backend + docs.
 - Risco de conflito: medio (interseca funcionalmente com portal 6.2; sem mexer no layout).
 - Branch padrao:
-  - Codex: `main/etapa-6.3-PortalCMS-BackendOnly`
+  - Codex: `main-etapa-6.3-PortalCMS-BackendOnly`
   - Antigravity: `AntigravityIDE/etapa-6.3-PortalCMS-BackendOnly`
   - Union: `Antigravity_Codex`
 - DoD (comandos):
@@ -76,7 +63,7 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 - Escopo: admin web + ui shared + docs.
 - Risco de conflito: baixo.
 - Branch padrao:
-  - Codex: `main/etapa-9.0-AdminWeb-Foundation`
+  - Codex: `main-etapa-9.0-AdminWeb-Foundation`
   - Antigravity: `AntigravityIDE/etapa-9.0-AdminWeb-Foundation`
   - Union: `Antigravity_Codex`
 - DoD (comandos):
@@ -89,7 +76,7 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 - Escopo: admin web + backend integration + docs.
 - Risco de conflito: medio.
 - Branch padrao:
-  - Codex: `main/etapa-9.0-AdminWeb-CoreOps`
+  - Codex: `main-etapa-9.0-AdminWeb-CoreOps`
   - Antigravity: `AntigravityIDE/etapa-9.0-AdminWeb-CoreOps`
   - Union: `Antigravity_Codex`
 - DoD (comandos):

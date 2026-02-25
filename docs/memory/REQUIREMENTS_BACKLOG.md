@@ -44,7 +44,7 @@ Escopo: consolidacao de requisitos funcionais/operacionais solicitados no chat.
 
 ### C) Client web (cliente final)
 - Login/conta/pedidos/historico: **feito**
-- Checkout com pagamento online (PIX/cartao/VR): **pendente (7.2)**
+- Checkout com pagamento online (PIX/cartao/VR): **feito (T7.2.3)**
 - Remocao do modo demo: **feito**
 
 ### D) Frontend de Gestao (novo epico obrigatorio)
@@ -65,7 +65,7 @@ Escopo: consolidacao de requisitos funcionais/operacionais solicitados no chat.
 - Endpoints de administracao (backend/admin web): **pendente**
 
 ### F) Pagamentos online (7.2)
-- PIX + cartao + VR/VA (MVP): **em progresso**
+- PIX + cartao + VR/VA (MVP): **feito (mock provider)**
 - Webhooks + idempotencia: **feito (backend)**
 - Integracao com finance/ledger/conciliation/close: **feito (backend)**
 
@@ -81,6 +81,6 @@ Escopo: consolidacao de requisitos funcionais/operacionais solicitados no chat.
 - Dados reais ampliados (fotos/OCR/nutricao/produto montado): **em progresso**
 
 ## 3) Observacoes operacionais
-- Politica de branches valida: Codex (`main`, `main/etapa-*`), Antigravity (`AntigravityIDE`, `AntigravityIDE/etapa-*`), Union (`Antigravity_Codex`).
+- Politica de branches valida: Codex (`main`, `main-etapa-*`), Antigravity (`AntigravityIDE`, `AntigravityIDE/etapa-*`), Union (`Antigravity_Codex`).
 - Enquanto a trilha visual 6.2 estiver ativa no Antigravity, evitar mudancas concorrentes de layout do portal pelo Codex.
-- Prioridade funcional atual para receita/operacao: **7.2 pagamentos + 6.3 CMS backend-only + 9.0 Admin Web MVP**.
+- Prioridade funcional atual para receita/operacao: **6.3 CMS backend-only + 9.0 Admin Web MVP**.

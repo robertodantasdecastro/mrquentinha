@@ -3,9 +3,9 @@
 Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`.
-- Em progresso: `7.2` (pagamentos online) com foco atual em `T7.2.3` (checkout online no client) e planejamento acoplado de `6.3` (Portal CMS backend-only) e `9.0` (Admin Web MVP).
-- Proxima execucao recomendada (unica): `T7.2.3`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`.
+- Em progresso: `6.3` (Portal CMS backend-only) com planejamento acoplado de `9.0` (Admin Web MVP).
+- Proxima execucao recomendada (unica): `T6.3.1`.
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -17,7 +17,7 @@ Referencia de atualizacao: 25/02/2026.
 - `BRANCH_CODEX_PRIMARY=main`
 - `BRANCH_ANTIGRAVITY=AntigravityIDE`
 - `BRANCH_UNION=Antigravity_Codex`
-- Codex: `main` e `main/etapa-*`.
+- Codex: `main` e `main-etapa-*`.
 - Antigravity: `AntigravityIDE` e `AntigravityIDE/etapa-*`.
 - Uniao: `Antigravity_Codex` (somente merge/cherry-pick/PR).
 - Guard rail: `scripts/branch_guard.sh`.
@@ -42,10 +42,11 @@ Referencia de atualizacao: 25/02/2026.
 - Status: operacional (Auth JWT, Finance MVP completo, OCR mock, nutricao, producao, relatorios).
 - Banco: PostgreSQL (`mrquentinhabd`).
 - Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `production`, `ocr_ai`.
-- Pagamentos online (`7.2.1` + `7.2.2`):
+- Pagamentos online (`7.2.1` + `7.2.2` + `7.2.3`):
   - `PaymentIntent` persistido com idempotencia por pagamento/chave.
   - provider abstraction inicial (`mock`) com payload de intent para PIX/CARD/VR.
   - webhook idempotente com reconciliacao para `AR/Cash/Ledger`.
+  - criacao de pedido com `payment_method` (PIX/CARD/VR) para acionar checkout online por intent.
   - eventos de webhook persistidos em `PaymentWebhookEvent` para replay seguro por `provider + event_id`.
 
 ### Web Portal (Next.js - 3000)
@@ -56,7 +57,7 @@ Referencia de atualizacao: 25/02/2026.
 ### Web Client (Next.js - 3001)
 - Status: auth real concluida (`register/token/refresh/me`).
 - Pedido/historico: escopo autenticado sem demo.
-- Gap aberto: checkout com pagamento online (`T7.2.3`).
+- Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
 
 ### Admin Web (planejado)
 - Status: nao iniciado no `main`.
@@ -88,7 +89,7 @@ Referencia de atualizacao: 25/02/2026.
   - `POST /api/v1/orders/payments/webhook/` (`X-Webhook-Token`)
 
 ## Plano da etapa ativa
-- Trilha principal: `7.2 Pagamentos online`.
-- Subetapas concluidas: `T7.2.1` (provider abstraction + intents + idempotencia) e `T7.2.2` (webhook + reconciliacao financeira).
-- Proxima subetapa unica: `T7.2.3` (checkout online PIX/cartao/VR no client).
-- Trilhas correlatas (apos 7.2.3): `6.3.1`, `9.0.1`.
+- Trilha principal: `6.3 Portal CMS backend-only`.
+- Etapa 7.2 concluida com `T7.2.1`, `T7.2.2` e `T7.2.3`.
+- Proxima subetapa unica: `T6.3.1` (Config/Sections + API publica/admin).
+- Trilhas correlatas apos 6.3.1: `9.0.1`, `9.0.2`.

@@ -7,7 +7,7 @@
 - Nunca iniciar tarefa sem ler `AGENTS.md`, `GEMINI` global e rodar `bash scripts/gemini_check.sh`.
 
 ## Politica de branches
-- Codex: `main` (ou `main/etapa-*` em desenvolvimento por etapa).
+- Codex: `main` (ou `main-etapa-*` em desenvolvimento por etapa).
 - Antigravity: `AntigravityIDE` (ou `AntigravityIDE/etapa-*`).
 - Integracao: `Antigravity_Codex`.
 - Regra global Codex: antes de qualquer comando git, confirme branch correta com git branch --show-current e rode o guard rail correspondente.

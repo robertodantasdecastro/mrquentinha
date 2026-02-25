@@ -4,7 +4,7 @@ Referencia: 25/02/2026.
 
 ## Regras de execucao
 - Branch policy:
-  - Codex: `main` e `main/etapa-*`
+  - Codex: `main` e `main-etapa-*`
   - Antigravity: `AntigravityIDE` e `AntigravityIDE/etapa-*`
   - Union: `Antigravity_Codex`
 - Prefixo de IDs:
@@ -16,25 +16,15 @@ Referencia: 25/02/2026.
 ## Concluidas recentes
 - [x] `T7.2.1` payment intents com idempotencia.
 - [x] `T7.2.2` webhook de pagamento + reconciliacao `AR/Cash/Ledger`.
+- [x] `T7.2.3` checkout online no client com intents por metodo e polling de status.
 
 ## P0 (critico - receita/operacao)
-
-### T7.2.3 (P0)
-- Objetivo: checkout online no client (PIX/cartao/VR) com status transacional.
-- Escopo: client + contrato API.
-- Conflito Codex x Antigravity: medio.
-- Branch sugerida: `main/etapa-7.2-CheckoutClient`.
-- DoD:
-  - `source ~/.nvm/nvm.sh && nvm use --lts`
-  - `cd workspaces/web/client && npm run lint && npm run build`
-  - `bash scripts/smoke_client_dev.sh`
-  - `bash scripts/sync_memory.sh --check`
 
 ### T6.3.1 (P0)
 - Objetivo: Portal CMS backend-only (Config + Sections + API publica/admin).
 - Escopo: backend + docs.
 - Conflito Codex x Antigravity: medio (intersecao funcional com portal 6.2).
-- Branch sugerida: `main/etapa-6.3-PortalCMS-BackendOnly`.
+- Branch sugerida: `main-etapa-6.3-PortalCMS-BackendOnly`.
 - DoD:
   - `cd workspaces/backend && source .venv/bin/activate && python manage.py check && make lint && make test`
   - `bash scripts/smoke_stack_dev.sh`
@@ -44,7 +34,7 @@ Referencia: 25/02/2026.
 - Objetivo: Admin Web foundation (auth shell + dashboard inicial).
 - Escopo: admin web novo workspace.
 - Conflito Codex x Antigravity: baixo.
-- Branch sugerida: `main/etapa-9.0-AdminWeb-Foundation`.
+- Branch sugerida: `main-etapa-9.0-AdminWeb-Foundation`.
 - DoD:
   - `source ~/.nvm/nvm.sh && nvm use --lts`
   - `cd workspaces/web/admin && npm run lint && npm run build`
@@ -54,7 +44,7 @@ Referencia: 25/02/2026.
 - Objetivo: Admin Web MVP operacional (Pedidos, Financeiro, Estoque).
 - Escopo: admin + backend.
 - Conflito Codex x Antigravity: medio.
-- Branch sugerida: `main/etapa-9.0-AdminWeb-CoreOps`.
+- Branch sugerida: `main-etapa-9.0-AdminWeb-CoreOps`.
 - DoD:
   - `cd workspaces/backend && source .venv/bin/activate && make test`
   - `source ~/.nvm/nvm.sh && nvm use --lts`
@@ -76,19 +66,19 @@ Referencia: 25/02/2026.
 - Objetivo: integrar CMS no portal (render por template/page).
 - Escopo: portal + backend.
 - Conflito Codex x Antigravity: alto.
-- Branch sugerida: `main/etapa-6.3-PortalCMS-Integracao`.
+- Branch sugerida: `main-etapa-6.3-PortalCMS-Integracao`.
 
 ### T9.1.1 (P1)
 - Objetivo: Admin Web completo (modulos 1..10 do epico de gestao).
 - Escopo: admin + backend + relatorios.
 - Conflito Codex x Antigravity: medio/alto.
-- Branch sugerida: `main/etapa-9.1-AdminWeb-Completo`.
+- Branch sugerida: `main-etapa-9.1-AdminWeb-Completo`.
 
 ### T9.1.2 (P1)
 - Objetivo: exportacoes CSV/Excel e graficos no Admin.
 - Escopo: admin + API relatorios.
 - Conflito Codex x Antigravity: medio.
-- Branch sugerida: `main/etapa-9.1-AdminWeb-Relatorios`.
+- Branch sugerida: `main-etapa-9.1-AdminWeb-Relatorios`.
 
 ## P2 (roadmap e hardening)
 
@@ -96,16 +86,16 @@ Referencia: 25/02/2026.
 - Objetivo: Nginx/proxy local (www/admin/api/app) com runbook de operacao.
 - Escopo: infra + docs.
 - Conflito Codex x Antigravity: baixo.
-- Branch sugerida: `main/etapa-6.1-NginxLocal`.
+- Branch sugerida: `main-etapa-6.1-NginxLocal`.
 
 ### T8.0.1 (P2)
 - Objetivo: discovery de financas pessoais com segregacao LGPD.
 - Escopo: docs + arquitetura + backlog.
 - Conflito Codex x Antigravity: baixo.
-- Branch sugerida: `main/etapa-8.0-FinancasPessoais-Discovery`.
+- Branch sugerida: `main-etapa-8.0-FinancasPessoais-Discovery`.
 
 ### T8.1.1 (P2)
 - Objetivo: MVP tecnico de segregacao por usuario/colaborador.
 - Escopo: backend + auth + privacidade.
 - Conflito Codex x Antigravity: medio.
-- Branch sugerida: `main/etapa-8.1-FinancasPessoais-MVP`.
+- Branch sugerida: `main-etapa-8.1-FinancasPessoais-MVP`.

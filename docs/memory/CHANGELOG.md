@@ -324,7 +324,7 @@
 - Branch policy atualizada (main/AntigravityIDE/Antigravity_Codex):
   - politica canonica ajustada para `main` (Codex), `AntigravityIDE` (Antigravity) e `Antigravity_Codex` (uniao).
   - regra de branches por etapa formalizada:
-    - Codex: `main/etapa-N-TituloEtapa`
+    - Codex: `main-etapa-N-TituloEtapa`
     - Antigravity: `AntigravityIDE/etapa-N-TituloEtapa`
   - workflow de uniao atualizado (`W18`) com merge controlado de `origin/AntigravityIDE` em `Antigravity_Codex` e validacao completa.
   - novo script `scripts/union_branch_build_and_test.sh` com modo `--dry-run`.
@@ -424,3 +424,27 @@
 - docs(memory): sincronizacao de estado apos T7.2.2
   - `PROJECT_STATE`, `TODO_NEXT`, `CONTEXT_PACK`, `ROADMAP_MASTER` e `BACKLOG` alinhados com `T7.2.2` concluida.
   - prioridade ativa movida para `T7.2.3` (checkout online no client).
+
+- Etapa 7.2.3 checkout online no client (PIX/CARD/VR):
+  - backend passou a aceitar `payment_method` na criacao de pedido (`OrderSerializer` + `create_order`) mantendo validacao por choices.
+  - cobertura de testes backend ampliada para metodo CARD e validacao de metodo invalido.
+  - client integrado ao fluxo de intents:
+    - selecao de metodo online no carrinho;
+    - criacao de intent com `Idempotency-Key` em `POST /api/v1/orders/payments/<id>/intent/`;
+    - polling manual de status em `GET /api/v1/orders/payments/<id>/intent/latest/`;
+    - painel com instrucoes por metodo (PIX copia-e-cola/QR mock, token CARD, token VR).
+  - historico de pedidos passou a exibir resumo dos pagamentos por pedido.
+  - validacoes executadas com sucesso:
+    - `cd workspaces/backend && source .venv/bin/activate && make lint`
+    - `cd workspaces/backend && source .venv/bin/activate && pytest tests/test_orders_services.py tests/test_orders_api.py`
+    - `cd workspaces/web/client && npm run lint && npm run build`
+    - `bash scripts/smoke_client_dev.sh`
+
+- Branch policy Codex ajustada para operacao real de Git:
+  - padrao canonico de etapa em Codex atualizado para `main-etapa-*` (compativel com branch principal `main`).
+  - `scripts/branch_guard.sh` passou a aceitar `main-etapa-*` e manter compatibilidade com referencias legadas.
+  - memoria/workflows/rules sincronizados para o novo padrao de branch.
+
+- docs(memory): sincronizacao de estado apos T7.2.3
+  - `PROJECT_STATE`, `TODO_NEXT`, `CONTEXT_PACK`, `ROADMAP_MASTER` e `BACKLOG` atualizados.
+  - etapa ativa movida para `6.3` com proxima subetapa unica `T6.3.1`.
