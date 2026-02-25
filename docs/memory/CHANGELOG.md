@@ -576,3 +576,15 @@
     - `./scripts/quality_gate_all.sh`
     - smoke manual de origem: `Origin 10.211.55.21 -> 200` e origem nao permitida -> `403` em `/_next/static/chunks/webpack.js`.
     - autenticacao backend validada para usuario admin `roberto` via `POST /api/v1/accounts/token/` (`200`).
+
+- Etapa 9.1.1-HF2 hotfix Admin Web login (CORS + feedback):
+  - backend `dev.py` atualizado para liberar `CORS_ALLOWED_ORIGINS` da porta `3002` (`10.211.55.21`, `localhost`, `127.0.0.1`).
+  - Admin Web passou a resolver automaticamente a API base via `window.location.hostname:8000` quando `NEXT_PUBLIC_API_BASE_URL` nao estiver definida.
+  - tratamento de erro de rede em `requestJson` padronizado com mensagem clara de conectividade/CORS.
+  - card de login passou a exibir feedback inline (mensagem/erro) e aviso explicito quando API estiver indisponivel.
+  - `scripts/start_admin_dev.sh` agora define `NEXT_PUBLIC_API_BASE_URL` padrao com IP da VM quando variavel nao existir.
+  - validacoes executadas:
+    - `cd workspaces/web/admin && npm run lint && npm run build`
+    - `./scripts/quality_gate_all.sh` (`OK`)
+    - preflight CORS `Origin http://10.211.55.21:3002` em `/api/v1/accounts/token/` com `access-control-allow-origin` retornado.
+    - login admin `roberto` (`POST /api/v1/accounts/token/`) e `GET /api/v1/accounts/me/` com `200`.

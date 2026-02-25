@@ -62,6 +62,7 @@ Referencia de atualizacao: 25/02/2026.
 ### Admin Web (Next.js - 3002)
 - Status: `T9.1.1` concluida (Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao + Usuarios/RBAC operacionais).
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF1`): correcoes de `onChange` para evitar crash client-side no login e ajuste de `allowedDevOrigins` no Next 16 para acesso em `10.211.55.21:3002`.
+- Hotfix aplicado em 25/02/2026 (`T9.1.1-HF2`): liberacao de CORS do backend para origem `:3002`, fallback automatico da API no Admin Web e exibicao de erros diretamente no card de login.
 - Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao estaveis com fluxo operacional e modulo Usuarios/RBAC com atribuicao de papeis.
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo: hardening final de UX e relatorios exportaveis no bloco Admin Web apos alinhamento de prioridades.
@@ -70,7 +71,7 @@ Referencia de atualizacao: 25/02/2026.
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
 - Portal: `3000` -> `scripts/start_portal_dev.sh`
 - Client: `3001` -> `scripts/start_client_dev.sh`
-- Admin Web: `3002` -> `cd workspaces/web/admin && npm run dev -- --hostname 0.0.0.0 --port 3002`
+- Admin Web: `3002` -> `scripts/start_admin_dev.sh`
 - Proxy local Nginx: `8088` -> `scripts/start_proxy_dev.sh`
 - Smoke: `scripts/smoke_stack_dev.sh`, `scripts/smoke_client_dev.sh`, `scripts/smoke_proxy_dev.sh`
 - Seed: `scripts/seed_demo.sh`
@@ -107,5 +108,6 @@ Referencia de atualizacao: 25/02/2026.
 - T9.0.3 concluida (Admin Web expansion: baseline de Cardapio, Compras e Producao).
 - T9.1.1 concluida (modulo Usuarios/RBAC entregue com endpoints admin + painel no Admin Web).
 - T9.1.1-HF1 concluida (hotfix de login no Admin Web: crash client-side ao digitar usuario + ajuste de allowedDevOrigins para acesso via IP).
+- T9.1.1-HF2 concluida (hotfix de login no Admin Web: CORS backend para `:3002` + fallback de API base + feedback inline de erro no formulario).
 - Proxima subetapa unica: executar `T9.1.2` (relatorios/exportacoes no Admin Web).
 - Trilhas correlatas apos 9.1.1: `T6.2.1` (Antigravity), `T6.3.2` (Codex apos lock visual), `T9.1.2`.
