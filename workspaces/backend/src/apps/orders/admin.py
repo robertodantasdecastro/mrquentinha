@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Order, OrderItem, Payment, PaymentIntent
+from .models import Order, OrderItem, Payment, PaymentIntent, PaymentWebhookEvent
 
 
 class OrderItemInline(admin.TabularInline):
@@ -54,3 +54,19 @@ class PaymentIntentAdmin(admin.ModelAdmin):
     ]
     list_filter = ["provider", "status"]
     search_fields = ["id", "payment__id", "idempotency_key", "provider_intent_ref"]
+
+
+@admin.register(PaymentWebhookEvent)
+class PaymentWebhookEventAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "provider",
+        "event_id",
+        "payment",
+        "intent",
+        "intent_status",
+        "payment_status",
+        "processed_at",
+    ]
+    list_filter = ["provider", "intent_status", "payment_status"]
+    search_fields = ["event_id", "payment__id", "intent__id"]

@@ -8,7 +8,9 @@ from .models import (
     OrderStatus,
     Payment,
     PaymentIntent,
+    PaymentIntentStatus,
     PaymentStatus,
+    PaymentWebhookEvent,
 )
 
 
@@ -131,3 +133,43 @@ class PaymentIntentSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = fields
+
+
+class PaymentWebhookInputSerializer(serializers.Serializer):
+    provider = serializers.CharField(required=False, allow_blank=False)
+    event_id = serializers.CharField(max_length=120)
+    provider_intent_ref = serializers.CharField(max_length=180)
+    intent_status = serializers.ChoiceField(choices=PaymentIntentStatus.choices)
+    provider_ref = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+    paid_at = serializers.DateTimeField(required=False, allow_null=True)
+
+
+class PaymentWebhookEventSerializer(serializers.ModelSerializer):
+    payment_id = serializers.SerializerMethodField()
+    intent_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PaymentWebhookEvent
+        fields = [
+            "id",
+            "provider",
+            "event_id",
+            "payment_id",
+            "intent_id",
+            "intent_status",
+            "payment_status",
+            "processed_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_payment_id(self, obj: PaymentWebhookEvent) -> int | None:
+        return obj.payment_id
+
+    def get_intent_id(self, obj: PaymentWebhookEvent) -> int | None:
+        return obj.intent_id

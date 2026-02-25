@@ -15,6 +15,7 @@ from apps.catalog.models import (
     MenuItem,
 )
 from apps.finance.models import AccountType, CashDirection, CashMovement
+from apps.orders.models import PaymentWebhookEvent
 from apps.orders.services import create_order
 
 
@@ -530,3 +531,221 @@ def test_payment_intent_post_retorna_409_para_chave_diferente_com_intent_ativo(
         HTTP_IDEMPOTENCY_KEY="intent-conflict-002",
     )
     assert conflict_response.status_code == 409
+
+
+@pytest.mark.django_db
+def test_payment_webhook_succeeded_reconcilia_pagamento_e_replay_idempotente(
+    create_user_with_roles,
+    client,
+    settings,
+):
+    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-test"
+
+    delivery_date = date(2026, 3, 28)
+    menu_item = _create_menu_item_for_api(delivery_date)
+    customer = create_user_with_roles(
+        username="cliente_webhook_success",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+    intent_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-webhook-success-001",
+    )
+    assert intent_response.status_code == 201
+
+    provider_intent_ref = intent_response.json()["provider_intent_ref"]
+    webhook_payload = {
+        "provider": "mock",
+        "event_id": "evt-webhook-success-001",
+        "provider_intent_ref": provider_intent_ref,
+        "intent_status": "SUCCEEDED",
+        "provider_ref": "provider-success-001",
+    }
+
+    webhook_client = APIClient()
+    first_response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/",
+        data=json.dumps(webhook_payload),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+    )
+    assert first_response.status_code == 201
+    first_body = first_response.json()
+    assert first_body["idempotent_replay"] is False
+    assert first_body["payment_id"] == payment.id
+    assert first_body["intent_status"] == "SUCCEEDED"
+    assert first_body["payment_status"] == "PAID"
+
+    payment.refresh_from_db()
+    assert payment.status == "PAID"
+    assert payment.provider_ref == "provider-success-001"
+
+    ar_response = client.get("/api/v1/finance/ar-receivables/")
+    assert ar_response.status_code == 200
+    ar_items = _extract_results(ar_response.json())
+    ar_item = next(
+        (
+            item
+            for item in ar_items
+            if item["reference_type"] == "ORDER" and item["reference_id"] == order.id
+        ),
+        None,
+    )
+
+    assert ar_item is not None
+    assert ar_item["status"] == "RECEIVED"
+
+    movements_before = CashMovement.objects.filter(
+        direction=CashDirection.IN,
+        reference_type="AR",
+        reference_id=ar_item["id"],
+    ).count()
+    assert movements_before == 1
+
+    replay_response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/",
+        data=json.dumps(webhook_payload),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+    )
+    assert replay_response.status_code == 200
+    replay_body = replay_response.json()
+    assert replay_body["idempotent_replay"] is True
+
+    assert (
+        PaymentWebhookEvent.objects.filter(
+            provider="mock",
+            event_id="evt-webhook-success-001",
+        ).count()
+        == 1
+    )
+
+    movements_after = CashMovement.objects.filter(
+        direction=CashDirection.IN,
+        reference_type="AR",
+        reference_id=ar_item["id"],
+    ).count()
+    assert movements_after == 1
+
+
+@pytest.mark.django_db
+def test_payment_webhook_retorna_401_sem_token(settings):
+    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-required"
+
+    webhook_client = APIClient()
+    response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/",
+        data=json.dumps({"event_id": "evt-missing-token"}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_payment_webhook_retorna_404_quando_intent_nao_encontrado(settings):
+    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-not-found"
+
+    webhook_client = APIClient()
+    response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/",
+        data=json.dumps(
+            {
+                "provider": "mock",
+                "event_id": "evt-not-found-001",
+                "provider_intent_ref": "intent-inexistente",
+                "intent_status": "SUCCEEDED",
+            }
+        ),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_payment_webhook_failed_marca_pagamento_failed_sem_entrada_caixa(
+    create_user_with_roles,
+    client,
+    settings,
+):
+    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-failed"
+
+    delivery_date = date(2026, 3, 29)
+    menu_item = _create_menu_item_for_api(delivery_date)
+    customer = create_user_with_roles(
+        username="cliente_webhook_failed",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+    intent_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-webhook-failed-001",
+    )
+    assert intent_response.status_code == 201
+
+    provider_intent_ref = intent_response.json()["provider_intent_ref"]
+
+    webhook_client = APIClient()
+    failed_response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/",
+        data=json.dumps(
+            {
+                "provider": "mock",
+                "event_id": "evt-webhook-failed-001",
+                "provider_intent_ref": provider_intent_ref,
+                "intent_status": "FAILED",
+                "provider_ref": "provider-failed-001",
+            }
+        ),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+    )
+    assert failed_response.status_code == 201
+
+    payment.refresh_from_db()
+    assert payment.status == "FAILED"
+
+    ar_response = client.get("/api/v1/finance/ar-receivables/")
+    assert ar_response.status_code == 200
+    ar_items = _extract_results(ar_response.json())
+    ar_item = next(
+        (
+            item
+            for item in ar_items
+            if item["reference_type"] == "ORDER" and item["reference_id"] == order.id
+        ),
+        None,
+    )
+
+    assert ar_item is not None
+    assert ar_item["status"] == "OPEN"
+
+    movements = CashMovement.objects.filter(
+        direction=CashDirection.IN,
+        reference_type="AR",
+        reference_id=ar_item["id"],
+    )
+    assert movements.count() == 0

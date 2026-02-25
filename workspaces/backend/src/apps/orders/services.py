@@ -18,6 +18,7 @@ from .models import (
     PaymentIntentStatus,
     PaymentMethod,
     PaymentStatus,
+    PaymentWebhookEvent,
 )
 from .payment_providers import get_payment_provider
 from .selectors import get_menu_day_for_delivery
@@ -26,9 +27,16 @@ MONEY_DECIMAL_PLACES = Decimal("0.01")
 IDEMPOTENCY_ALLOWED_CHARS = set(string.ascii_letters + string.digits + "-_.:")
 IDEMPOTENCY_KEY_MAX_LENGTH = 128
 ONLINE_INTENT_METHODS = {PaymentMethod.PIX, PaymentMethod.CARD, PaymentMethod.VR}
+WEBHOOK_EVENT_ALLOWED_CHARS = IDEMPOTENCY_ALLOWED_CHARS
+WEBHOOK_EVENT_ID_MAX_LENGTH = 120
 INTENT_ACTIVE_STATUSES = {
     PaymentIntentStatus.REQUIRES_ACTION,
     PaymentIntentStatus.PROCESSING,
+}
+INTENT_FAILURE_STATUSES = {
+    PaymentIntentStatus.FAILED,
+    PaymentIntentStatus.CANCELED,
+    PaymentIntentStatus.EXPIRED,
 }
 
 
@@ -55,6 +63,26 @@ def normalize_idempotency_key(idempotency_key: str) -> str:
         )
 
     return normalized_key
+
+
+def normalize_webhook_event_id(event_id: str) -> str:
+    normalized_event_id = (event_id or "").strip()
+
+    if not normalized_event_id:
+        raise ValidationError("Campo event_id obrigatorio.")
+
+    if len(normalized_event_id) > WEBHOOK_EVENT_ID_MAX_LENGTH:
+        raise ValidationError(
+            "event_id deve ter no maximo " f"{WEBHOOK_EVENT_ID_MAX_LENGTH} caracteres."
+        )
+
+    if any(char not in WEBHOOK_EVENT_ALLOWED_CHARS for char in normalized_event_id):
+        raise ValidationError(
+            "event_id contem caracteres invalidos. Use apenas letras, "
+            "numeros e -_.:."
+        )
+
+    return normalized_event_id
 
 
 def _quantize_money(value: Decimal) -> Decimal:
@@ -349,3 +377,109 @@ def get_latest_payment_intent(
             raise ValidationError("Pagamento nao encontrado.")
 
     return payment.intents.order_by("-created_at", "-id").first()
+
+
+def _resolve_webhook_payment_status(intent_status: str) -> str | None:
+    if intent_status == PaymentIntentStatus.SUCCEEDED:
+        return PaymentStatus.PAID
+
+    if intent_status in INTENT_FAILURE_STATUSES:
+        return PaymentStatus.FAILED
+
+    return None
+
+
+@transaction.atomic
+def process_payment_webhook(
+    *,
+    provider: str | None,
+    event_id: str,
+    provider_intent_ref: str,
+    intent_status: str,
+    provider_ref: str | None = None,
+    paid_at=None,
+    raw_payload: dict | None = None,
+) -> tuple[PaymentWebhookEvent, bool]:
+    normalized_provider = (
+        (provider or get_payment_provider().provider_name).strip().lower()
+    )
+    normalized_event_id = normalize_webhook_event_id(event_id)
+    normalized_intent_ref = (provider_intent_ref or "").strip()
+    normalized_intent_status = (intent_status or "").strip().upper()
+
+    if not normalized_provider:
+        raise ValidationError("Campo provider obrigatorio.")
+
+    if not normalized_intent_ref:
+        raise ValidationError("Campo provider_intent_ref obrigatorio.")
+
+    intent_choices = {choice for choice, _ in PaymentIntentStatus.choices}
+    if normalized_intent_status not in intent_choices:
+        raise ValidationError("Status de intent invalido.")
+
+    (
+        webhook_event,
+        created,
+    ) = PaymentWebhookEvent.objects.select_for_update().get_or_create(
+        provider=normalized_provider,
+        event_id=normalized_event_id,
+        defaults={"payload": raw_payload or {}},
+    )
+    if not created:
+        return webhook_event, False
+
+    intent = (
+        PaymentIntent.objects.select_for_update()
+        .select_related("payment")
+        .filter(
+            provider=normalized_provider,
+            provider_intent_ref=normalized_intent_ref,
+        )
+        .order_by("-created_at", "-id")
+        .first()
+    )
+    if intent is None:
+        raise ValidationError("Intent de pagamento nao encontrado.")
+
+    if intent.status != normalized_intent_status:
+        intent.status = normalized_intent_status
+        intent.save(update_fields=["status", "updated_at"])
+
+    payment = intent.payment
+    payment_update_data: dict = {}
+    resolved_payment_status = _resolve_webhook_payment_status(normalized_intent_status)
+
+    if resolved_payment_status is not None:
+        payment_update_data["status"] = resolved_payment_status
+
+    if provider_ref is not None:
+        payment_update_data["provider_ref"] = provider_ref
+
+    if resolved_payment_status == PaymentStatus.PAID and paid_at is not None:
+        payment_update_data["paid_at"] = paid_at
+
+    if payment_update_data:
+        payment = update_payment_status(
+            payment_id=payment.id,
+            update_data=payment_update_data,
+        )
+
+    webhook_event.payment = payment
+    webhook_event.intent = intent
+    webhook_event.intent_status = intent.status
+    webhook_event.payment_status = payment.status
+    webhook_event.payload = raw_payload or {}
+    webhook_event.processed_at = timezone.now()
+    webhook_event.save(
+        update_fields=[
+            "payment",
+            "intent",
+            "intent_status",
+            "payment_status",
+            "payload",
+            "processed_at",
+            "updated_at",
+        ]
+    )
+
+    return webhook_event, True

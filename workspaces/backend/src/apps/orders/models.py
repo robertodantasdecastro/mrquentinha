@@ -168,3 +168,48 @@ class PaymentIntent(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"Intent-{self.id} pagamento-{self.payment_id} ({self.status})"
+
+
+class PaymentWebhookEvent(TimeStampedModel):
+    provider = models.CharField(max_length=40)
+    event_id = models.CharField(max_length=120)
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="webhook_events",
+    )
+    intent = models.ForeignKey(
+        PaymentIntent,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="webhook_events",
+    )
+    intent_status = models.CharField(
+        max_length=24,
+        choices=PaymentIntentStatus.choices,
+        null=True,
+        blank=True,
+    )
+    payment_status = models.CharField(
+        max_length=16,
+        choices=PaymentStatus.choices,
+        null=True,
+        blank=True,
+    )
+    payload = models.JSONField(default=dict, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "event_id"],
+                name="orders_paymentwebhookevent_provider_event_unique",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"Webhook-{self.id} ({self.provider}:{self.event_id})"

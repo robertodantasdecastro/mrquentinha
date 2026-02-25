@@ -97,6 +97,10 @@ PAYMENTS_INTENT_TTL_MINUTES = env.int(
     "PAYMENTS_INTENT_TTL_MINUTES",
     default=15,
 )
+PAYMENTS_WEBHOOK_TOKEN = env(
+    "PAYMENTS_WEBHOOK_TOKEN",
+    default="dev-mrquentinha-webhook-token",
+)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

@@ -1,8 +1,11 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.permissions import (
     ORDER_CREATE_ROLES,
@@ -21,6 +24,8 @@ from .serializers import (
     PaymentIntentSerializer,
     PaymentSerializer,
     PaymentStatusUpdateSerializer,
+    PaymentWebhookEventSerializer,
+    PaymentWebhookInputSerializer,
 )
 from .services import (
     PaymentIntentConflictError,
@@ -29,9 +34,57 @@ from .services import (
     get_latest_payment_intent,
     has_global_order_access,
     normalize_idempotency_key,
+    process_payment_webhook,
     update_order_status,
     update_payment_status,
 )
+
+
+class PaymentWebhookAPIView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        expected_token = getattr(settings, "PAYMENTS_WEBHOOK_TOKEN", "")
+        received_token = request.headers.get("X-Webhook-Token", "")
+        if not expected_token or received_token != expected_token:
+            return Response(
+                {"detail": "Webhook token invalido."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        input_serializer = PaymentWebhookInputSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        try:
+            webhook_event, created = process_payment_webhook(
+                provider=input_serializer.validated_data.get("provider"),
+                event_id=input_serializer.validated_data["event_id"],
+                provider_intent_ref=input_serializer.validated_data[
+                    "provider_intent_ref"
+                ],
+                intent_status=input_serializer.validated_data["intent_status"],
+                provider_ref=input_serializer.validated_data.get("provider_ref"),
+                paid_at=input_serializer.validated_data.get("paid_at"),
+                raw_payload=dict(request.data),
+            )
+        except DjangoValidationError as exc:
+            detail = exc.messages[0] if exc.messages else str(exc)
+            if "nao encontrado" in detail.lower():
+                return Response(
+                    {"detail": detail},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            raise DRFValidationError(exc.messages) from exc
+
+        output_payload = PaymentWebhookEventSerializer(webhook_event).data
+        output_payload["idempotent_replay"] = not created
+
+        return Response(
+            output_payload,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class OrderViewSet(
