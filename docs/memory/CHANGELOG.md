@@ -7,7 +7,9 @@
 - Novo launcher `scripts/ops_dashboard.py` (mantendo `ops_dashboard.sh` como entrypoint).
 - Script `scripts/start_admin_dev.sh` adicionado para subir o Admin Web.
 - T9.1.1 concluida: modulo Usuarios/RBAC no backend e Admin Web (listagem de usuarios, listagem de papeis e atribuicao de roles com escopo ADMIN).
-- `docs/memory/PATHS_AND_PORTS.md` e README atualizados com porta e caminho do Admin Web.
+- T6.1.1 concluida: proxy local Nginx em `127.0.0.1:8088` com hosts `www/admin/api/app` e smoke dedicado.
+- VM dev atualizada com instalacao de `nginx` para suporte ao proxy local.
+- `docs/memory/PATHS_AND_PORTS.md`, `docs/memory/RUNBOOK_DEV.md` e README atualizados com proxy local e scripts oficiais.
 
 ## Sprint 0
 - Marca oficial definida: Mr Quentinha (assets/brand/)

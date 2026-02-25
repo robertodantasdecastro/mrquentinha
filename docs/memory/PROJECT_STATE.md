@@ -3,9 +3,9 @@
 Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
-- Proxima execucao recomendada (unica): `T6.1.1`.
+- Proxima execucao recomendada (unica): `T9.1.2`.
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -70,7 +70,8 @@ Referencia de atualizacao: 25/02/2026.
 - Portal: `3000` -> `scripts/start_portal_dev.sh`
 - Client: `3001` -> `scripts/start_client_dev.sh`
 - Admin Web: `3002` -> `cd workspaces/web/admin && npm run dev -- --hostname 0.0.0.0 --port 3002`
-- Smoke: `scripts/smoke_stack_dev.sh`, `scripts/smoke_client_dev.sh`
+- Proxy local Nginx: `8088` -> `scripts/start_proxy_dev.sh`
+- Smoke: `scripts/smoke_stack_dev.sh`, `scripts/smoke_client_dev.sh`, `scripts/smoke_proxy_dev.sh`
 - Seed: `scripts/seed_demo.sh`
 - Quality gate: `scripts/quality_gate_all.sh`
 - Sync docs: `scripts/sync_memory.sh --check`
@@ -104,5 +105,5 @@ Referencia de atualizacao: 25/02/2026.
 - T9.0.2 concluida (Admin Web operacional: Pedidos, Financeiro e Estoque conectados ao backend).
 - T9.0.3 concluida (Admin Web expansion: baseline de Cardapio, Compras e Producao).
 - T9.1.1 concluida (modulo Usuarios/RBAC entregue com endpoints admin + painel no Admin Web).
-- Proxima subetapa unica: executar `T6.1.1` (Nginx/proxy local em janela dedicada).
-- Trilhas correlatas apos 9.1.1: `T6.3.2`, `T6.2.1`.
+- Proxima subetapa unica: executar `T9.1.2` (relatorios/exportacoes no Admin Web).
+- Trilhas correlatas apos 9.1.1: `T6.2.1` (Antigravity), `T6.3.2` (Codex apos lock visual), `T9.1.2`.
