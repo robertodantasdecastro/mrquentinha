@@ -8,11 +8,16 @@ import type {
   AuthTokens,
   AuthUserProfile,
   CreateStockMovementPayload,
+  DishData,
   FinanceKpisPayload,
   FinanceUnreconciledPayload,
   HealthPayload,
+  MenuDayData,
   OrderData,
   OrderStatus,
+  ProductionBatchData,
+  PurchaseData,
+  PurchaseRequestData,
   StockItemData,
   StockMovementData,
 } from "@/types/api";
@@ -302,6 +307,69 @@ export async function createStockMovement(
     auth: true,
     body: JSON.stringify(payload),
   });
+}
+
+export async function listMenuDaysAdmin(): Promise<MenuDayData[]> {
+  const payload = await requestJson<MenuDayData[] | { results?: MenuDayData[] }>(
+    "/api/v1/catalog/menus/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function listDishesAdmin(): Promise<DishData[]> {
+  const payload = await requestJson<DishData[] | { results?: DishData[] }>(
+    "/api/v1/catalog/dishes/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function listPurchaseRequestsAdmin(): Promise<PurchaseRequestData[]> {
+  const payload = await requestJson<
+    PurchaseRequestData[] | { results?: PurchaseRequestData[] }
+  >("/api/v1/procurement/requests/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+
+  return normalizeListPayload(payload);
+}
+
+export async function listPurchasesAdmin(): Promise<PurchaseData[]> {
+  const payload = await requestJson<PurchaseData[] | { results?: PurchaseData[] }>(
+    "/api/v1/procurement/purchases/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function listProductionBatchesAdmin(): Promise<ProductionBatchData[]> {
+  const payload = await requestJson<
+    ProductionBatchData[] | { results?: ProductionBatchData[] }
+  >("/api/v1/production/batches/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+
+  return normalizeListPayload(payload);
 }
 
 export function logoutAccount(): void {
