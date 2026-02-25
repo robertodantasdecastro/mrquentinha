@@ -48,6 +48,11 @@ type RequestJsonOptions = Omit<RequestInit, "body"> & {
   allowAuthRetry?: boolean;
 };
 
+type RequestFileResult = {
+  blob: Blob;
+  filename: string;
+};
+
 type JsonObject = Record<string, unknown>;
 
 const NETWORK_ERROR_MESSAGE =
@@ -134,6 +139,19 @@ function parseErrorMessage(payload: unknown): string | null {
   }
 
   return parts.length > 0 ? parts.join(" | ") : null;
+}
+
+function extractFilenameFromDisposition(headerValue: string | null): string | null {
+  if (!headerValue) {
+    return null;
+  }
+
+  const match = headerValue.match(/filename="([^"]+)"/i);
+  if (!match || !match[1]) {
+    return null;
+  }
+
+  return match[1];
 }
 
 async function tryRefreshAccessToken(): Promise<boolean> {
@@ -234,6 +252,71 @@ async function requestJson<T>(path: string, options: RequestJsonOptions = {}): P
   }
 
   return parseJsonBody<T>(response);
+}
+
+async function requestFile(
+  path: string,
+  options: RequestJsonOptions = {},
+): Promise<RequestFileResult> {
+  const { auth = false, allowAuthRetry = true, body, headers, ...rest } = options;
+
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set("Accept", "text/csv");
+
+  if (auth) {
+    const accessToken = getStoredAccessToken();
+    if (!accessToken) {
+      throw new ApiError("Sessao nao autenticada. Faca login no Admin.", 401);
+    }
+
+    requestHeaders.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(resolveUrl(path), {
+      ...rest,
+      headers: requestHeaders,
+      body,
+    });
+  } catch {
+    throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
+  }
+
+  if (response.status === 401 && auth && allowAuthRetry) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return requestFile(path, {
+        ...options,
+        allowAuthRetry: false,
+      });
+    }
+
+    throw new ApiError("Sua sessao expirou. Faca login novamente.", 401);
+  }
+
+  if (!response.ok) {
+    let fallbackMessage = `Erro HTTP ${response.status} ao consultar a API.`;
+
+    try {
+      const payload = (await parseJsonBody<JsonObject>(response)) as unknown;
+      const parsed = parseErrorMessage(payload);
+      if (parsed) {
+        fallbackMessage = parsed;
+      }
+    } catch {
+      // Mantem mensagem padrao.
+    }
+
+    throw new ApiError(fallbackMessage, response.status);
+  }
+
+  const blob = await response.blob();
+  const filename =
+    extractFilenameFromDisposition(response.headers.get("content-disposition")) ??
+    "relatorio.csv";
+
+  return { blob, filename };
 }
 
 export async function loginAccount(username: string, password: string): Promise<AuthTokens> {
@@ -373,6 +456,76 @@ export async function fetchFinanceUnreconciled(
 ): Promise<FinanceUnreconciledPayload> {
   return requestJson<FinanceUnreconciledPayload>(
     `/api/v1/finance/reports/unreconciled/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function exportFinanceCashflowCsv(
+  from: string,
+  to: string,
+): Promise<RequestFileResult> {
+  return requestFile(
+    `/api/v1/finance/reports/cashflow/export/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function exportFinanceDreCsv(
+  from: string,
+  to: string,
+): Promise<RequestFileResult> {
+  return requestFile(
+    `/api/v1/finance/reports/dre/export/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function exportPurchasesCsv(
+  from: string,
+  to: string,
+): Promise<RequestFileResult> {
+  return requestFile(
+    `/api/v1/procurement/reports/purchases/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function exportProductionCsv(
+  from: string,
+  to: string,
+): Promise<RequestFileResult> {
+  return requestFile(
+    `/api/v1/production/reports/production/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function exportOrdersCsv(
+  from: string,
+  to: string,
+): Promise<RequestFileResult> {
+  return requestFile(
+    `/api/v1/orders/reports/orders/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     {
       method: "GET",
       auth: true,

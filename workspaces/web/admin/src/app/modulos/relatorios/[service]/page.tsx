@@ -34,9 +34,9 @@ export default function RelatoriosServicePage() {
   return (
     <AdminSessionGate>
       <ModulePageShell
-        title="Relatorios"
-        description="Fluxo de caixa global integrado com pedidos, compras e producao."
-        statusLabel="Em implementacao"
+        title="Relatórios"
+        description="Fluxo de caixa global integrado com pedidos, compras e produção."
+        statusLabel="Em implementação"
         statusTone="info"
         menuItems={RELATORIOS_MENU_ITEMS}
         activeKey={service}

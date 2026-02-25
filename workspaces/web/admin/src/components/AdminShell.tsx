@@ -7,8 +7,8 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
-  { href: "/modulos", label: "Modulos" },
-  { href: "/modulos/relatorios", label: "Relatorios" },
+  { href: "/modulos", label: "Módulos" },
+  { href: "/modulos/relatorios", label: "Relatórios" },
   { href: "/prioridades", label: "Prioridades" },
 ];
 

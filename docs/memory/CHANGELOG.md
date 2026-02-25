@@ -643,3 +643,8 @@
   - hotpages exibem todos os blocos por padrao e filtram ao selecionar um item do menu.
   - menu contextual ganhou item `Todos` para voltar ao modo completo.
   - aplicacao do filtro em todos os modulos ativos e em Relatorios.
+
+- T9.1.2 (admin): exportacao CSV integrada com filtros de periodo
+  - filtros de periodo adicionados ao modulo de Relatorios com validacao de intervalo.
+  - exportacao CSV conectada aos endpoints do backend (fluxo de caixa, compras, producao, pedidos e DRE).
+  - textos ajustados para pt-BR (Relatorios/Modulos/Exportacao/Producao).

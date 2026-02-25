@@ -11,7 +11,7 @@ export const ADMIN_MODULES: AdminModule[] = [
   {
     slug: "pedidos",
     title: "Pedidos",
-    description: "Fila do dia, mudanca de status e atendimento operacional.",
+    description: "Fila do dia, mudança de status e atendimento operacional.",
     stage: "T9.0.2",
     status: "ativo",
     path: "/modulos/pedidos",
@@ -19,7 +19,7 @@ export const ADMIN_MODULES: AdminModule[] = [
   {
     slug: "financeiro",
     title: "Financeiro",
-    description: "KPIs, caixa nao conciliado e visao de risco diario.",
+    description: "KPIs, caixa não conciliado e visão de risco diário.",
     stage: "T9.0.2",
     status: "ativo",
     path: "/modulos/financeiro",
@@ -34,7 +34,7 @@ export const ADMIN_MODULES: AdminModule[] = [
   },
   {
     slug: "cardapio",
-    title: "Cardapio",
+    title: "Cardápio",
     description: "Menus e pratos com baseline de planejamento operacional.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
@@ -43,14 +43,14 @@ export const ADMIN_MODULES: AdminModule[] = [
   {
     slug: "compras",
     title: "Compras",
-    description: "Requisicoes e compras recentes com visao de abastecimento.",
+    description: "Requisições e compras recentes com visão de abastecimento.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
     path: "/modulos/compras",
   },
   {
     slug: "producao",
-    title: "Producao",
+    title: "Produção",
     description: "Lotes por data com acompanhamento de planejado x produzido.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
@@ -58,18 +58,18 @@ export const ADMIN_MODULES: AdminModule[] = [
   },
   {
     slug: "usuarios-rbac",
-    title: "Usuarios/RBAC",
-    description: "Gestao de papeis, permissoes e trilha de auditoria basica.",
+    title: "Usuários/RBAC",
+    description: "Gestão de papéis, permissões e trilha de auditoria básica.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
     path: "/modulos/usuarios-rbac",
   },
   {
     slug: "relatorios",
-    title: "Relatorios",
-    description: "Fluxo de caixa global, compras, producao e exportacoes em CSV.",
+    title: "Relatórios",
+    description: "Fluxo de caixa global, compras, produção e exportações em CSV.",
     stage: "T9.1.2",
-    status: "em implementacao",
+    status: "em implementação",
     path: "/modulos/relatorios",
   },
 ];
@@ -94,7 +94,7 @@ export function resolveModuleStatusTone(status: string):
     return "success";
   }
 
-  if (normalizedStatus.includes("implementacao")) {
+  if (normalizedStatus.includes("implementacao") || normalizedStatus.includes("implementação")) {
     return "info";
   }
 
