@@ -151,6 +151,19 @@ export type MenuItemData = {
   is_active: boolean;
 };
 
+export type MenuItemWritePayload = {
+  dish: number;
+  sale_price: string;
+  available_qty?: number | null;
+  is_active?: boolean;
+};
+
+export type UpsertMenuDayPayload = {
+  menu_date: string;
+  title: string;
+  items: MenuItemWritePayload[];
+};
+
 export type MenuDayData = {
   id: number;
   menu_date: string;

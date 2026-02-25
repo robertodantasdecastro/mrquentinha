@@ -20,6 +20,7 @@ import type {
   PurchaseRequestData,
   StockItemData,
   StockMovementData,
+  UpsertMenuDayPayload,
 } from "@/types/api";
 
 export class ApiError extends Error {
@@ -320,6 +321,32 @@ export async function listMenuDaysAdmin(): Promise<MenuDayData[]> {
   );
 
   return normalizeListPayload(payload);
+}
+
+export async function createMenuDayAdmin(payload: UpsertMenuDayPayload): Promise<MenuDayData> {
+  return requestJson<MenuDayData>("/api/v1/catalog/menus/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateMenuDayAdmin(
+  menuDayId: number,
+  payload: UpsertMenuDayPayload,
+): Promise<MenuDayData> {
+  return requestJson<MenuDayData>(`/api/v1/catalog/menus/${menuDayId}/`, {
+    method: "PUT",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteMenuDayAdmin(menuDayId: number): Promise<void> {
+  await requestJson<Record<string, never>>(`/api/v1/catalog/menus/${menuDayId}/`, {
+    method: "DELETE",
+    auth: true,
+  });
 }
 
 export async function listDishesAdmin(): Promise<DishData[]> {
