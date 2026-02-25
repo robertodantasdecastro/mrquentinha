@@ -2,20 +2,59 @@
 
 import { formatCurrency } from "@/lib/format";
 import type { CartItem } from "@/types/cart";
+import type { OnlinePaymentMethod } from "@/types/api";
 
 export type CheckoutState = "idle" | "submitting" | "success" | "error";
+
+export type IntentPanelData = {
+  orderId: number;
+  paymentId: number;
+  paymentMethod: OnlinePaymentMethod;
+  status: string;
+  provider: string;
+  providerIntentRef: string | null;
+  expiresAt: string | null;
+  instructions: string[];
+};
 
 type CartDrawerProps = {
   items: CartItem[];
   totalAmount: number;
   checkoutState: CheckoutState;
   checkoutMessage: string;
+  selectedPaymentMethod: OnlinePaymentMethod;
+  onPaymentMethodChange: (method: OnlinePaymentMethod) => void;
+  intentPanel: IntentPanelData | null;
+  onRefreshIntent: () => void;
+  isRefreshingIntent: boolean;
   onIncrement: (menuItemId: number) => void;
   onDecrement: (menuItemId: number) => void;
   onRemove: (menuItemId: number) => void;
   onCheckout: () => void;
   isCheckoutDisabled: boolean;
 };
+
+const PAYMENT_METHOD_OPTIONS: Array<{
+  value: OnlinePaymentMethod;
+  label: string;
+  help: string;
+}> = [
+  {
+    value: "PIX",
+    label: "PIX",
+    help: "Pagamento imediato com copia e cola.",
+  },
+  {
+    value: "CARD",
+    label: "Cartao",
+    help: "Checkout online com token do provedor.",
+  },
+  {
+    value: "VR",
+    label: "VR",
+    help: "Fluxo de autorizacao da rede de beneficios.",
+  },
+];
 
 function getMessageStyles(state: CheckoutState): string {
   if (state === "success") {
@@ -29,11 +68,35 @@ function getMessageStyles(state: CheckoutState): string {
   return "border border-border bg-bg text-muted";
 }
 
+function formatDateTime(dateIso: string | null): string {
+  if (!dateIso) {
+    return "-";
+  }
+
+  const date = new Date(dateIso);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function CartDrawer({
   items,
   totalAmount,
   checkoutState,
   checkoutMessage,
+  selectedPaymentMethod,
+  onPaymentMethodChange,
+  intentPanel,
+  onRefreshIntent,
+  isRefreshingIntent,
   onIncrement,
   onDecrement,
   onRemove,
@@ -47,6 +110,32 @@ export function CartDrawer({
         <span className="rounded-full bg-bg px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
           {items.length} itens
         </span>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-border bg-bg p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+          Metodo de pagamento
+        </p>
+        <div className="mt-2 grid gap-2">
+          {PAYMENT_METHOD_OPTIONS.map((option) => {
+            const isActive = selectedPaymentMethod === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onPaymentMethodChange(option.value)}
+                className={`rounded-lg border px-3 py-2 text-left transition ${
+                  isActive
+                    ? "border-primary bg-primary/10 text-text"
+                    : "border-border bg-surface text-text hover:border-primary"
+                }`}
+              >
+                <p className="text-sm font-semibold">{option.label}</p>
+                <p className="text-xs text-muted">{option.help}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-4 space-y-3">
@@ -112,6 +201,46 @@ export function CartDrawer({
       {checkoutMessage && (
         <div className={`mt-4 rounded-xl px-4 py-3 text-sm ${getMessageStyles(checkoutState)}`}>
           {checkoutMessage}
+        </div>
+      )}
+
+      {intentPanel && (
+        <div className="mt-4 space-y-2 rounded-xl border border-border bg-bg p-4 text-sm text-muted">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-primary">
+                Intent #{intentPanel.paymentId}
+              </p>
+              <p className="text-sm font-semibold text-text">
+                Pedido #{intentPanel.orderId} · {intentPanel.paymentMethod}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onRefreshIntent}
+              disabled={isRefreshingIntent}
+              className="rounded-full border border-border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-text transition hover:border-primary disabled:cursor-not-allowed disabled:text-muted"
+            >
+              {isRefreshingIntent ? "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
+
+          <p>
+            Status: <strong className="text-text">{intentPanel.status}</strong>
+          </p>
+          <p>Provider: {intentPanel.provider}</p>
+          <p>Referencia: {intentPanel.providerIntentRef ?? "-"}</p>
+          <p>Expira em: {formatDateTime(intentPanel.expiresAt)}</p>
+
+          {intentPanel.instructions.length > 0 && (
+            <div className="rounded-lg border border-border bg-surface p-3">
+              {intentPanel.instructions.map((instruction) => (
+                <p key={instruction} className="text-xs text-text">
+                  {instruction}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

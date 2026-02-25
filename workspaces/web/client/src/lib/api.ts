@@ -9,7 +9,9 @@ import type {
   AuthUserProfile,
   CreatedOrderResponse,
   MenuDayData,
+  OnlinePaymentMethod,
   OrderData,
+  PaymentIntentData,
   RegisterPayload,
 } from "@/types/api";
 
@@ -131,13 +133,7 @@ async function requestJson<T>(
   path: string,
   options: RequestJsonOptions = {},
 ): Promise<T> {
-  const {
-    auth = false,
-    allowAuthRetry = true,
-    body,
-    headers,
-    ...rest
-  } = options;
+  const { auth = false, allowAuthRetry = true, body, headers, ...rest } = options;
 
   const requestHeaders = new Headers(headers);
   requestHeaders.set("Content-Type", "application/json");
@@ -217,18 +213,47 @@ export async function fetchMenuByDate(menuDate: string): Promise<MenuDayData> {
 export async function createOrder(
   deliveryDate: string,
   items: Array<{ menu_item_id: number; qty: number }>,
+  paymentMethod: OnlinePaymentMethod,
 ): Promise<CreatedOrderResponse> {
   return requestJson<CreatedOrderResponse>("/api/v1/orders/orders/", {
     method: "POST",
     auth: true,
     body: JSON.stringify({
       delivery_date: deliveryDate,
+      payment_method: paymentMethod,
       items: items.map((item) => ({
         menu_item: item.menu_item_id,
         qty: item.qty,
       })),
     }),
   });
+}
+
+export async function createPaymentIntent(
+  paymentId: number,
+  idempotencyKey: string,
+): Promise<PaymentIntentData> {
+  return requestJson<PaymentIntentData>(`/api/v1/orders/payments/${paymentId}/intent/`, {
+    method: "POST",
+    auth: true,
+    headers: {
+      "Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({}),
+  });
+}
+
+export async function getLatestPaymentIntent(
+  paymentId: number,
+): Promise<PaymentIntentData> {
+  return requestJson<PaymentIntentData>(
+    `/api/v1/orders/payments/${paymentId}/intent/latest/`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
 }
 
 export async function listOrders(): Promise<OrderData[]> {
