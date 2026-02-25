@@ -36,6 +36,14 @@ if [[ ! -d node_modules ]]; then
   npm install
 fi
 
+if [[ -z "${NEXT_PUBLIC_API_BASE_URL:-}" ]]; then
+  primary_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  if [[ -n "$primary_ip" ]]; then
+    export NEXT_PUBLIC_API_BASE_URL="http://$primary_ip:8000"
+  fi
+fi
+
+echo "[admin] NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-<auto-runtime>}"
 echo "[admin] Iniciando Admin Web em http://0.0.0.0:3002"
 
 child_pid=""

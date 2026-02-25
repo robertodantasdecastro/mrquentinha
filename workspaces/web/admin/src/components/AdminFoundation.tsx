@@ -225,6 +225,11 @@ export function AdminFoundation() {
         <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm md:max-w-xl">
           <h2 className="text-xl font-semibold text-text">Login de gestao</h2>
           <p className="mt-2 text-sm text-muted">Use uma conta com papel administrativo.</p>
+          {healthStatus === "indisponivel" && (
+            <p className="mt-3 rounded-md border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+              API indisponivel no navegador. Verifique backend ativo na porta 8000 e CORS liberado para esta origem.
+            </p>
+          )}
           <form onSubmit={handleLogin} className="mt-4 grid gap-3">
             <label className="grid gap-1 text-sm text-muted">
               Usuario
@@ -261,6 +266,12 @@ export function AdminFoundation() {
               {busy ? "Entrando..." : "Entrar"}
             </button>
           </form>
+          {(message || errorMessage) && (
+            <div role="alert" className="mt-3 rounded-md border border-border bg-bg px-4 py-3 text-sm">
+              {message && <p className="text-primary">{message}</p>}
+              {errorMessage && <p className="text-rose-600">{errorMessage}</p>}
+            </div>
+          )}
         </section>
       )}
 
@@ -324,7 +335,7 @@ export function AdminFoundation() {
         </ol>
       </section>
 
-      {(message || errorMessage) && (
+      {viewState === "authenticated" && (message || errorMessage) && (
         <section className="rounded-xl border border-border bg-bg px-4 py-3 text-sm">
           {message && <p className="text-primary">{message}</p>}
           {errorMessage && <p className="text-rose-600">{errorMessage}</p>}
