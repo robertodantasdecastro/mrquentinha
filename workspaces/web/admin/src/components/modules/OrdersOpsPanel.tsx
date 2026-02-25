@@ -8,6 +8,7 @@ import {
   listOrdersAdmin,
   updateOrderStatusAdmin,
 } from "@/lib/api";
+import { formatOrderStatusLabel } from "@/lib/labels";
 import type { OrderData, OrderStatus } from "@/types/api";
 
 const STATUS_OPTIONS: OrderStatus[] = [
@@ -136,7 +137,9 @@ export function OrdersOpsPanel() {
         current.map((order) => (order.id === orderId ? updatedOrder : order)),
       );
       setStatusDrafts((current) => ({ ...current, [orderId]: updatedOrder.status }));
-      setMessage(`Pedido #${orderId} atualizado para ${updatedOrder.status}.`);
+      setMessage(
+        `Pedido #${orderId} atualizado para ${formatOrderStatusLabel(updatedOrder.status)}.`,
+      );
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
@@ -150,7 +153,7 @@ export function OrdersOpsPanel() {
         <div>
           <h3 className="text-lg font-semibold text-text">Pedidos</h3>
           <p className="text-sm text-muted">
-            Acompanhamento da fila de pedidos e atualizacao de status operacional.
+            Acompanhamento da fila de pedidos e atualização de status operacional.
           </p>
         </div>
         <button
@@ -203,7 +206,7 @@ export function OrdersOpsPanel() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusPill tone={resolveOrderStatusTone(order.status)}>
-                    {order.status}
+                    {formatOrderStatusLabel(order.status)}
                   </StatusPill>
                   <select
                     value={statusDrafts[order.id] ?? order.status}
@@ -218,7 +221,7 @@ export function OrdersOpsPanel() {
                   >
                     {STATUS_OPTIONS.map((statusOption) => (
                       <option key={statusOption} value={statusOption}>
-                        {statusOption}
+                        {formatOrderStatusLabel(statusOption)}
                       </option>
                     ))}
                   </select>

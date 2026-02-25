@@ -9,7 +9,7 @@ export default function FinanceiroModulePage() {
     <AdminSessionGate>
       <ModulePageShell
         title="Financeiro"
-        description="Fluxo de caixa global, conciliacao e indicadores financeiros integrados."
+        description="Fluxo de caixa global, conciliação e indicadores financeiros integrados."
         statusLabel="Ativo"
         statusTone="success"
         menuItems={FINANCEIRO_MENU_ITEMS}

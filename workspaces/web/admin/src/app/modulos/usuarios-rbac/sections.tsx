@@ -43,7 +43,7 @@ function resolveErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Falha inesperada ao carregar usuarios e RBAC.";
+  return "Falha inesperada ao carregar usuários e RBAC.";
 }
 
 export function UsuariosRbacSections({ activeSection = "all" }: UsuariosRbacSectionsProps) {

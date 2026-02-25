@@ -650,3 +650,6 @@
   - textos ajustados para pt-BR (Relatorios/Modulos/Exportacao/Producao).
   - padronizacao de acentuacao em telas de Cardapio, Estoque, Compras, Pedidos, Financeiro e Usuarios/RBAC.
   - exportacoes dos modulos de Compras, Pedidos, Produção e Financeiro agora possuem filtro de período e download real.
+  - status operacionais traduzidos para pt-BR em Pedidos, Compras e Produção (badges, selects e mensagens).
+  - novo util compartilhado `workspaces/web/admin/src/lib/labels.ts` para rotulos de status.
+  - Financeiro Ops ajustado para exibir margem em percentual e direcao de movimento em pt-BR.

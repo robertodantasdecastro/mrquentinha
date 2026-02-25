@@ -10,6 +10,7 @@ import {
   listPurchasesAdmin,
   updatePurchaseRequestStatusAdmin,
 } from "@/lib/api";
+import { formatProcurementStatusLabel } from "@/lib/labels";
 import type {
   ProcurementRequestStatus,
   PurchaseData,
@@ -33,7 +34,7 @@ function resolveErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Falha inesperada ao carregar modulo de compras.";
+  return "Falha inesperada ao carregar módulo de compras.";
 }
 
 function formatDate(valueRaw: string): string {
@@ -184,7 +185,9 @@ export function ProcurementOpsPanel() {
 
     try {
       await updatePurchaseRequestStatusAdmin(requestItem.id, nextStatus);
-      setMessage(`Requisicao #${requestItem.id} atualizada para ${nextStatus}.`);
+      setMessage(
+        `Requisição #${requestItem.id} atualizada para ${formatProcurementStatusLabel(nextStatus)}.`,
+      );
       await loadProcurement({ silent: true });
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
@@ -202,7 +205,7 @@ export function ProcurementOpsPanel() {
     try {
       const parsedMenuDayId = Number.parseInt(menuDayId, 10);
       if (Number.isNaN(parsedMenuDayId) || parsedMenuDayId <= 0) {
-        throw new Error("Informe um menu_day_id valido para gerar requisicao.");
+        throw new Error("Informe um menu_day_id válido para gerar requisição.");
       }
 
       const result = await generatePurchaseRequestFromMenuAdmin(parsedMenuDayId);
@@ -222,7 +225,7 @@ export function ProcurementOpsPanel() {
         <div>
           <h3 className="text-lg font-semibold text-text">Compras</h3>
           <p className="text-sm text-muted">
-            Fluxo operacional de requisicoes com geracao por menu e mudanca de status.
+            Fluxo operacional de requisições com geração por menu e mudança de status.
           </p>
         </div>
         <button
@@ -235,13 +238,13 @@ export function ProcurementOpsPanel() {
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando modulo de compras...</p>}
+      {loading && <p className="mt-4 text-sm text-muted">Carregando módulo de compras...</p>}
 
       {!loading && (
         <>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             <article className="rounded-xl border border-border bg-bg p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Requisicoes</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Requisições</p>
               <p className="mt-1 text-2xl font-semibold text-text">{requests.length}</p>
             </article>
 
@@ -268,7 +271,7 @@ export function ProcurementOpsPanel() {
 
           <div className="mt-4 grid gap-4 xl:grid-cols-2">
             <section className="rounded-xl border border-border bg-bg p-4">
-              <h4 className="text-base font-semibold text-text">Gerar requisicao por menu</h4>
+              <h4 className="text-base font-semibold text-text">Gerar requisição por menu</h4>
               <form
                 onSubmit={(event) => void handleGenerateFromMenu(event)}
                 className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]"
@@ -303,7 +306,7 @@ export function ProcurementOpsPanel() {
                     Resultado: {fromMenuResult.message}
                   </p>
                   <p className="text-xs text-muted">
-                    PR: {fromMenuResult.purchase_request_id ?? "nao criada"} | Itens: {fromMenuResult.items.length}
+                    PR: {fromMenuResult.purchase_request_id ?? "não criada"} | Itens: {fromMenuResult.items.length}
                   </p>
                   {fromMenuResult.items.length > 0 && (
                     <ul className="mt-2 space-y-1 text-xs text-muted">
@@ -345,9 +348,9 @@ export function ProcurementOpsPanel() {
           </div>
 
           <section className="mt-4 rounded-xl border border-border bg-bg p-4">
-            <h4 className="text-base font-semibold text-text">Requisicoes recentes</h4>
+            <h4 className="text-base font-semibold text-text">Requisições recentes</h4>
             {requests.length === 0 && (
-              <p className="mt-3 text-sm text-muted">Nenhuma requisicao encontrada.</p>
+              <p className="mt-3 text-sm text-muted">Nenhuma requisição encontrada.</p>
             )}
             {requests.length > 0 && (
               <div className="mt-3 space-y-2">
@@ -363,7 +366,7 @@ export function ProcurementOpsPanel() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-text">PR #{requestItem.id}</p>
                         <StatusPill tone={resolveRequestStatusTone(requestItem.status)}>
-                          {requestItem.status}
+                          {formatProcurementStatusLabel(requestItem.status)}
                         </StatusPill>
                       </div>
                       <p className="text-xs text-muted">
@@ -385,7 +388,7 @@ export function ProcurementOpsPanel() {
                         >
                           {REQUEST_STATUS_OPTIONS.map((option) => (
                             <option key={option} value={option}>
-                              {option}
+                              {formatProcurementStatusLabel(option)}
                             </option>
                           ))}
                         </select>

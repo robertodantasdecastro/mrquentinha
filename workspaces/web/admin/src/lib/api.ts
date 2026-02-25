@@ -84,7 +84,7 @@ function getApiBaseUrl(): string {
 function resolveUrl(path: string): string {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
-    throw new ApiError("Nao foi possivel identificar a URL da API do backend. Verifique a configuracao do Admin.", 0);
+    throw new ApiError("Não foi possível identificar a URL da API do backend. Verifique a configuração do Admin.", 0);
   }
 
   if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -206,7 +206,7 @@ async function requestJson<T>(path: string, options: RequestJsonOptions = {}): P
   if (auth) {
     const accessToken = getStoredAccessToken();
     if (!accessToken) {
-      throw new ApiError("Sessao nao autenticada. Faca login no Admin.", 401);
+      throw new ApiError("Sessão não autenticada. Faça login no Admin.", 401);
     }
 
     requestHeaders.set("Authorization", `Bearer ${accessToken}`);
@@ -266,7 +266,7 @@ async function requestFile(
   if (auth) {
     const accessToken = getStoredAccessToken();
     if (!accessToken) {
-      throw new ApiError("Sessao nao autenticada. Faca login no Admin.", 401);
+      throw new ApiError("Sessão não autenticada. Faça login no Admin.", 401);
     }
 
     requestHeaders.set("Authorization", `Bearer ${accessToken}`);

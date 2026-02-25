@@ -41,6 +41,15 @@ function formatCurrency(value: string): string {
   });
 }
 
+function formatPercent(value: string): string {
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) {
+    return value;
+  }
+
+  return `${numericValue.toFixed(2)}%`;
+}
+
 function formatDateTime(valueRaw: string): string {
   const dateValue = new Date(valueRaw);
   if (Number.isNaN(dateValue.getTime())) {
@@ -48,6 +57,18 @@ function formatDateTime(valueRaw: string): string {
   }
 
   return dateValue.toLocaleString("pt-BR");
+}
+
+function formatDirection(direction: string): string {
+  if (direction === "IN") {
+    return "Entrada";
+  }
+
+  if (direction === "OUT") {
+    return "Saída";
+  }
+
+  return direction;
 }
 
 function resolveErrorMessage(error: unknown): string {
@@ -143,7 +164,7 @@ export function FinanceOpsPanel() {
         </label>
 
         <label className="grid gap-1 text-sm text-muted">
-          Ate
+          Até
           <input
             type="date"
             value={toDate}
@@ -158,7 +179,7 @@ export function FinanceOpsPanel() {
             onClick={handleApplyPeriod}
             className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
           >
-            Aplicar periodo
+            Aplicar período
           </button>
         </div>
       </div>
@@ -188,13 +209,13 @@ export function FinanceOpsPanel() {
           </article>
 
           <article className="rounded-xl border border-border bg-bg p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Ticket medio</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Ticket médio</p>
             <p className="mt-1 text-2xl font-semibold text-text">{formatCurrency(kpis.kpis.ticket_medio)}</p>
           </article>
 
           <article className="rounded-xl border border-border bg-bg p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Margem media</p>
-            <p className="mt-1 text-2xl font-semibold text-text">{formatCurrency(kpis.kpis.margem_media)}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Margem média</p>
+            <p className="mt-1 text-2xl font-semibold text-text">{formatPercent(kpis.kpis.margem_media)}</p>
           </article>
         </div>
       )}
@@ -202,14 +223,14 @@ export function FinanceOpsPanel() {
       {!loading && (
         <div className="mt-4 rounded-xl border border-border bg-bg p-4">
           <div className="flex items-center justify-between gap-3">
-            <h4 className="text-base font-semibold text-text">Nao conciliados</h4>
+            <h4 className="text-base font-semibold text-text">Não conciliados</h4>
             <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
               {unreconciledItems.length} registros
             </span>
           </div>
 
           {unreconciledItems.length === 0 && (
-            <p className="mt-3 text-sm text-muted">Nenhum movimento pendente de conciliacao no periodo.</p>
+            <p className="mt-3 text-sm text-muted">Nenhum movimento pendente de conciliação no período.</p>
           )}
 
           {unreconciledItems.length > 0 && (
@@ -220,7 +241,7 @@ export function FinanceOpsPanel() {
                   className="rounded-lg border border-border bg-surface px-3 py-2"
                 >
                   <p className="text-sm font-semibold text-text">
-                    Movimento #{item.id} - {item.direction}
+                    Movimento #{item.id} - {formatDirection(item.direction)}
                   </p>
                   <p className="text-xs text-muted">
                     Data: {formatDateTime(item.movement_date)} | Conta: {item.account}

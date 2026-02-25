@@ -40,7 +40,7 @@ function resolveErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Falha inesperada ao carregar modulo de cardapio.";
+  return "Falha inesperada ao carregar módulo de cardápio.";
 }
 
 function formatDate(valueRaw: string): string {
@@ -60,7 +60,7 @@ function buildTodayDateIso(): string {
 }
 
 function buildDefaultTitle(menuDate: string): string {
-  return `Cardapio ${formatDate(menuDate)}`;
+  return `Cardápio ${formatDate(menuDate)}`;
 }
 
 function normalizePrice(value: string): string {
@@ -71,7 +71,7 @@ function normalizePrice(value: string): string {
 
   const numeric = Number(normalized);
   if (Number.isNaN(numeric) || numeric < 0) {
-    throw new Error("Preco invalido em um ou mais pratos selecionados.");
+    throw new Error("Preço inválido em um ou mais pratos selecionados.");
   }
 
   return numeric.toFixed(2);
@@ -143,7 +143,7 @@ function buildMenuPayload({
     if (qtyRaw) {
       const qty = Number.parseInt(qtyRaw, 10);
       if (Number.isNaN(qty) || qty < 0) {
-        throw new Error("Quantidade disponivel invalida em um ou mais pratos.");
+        throw new Error("Quantidade disponível inválida em um ou mais pratos.");
       }
       payloadItem.available_qty = qty;
     }
@@ -265,7 +265,7 @@ export function MenuOpsPanel() {
 
     try {
       if (!menuDate) {
-        throw new Error("Informe a data do cardapio.");
+        throw new Error("Informe a data do cardápio.");
       }
 
       const payload = buildMenuPayload({
@@ -333,7 +333,7 @@ export function MenuOpsPanel() {
         <div>
           <h3 className="text-lg font-semibold text-text">Cardapio</h3>
           <p className="text-sm text-muted">
-            Fluxo operacional: criar, editar e publicar menu do dia com pratos e precos.
+            Fluxo operacional: criar, editar e publicar menu do dia com pratos e preços.
           </p>
         </div>
         <div className="flex gap-2">
@@ -355,7 +355,7 @@ export function MenuOpsPanel() {
         </div>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando modulo de cardapio...</p>}
+      {loading && <p className="mt-4 text-sm text-muted">Carregando módulo de cardápio...</p>}
 
       {!loading && (
         <>
@@ -378,7 +378,7 @@ export function MenuOpsPanel() {
             <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Menu de hoje</p>
               <p className="mt-1 text-sm font-semibold text-text">
-                {menuToday ? `${menuToday.title} (${menuToday.menu_items.length} itens)` : "Nao cadastrado"}
+                {menuToday ? `${menuToday.title} (${menuToday.menu_items.length} itens)` : "Não cadastrado"}
               </p>
             </article>
           </div>
@@ -405,13 +405,13 @@ export function MenuOpsPanel() {
                 </label>
 
                 <label className="grid gap-1 text-sm text-muted">
-                  Titulo
+                  Título
                   <input
                     required
                     value={title}
                     onChange={(event) => setTitle(event.currentTarget.value)}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-                    placeholder="Cardapio da semana"
+                    placeholder="Cardápio da semana"
                   />
                 </label>
               </div>
@@ -419,7 +419,7 @@ export function MenuOpsPanel() {
               <div className="mt-4 space-y-2">
                 <p className="text-sm font-semibold text-text">Pratos no menu</p>
                 {dishes.length === 0 && (
-                  <p className="text-sm text-muted">Cadastre pratos para montar o cardapio.</p>
+                  <p className="text-sm text-muted">Cadastre pratos para montar o cardápio.</p>
                 )}
 
                 {dishes.length > 0 && (
@@ -446,7 +446,7 @@ export function MenuOpsPanel() {
 
                           <div className="mt-2 grid gap-2 sm:grid-cols-3">
                             <label className="grid gap-1 text-xs text-muted">
-                              Preco (R$)
+                              Preço (R$)
                               <input
                                 value={draft.salePrice}
                                 onChange={(event) =>
@@ -459,7 +459,7 @@ export function MenuOpsPanel() {
                             </label>
 
                             <label className="grid gap-1 text-xs text-muted">
-                              Qtd disponivel
+                              Qtd disponível
                               <input
                                 value={draft.availableQty}
                                 onChange={(event) =>

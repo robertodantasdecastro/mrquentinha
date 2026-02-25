@@ -10,6 +10,7 @@ import {
   listMenuDaysAdmin,
   listProductionBatchesAdmin,
 } from "@/lib/api";
+import { formatProductionStatusLabel } from "@/lib/labels";
 import type {
   CreateProductionBatchPayload,
   MenuDayData,
@@ -26,7 +27,7 @@ function resolveErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Falha inesperada ao carregar modulo de producao.";
+  return "Falha inesperada ao carregar módulo de produção.";
 }
 
 function formatDate(valueRaw: string): string {
@@ -184,7 +185,7 @@ export function ProductionOpsPanel() {
     event.preventDefault();
 
     if (!selectedMenuDay) {
-      setErrorMessage("Selecione um cardapio com itens para criar o lote.");
+      setErrorMessage("Selecione um cardápio com itens para criar o lote.");
       return;
     }
 
@@ -197,7 +198,7 @@ export function ProductionOpsPanel() {
         (menuItem) => {
           const qtyValue = Number.parseInt(qtyDrafts[menuItem.id] ?? "", 10);
           if (Number.isNaN(qtyValue) || qtyValue <= 0) {
-            throw new Error(`Quantidade invalida para ${menuItem.dish.name}.`);
+            throw new Error(`Quantidade inválida para ${menuItem.dish.name}.`);
           }
 
           return {
@@ -234,7 +235,7 @@ export function ProductionOpsPanel() {
 
     try {
       await completeProductionBatchAdmin(batch.id);
-      setMessage(`Lote #${batch.id} concluido com sucesso.`);
+      setMessage(`Lote #${batch.id} concluído com sucesso.`);
       await loadProduction({ silent: true });
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
@@ -249,7 +250,7 @@ export function ProductionOpsPanel() {
         <div>
           <h3 className="text-lg font-semibold text-text">Produção</h3>
           <p className="text-sm text-muted">
-            Fluxo operacional: criar lotes por cardapio e concluir execucao do dia.
+            Fluxo operacional: criar lotes por cardápio e concluir execução do dia.
           </p>
         </div>
         <button
@@ -262,7 +263,7 @@ export function ProductionOpsPanel() {
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando modulo de producao...</p>}
+      {loading && <p className="mt-4 text-sm text-muted">Carregando módulo de produção...</p>}
 
       {!loading && (
         <>
@@ -290,11 +291,11 @@ export function ProductionOpsPanel() {
 
           <div className="mt-4 grid gap-4 xl:grid-cols-2">
             <section className="rounded-xl border border-border bg-bg p-4">
-              <h4 className="text-base font-semibold text-text">Criar lote por cardapio</h4>
+              <h4 className="text-base font-semibold text-text">Criar lote por cardápio</h4>
 
               {menuDays.length === 0 && (
                 <p className="mt-3 text-sm text-muted">
-                  Nenhum cardapio com itens disponivel para criar lote.
+                  Nenhum cardápio com itens disponível para criar lote.
                 </p>
               )}
 
@@ -304,7 +305,7 @@ export function ProductionOpsPanel() {
                   className="mt-3 space-y-3"
                 >
                   <label className="grid gap-1 text-sm text-muted">
-                    Cardapio do dia
+                    Cardápio do dia
                     <select
                       value={selectedMenuDayId}
                       onChange={(event) => handleSelectMenuDay(event.currentTarget.value)}
@@ -348,7 +349,7 @@ export function ProductionOpsPanel() {
                   )}
 
                   <label className="grid gap-1 text-sm text-muted">
-                    Observacao
+                    Observação
                     <input
                       value={batchNote}
                       onChange={(event) => setBatchNote(event.currentTarget.value)}
@@ -373,7 +374,7 @@ export function ProductionOpsPanel() {
             <section className="rounded-xl border border-border bg-bg p-4">
               <h4 className="text-base font-semibold text-text">Lotes recentes</h4>
               {batches.length === 0 && (
-                <p className="mt-3 text-sm text-muted">Nenhum lote de producao encontrado.</p>
+                <p className="mt-3 text-sm text-muted">Nenhum lote de produção encontrado.</p>
               )}
               {batches.length > 0 && (
                 <div className="mt-3 space-y-2">
@@ -385,7 +386,7 @@ export function ProductionOpsPanel() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-text">Lote #{batch.id}</p>
                         <StatusPill tone={resolveBatchStatusTone(batch.status)}>
-                          {batch.status}
+                          {formatProductionStatusLabel(batch.status)}
                         </StatusPill>
                       </div>
                       <p className="text-xs text-muted">
@@ -409,7 +410,7 @@ export function ProductionOpsPanel() {
                           {completingBatchId === batch.id
                             ? "Concluindo..."
                             : batch.status === "DONE"
-                              ? "Concluido"
+                              ? "Concluído"
                               : "Concluir lote"}
                         </button>
                       </div>
