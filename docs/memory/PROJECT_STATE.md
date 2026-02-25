@@ -3,9 +3,9 @@
 Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`.
-- Em progresso: `7.2` (pagamentos online) com planejamento acoplado de `6.3` (Portal CMS backend-only) e `9.0` (Admin Web MVP).
-- Proxima execucao recomendada (unica): `T7.2.1`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`.
+- Em progresso: `7.2` (pagamentos online) com foco atual em `T7.2.2` (webhooks + conciliacao) e planejamento acoplado de `6.3` (Portal CMS backend-only) e `9.0` (Admin Web MVP).
+- Proxima execucao recomendada (unica): `T7.2.2`.
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -42,6 +42,12 @@ Referencia de atualizacao: 25/02/2026.
 - Status: operacional (Auth JWT, Finance MVP completo, OCR mock, nutricao, producao, relatorios).
 - Banco: PostgreSQL (`mrquentinhabd`).
 - Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `production`, `ocr_ai`.
+- Pagamentos online (`7.2.1`):
+  - `PaymentIntent` persistido com idempotencia por pagamento/chave.
+  - provider abstraction inicial (`mock`) com payload de intent para PIX/CARD/VR.
+  - endpoints novos:
+    - `POST /api/v1/orders/payments/{id}/intent/`
+    - `GET /api/v1/orders/payments/{id}/intent/latest/`
 
 ### Web Portal (Next.js - 3000)
 - Status: institucional em evolucao de template (`classic` + `letsfit-clean`).
@@ -51,7 +57,7 @@ Referencia de atualizacao: 25/02/2026.
 ### Web Client (Next.js - 3001)
 - Status: auth real concluida (`register/token/refresh/me`).
 - Pedido/historico: escopo autenticado sem demo.
-- Gap aberto: checkout com pagamento online (`7.2`).
+- Gap aberto: checkout com pagamento online (`7.2.3`).
 
 ### Admin Web (planejado)
 - Status: nao iniciado no `main`.
@@ -76,9 +82,12 @@ Referencia de atualizacao: 25/02/2026.
 - Publicos read-only de menu:
   - `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
   - `GET /api/v1/catalog/menus/today/`
+- Pagamentos intent:
+  - `POST /api/v1/orders/payments/<id>/intent/`
+  - `GET /api/v1/orders/payments/<id>/intent/latest/`
 
 ## Plano da etapa ativa
 - Trilha principal: `7.2 Pagamentos online`.
-- Trilha bloqueadora correlata: `6.3 Portal CMS backend-only`.
-- Trilha estrutural obrigatoria: `9.0 Admin Web MVP`.
-- Proximo passo unico recomendado: iniciar `T7.2.1` (provider abstraction + intents + idempotencia).
+- Subetapa concluida: `T7.2.1` (provider abstraction + intents + idempotencia).
+- Proxima subetapa unica: `T7.2.2` (webhooks + reconciliacao financeira/ledger/close).
+- Trilhas correlatas (apos 7.2.2): `7.2.3`, `6.3.1`, `9.0.1`.

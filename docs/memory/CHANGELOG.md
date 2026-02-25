@@ -388,3 +388,16 @@
   - `PROJECT_STATE`, `CONTEXT_PACK` e `TODO_NEXT` atualizados com etapa ativa 7.2 e trilhas 6.3/9.0.
   - `DECISIONS` atualizada com diretrizes de JSONField (CMS/nutricao), politica publico/privado, estrategia de templates e Admin Web.
   - `RUNBOOK_DEV` atualizado com procedimento de quality gate sem conflito com tmux live, recovery de conexao e tratamento de locks/nvm/venv.
+
+- Etapa 7.2.1 payment intents (backend-only):
+  - adicionado modelo `PaymentIntent` com idempotencia por `(payment, idempotency_key)` e payload JSON.
+  - criada camada de provider (`apps/orders/payment_providers.py`) com provider default `mock` e configuracoes `PAYMENTS_PROVIDER_DEFAULT`/`PAYMENTS_INTENT_TTL_MINUTES`.
+  - novos endpoints em `PaymentViewSet`:
+    - `POST /api/v1/orders/payments/<id>/intent/`
+    - `GET /api/v1/orders/payments/<id>/intent/latest/`
+  - fluxo de status implementado com retornos `201/200/400/404/409` e replay idempotente.
+  - cobertura de testes ampliada em `test_orders_services.py` e `test_orders_api.py` para cenarios de intent, ownership e conflitos.
+  - validacoes executadas com sucesso:
+    - `bash scripts/quality_gate_all.sh`
+    - `bash scripts/smoke_stack_dev.sh`
+    - `bash scripts/smoke_client_dev.sh`
