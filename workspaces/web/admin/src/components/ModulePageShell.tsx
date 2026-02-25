@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 
+import Link from "next/link";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 export type ModuleMenuItem = {
+  key: string;
   label: string;
   href: string;
   helper?: string;
@@ -14,6 +16,7 @@ type ModulePageShellProps = {
   statusLabel?: string;
   statusTone?: StatusTone;
   menuItems: ModuleMenuItem[];
+  activeKey?: string | null;
   children: ReactNode;
 };
 
@@ -23,6 +26,7 @@ export function ModulePageShell({
   statusLabel,
   statusTone = "info",
   menuItems,
+  activeKey,
   children,
 }: ModulePageShellProps) {
   return (
@@ -42,13 +46,18 @@ export function ModulePageShell({
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {menuItems.map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
-              className="rounded-full border border-border bg-bg px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-text transition hover:border-primary hover:text-primary"
+              className={[
+                "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition",
+                activeKey === item.key
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-bg text-text hover:border-primary hover:text-primary",
+              ].join(" ")}
             >
               {item.label}
-            </a>
+            </Link>
           ))}
         </div>
       </section>

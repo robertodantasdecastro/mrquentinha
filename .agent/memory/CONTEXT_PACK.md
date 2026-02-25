@@ -18,6 +18,7 @@
 - Proxima subetapa recomendada: `T9.1.2` (relatorios/exportacoes no Admin Web).
 - Hotfix mais recente: rotas diretas do Admin (`/modulos` e `/prioridades`) corrigidas com redirect para as ancoras da home, eliminando 404 em acesso por URL direta.
 - Inicio T9.1.2: hotpages por modulo, menus contextuais e base de relatorios no Admin Web (UI + graficos).
+- Ajuste UX: menus dos modulos agora filtram a exibicao de blocos por servico (modo completo ou foco).
 
 ## Fonte de planejamento
 - `docs/memory/REQUIREMENTS_BACKLOG.md`

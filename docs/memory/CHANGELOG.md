@@ -630,3 +630,8 @@
   - relatorios inaugurados com pagina dedicada e graficos placeholder + exportacao CSV (UI).
   - dashboard do Admin reestruturado como hub com links diretos por modulo.
   - novos componentes de graficos simples (`Sparkline`, `MiniBarChart`) e shell de pagina de modulo.
+
+- T9.1.2 (admin): menus filtram subpaginas por servico
+  - hotpages exibem todos os blocos por padrao e filtram ao selecionar um item do menu.
+  - menu contextual ganhou item `Todos` para voltar ao modo completo.
+  - aplicacao do filtro em todos os modulos ativos e em Relatorios.

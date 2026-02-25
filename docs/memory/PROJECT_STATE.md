@@ -66,7 +66,7 @@ Referencia de atualizacao: 25/02/2026.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF3`): padronizacao visual global com cores de status (success/warning/danger/info) e aplicacao da logo oficial (PNG original) no Admin Web, Portal e Client.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF4`): rotas diretas `/modulos` e `/prioridades` com redirect para `/#modulos` e `/#prioridades`, evitando erro 404 em acesso por URL/bookmark (substituido pela navegacao por hotpages).
 - Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao estaveis com fluxo operacional, Usuarios/RBAC com atribuicao de papeis e status visuais coloridos alinhados a identidade oficial da marca.
-- Atualizacao em andamento: hotpages por modulo com menu contextual e graficos, incluindo pagina de Relatorios integrada (CSV).
+- Atualizacao em andamento: hotpages por modulo com menu contextual, filtro por servico e graficos, incluindo pagina de Relatorios integrada (CSV).
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo: hardening final de UX e relatorios exportaveis no bloco Admin Web apos alinhamento de prioridades.
 
