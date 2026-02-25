@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 import { formatCurrency } from "@/lib/format";
 import type { CartItem } from "@/types/cart";
 import type { OnlinePaymentMethod } from "@/types/api";
@@ -85,6 +86,22 @@ function formatDateTime(dateIso: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function resolveIntentTone(status: string): StatusTone {
+  if (status === "SUCCEEDED") {
+    return "success";
+  }
+
+  if (status === "REQUIRES_ACTION" || status === "PROCESSING") {
+    return "warning";
+  }
+
+  if (status === "FAILED" || status === "CANCELED" || status === "EXPIRED") {
+    return "danger";
+  }
+
+  return "neutral";
 }
 
 export function CartDrawer({
@@ -225,9 +242,10 @@ export function CartDrawer({
             </button>
           </div>
 
-          <p>
-            Status: <strong className="text-text">{intentPanel.status}</strong>
-          </p>
+          <div className="flex items-center gap-2">
+            <p>Status:</p>
+            <StatusPill tone={resolveIntentTone(intentPanel.status)}>{intentPanel.status}</StatusPill>
+          </div>
           <p>Provider: {intentPanel.provider}</p>
           <p>Referencia: {intentPanel.providerIntentRef ?? "-"}</p>
           <p>Expira em: {formatDateTime(intentPanel.expiresAt)}</p>

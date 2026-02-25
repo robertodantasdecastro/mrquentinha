@@ -13,10 +13,10 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
-- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `T9.1.1-HF1`, `T9.1.1-HF2`.
+- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `T9.1.1-HF1`, `T9.1.1-HF2`, `T9.1.1-HF3`.
 - Etapa ativa: `9.1` (Admin Web completo).
 - Proxima subetapa recomendada: `T9.1.2` (relatorios/exportacoes no Admin Web).
-- Hotfix mais recente: login do Admin Web estabilizado com CORS backend para `:3002`, fallback automatico da base da API e feedback de erro no card de login.
+- Hotfix mais recente: UX/branding do Admin, Portal e Client com status colorido padronizado e logo oficial (assets PNG originais) aplicada em headers/footers e telas-chave.
 
 ## Fonte de planejamento
 - `docs/memory/REQUIREMENTS_BACKLOG.md`

@@ -31,13 +31,15 @@ export function Header() {
       <Container className="pt-3">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-3" aria-label="Mr Quentinha">
-            <Image
-              src="/brand/logo_wordmark.svg"
-              alt="Mr Quentinha"
-              width={164}
-              height={42}
-              priority
-            />
+            <span className="inline-flex rounded-lg bg-white/95 px-2 py-1 ring-1 ring-border/70 shadow-sm dark:bg-white">
+              <Image
+                src="/brand/original_png/logo_wordmark_original.png"
+                alt="Mr Quentinha"
+                width={184}
+                height={71}
+                priority
+              />
+            </span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -63,7 +65,7 @@ export function Header() {
           </div>
         </div>
 
-        <nav className={`scrollbar-none mt-3 flex items-center gap-2 overflow-x-auto pb-3 text-sm font-medium text-muted ${isLetsFit ? 'md:gap-8 justify-center' : 'md:gap-5'}`}>
+        <nav className={`scrollbar-none mt-3 flex items-center gap-2 overflow-x-auto pb-3 text-sm font-medium text-muted ${isLetsFit ? "md:gap-8 justify-center" : "md:gap-5"}`}>
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

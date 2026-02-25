@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Button, Card, Input } from "@mrquentinha/ui";
+import { Badge, Button, Card, Input, StatusPill, type StatusTone } from "@mrquentinha/ui";
 import Image from "next/image";
 
 import { formatCurrency } from "@/lib/format";
@@ -17,6 +17,34 @@ type MenuDayViewProps = {
   cartQtyByItem: Record<number, number>;
   onAddItem: (item: MenuItemData) => void;
 };
+
+function resolveAvailabilityTone(item: MenuItemData, reachedLimit: boolean): StatusTone {
+  if (!item.is_active) {
+    return "danger";
+  }
+
+  if (reachedLimit) {
+    return "warning";
+  }
+
+  return "success";
+}
+
+function resolveAvailabilityLabel(item: MenuItemData, reachedLimit: boolean): string {
+  if (!item.is_active) {
+    return "inativo";
+  }
+
+  if (reachedLimit) {
+    return "limite atingido";
+  }
+
+  if (item.available_qty === null) {
+    return "estoque nao informado";
+  }
+
+  return `disponivel: ${item.available_qty}`;
+}
 
 export function MenuDayView({
   selectedDate,
@@ -86,6 +114,8 @@ export function MenuDayView({
                 const reachedLimit =
                   item.available_qty !== null && currentQty >= item.available_qty;
                 const disabled = !item.is_active || reachedLimit;
+                const availabilityLabel = resolveAvailabilityLabel(item, reachedLimit);
+                const availabilityTone = resolveAvailabilityTone(item, reachedLimit);
 
                 return (
                   <article
@@ -117,11 +147,7 @@ export function MenuDayView({
                     )}
 
                     <div className="mt-4 flex items-center justify-between gap-2">
-                      <div className="text-xs uppercase tracking-[0.12em] text-muted">
-                        {item.available_qty === null
-                          ? "estoque: nao informado"
-                          : `disponivel: ${item.available_qty}`}
-                      </div>
+                      <StatusPill tone={availabilityTone}>{availabilityLabel}</StatusPill>
 
                       <Button
                         onClick={() => onAddItem(item)}

@@ -588,3 +588,16 @@
     - `./scripts/quality_gate_all.sh` (`OK`)
     - preflight CORS `Origin http://10.211.55.21:3002` em `/api/v1/accounts/token/` com `access-control-allow-origin` retornado.
     - login admin `roberto` (`POST /api/v1/accounts/token/`) e `GET /api/v1/accounts/me/` com `200`.
+
+- Etapa 9.1.1-HF3 hotfix UX/branding global (prioridade):
+  - identidade visual oficial aplicada em todo ecossistema web com assets PNG originais (`icon_app_original.png`, `logo_compact_original.png`, `logo_wordmark_original.png`) em `admin`, `portal`, `client` e `workspaces/web/public/brand/original_png`.
+  - headers/footers de Admin, Portal e Client atualizados para usar a marca oficial em vez da wordmark antiga.
+  - tokens de status adicionados no design system (`success`, `warning`, `danger`, `info` + variações `soft`) em `workspaces/web/ui/src/styles/tokens.css` e propagados para os `globals.css` dos três frontends.
+  - novo componente compartilhado `StatusPill` adicionado no `@mrquentinha/ui`, com export de tipo `StatusTone` para padronizar badges de estado.
+  - Admin Web atualizado com badges coloridos por estado em dashboard e módulos de Pedidos, Compras, Produção e Usuários/RBAC.
+  - Client atualizado com badges de status no histórico de pedidos, pagamento e estado de intent no checkout.
+  - validacoes executadas com sucesso:
+    - `cd workspaces/web/admin && npm run lint && npm run build`
+    - `cd workspaces/web/portal && npm run lint && npm run build` (1 warning existente em `TemplateProvider` sem erro)
+    - `cd workspaces/web/client && npm run lint && npm run build`
+    - `./scripts/quality_gate_all.sh` (`114 passed`, builds portal/client/admin e smokes stack/client em `OK`).

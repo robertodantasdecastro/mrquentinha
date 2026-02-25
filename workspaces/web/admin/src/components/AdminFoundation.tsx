@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
+import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import {
   ApiError,
@@ -115,6 +116,60 @@ function formatRoles(user: AuthUserProfile): string {
   return user.roles.join(", ");
 }
 
+function resolveHealthTone(status: string): StatusTone {
+  const normalizedStatus = status.toLowerCase();
+
+  if (normalizedStatus.includes("ok") || normalizedStatus.includes("online")) {
+    return "success";
+  }
+
+  return "danger";
+}
+
+function resolveSessionTone(viewState: ViewState): StatusTone {
+  return viewState === "authenticated" ? "success" : "warning";
+}
+
+function resolveModuleStatusTone(status: string): StatusTone {
+  const normalizedStatus = status.toLowerCase();
+
+  if (normalizedStatus.includes("planejado")) {
+    return "warning";
+  }
+
+  if (normalizedStatus.includes("baseline")) {
+    return "info";
+  }
+
+  if (normalizedStatus.includes("ativo")) {
+    return "success";
+  }
+
+  return "neutral";
+}
+
+function resolveModuleCardBorder(status: string): string {
+  const tone = resolveModuleStatusTone(status);
+
+  if (tone === "success") {
+    return "border-status-success/35";
+  }
+
+  if (tone === "info") {
+    return "border-status-info/35";
+  }
+
+  if (tone === "warning") {
+    return "border-status-warning/35";
+  }
+
+  if (tone === "danger") {
+    return "border-status-danger/35";
+  }
+
+  return "border-border";
+}
+
 export function AdminFoundation() {
   const [viewState, setViewState] = useState<ViewState>("loading");
   const [loginForm, setLoginForm] = useState<LoginFormState>({ username: "", password: "" });
@@ -207,13 +262,15 @@ export function AdminFoundation() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">API backend</p>
-            <p className="mt-2 text-lg font-semibold text-text">{healthStatus}</p>
+            <StatusPill tone={resolveHealthTone(healthStatus)} className="mt-2">
+              {healthStatus}
+            </StatusPill>
           </article>
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Sessao</p>
-            <p className="mt-2 text-lg font-semibold text-text">
+            <StatusPill tone={resolveSessionTone(viewState)} className="mt-2">
               {viewState === "authenticated" ? "Autenticada" : "Nao autenticada"}
-            </p>
+            </StatusPill>
           </article>
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Trilha atual</p>
@@ -340,9 +397,11 @@ export function AdminFoundation() {
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">{moduleItem.stage}</p>
                 <h3 className="mt-1 text-base font-semibold text-text">{moduleItem.title}</h3>
                 <p className="mt-2 text-sm text-muted">{moduleItem.description}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  Status: {moduleItem.status}
-                </p>
+                <div className="mt-2">
+                  <StatusPill tone={resolveModuleStatusTone(moduleItem.status)}>
+                    {moduleItem.status}
+                  </StatusPill>
+                </div>
                 {moduleItem.anchor && viewState !== "authenticated" && (
                   <p className="mt-2 text-xs text-muted">Faca login para habilitar acesso ao modulo.</p>
                 )}
@@ -360,7 +419,7 @@ export function AdminFoundation() {
                 <a
                   key={moduleItem.title}
                   href={moduleItem.anchor}
-                  className="block rounded-xl border border-border bg-bg p-4 transition hover:border-primary"
+                  className={`block rounded-xl border bg-bg p-4 transition hover:border-primary ${resolveModuleCardBorder(moduleItem.status)}`}
                 >
                   {details}
                 </a>
@@ -368,7 +427,7 @@ export function AdminFoundation() {
             }
 
             return (
-              <article key={moduleItem.title} className="rounded-xl border border-border bg-bg p-4">
+              <article key={moduleItem.title} className={`rounded-xl border bg-bg p-4 ${resolveModuleCardBorder(moduleItem.status)}`}>
                 {details}
               </article>
             );

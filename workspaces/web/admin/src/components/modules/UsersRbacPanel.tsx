@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import {
   ApiError,
@@ -29,6 +30,10 @@ function formatDateTime(valueRaw: string): string {
   }
 
   return dateValue.toLocaleString("pt-BR");
+}
+
+function resolveActiveTone(isActive: boolean): StatusTone {
+  return isActive ? "success" : "danger";
 }
 
 export function UsersRbacPanel() {
@@ -209,9 +214,12 @@ export function UsersRbacPanel() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="text-sm font-semibold text-text">{user.username}</p>
-                            <p className="text-xs text-muted">
-                              {user.email || "sem e-mail"} | ativo: {user.is_active ? "sim" : "nao"}
-                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted">
+                              <p>{user.email || "sem e-mail"}</p>
+                              <StatusPill tone={resolveActiveTone(user.is_active)}>
+                                {user.is_active ? "ativo" : "inativo"}
+                              </StatusPill>
+                            </div>
                             <p className="text-xs text-muted">
                               cadastro: {formatDateTime(user.date_joined)}
                             </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import {
   ApiError,
@@ -70,6 +71,22 @@ function countByStatus(
   status: ProcurementRequestStatus,
 ): number {
   return items.filter((item) => item.status === status).length;
+}
+
+function resolveRequestStatusTone(status: ProcurementRequestStatus): StatusTone {
+  if (status === "OPEN") {
+    return "warning";
+  }
+
+  if (status === "APPROVED") {
+    return "info";
+  }
+
+  if (status === "BOUGHT") {
+    return "success";
+  }
+
+  return "danger";
 }
 
 function buildStatusDrafts(
@@ -343,9 +360,12 @@ export function ProcurementOpsPanel() {
                       key={requestItem.id}
                       className="rounded-lg border border-border bg-surface px-3 py-2"
                     >
-                      <p className="text-sm font-semibold text-text">
-                        PR #{requestItem.id} - {requestItem.status}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-text">PR #{requestItem.id}</p>
+                        <StatusPill tone={resolveRequestStatusTone(requestItem.status)}>
+                          {requestItem.status}
+                        </StatusPill>
+                      </div>
                       <p className="text-xs text-muted">
                         Itens: {requestItem.request_items.length} | Data: {formatDateTime(requestItem.requested_at)}
                       </p>

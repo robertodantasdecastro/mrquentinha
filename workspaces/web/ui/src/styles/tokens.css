@@ -12,6 +12,15 @@
   --mrq-radius-lg: 16px;
   --mrq-radius-md: 12px;
   --mrq-radius-sm: 10px;
+
+  --mrq-status-success: #218a47;
+  --mrq-status-success-soft: #e6f6ed;
+  --mrq-status-warning: #c27a00;
+  --mrq-status-warning-soft: #fff3df;
+  --mrq-status-danger: #c73b3b;
+  --mrq-status-danger-soft: #ffe6e6;
+  --mrq-status-info: #2f67d8;
+  --mrq-status-info-soft: #e7efff;
 }
 
 [data-theme="dark"] {
@@ -20,4 +29,13 @@
   --mrq-text: #f4f4f5;
   --mrq-muted: #b0b0b8;
   --mrq-border: #2a2a33;
+
+  --mrq-status-success: #43c46e;
+  --mrq-status-success-soft: #113023;
+  --mrq-status-warning: #ffba52;
+  --mrq-status-warning-soft: #3a2a12;
+  --mrq-status-danger: #ff7a7a;
+  --mrq-status-danger-soft: #3e1a1a;
+  --mrq-status-info: #7da6ff;
+  --mrq-status-info-soft: #15274d;
 }
