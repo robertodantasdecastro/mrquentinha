@@ -505,3 +505,24 @@
 - docs(memory): sincronizacao apos T9.0.2
   - `PROJECT_STATE`, `ROADMAP_MASTER`, `BACKLOG`, `REQUIREMENTS_BACKLOG`, `TODO_NEXT`, `CONTEXT_PACK`, `IN_PROGRESS` e `workspaces/web/admin/README.md` atualizados.
   - etapa ativa mantida em `9.0` com proxima subetapa unica `T9.0.3`.
+
+- Etapa 9.0.3 admin web expansion:
+  - `workspaces/web/admin/src/types/api.ts` expandido com contratos de `catalog`, `procurement` e `production`.
+  - `workspaces/web/admin/src/lib/api.ts` expandido com clientes para:
+    - `GET /api/v1/catalog/menu-days/`
+    - `GET /api/v1/catalog/dishes/`
+    - `GET /api/v1/procurement/purchase-requests/`
+    - `GET /api/v1/procurement/purchases/`
+    - `GET /api/v1/production/batches/`
+  - novos modulos baseline adicionados em `workspaces/web/admin/src/components/modules/`:
+    - `MenuOpsPanel.tsx`
+    - `ProcurementOpsPanel.tsx`
+    - `ProductionOpsPanel.tsx`
+  - `AdminFoundation.tsx` integrado aos modulos de Cardapio/Compras/Producao no estado autenticado.
+  - validacoes executadas com sucesso:
+    - `cd workspaces/web/admin && npm run lint && npm run build`
+    - `bash scripts/quality_gate_all.sh` (`112 passed`, builds e smokes em `OK`)
+
+- docs(memory): sincronizacao apos T9.0.3
+  - `PROJECT_STATE`, `ROADMAP_MASTER`, `TODO_NEXT`, `CONTEXT_PACK`, `IN_PROGRESS` e `workspaces/web/admin/README.md` atualizados.
+  - etapa ativa mantida em `9.0` com proxima subetapa unica `T9.1.1`.

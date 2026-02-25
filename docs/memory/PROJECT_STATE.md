@@ -3,9 +3,9 @@
 Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `9.0.1`, `9.0.2`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `9.0.1`, `9.0.2`, `9.0.3`.
 - Em progresso: `9.0` (Admin Web MVP).
-- Proxima execucao recomendada (unica): `T9.0.3`.
+- Proxima execucao recomendada (unica): `T9.1.1`.
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -60,10 +60,10 @@ Referencia de atualizacao: 25/02/2026.
 - Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
 
 ### Admin Web (Next.js - 3002)
-- Status: `T9.0.1` + `T9.0.2` concluidas.
-- Entrega atual: modulos operacionais conectados ao backend para Pedidos, Financeiro e Estoque.
+- Status: `T9.0.1` + `T9.0.2` + `T9.0.3` concluidas.
+- Entrega atual: modulos de Pedidos/Financeiro/Estoque + baseline de Cardapio/Compras/Producao conectados ao backend.
 - Workspace ativo: `workspaces/web/admin`.
-- Proximo alvo: `T9.0.3` (expansao do dashboard e novos modulos de gestao).
+- Proximo alvo: `T9.1.1` (fluxo completo dos modulos de gestao e usuarios/RBAC).
 
 ## Portas e scripts oficiais
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
@@ -98,5 +98,6 @@ Referencia de atualizacao: 25/02/2026.
 - Trilha principal: `9.0 Admin Web MVP`.
 - T9.0.1 concluida (Admin Web foundation: shell + auth + dashboard inicial).
 - T9.0.2 concluida (Admin Web operacional: Pedidos, Financeiro e Estoque conectados ao backend).
-- Proxima subetapa unica: `T9.0.3`.
-- Trilhas correlatas apos 9.0.3: `T6.3.2`, `T6.2.1`.
+- T9.0.3 concluida (Admin Web expansion: baseline de Cardapio, Compras e Producao).
+- Proxima subetapa unica: `T9.1.1`.
+- Trilhas correlatas apos 9.1.1: `T6.3.2`, `T6.2.1`.
