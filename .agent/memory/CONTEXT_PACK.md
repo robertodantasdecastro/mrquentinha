@@ -13,10 +13,10 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
-- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `T9.1.1-HF1`, `T9.1.1-HF2`, `T9.1.1-HF3`.
+- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `T9.1.1-HF1`, `T9.1.1-HF2`, `T9.1.1-HF3`, `T9.1.1-HF4`.
 - Etapa ativa: `9.1` (Admin Web completo).
 - Proxima subetapa recomendada: `T9.1.2` (relatorios/exportacoes no Admin Web).
-- Hotfix mais recente: UX/branding do Admin, Portal e Client com status colorido padronizado e logo oficial (assets PNG originais) aplicada em headers/footers e telas-chave.
+- Hotfix mais recente: rotas diretas do Admin (`/modulos` e `/prioridades`) corrigidas com redirect para as ancoras da home, eliminando 404 em acesso por URL direta.
 
 ## Fonte de planejamento
 - `docs/memory/REQUIREMENTS_BACKLOG.md`

@@ -601,3 +601,13 @@
     - `cd workspaces/web/portal && npm run lint && npm run build` (1 warning existente em `TemplateProvider` sem erro)
     - `cd workspaces/web/client && npm run lint && npm run build`
     - `./scripts/quality_gate_all.sh` (`114 passed`, builds portal/client/admin e smokes stack/client em `OK`).
+
+- Etapa 9.1.1-HF4 hotfix Admin rotas de navegacao:
+  - adicionadas rotas dedicadas no Admin Web para acesso direto sem 404:
+    - `workspaces/web/admin/src/app/modulos/page.tsx` -> redirect para `/#modulos`.
+    - `workspaces/web/admin/src/app/prioridades/page.tsx` -> redirect para `/#prioridades`.
+  - objetivo: garantir compatibilidade com URL direta/bookmarks e manter navegacao por ancora da home.
+  - validacoes executadas:
+    - `cd workspaces/web/admin && npm run lint && npm run build`
+    - `curl http://127.0.0.1:3002/modulos` -> `307` com redirect para `/#modulos`
+    - `curl http://127.0.0.1:3002/prioridades` -> `307` com redirect para `/#prioridades`
