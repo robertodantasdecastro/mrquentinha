@@ -246,6 +246,20 @@ export type ProductionBatchStatus =
   | "DONE"
   | "CANCELED";
 
+export type ProductionItemWritePayload = {
+  menu_item: number;
+  qty_planned: number;
+  qty_produced?: number;
+  qty_waste?: number;
+  note?: string;
+};
+
+export type CreateProductionBatchPayload = {
+  production_date: string;
+  note?: string;
+  items: ProductionItemWritePayload[];
+};
+
 export type ProductionItemData = {
   id: number;
   menu_item: number;

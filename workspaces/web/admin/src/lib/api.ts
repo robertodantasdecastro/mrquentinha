@@ -8,6 +8,7 @@ import type {
   AuthTokens,
   AuthUserProfile,
   CreateStockMovementPayload,
+  CreateProductionBatchPayload,
   DishData,
   FinanceKpisPayload,
   FinanceUnreconciledPayload,
@@ -420,6 +421,26 @@ export async function listProductionBatchesAdmin(): Promise<ProductionBatchData[
   });
 
   return normalizeListPayload(payload);
+}
+
+export async function createProductionBatchAdmin(
+  payload: CreateProductionBatchPayload,
+): Promise<ProductionBatchData> {
+  return requestJson<ProductionBatchData>("/api/v1/production/batches/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function completeProductionBatchAdmin(
+  batchId: number,
+): Promise<ProductionBatchData> {
+  return requestJson<ProductionBatchData>(`/api/v1/production/batches/${batchId}/complete/`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({}),
+  });
 }
 
 export function logoutAccount(): void {
