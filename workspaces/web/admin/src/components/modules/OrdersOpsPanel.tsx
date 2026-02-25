@@ -187,12 +187,13 @@ export function OrdersOpsPanel() {
                 <div className="flex flex-wrap items-center gap-2">
                   <select
                     value={statusDrafts[order.id] ?? order.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const nextStatus = event.currentTarget.value as OrderStatus;
                       setStatusDrafts((current) => ({
                         ...current,
-                        [order.id]: event.currentTarget.value as OrderStatus,
-                      }))
-                    }
+                        [order.id]: nextStatus,
+                      }));
+                    }}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                   >
                     {STATUS_OPTIONS.map((statusOption) => (

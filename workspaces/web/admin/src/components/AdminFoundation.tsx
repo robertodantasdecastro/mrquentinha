@@ -233,9 +233,10 @@ export function AdminFoundation() {
                 autoComplete="username"
                 className={INPUT_CLASS}
                 value={loginForm.username}
-                onChange={(event) =>
-                  setLoginForm((current) => ({ ...current, username: event.currentTarget.value }))
-                }
+                onChange={(event) => {
+                  const username = event.currentTarget.value;
+                  setLoginForm((current) => ({ ...current, username }));
+                }}
               />
             </label>
             <label className="grid gap-1 text-sm text-muted">
@@ -246,9 +247,10 @@ export function AdminFoundation() {
                 autoComplete="current-password"
                 className={INPUT_CLASS}
                 value={loginForm.password}
-                onChange={(event) =>
-                  setLoginForm((current) => ({ ...current, password: event.currentTarget.value }))
-                }
+                onChange={(event) => {
+                  const password = event.currentTarget.value;
+                  setLoginForm((current) => ({ ...current, password }));
+                }}
               />
             </label>
             <button

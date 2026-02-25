@@ -353,12 +353,14 @@ export function ProcurementOpsPanel() {
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <select
                           value={selectedStatus}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const nextStatus =
+                              event.currentTarget.value as ProcurementRequestStatus;
                             setStatusDrafts((previous) => ({
                               ...previous,
-                              [requestItem.id]: event.currentTarget.value as ProcurementRequestStatus,
-                            }))
-                          }
+                              [requestItem.id]: nextStatus,
+                            }));
+                          }}
                           className="rounded-md border border-border bg-bg px-2 py-1 text-xs text-text"
                         >
                           {REQUEST_STATUS_OPTIONS.map((option) => (

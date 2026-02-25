@@ -315,12 +315,13 @@ export function ProductionOpsPanel() {
                               type="number"
                               min={1}
                               value={qtyDrafts[menuItem.id] ?? ""}
-                              onChange={(event) =>
+                              onChange={(event) => {
+                                const nextQty = event.currentTarget.value;
                                 setQtyDrafts((previous) => ({
                                   ...previous,
-                                  [menuItem.id]: event.currentTarget.value,
-                                }))
-                              }
+                                  [menuItem.id]: nextQty,
+                                }));
+                              }}
                               className="rounded-md border border-border bg-bg px-2 py-1 text-sm text-text"
                             />
                           </label>
