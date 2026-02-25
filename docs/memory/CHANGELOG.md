@@ -533,3 +533,32 @@
 - docs(memory): sincronizacao apos T9.0.3
   - `PROJECT_STATE`, `ROADMAP_MASTER`, `TODO_NEXT`, `CONTEXT_PACK`, `IN_PROGRESS` e `workspaces/web/admin/README.md` atualizados.
   - etapa ativa mantida em `9.0` com proxima subetapa unica `T9.1.1`.
+
+- Etapa 9.1.1 admin web completo (parcial) - cardapio operacional:
+  - `MenuOpsPanel.tsx` evoluido de baseline para fluxo operacional de menu do dia.
+  - suporte a criar, editar e excluir cardapio (`POST/PUT/DELETE /api/v1/catalog/menus/`).
+  - selecao de pratos, preco, disponibilidade e status por item no painel.
+  - validacoes executadas: `cd workspaces/web/admin && npm run lint && npm run build`.
+
+- Etapa 9.1.1 admin web completo (parcial) - compras operacional:
+  - `ProcurementOpsPanel.tsx` passou a suportar geracao de requisicao por menu e update de status.
+  - `lib/api.ts` expandido com:
+    - `POST /api/v1/procurement/requests/from-menu/`
+    - `PATCH /api/v1/procurement/requests/<id>/`
+  - visualizacao de resultado da geracao por menu no painel.
+
+- Etapa 9.1.1 admin web completo (parcial) - producao operacional:
+  - `ProductionOpsPanel.tsx` passou a suportar criacao de lote por cardapio e conclusao de lote.
+  - `lib/api.ts` expandido com:
+    - `POST /api/v1/production/batches/`
+    - `POST /api/v1/production/batches/<id>/complete/`
+  - `types/api.ts` atualizado com payloads de criacao de lote e itens de producao.
+
+- ops: admin web integrado ao ops center:
+  - `scripts/start_admin_dev.sh` adicionado (porta `3002`).
+  - `scripts/ops_center.py` e `scripts/ops_dashboard.sh` atualizados para controlar Admin Web.
+  - `scripts/ops_dashboard.py` adicionado como launcher dedicado.
+
+- validacao completa apos entregas parciais da T9.1.1:
+  - `bash scripts/quality_gate_all.sh` em status `OK`.
+  - backend `112 passed`; builds portal/client/admin e smokes em `OK`.

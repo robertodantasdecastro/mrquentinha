@@ -14,8 +14,9 @@
 
 ## Estado atual
 - Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `9.0.1`, `9.0.2`, `9.0.3`.
-- Etapa ativa: `9.0` (proxima subetapa: `T9.1.1`).
+- Etapa ativa: `9.1` (proxima subetapa: concluir `T9.1.1`).
 - Planejamento mestre ativo: `9.1` (Admin Web completo) e `6.3.2` (Integracao CMS no portal).
+- T9.1.1 parcial entregue: Cardapio operacional, Compras operacional e Producao operacional no Admin Web.
 
 ## Fonte de planejamento
 - `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -35,4 +36,4 @@
 ## Regra critica
 - Sem segredos no repositorio.
 - Evitar conflito de portal enquanto `6.2` estiver ativo no Antigravity.
-- Proximo passo unico recomendado: `T9.1.1`.
+- Proximo passo unico recomendado: finalizar `T9.1.1` com modulo de Usuarios/RBAC.

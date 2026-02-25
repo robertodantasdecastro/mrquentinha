@@ -13,7 +13,7 @@ Historico recente:
 10. [x] T9.0.3 Admin Web expansion (baseline Cardapio/Compras/Producao) - concluida em 25/02/2026.
 
 Fila atual:
-11. [ ] T9.1.1 Admin Web completo: fluxo operacional de Cardapio/Compras/Producao + Usuarios/RBAC.
+11. [ ] T9.1.1 Admin Web completo: fluxo operacional de Cardapio/Compras/Producao + Usuarios/RBAC (parcial entregue: Cardapio, Compras e Producao operacionais).
 12. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
 13. [ ] T6.3.2 Integracao CMS no portal (apos lock visual 6.2 e sem conflito).
 14. [ ] T6.1.1 Nginx/proxy local em janela dedicada.
