@@ -15,12 +15,14 @@ No root (`~/mrquentinha`), use terminais separados:
 
 ```bash
 ./scripts/start_backend_dev.sh
+./scripts/start_admin_dev.sh
 ./scripts/start_portal_dev.sh
 ./scripts/start_client_dev.sh
 ```
 
 Portas padrao:
 - backend: `8000`
+- admin web: `3002`
 - portal: `3000`
 - client: `3001`
 
@@ -58,6 +60,7 @@ python3 scripts/ops_center.py
 
 Controles no painel:
 - `1/2/3`: start/stop/restart backend
+- `g/h/j`: start/stop/restart admin web
 - `4/5/6`: start/stop/restart portal
 - `7/8/9`: start/stop/restart client
 - `a`: start all

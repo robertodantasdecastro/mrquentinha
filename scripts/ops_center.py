@@ -23,6 +23,16 @@ REQUEST_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE|OPTIONS)\b")
 SPARK_CHARS = "▁▂▃▄▅▆▇█"
 HISTORY_SIZE = 60
 EXPORT_EVENT_WINDOW = 20
+LOG_TAIL_LINES = 3
+
+KEY_HELP = [
+    "Acoes rapidas: a start all | s stop all | r restart all | q sair",
+    "Backend: 1 start | 2 stop | 3 restart",
+    "Admin:   g start | h stop | j restart",
+    "Portal:  4 start | 5 stop | 6 restart",
+    "Client:  7 start | 8 stop | 9 restart",
+    "UI:      ? ajuda | l logs | c compacto",
+]
 
 HAS_SS = shutil.which("ss") is not None
 HAS_LSOF = shutil.which("lsof") is not None
@@ -49,6 +59,7 @@ class ServiceSnapshot:
 
 SERVICES = (
     ServiceSpec("backend", "Backend Django", "scripts/start_backend_dev.sh", 8000),
+    ServiceSpec("admin", "Admin Web", "scripts/start_admin_dev.sh", 3002),
     ServiceSpec("portal", "Portal Next", "scripts/start_portal_dev.sh", 3000),
     ServiceSpec("client", "Client Next", "scripts/start_client_dev.sh", 3001),
 )
@@ -532,7 +543,7 @@ def decode_ipv4(hex_addr: str) -> str:
 
 def frontend_sources() -> Counter[str]:
     sources: Counter[str] = Counter()
-    target_ports = {3000, 3001}
+    target_ports = {3000, 3001, 3002}
 
     with open("/proc/net/tcp", "r", encoding="utf-8") as f:
         for line in f.readlines()[1:]:
@@ -667,6 +678,20 @@ def safe_add(stdscr: curses.window, y: int, x: int, text: str, attr: int = 0) ->
         pass
 
 
+def host_hint() -> str:
+    return os.environ.get("MRQ_HOST_IP", os.environ.get("OPS_HOST_IP", "127.0.0.1"))
+
+
+def tail_log_lines(path: Path, lines: int = LOG_TAIL_LINES) -> list[str]:
+    if not path.exists():
+        return []
+    try:
+        content = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        return content[-lines:]
+    except Exception:
+        return []
+
+
 def draw_dashboard(
     stdscr: curses.window,
     manager: OpsManager,
@@ -682,28 +707,48 @@ def draw_dashboard(
     events: Deque[str],
     frontend_hits: Counter[str],
     export_status: str,
+    show_help: bool,
+    show_logs: bool,
+    compact: bool,
 ) -> None:
     stdscr.erase()
     h, w = stdscr.getmaxyx()
 
-    title_attr = curses.A_BOLD | color_pair_safe(4)
+    title_attr = curses.A_BOLD | color_pair_safe(7)
     safe_add(
         stdscr,
         0,
         0,
-        f"Ops Center Mr Quentinha | {dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} | q=sair",
+        f"Mr Quentinha Ops Center  |  {dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  |  q sair",
         title_attr,
     )
     safe_add(
         stdscr,
         1,
         0,
-        "Gestao: [1/2/3] Backend S/P/R | [4/5/6] Portal S/P/R | [7/8/9] Client S/P/R | [a] Start all | [s] Stop all | [r] Restart all",
+        "Acoes rapidas: [a] start all  [s] stop all  [r] restart all  |  Servicos: [1/2/3] Backend  [g/h/j] Admin  [4/5/6] Portal  [7/8/9] Client",
         color_pair_safe(6),
     )
     safe_add(stdscr, 2, 0, export_status, color_pair_safe(5))
 
-    y = 4
+    status_parts = []
+    for snap in snapshots:
+        state = snap.state
+        if state == "RUNNING":
+            color = color_pair_safe(2)
+        elif state == "EXTERNAL":
+            color = color_pair_safe(3)
+        else:
+            color = color_pair_safe(1)
+        status_parts.append((f"[{snap.spec.key}:{state[:3]}]", color))
+
+    y = 3
+    x = 0
+    for label, color in status_parts:
+        safe_add(stdscr, y, x, label + " ", color)
+        x += len(label) + 1
+
+    y = 5
     bar_width = max(10, min(32, w // 4))
     mem_percent, used_gb, total_gb = mem_now
 
@@ -747,17 +792,19 @@ def draw_dashboard(
 
     safe_add(stdscr, y, 0, "Servicos", curses.A_BOLD | color_pair_safe(4))
     y += 1
-    safe_add(
-        stdscr,
-        y,
-        0,
-        "Nome           Estado     PID      Porta   Uptime    RSS(MB)  Hits/s   Grafico de acessos",
-        curses.A_UNDERLINE,
-    )
+    if not compact:
+        safe_add(
+            stdscr,
+            y,
+            0,
+            "Nome           Estado     PID      Porta   Uptime    RSS(MB)  Hits/s   Grafico de acessos",
+            curses.A_UNDERLINE,
+        )
     y += 1
 
     service_rows_left = max(1, min(len(snapshots), h - y - 12))
     graph_space = max(8, w - 76)
+    host = host_hint()
 
     for snap in snapshots[:service_rows_left]:
         if snap.state == "RUNNING":
@@ -768,6 +815,19 @@ def draw_dashboard(
             state_attr = color_pair_safe(1)
 
         hist = manager.hit_history[snap.spec.key]
+        if compact:
+            row = (
+                f"{snap.spec.name[:14]:14} "
+                f"{snap.state:9} "
+                f"pid {str(snap.pid or '-'):>6} "
+                f"port {snap.spec.port:<5d} "
+                f"hits {snap.hits_per_sec:>3d}/s "
+                f"{sparkline(hist, max(6, w - 64))}"
+            )
+            safe_add(stdscr, y, 0, row, state_attr)
+            y += 1
+            continue
+
         row = (
             f"{snap.spec.name[:14]:14} "
             f"{snap.state:9} "
@@ -780,13 +840,28 @@ def draw_dashboard(
         )
         safe_add(stdscr, y, 0, row, state_attr)
         y += 1
+        if y < h - 1:
+            key_hint = {
+                "backend": "1/2/3",
+                "admin": "g/h/j",
+                "portal": "4/5/6",
+                "client": "7/8/9",
+            }.get(snap.spec.key, "-")
+            safe_add(
+                stdscr,
+                y,
+                2,
+                f"acoes {key_hint}  url http://{host}:{snap.spec.port}",
+                color_pair_safe(6),
+            )
+        y += 1
 
     y += 1
     safe_add(
         stdscr,
         y,
         0,
-        "Fontes de acesso no frontend (conexoes TCP ESTABLISHED em 3000/3001)",
+        "Fontes de acesso nos web apps (conexoes TCP ESTABLISHED em 3000/3001/3002)",
         curses.A_BOLD | color_pair_safe(4),
     )
     y += 1
@@ -800,7 +875,7 @@ def draw_dashboard(
         safe_add(stdscr, y, 0, "- sem conexoes ativas no momento", color_pair_safe(1))
         y += 1
 
-    if y < h - 4:
+    if y < h - 4 and not compact:
         y += 1
         safe_add(stdscr, y, 0, "Ultimas atividades HTTP por servico", curses.A_BOLD | color_pair_safe(4))
         y += 1
@@ -810,9 +885,39 @@ def draw_dashboard(
             if y >= h - 3:
                 break
 
+    if show_logs and y < h - 4:
+        y += 1
+        safe_add(stdscr, y, 0, "Ultimas linhas de log", curses.A_BOLD | color_pair_safe(4))
+        y += 1
+        for snap in snapshots:
+            lines = tail_log_lines(manager.log_file(snap.spec))
+            if not lines:
+                safe_add(stdscr, y, 0, f"{snap.spec.key:7}: (sem log)", color_pair_safe(1))
+                y += 1
+                continue
+            for line in lines[-LOG_TAIL_LINES:]:
+                safe_add(stdscr, y, 0, f"{snap.spec.key:7}: {line[: max(0, w - 12)]}", color_pair_safe(6))
+                y += 1
+                if y >= h - 3:
+                    break
+            if y >= h - 3:
+                break
+
     footer_y = h - 2
     safe_add(stdscr, footer_y, 0, "Eventos recentes:", curses.A_BOLD | color_pair_safe(4))
     safe_add(stdscr, footer_y + 1, 0, " | ".join(events)[-max(0, w - 2) :], color_pair_safe(6))
+
+    if show_help:
+        box_lines = KEY_HELP
+        box_width = min(w - 4, max(len(line) for line in box_lines) + 4)
+        box_height = min(h - 4, len(box_lines) + 2)
+        box_y = max(2, (h - box_height) // 2)
+        box_x = max(2, (w - box_width) // 2)
+        for i in range(box_height):
+            safe_add(stdscr, box_y + i, box_x, " " * box_width, color_pair_safe(4))
+        safe_add(stdscr, box_y, box_x + 2, "Ajuda", curses.A_BOLD | color_pair_safe(7))
+        for idx, line in enumerate(box_lines[: box_height - 2]):
+            safe_add(stdscr, box_y + 1 + idx, box_x + 2, line, color_pair_safe(6))
 
     stdscr.refresh()
 
@@ -822,6 +927,9 @@ def handle_key(manager: OpsManager, key: str) -> str | None:
         "1": lambda: manager.start_service("backend"),
         "2": lambda: manager.stop_service("backend"),
         "3": lambda: manager.restart_service("backend"),
+        "g": lambda: manager.start_service("admin"),
+        "h": lambda: manager.stop_service("admin"),
+        "j": lambda: manager.restart_service("admin"),
         "4": lambda: manager.start_service("portal"),
         "5": lambda: manager.stop_service("portal"),
         "6": lambda: manager.restart_service("portal"),
@@ -887,6 +995,7 @@ def run_dashboard(
             curses.init_pair(4, curses.COLOR_CYAN, -1)
             curses.init_pair(5, curses.COLOR_MAGENTA, -1)
             curses.init_pair(6, curses.COLOR_BLUE, -1)
+            curses.init_pair(7, curses.COLOR_YELLOW, -1)
     except Exception:
         pass
 
@@ -920,6 +1029,9 @@ def run_dashboard(
     rx_rate = 0.0
     tx_rate = 0.0
     front = frontend_sources()
+    show_help = False
+    show_logs = False
+    compact = False
 
     while True:
         ch = stdscr.getch()
@@ -930,6 +1042,12 @@ def run_dashboard(
                 events.append(msg)
                 event_history.append(msg)
                 break
+            if key == "?":
+                show_help = not show_help
+            if key == "l":
+                show_logs = not show_logs
+            if key == "c":
+                compact = not compact
 
             action_msg = handle_key(manager, key)
             if action_msg:
@@ -990,6 +1108,9 @@ def run_dashboard(
             events,
             front,
             exporter.status_text(),
+            show_help,
+            show_logs,
+            compact,
         )
 
         time.sleep(0.05)

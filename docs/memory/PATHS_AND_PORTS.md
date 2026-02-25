@@ -8,6 +8,7 @@
 - Backend: `workspaces/backend`
 - Portal: `workspaces/web/portal`
 - Client: `workspaces/web/client`
+- Admin Web: `workspaces/web/admin`
 - UI compartilhada: `workspaces/web/ui`
 - Scripts: `scripts/`
 - Workflows: `.agent/workflows/`
@@ -15,17 +16,20 @@
 
 ## Portas locais
 - Backend API: `8000`
+- Admin Web: `3002`
 - Portal: `3000`
 - Client: `3001`
 
 ## URLs locais comuns
 - `http://127.0.0.1:8000`
+- `http://127.0.0.1:3002`
 - `http://127.0.0.1:3000`
 - `http://127.0.0.1:3001`
 
 ## Scripts oficiais
 - Start:
   - `scripts/start_backend_dev.sh`
+  - `scripts/start_admin_dev.sh`
   - `scripts/start_portal_dev.sh`
   - `scripts/start_client_dev.sh`
 - Smoke:
