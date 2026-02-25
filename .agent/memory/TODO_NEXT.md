@@ -15,9 +15,10 @@ Historico recente:
 12. [x] T6.1.1 Nginx/proxy local em janela dedicada - concluida em 25/02/2026.
 13. [x] T9.1.1-HF1 Hotfix Admin Web login: corrigir crash client-side ao digitar usuario e liberar `allowedDevOrigins` para acesso via IP - concluida em 25/02/2026.
 14. [x] T9.1.1-HF2 Hotfix Admin Web login: liberar CORS backend para `:3002`, fallback de API base no Admin e feedback inline de erro no login - concluida em 25/02/2026.
+15. [x] T9.1.1-HF3 UX/Branding: cores de status padronizadas e logo oficial aplicada em Admin/Portal/Client - concluida em 25/02/2026.
 
 Fila atual:
-15. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
-16. [ ] T6.3.2 Integracao CMS no portal (Codex apos lock visual 6.2, sem conflito).
-17. [ ] T9.1.2 Admin Web relatorios/exportacoes (proxima execucao recomendada para Codex).
-18. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
+16. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
+17. [ ] T6.3.2 Integracao CMS no portal (Codex apos lock visual 6.2, sem conflito).
+18. [ ] T9.1.2 Admin Web relatorios/exportacoes (proxima execucao recomendada para Codex).
+19. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).

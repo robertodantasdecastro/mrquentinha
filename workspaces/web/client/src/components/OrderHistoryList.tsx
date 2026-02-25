@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import { ApiError, listOrders } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
@@ -26,6 +27,42 @@ function resolveErrorMessage(error: unknown): string {
   }
 
   return "Falha ao carregar os pedidos.";
+}
+
+function resolveOrderTone(status: string): StatusTone {
+  if (status === "CREATED" || status === "CONFIRMED") {
+    return "warning";
+  }
+
+  if (status === "IN_PROGRESS") {
+    return "info";
+  }
+
+  if (status === "DELIVERED") {
+    return "success";
+  }
+
+  if (status === "CANCELED") {
+    return "danger";
+  }
+
+  return "neutral";
+}
+
+function resolvePaymentTone(status: string): StatusTone {
+  if (status === "PAID" || status === "SUCCEEDED") {
+    return "success";
+  }
+
+  if (status === "PENDING" || status === "PROCESSING") {
+    return "warning";
+  }
+
+  if (status === "FAILED" || status === "CANCELED" || status === "REFUNDED") {
+    return "danger";
+  }
+
+  return "neutral";
 }
 
 export function OrderHistoryList() {
@@ -132,9 +169,9 @@ export function OrderHistoryList() {
                 </div>
 
                 <div className="text-right">
-                  <p className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+                  <StatusPill tone={resolveOrderTone(order.status)}>
                     {order.status}
-                  </p>
+                  </StatusPill>
                   <p className="mt-1 text-sm font-semibold text-text">
                     {formatCurrency(order.total_amount)}
                   </p>
@@ -158,9 +195,12 @@ export function OrderHistoryList() {
                   </p>
                   <div className="mt-2 space-y-1 text-sm text-text">
                     {order.payments.map((payment) => (
-                      <p key={payment.id}>
-                        #{payment.id} · {payment.method} · {payment.status} · {formatCurrency(payment.amount)}
-                      </p>
+                      <div key={payment.id} className="flex flex-wrap items-center gap-2">
+                        <p>
+                          #{payment.id} · {payment.method} · {formatCurrency(payment.amount)}
+                        </p>
+                        <StatusPill tone={resolvePaymentTone(payment.status)}>{payment.status}</StatusPill>
+                      </div>
                     ))}
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import {
   ApiError,
@@ -42,6 +43,22 @@ function countByStatus(
   status: ProductionBatchStatus,
 ): number {
   return batches.filter((batch) => batch.status === status).length;
+}
+
+function resolveBatchStatusTone(status: ProductionBatchStatus): StatusTone {
+  if (status === "PLANNED") {
+    return "warning";
+  }
+
+  if (status === "IN_PROGRESS") {
+    return "info";
+  }
+
+  if (status === "DONE") {
+    return "success";
+  }
+
+  return "danger";
 }
 
 function sumPlannedByBatch(batch: ProductionBatchData): number {
@@ -365,9 +382,12 @@ export function ProductionOpsPanel() {
                       key={batch.id}
                       className="rounded-lg border border-border bg-surface px-3 py-2"
                     >
-                      <p className="text-sm font-semibold text-text">
-                        Lote #{batch.id} - {batch.status}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-text">Lote #{batch.id}</p>
+                        <StatusPill tone={resolveBatchStatusTone(batch.status)}>
+                          {batch.status}
+                        </StatusPill>
+                      </div>
                       <p className="text-xs text-muted">
                         Data: {formatDate(batch.production_date)} | Itens: {batch.production_items.length}
                       </p>

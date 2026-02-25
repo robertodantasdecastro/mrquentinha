@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import {
   ApiError,
@@ -49,6 +50,22 @@ function resolveErrorMessage(error: unknown): string {
   }
 
   return "Falha inesperada ao carregar pedidos.";
+}
+
+function resolveOrderStatusTone(status: OrderStatus): StatusTone {
+  if (status === "CREATED" || status === "CONFIRMED") {
+    return "warning";
+  }
+
+  if (status === "IN_PROGRESS") {
+    return "info";
+  }
+
+  if (status === "DELIVERED") {
+    return "success";
+  }
+
+  return "danger";
 }
 
 export function OrdersOpsPanel() {
@@ -185,6 +202,9 @@ export function OrdersOpsPanel() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  <StatusPill tone={resolveOrderStatusTone(order.status)}>
+                    {order.status}
+                  </StatusPill>
                   <select
                     value={statusDrafts[order.id] ?? order.status}
                     onChange={(event) => {
