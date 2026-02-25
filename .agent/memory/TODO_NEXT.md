@@ -5,9 +5,9 @@ Historico recente:
 2. [x] 7.1.2 Client Auth real (login/register/me + refresh, sem demo) - concluida em 24/02/2026.
 3. [x] 7.1.3 Fechamento 7.1 (quality gate + smokes + docs/memory) - concluida em 25/02/2026.
 4. [x] T7.2.1 Pagamentos online: provider abstraction + payment intents + idempotencia (backend) - concluida em 25/02/2026.
+5. [x] T7.2.2 Pagamentos online: webhook idempotente + reconciliacao financeira (AR/cash/ledger) - concluida em 25/02/2026.
 
 Fila atual:
-5. [ ] T7.2.2 Pagamentos online: webhooks + reconciliacao financeira (AR/cash/ledger/close).
 6. [ ] T7.2.3 Client checkout online (PIX/cartao/VR) consumindo intents/status.
 7. [ ] T6.3.1 Portal CMS backend-only (Config/Sections + API publica/admin).
 8. [ ] T9.0.1 Admin Web MVP foundation (auth shell + dashboard inicial).

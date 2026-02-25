@@ -401,3 +401,26 @@
     - `bash scripts/quality_gate_all.sh`
     - `bash scripts/smoke_stack_dev.sh`
     - `bash scripts/smoke_client_dev.sh`
+
+- Etapa 7.2.2 webhook + reconciliacao financeira (backend-only):
+  - criado modelo `PaymentWebhookEvent` com idempotencia por (`provider`, `event_id`).
+  - novos contratos de API em `orders`:
+    - `POST /api/v1/orders/payments/webhook/` (token via header `X-Webhook-Token`).
+    - suporte a replay idempotente (`201` na primeira entrega, `200` no replay).
+  - reconciliacao automatica por webhook:
+    - `intent_status=SUCCEEDED` -> `Payment=PAID` + sincronizacao `AR/Cash/Ledger`.
+    - `intent_status` de falha (`FAILED/CANCELED/EXPIRED`) -> `Payment=FAILED`.
+  - cobertura de testes ampliada em `test_orders_api.py` para:
+    - sucesso com reconciliacao,
+    - replay idempotente,
+    - token invalido/ausente,
+    - intent inexistente,
+    - falha sem entrada de caixa.
+  - validacoes executadas:
+    - `pytest tests/test_orders_services.py tests/test_orders_api.py` (28 passed),
+    - `bash scripts/smoke_stack_dev.sh` (OK),
+    - `bash scripts/smoke_client_dev.sh` (OK).
+
+- docs(memory): sincronizacao de estado apos T7.2.2
+  - `PROJECT_STATE`, `TODO_NEXT`, `CONTEXT_PACK`, `ROADMAP_MASTER` e `BACKLOG` alinhados com `T7.2.2` concluida.
+  - prioridade ativa movida para `T7.2.3` (checkout online no client).

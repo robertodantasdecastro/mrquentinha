@@ -65,9 +65,9 @@ Escopo: consolidacao de requisitos funcionais/operacionais solicitados no chat.
 - Endpoints de administracao (backend/admin web): **pendente**
 
 ### F) Pagamentos online (7.2)
-- PIX + cartao + VR/VA (MVP): **pendente**
-- Webhooks + idempotencia: **pendente**
-- Integracao com finance/ledger/conciliation/close: **pendente**
+- PIX + cartao + VR/VA (MVP): **em progresso**
+- Webhooks + idempotencia: **feito (backend)**
+- Integracao com finance/ledger/conciliation/close: **feito (backend)**
 
 ### G) Financas pessoais (8)
 - Segregacao por usuario/colaborador: **pendente**
