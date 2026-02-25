@@ -108,7 +108,7 @@ export function FinanceOpsPanel() {
   }, []);
 
   function handleApplyPeriod() {
-    setMessage(`Periodo aplicado: ${fromDate} ate ${toDate}.`);
+    setMessage(`Período aplicado: ${fromDate} até ${toDate}.`);
     void loadFinance({ silent: true });
   }
 
@@ -118,7 +118,7 @@ export function FinanceOpsPanel() {
         <div>
           <h3 className="text-lg font-semibold text-text">Financeiro</h3>
           <p className="text-sm text-muted">
-            Indicadores de receita/despesa e monitoramento de conciliacao.
+            Indicadores de receita/despesa e monitoramento de conciliação.
           </p>
         </div>
         <button

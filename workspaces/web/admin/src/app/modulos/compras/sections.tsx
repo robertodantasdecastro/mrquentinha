@@ -5,6 +5,7 @@ import { StatusPill } from "@mrquentinha/ui";
 
 import {
   ApiError,
+  exportPurchasesCsv,
   listPurchaseRequestsAdmin,
   listPurchasesAdmin,
 } from "@/lib/api";
@@ -56,6 +57,22 @@ function resolveErrorMessage(error: unknown): string {
   return "Falha inesperada ao carregar dados de compras.";
 }
 
+function buildCurrentMonthRange(): { from: string; to: string } {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  const toIsoDate = (value: Date) => value.toISOString().slice(0, 10);
+
+  return {
+    from: toIsoDate(firstDay),
+    to: toIsoDate(lastDay),
+  };
+}
+
 function formatCurrency(value: number): string {
   return value.toLocaleString("pt-BR", {
     style: "currency",
@@ -75,6 +92,12 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
   const [purchases, setPurchases] = useState<PurchaseData[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const range = useMemo(buildCurrentMonthRange, []);
+  const [periodFrom, setPeriodFrom] = useState(range.from);
+  const [periodTo, setPeriodTo] = useState(range.to);
+  const isRangeValid = Boolean(periodFrom && periodTo && periodFrom <= periodTo);
 
   useEffect(() => {
     let mounted = true;
@@ -159,6 +182,28 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
 
   const showAll = activeSection === "all";
 
+  const downloadCsv = async () => {
+    if (!isRangeValid) {
+      setErrorMessage("Período inválido. Ajuste as datas inicial e final.");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const { blob, filename } = await exportPurchasesCsv(periodFrom, periodTo);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       {(showAll || activeSection === "visao-geral") && (
@@ -166,15 +211,15 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-text">Visão geral</h2>
-              <p className="mt-1 text-sm text-muted">Acompanhe requisicoes abertas e compras do periodo.</p>
+              <p className="mt-1 text-sm text-muted">Acompanhe requisições abertas e compras do período.</p>
             </div>
-            <StatusPill tone="warning">Pendencias {openRequests}</StatusPill>
+            <StatusPill tone="warning">Pendências {openRequests}</StatusPill>
           </div>
           {loading && <p className="mt-3 text-sm text-muted">Carregando resumo de compras...</p>}
           {!loading && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <article className="rounded-xl border border-border bg-bg p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Requisicoes abertas</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Requisições abertas</p>
                 <p className="mt-1 text-2xl font-semibold text-text">{openRequests}</p>
               </article>
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -201,7 +246,7 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-text">Impacto financeiro</h2>
-              <p className="mt-1 text-sm text-muted">Comparativo de fornecedores e itens criticos.</p>
+              <p className="mt-1 text-sm text-muted">Comparativo de fornecedores e itens críticos.</p>
             </div>
             <StatusPill tone="info">{purchases.length} compras</StatusPill>
           </div>
@@ -226,12 +271,39 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
       {(showAll || activeSection === "exportacao") && (
         <section id="exportacao" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-text">Exportação CSV</h2>
-          <p className="mt-1 text-sm text-muted">Gere relatorios de compras consolidados por periodo.</p>
+          <p className="mt-1 text-sm text-muted">Gere relatórios de compras consolidados por período.</p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-2 text-sm font-medium text-text">
+              Data inicial
+              <input
+                type="date"
+                value={periodFrom}
+                onChange={(event) => setPeriodFrom(event.target.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-text">
+              Data final
+              <input
+                type="date"
+                value={periodTo}
+                onChange={(event) => setPeriodTo(event.target.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            {!isRangeValid && (
+              <span className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                Período inválido
+              </span>
+            )}
+          </div>
           <button
             type="button"
-            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
+            onClick={() => void downloadCsv()}
+            disabled={!isRangeValid || exporting}
+            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Exportar compras (CSV)
+            {exporting ? "Exportando compras..." : "Exportar compras (CSV)"}
           </button>
         </section>
       )}

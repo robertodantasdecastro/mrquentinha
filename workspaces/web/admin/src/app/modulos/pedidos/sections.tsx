@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
 
-import { ApiError, listOrdersAdmin } from "@/lib/api";
+import { ApiError, exportOrdersCsv, listOrdersAdmin } from "@/lib/api";
 import {
   buildRecentDateKeys,
   buildSeriesFromTotals,
@@ -49,10 +49,32 @@ function resolveErrorMessage(error: unknown): string {
   return "Falha inesperada ao carregar dados de pedidos.";
 }
 
+function buildCurrentMonthRange(): { from: string; to: string } {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  const toIsoDate = (value: Date) => value.toISOString().slice(0, 10);
+
+  return {
+    from: toIsoDate(firstDay),
+    to: toIsoDate(lastDay),
+  };
+}
+
 export function PedidosSections({ activeSection = "all" }: PedidosSectionsProps) {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const range = useMemo(buildCurrentMonthRange, []);
+  const [periodFrom, setPeriodFrom] = useState(range.from);
+  const [periodTo, setPeriodTo] = useState(range.to);
+  const isRangeValid = Boolean(periodFrom && periodTo && periodFrom <= periodTo);
 
   const todayKey = useMemo(() => normalizeDateKey(new Date()), []);
 
@@ -127,6 +149,28 @@ export function PedidosSections({ activeSection = "all" }: PedidosSectionsProps)
 
   const showAll = activeSection === "all";
 
+  const downloadCsv = async () => {
+    if (!isRangeValid) {
+      setErrorMessage("Período inválido. Ajuste as datas inicial e final.");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const { blob, filename } = await exportOrdersCsv(periodFrom, periodTo);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       {(showAll || activeSection === "visao-geral") && (
@@ -199,11 +243,38 @@ export function PedidosSections({ activeSection = "all" }: PedidosSectionsProps)
           <p className="mt-1 text-sm text-muted">
             Gere arquivos CSV com filtros aplicados para reconciliação financeira.
           </p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-2 text-sm font-medium text-text">
+              Data inicial
+              <input
+                type="date"
+                value={periodFrom}
+                onChange={(event) => setPeriodFrom(event.target.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-text">
+              Data final
+              <input
+                type="date"
+                value={periodTo}
+                onChange={(event) => setPeriodTo(event.target.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            {!isRangeValid && (
+              <span className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                Período inválido
+              </span>
+            )}
+          </div>
           <button
             type="button"
-            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
+            onClick={() => void downloadCsv()}
+            disabled={!isRangeValid || exporting}
+            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Exportar pedidos (CSV)
+            {exporting ? "Exportando pedidos..." : "Exportar pedidos (CSV)"}
           </button>
         </section>
       )}

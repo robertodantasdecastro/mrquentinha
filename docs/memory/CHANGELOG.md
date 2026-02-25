@@ -649,3 +649,4 @@
   - exportacao CSV conectada aos endpoints do backend (fluxo de caixa, compras, producao, pedidos e DRE).
   - textos ajustados para pt-BR (Relatorios/Modulos/Exportacao/Producao).
   - padronizacao de acentuacao em telas de Cardapio, Estoque, Compras, Pedidos, Financeiro e Usuarios/RBAC.
+  - exportacoes dos modulos de Compras, Pedidos, Produção e Financeiro agora possuem filtro de período e download real.

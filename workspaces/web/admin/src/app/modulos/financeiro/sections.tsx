@@ -5,6 +5,8 @@ import { StatusPill } from "@mrquentinha/ui";
 
 import {
   ApiError,
+  exportFinanceCashflowCsv,
+  exportFinanceDreCsv,
   fetchFinanceCashflow,
   fetchFinanceKpis,
   fetchFinanceUnreconciled,
@@ -119,6 +121,11 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
   const [batches, setBatches] = useState<ProductionBatchData[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [exportingKey, setExportingKey] = useState<string | null>(null);
+
+  const [periodFrom, setPeriodFrom] = useState(range.from);
+  const [periodTo, setPeriodTo] = useState(range.to);
+  const isRangeValid = Boolean(periodFrom && periodTo && periodFrom <= periodTo);
 
   useEffect(() => {
     let mounted = true;
@@ -205,6 +212,31 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
 
   const showAll = activeSection === "all";
 
+  const downloadCsv = async (
+    key: string,
+    request: () => Promise<{ blob: Blob; filename: string }>,
+  ) => {
+    if (!isRangeValid) {
+      setErrorMessage("Período inválido. Ajuste as datas inicial e final.");
+      return;
+    }
+
+    setExportingKey(key);
+    try {
+      const { blob, filename } = await request();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setExportingKey(null);
+    }
+  };
+
   return (
     <>
       {(showAll || activeSection === "visao-geral") && (
@@ -218,11 +250,11 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-text">Conciliação global</h2>
-              <p className="mt-1 text-sm text-muted">Movimentos pendentes e origem financeira por modulo.</p>
+              <p className="mt-1 text-sm text-muted">Movimentos pendentes e origem financeira por módulo.</p>
             </div>
-            <StatusPill tone="warning">Pendencias {pendencias}</StatusPill>
+            <StatusPill tone="warning">Pendências {pendencias}</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando conciliacao...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando conciliação...</p>}
           {!loading && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -247,13 +279,13 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-text">Tendências financeiras</h2>
-              <p className="mt-1 text-sm text-muted">Receita, despesas e margem por periodo.</p>
+              <p className="mt-1 text-sm text-muted">Receita, despesas e margem por período.</p>
             </div>
             <StatusPill tone="brand">
               Margem {formatPercent(kpis?.kpis.margem_media ?? "0")}
             </StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando tendencias...</p>}
+          {loading && <p className="mt-3 text-sm text-muted">Carregando tendências...</p>}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
@@ -274,10 +306,52 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
       {(showAll || activeSection === "exportacao") && (
         <section id="exportacao" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-text">Exportação CSV</h2>
-          <p className="mt-1 text-sm text-muted">Exporte fluxos consolidados e demonstrativos por periodo.</p>
-          <button className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90" type="button">
-            Exportar financeiro (CSV)
-          </button>
+          <p className="mt-1 text-sm text-muted">Exporte fluxos consolidados e demonstrativos por período.</p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-2 text-sm font-medium text-text">
+              Data inicial
+              <input
+                type="date"
+                value={periodFrom}
+                onChange={(event) => setPeriodFrom(event.target.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-text">
+              Data final
+              <input
+                type="date"
+                value={periodTo}
+                onChange={(event) => setPeriodTo(event.target.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            {!isRangeValid && (
+              <span className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                Período inválido
+              </span>
+            )}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+              type="button"
+              onClick={() =>
+                downloadCsv("cashflow", () => exportFinanceCashflowCsv(periodFrom, periodTo))
+              }
+              disabled={!isRangeValid || exportingKey === "cashflow"}
+            >
+              {exportingKey === "cashflow" ? "Exportando fluxo de caixa..." : "Exportar fluxo de caixa"}
+            </button>
+            <button
+              className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+              type="button"
+              onClick={() => downloadCsv("dre", () => exportFinanceDreCsv(periodFrom, periodTo))}
+              disabled={!isRangeValid || exportingKey === "dre"}
+            >
+              {exportingKey === "dre" ? "Exportando DRE..." : "Exportar DRE"}
+            </button>
+          </div>
         </section>
       )}
 
