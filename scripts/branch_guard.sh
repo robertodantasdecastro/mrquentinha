@@ -15,8 +15,8 @@ Opcoes:
   -h, --help                      Mostra ajuda.
 
 Regras:
-  Codex        -> main e main/etapa-*
-  Antigravity  -> AntigravityIDE e AntigravityIDE/etapa-*
+  Codex        -> main e main/etapa-* (ou main-etapa-*)
+  Antigravity  -> AntigravityIDE e AntigravityIDE/etapa-* (ou AntigravityIDE-etapa-*)
   Union        -> somente Antigravity_Codex (apenas merge/cherry-pick/PR)
 
 Exemplos:
@@ -92,14 +92,14 @@ fail_msg() {
 
 case "$AGENT" in
   codex)
-    if [[ "$CURRENT_BRANCH" != "$CODEX_PRIMARY" && "$CURRENT_BRANCH" != "$CODEX_PRIMARY"/etapa-* ]]; then
-      fail_msg "[branch-guard] Violacao: Codex so pode operar em '$CODEX_PRIMARY' ou '$CODEX_PRIMARY/etapa-*'."
+    if [[ "$CURRENT_BRANCH" != "$CODEX_PRIMARY" && "$CURRENT_BRANCH" != "$CODEX_PRIMARY"/etapa-* && "$CURRENT_BRANCH" != "$CODEX_PRIMARY"-etapa-* ]]; then
+      fail_msg "[branch-guard] Violacao: Codex so pode operar em '$CODEX_PRIMARY' ou '$CODEX_PRIMARY/etapa-*' (ou com hifen)."
       echo "[branch-guard] Branch atual: '$CURRENT_BRANCH'" >&2
       echo "[branch-guard] Correcao (principal): git checkout '$CODEX_PRIMARY'" >&2
-      echo "[branch-guard] Correcao (etapa): git checkout -b '$CODEX_PRIMARY/etapa-7.1-Auth-RBAC' '$CODEX_PRIMARY'" >&2
+      echo "[branch-guard] Correcao (etapa): git checkout -b '$CODEX_PRIMARY-etapa-7.1-Auth-RBAC' '$CODEX_PRIMARY'" >&2
     fi
 
-    if [[ "$CURRENT_BRANCH" == "$ANTIGRAVITY_BRANCH" || "$CURRENT_BRANCH" == "$ANTIGRAVITY_BRANCH"/etapa-* ]]; then
+    if [[ "$CURRENT_BRANCH" == "$ANTIGRAVITY_BRANCH" || "$CURRENT_BRANCH" == "$ANTIGRAVITY_BRANCH"/etapa-* || "$CURRENT_BRANCH" == "$ANTIGRAVITY_BRANCH"-etapa-* ]]; then
       fail_msg "[branch-guard] Violacao: Codex nao deve commitar em branch principal/etapa do Antigravity."
     fi
     ;;
@@ -112,7 +112,7 @@ case "$AGENT" in
       echo "[branch-guard] Correcao (etapa): git checkout -b '$ANTIGRAVITY_BRANCH-etapa-7.1-Auth-RBAC' '$ANTIGRAVITY_BRANCH'" >&2
     fi
 
-    if [[ "$CURRENT_BRANCH" == "$CODEX_PRIMARY" || "$CURRENT_BRANCH" == "$CODEX_PRIMARY"/etapa-* ]]; then
+    if [[ "$CURRENT_BRANCH" == "$CODEX_PRIMARY" || "$CURRENT_BRANCH" == "$CODEX_PRIMARY"/etapa-* || "$CURRENT_BRANCH" == "$CODEX_PRIMARY"-etapa-* ]]; then
       fail_msg "[branch-guard] Violacao: Antigravity nao deve commitar em branch principal/etapa do Codex."
     fi
     ;;

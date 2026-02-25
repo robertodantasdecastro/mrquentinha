@@ -150,6 +150,21 @@ export function OrderHistoryList() {
                   ))}
                 </ul>
               )}
+
+              {order.payments.length > 0 && (
+                <div className="mt-3 rounded-lg border border-border bg-surface p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+                    Pagamentos
+                  </p>
+                  <div className="mt-2 space-y-1 text-sm text-text">
+                    {order.payments.map((payment) => (
+                      <p key={payment.id}>
+                        #{payment.id} · {payment.method} · {payment.status} · {formatCurrency(payment.amount)}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </article>
           ))}
         </div>

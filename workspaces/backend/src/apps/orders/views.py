@@ -123,6 +123,7 @@ class OrderViewSet(
                 customer=customer,
                 delivery_date=serializer.validated_data["delivery_date"],
                 items_payload=items_payload,
+                payment_method=serializer.validated_data.get("payment_method"),
             )
         except DjangoValidationError as exc:
             raise DRFValidationError(exc.messages) from exc

@@ -21,7 +21,7 @@ from apps.finance.models import (
     CashMovement,
 )
 from apps.finance.services import create_ar_from_order
-from apps.orders.models import OrderStatus, PaymentStatus
+from apps.orders.models import OrderStatus, PaymentMethod, PaymentStatus
 from apps.orders.services import (
     create_order,
     update_order_status,
@@ -501,4 +501,44 @@ def test_create_or_get_payment_intent_bloqueia_metodo_cash():
         create_or_get_payment_intent(
             payment_id=payment.id,
             idempotency_key="intent-cash-001",
+        )
+
+
+@pytest.mark.django_db
+def test_create_order_aceita_payment_method_card():
+    delivery_date = date(2026, 3, 22)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("25.00"),
+        dish_name="Prato Checkout Card",
+        ingredient_name="Ingrediente Checkout Card",
+    )
+
+    order = create_order(
+        customer=None,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+        payment_method=PaymentMethod.CARD,
+    )
+
+    payment = order.payments.get()
+    assert payment.method == PaymentMethod.CARD
+
+
+@pytest.mark.django_db
+def test_create_order_rejeita_payment_method_invalido():
+    delivery_date = date(2026, 3, 23)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("22.00"),
+        dish_name="Prato Metodo Invalido",
+        ingredient_name="Ingrediente Metodo Invalido",
+    )
+
+    with pytest.raises(ValidationError, match="Metodo de pagamento invalido"):
+        create_order(
+            customer=None,
+            delivery_date=delivery_date,
+            items_payload=[{"menu_item": menu_item, "qty": 1}],
+            payment_method="BOLETO",
         )

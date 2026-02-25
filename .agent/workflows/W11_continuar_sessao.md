@@ -28,7 +28,7 @@ memory_updates:
 # W11 - Continuar sessao
 
 ## Branches canonicas
-- Codex: `main` / `main/etapa-*`.
+- Codex: `main` / `main-etapa-*`.
 - Antigravity: `AntigravityIDE` / `AntigravityIDE/etapa-*`.
 - Uniao: `Antigravity_Codex` apenas para integracao.
 

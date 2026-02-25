@@ -28,7 +28,7 @@ memory_updates:
 # W10 - Iniciar sessao
 
 ## Branches canonicas
-- Codex: `main` e `main/etapa-*`.
+- Codex: `main` e `main-etapa-*`.
 - Antigravity: `AntigravityIDE` e `AntigravityIDE/etapa-*`.
 - Uniao (nao diaria): `Antigravity_Codex`.
 

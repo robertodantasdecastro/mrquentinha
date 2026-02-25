@@ -29,7 +29,7 @@ memory_updates:
 
 ## Regras por agente
 - Codex:
-  - commit em `main` ou `main/etapa-*`.
+  - commit em `main` ou `main-etapa-*`.
 - Antigravity:
   - commit em `AntigravityIDE` ou `AntigravityIDE/etapa-*`.
 - Union:

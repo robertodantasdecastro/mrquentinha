@@ -10,7 +10,7 @@ Atualizado em: 24/02/2026.
 ## Regra por agente
 1. Codex trabalha em:
   - `main`
-  - `main/etapa-N-TituloEtapa`
+  - `main-etapa-N-TituloEtapa`
 2. Antigravity trabalha em:
   - `AntigravityIDE`
   - `AntigravityIDE/etapa-N-TituloEtapa`
@@ -22,10 +22,10 @@ Atualizado em: 24/02/2026.
 ### Codex
 ```bash
 git checkout main
-git checkout -b main/etapa-7.1-Auth-RBAC main
+git checkout -b main-etapa-7.1-Auth-RBAC main
 # ... desenvolvimento ...
 git checkout main
-git merge --no-ff main/etapa-7.1-Auth-RBAC
+git merge --no-ff main-etapa-7.1-Auth-RBAC
 ```
 
 ### Antigravity

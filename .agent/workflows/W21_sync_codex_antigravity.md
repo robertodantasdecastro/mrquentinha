@@ -25,7 +25,7 @@ memory_updates:
 # W21 - Sync Codex <-> Antigravity
 
 ## Branches sugeridas por agente
-- Codex: `main` (ou `main/etapa-*` durante desenvolvimento por etapa).
+- Codex: `main` (ou `main-etapa-*` durante desenvolvimento por etapa).
 - Antigravity: `AntigravityIDE` (ou `AntigravityIDE/etapa-*`).
 - Union: `Antigravity_Codex` (somente integracao por merge/cherry-pick/PR).
 
