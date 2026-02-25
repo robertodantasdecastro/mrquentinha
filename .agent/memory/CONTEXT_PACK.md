@@ -13,8 +13,8 @@
 - `.antigravity/*` (ponte para regra global)
 
 ## Estado atual
-- Etapas concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`.
-- Etapa atual: `7.1 (Auth/RBAC cliente)` em progresso.
+- Etapas concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`.
+- Etapa atual: `7.1.3` (fechamento de Auth/RBAC end-to-end).
 
 ## Portas e scripts
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
@@ -32,9 +32,14 @@
 ## Endpoints chave
 - `GET /` (API index)
 - `GET /api/v1/health`
+- `POST /api/v1/accounts/register/`
+- `POST /api/v1/accounts/token/`
+- `POST /api/v1/accounts/token/refresh/`
+- `GET /api/v1/accounts/me/`
 - `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/` (publico read-only)
 - `GET /api/v1/catalog/menus/today/` (publico read-only)
 - `POST /api/v1/orders/orders/`
+- `GET /api/v1/orders/orders/`
 - `GET /api/v1/finance/reports/cashflow/`
 - `GET /api/v1/finance/reports/dre/`
 - `GET /api/v1/finance/reports/kpis/`

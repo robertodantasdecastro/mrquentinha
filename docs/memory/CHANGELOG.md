@@ -364,3 +364,12 @@
   - clientes podem atualizar apenas seus proprios recursos; tentativas em recursos de terceiros retornam 404.
   - papéis de gestao (`ADMIN`, `FINANCEIRO`, `COZINHA`, `COMPRAS`, `ESTOQUE`) mantem acesso global de leitura/escrita conforme matriz RBAC.
   - cobertura de testes ampliada em services e API para ownership e acesso global de gestão.
+
+- Etapa 7.1.2 client auth real (login/register/me + refresh, sem demo):
+  - `workspaces/web/client/src/lib/storage.ts` recebeu persistencia de sessao JWT (`access`/`refresh`) com funcoes de leitura/limpeza.
+  - `workspaces/web/client/src/lib/api.ts` passou a enviar `Authorization: Bearer`, aplicar refresh automatico em `401` e limpar sessao quando refresh falha.
+  - novos fluxos de autenticacao no client: `loginAccount`, `registerAccount`, `fetchMe`, `logoutAccount`.
+  - tela `/conta` migrada para autenticacao real (bootstrap de sessao, login, cadastro, logout e exibicao de perfil/papeis).
+  - modo demo removido do fluxo principal de pedidos: checkout e historico agora dependem de sessao autenticada.
+  - README do client atualizado com endpoints de auth da etapa 7.1.
+  - validacoes executadas: `npm run lint`, `npm run build`, `pytest tests/test_accounts_api.py tests/test_orders_api.py` e `bash scripts/quality_gate_all.sh` (OK).

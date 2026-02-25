@@ -3,9 +3,11 @@
 Referencia de atualizacao: 24/02/2026.
 
 ## Etapas
-- Concluidas: 0 -> 5.6.3, 6.0, 6.0.1, 7.0.
-- Em progresso: 7.1 (Auth/RBAC para cliente real).
-- Subetapa concluida em 24/02/2026: 7.1.1 Backend Auth/RBAC (escopo de pedidos/pagamentos por ownership + papeis de gestao).
+- Concluidas: 0 -> 5.6.3, 6.0, 6.0.1, 7.0, 7.1.1, 7.1.2.
+- Em progresso: 7.1.3 (fechamento Auth/RBAC end-to-end).
+- Subetapas concluidas em 24/02/2026:
+  - 7.1.1 Backend Auth/RBAC (escopo de pedidos/pagamentos por ownership + papeis de gestao).
+  - 7.1.2 Client Auth (login/register/me + refresh token, sem modo demo).
 
 ## Politica de branches (anti-conflito)
 - `BRANCH_CODEX_PRIMARY=main`
@@ -44,6 +46,9 @@ Referencia de atualizacao: 24/02/2026.
   - Padrões suportados: `classic` e `letsfit-clean`.
 
 ### Web Client (Next.js - 3001)
+- **Status:** Auth JWT real habilitada (login, cadastro, sessao e logout).
+- **Integracao API:** `/api/v1/accounts/register/`, `/api/v1/accounts/token/`, `/api/v1/accounts/token/refresh/`, `/api/v1/accounts/me/`.
+- **Pedidos:** checkout e historico usam escopo autenticado; fluxo demo removido.
 
 ## Workflows adicionais
 - `W22_layout_references_audit`
@@ -123,9 +128,9 @@ bash scripts/sync_memory.sh --check
 - Repositorio deve conter placeholders em `.env.example`.
 
 ## Plano da etapa ativa
-- Etapa ativa: 7.1 (Auth/RBAC end-to-end).
+- Etapa ativa: 7.1.3 (fechamento Auth/RBAC end-to-end).
 - Branch Codex da etapa: main (guard ativo para codex; namespace main/etapa-* indisponivel no repo atual).
 - Foco imediato:
-  1) client: autenticacao JWT real (sem demo).
-  2) fechamento 7.1: quality gate + smokes + docs.
-  3) preparacao da etapa 7.2 (pagamentos online) apos concluir 7.1.
+  1) consolidar memoria da etapa (PROJECT_STATE, CHANGELOG, CONTEXT_PACK, TODO_NEXT) e validar `sync_memory --check`.
+  2) executar regressao final da etapa 7.1 (quality gate + smokes) e confirmar estabilidade.
+  3) preparar inicio da etapa 7.2 (pagamentos online) apos fechamento formal da 7.1.
