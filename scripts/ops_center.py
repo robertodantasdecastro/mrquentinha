@@ -9,6 +9,7 @@ import curses
 import datetime as dt
 import json
 import os
+import pwd
 import re
 import shutil
 import signal
@@ -31,7 +32,7 @@ KEY_HELP = [
     "Admin:   g start | h stop | j restart",
     "Portal:  4 start | 5 stop | 6 restart",
     "Client:  7 start | 8 stop | 9 restart",
-    "UI:      ? ajuda | l logs | c compacto | mouse clique",
+    "UI:      ? ajuda | l logs | c compacto | x ssh modal | mouse clique",
 ]
 
 HAS_SS = shutil.which("ss") is not None
@@ -577,6 +578,114 @@ def frontend_sources() -> Counter[str]:
     return sources
 
 
+def list_ssh_connections() -> list[dict]:
+    connections: list[dict] = []
+    if not HAS_SS:
+        return connections
+
+    try:
+        proc = subprocess.run(
+            ["ss", "-tnp", "sport", "=", ":22"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return connections
+
+    for line in proc.stdout.splitlines():
+        if "ESTAB" not in line:
+            continue
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+        local = parts[3]
+        remote = parts[4]
+        pid_match = re.search(r"pid=(\d+)", line)
+        pid = int(pid_match.group(1)) if pid_match else None
+        connections.append(
+            {
+                "local": local,
+                "remote": remote,
+                "pid": pid,
+            }
+        )
+
+    enriched: list[dict] = []
+    for item in connections:
+        pid = item["pid"]
+        if pid:
+            user = pid_user(pid)
+            tty = pid_tty(pid)
+            uptime = process_uptime_seconds(pid)
+        else:
+            user = "-"
+            tty = "-"
+            uptime = None
+        enriched.append(
+            {
+                **item,
+                "user": user,
+                "tty": tty,
+                "uptime": fmt_duration(uptime),
+            }
+        )
+    return enriched
+
+
+def pid_user(pid: int) -> str:
+    try:
+        status_path = Path("/proc") / str(pid) / "status"
+        for line in status_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("Uid:"):
+                uid = int(line.split()[1])
+                return pwd.getpwuid(uid).pw_name
+    except Exception:
+        return "-"
+    return "-"
+
+
+def pid_tty(pid: int) -> str:
+    try:
+        stat_path = Path("/proc") / str(pid) / "stat"
+        content = stat_path.read_text(encoding="utf-8").split()
+        tty_nr = int(content[6])
+        if tty_nr == 0:
+            return "-"
+    except Exception:
+        return "-"
+
+    candidates = []
+    for base in ("/dev/pts", "/dev"):
+        try:
+            for entry in Path(base).iterdir():
+                try:
+                    if entry.is_char_device() and entry.stat().st_rdev == tty_nr:
+                        candidates.append(str(entry))
+                except Exception:
+                    continue
+        except Exception:
+            continue
+    return candidates[0] if candidates else "-"
+
+
+def tail_auth_log(lines: int = 12) -> list[str]:
+    candidates = [
+        Path("/var/log/auth.log"),
+        Path("/var/log/secure"),
+        Path("/var/log/system.log"),
+    ]
+    for path in candidates:
+        if not path.exists():
+            continue
+        try:
+            content = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+            return content[-lines:]
+        except Exception:
+            return [f"(sem permissao para ler {path})"]
+    return ["(log de autenticacao nao encontrado)"]
+
+
 def process_uptime_seconds(pid: int | None) -> float | None:
     if not pid:
         return None
@@ -720,6 +829,8 @@ def draw_dashboard(
     show_help: bool,
     show_logs: bool,
     compact: bool,
+    show_ssh: bool,
+    show_auth: bool,
 ) -> list[ClickTarget]:
     stdscr.erase()
     h, w = stdscr.getmaxyx()
@@ -732,6 +843,18 @@ def draw_dashboard(
         0,
         f"Mr Quentinha Ops Center  |  {dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  |  q sair",
         title_attr,
+    )
+    btn_ssh_x = min(w - 8, 56)
+    safe_add(stdscr, 0, btn_ssh_x, "[SSH]", color_pair_safe(6))
+    click_targets.append(
+        ClickTarget(
+            y1=0,
+            x1=btn_ssh_x,
+            y2=0,
+            x2=btn_ssh_x + 4,
+            action="open_ssh",
+            service_key="",
+        )
     )
     safe_add(
         stdscr,
@@ -989,6 +1112,121 @@ def draw_dashboard(
         for idx, line in enumerate(box_lines[: box_height - 2]):
             safe_add(stdscr, box_y + 1 + idx, box_x + 2, line, color_pair_safe(6))
 
+    if show_ssh:
+        modal_w = min(w - 4, 86)
+        modal_h = min(h - 4, 18)
+        modal_x = max(2, (w - modal_w) // 2)
+        modal_y = max(2, (h - modal_h) // 2)
+        for yy in range(modal_h):
+            safe_add(stdscr, modal_y + yy, modal_x, " " * modal_w, color_pair_safe(4))
+        safe_add(
+            stdscr,
+            modal_y,
+            modal_x + 2,
+            "Conexoes SSH ativas",
+            curses.A_BOLD | color_pair_safe(7),
+        )
+        btn_close_x = modal_x + modal_w - 8
+        safe_add(stdscr, modal_y, btn_close_x, "[Fechar]", color_pair_safe(3))
+        click_targets.append(
+            ClickTarget(
+                y1=modal_y,
+                x1=btn_close_x,
+                y2=modal_y,
+                x2=btn_close_x + 7,
+                action="close_modal",
+                service_key="",
+            )
+        )
+        btn_logs_x = modal_x + modal_w - 20
+        safe_add(stdscr, modal_y, btn_logs_x, "[Logs]", color_pair_safe(6))
+        click_targets.append(
+            ClickTarget(
+                y1=modal_y,
+                x1=btn_logs_x,
+                y2=modal_y,
+                x2=btn_logs_x + 5,
+                action="open_auth",
+                service_key="",
+            )
+        )
+
+        y0 = modal_y + 2
+        safe_add(
+            stdscr,
+            y0,
+            modal_x + 2,
+            "Usuario   PID     TTY        Origem             Uptime",
+            curses.A_UNDERLINE,
+        )
+        y0 += 1
+        for conn in list_ssh_connections()[: modal_h - 6]:
+            safe_add(
+                stdscr,
+                y0,
+                modal_x + 2,
+                f"{conn['user'][:8]:8} {str(conn['pid'] or '-'):7} {conn['tty'][:10]:10} "
+                f"{conn['remote'][:18]:18} {conn['uptime']}",
+                color_pair_safe(6),
+            )
+            y0 += 1
+            if y0 >= modal_y + modal_h - 3:
+                break
+
+        safe_add(
+            stdscr,
+            modal_y + modal_h - 2,
+            modal_x + 2,
+            "Nota: comandos TTY requerem instrumentacao (auditd/tlog/ttyrec).",
+            color_pair_safe(1),
+        )
+
+    if show_auth:
+        modal_w = min(w - 4, 96)
+        modal_h = min(h - 4, 20)
+        modal_x = max(2, (w - modal_w) // 2)
+        modal_y = max(2, (h - modal_h) // 2)
+        for yy in range(modal_h):
+            safe_add(stdscr, modal_y + yy, modal_x, " " * modal_w, color_pair_safe(4))
+        safe_add(
+            stdscr,
+            modal_y,
+            modal_x + 2,
+            "Logs de autenticacao (SSH)",
+            curses.A_BOLD | color_pair_safe(7),
+        )
+        btn_close_x = modal_x + modal_w - 8
+        safe_add(stdscr, modal_y, btn_close_x, "[Fechar]", color_pair_safe(3))
+        click_targets.append(
+            ClickTarget(
+                y1=modal_y,
+                x1=btn_close_x,
+                y2=modal_y,
+                x2=btn_close_x + 7,
+                action="close_auth",
+                service_key="",
+            )
+        )
+        btn_back_x = modal_x + modal_w - 18
+        safe_add(stdscr, modal_y, btn_back_x, "[Voltar]", color_pair_safe(6))
+        click_targets.append(
+            ClickTarget(
+                y1=modal_y,
+                x1=btn_back_x,
+                y2=modal_y,
+                x2=btn_back_x + 7,
+                action="back_ssh",
+                service_key="",
+            )
+        )
+
+        y0 = modal_y + 2
+        for line in tail_auth_log(modal_h - 4):
+            safe_add(stdscr, y0, modal_x + 2, line[: modal_w - 4], color_pair_safe(6))
+            y0 += 1
+            if y0 >= modal_y + modal_h - 1:
+                break
+
     stdscr.refresh()
     return click_targets
 
@@ -1126,6 +1364,8 @@ def run_dashboard(
     show_help = False
     show_logs = False
     compact = False
+    show_ssh = False
+    show_auth = False
     click_targets: list[ClickTarget] = []
 
     while True:
@@ -1136,10 +1376,24 @@ def run_dashboard(
                     _id, mx, my, _z, _state = curses.getmouse()
                     for target in click_targets:
                         if target.x1 <= mx <= target.x2 and target.y1 <= my <= target.y2:
-                            action_msg = handle_action(manager, target.service_key, target.action)
-                            if action_msg:
-                                events.append(action_msg)
-                                event_history.append(action_msg)
+                            if target.action == "close_modal":
+                                show_ssh = False
+                            elif target.action == "open_auth":
+                                show_auth = True
+                                show_ssh = False
+                            elif target.action == "open_ssh":
+                                show_ssh = True
+                                show_auth = False
+                            elif target.action == "close_auth":
+                                show_auth = False
+                            elif target.action == "back_ssh":
+                                show_auth = False
+                                show_ssh = True
+                            else:
+                                action_msg = handle_action(manager, target.service_key, target.action)
+                                if action_msg:
+                                    events.append(action_msg)
+                                    event_history.append(action_msg)
                             break
                 except Exception:
                     pass
@@ -1156,6 +1410,9 @@ def run_dashboard(
                 show_logs = not show_logs
             if key == "c":
                 compact = not compact
+            if key == "x":
+                show_ssh = not show_ssh
+                show_auth = False
 
             action_msg = handle_key(manager, key)
             if action_msg:
@@ -1219,6 +1476,8 @@ def run_dashboard(
             show_help,
             show_logs,
             compact,
+            show_ssh,
+            show_auth,
         )
 
         time.sleep(0.05)
