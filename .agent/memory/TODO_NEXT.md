@@ -7,9 +7,9 @@ Historico recente:
 4. [x] T7.2.1 Pagamentos online: provider abstraction + payment intents + idempotencia (backend) - concluida em 25/02/2026.
 5. [x] T7.2.2 Pagamentos online: webhook idempotente + reconciliacao financeira (AR/cash/ledger) - concluida em 25/02/2026.
 6. [x] T7.2.3 Client checkout online (PIX/cartao/VR) consumindo intents/status - concluida em 25/02/2026.
+7. [x] T6.3.1 Portal CMS backend-only (Config/Sections + API publica/admin) - concluida em 25/02/2026.
 
 Fila atual:
-7. [ ] T6.3.1 Portal CMS backend-only (Config/Sections + API publica/admin).
 8. [ ] T9.0.1 Admin Web MVP foundation (auth shell + dashboard inicial).
 9. [ ] T9.0.2 Admin Web MVP operacional (Pedidos, Financeiro, Estoque).
 10. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).

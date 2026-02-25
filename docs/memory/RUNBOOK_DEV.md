@@ -166,3 +166,17 @@ source .venv/bin/activate
 source ~/.nvm/nvm.sh
 nvm use --lts
 ```
+
+## 13) Portal CMS (T6.3.1) - validacao rapida
+Seed idempotente:
+```bash
+cd workspaces/backend
+source .venv/bin/activate
+python manage.py seed_portal_default
+```
+
+Checks de API:
+```bash
+curl "http://127.0.0.1:8000/api/v1/portal/config/?page=home"
+curl "http://127.0.0.1:8000/api/v1/portal/config/version"
+```

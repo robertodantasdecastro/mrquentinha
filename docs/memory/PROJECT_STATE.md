@@ -3,9 +3,9 @@
 Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`.
-- Em progresso: `6.3` (Portal CMS backend-only) com planejamento acoplado de `9.0` (Admin Web MVP).
-- Proxima execucao recomendada (unica): `T6.3.1`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`.
+- Em progresso: `9.0` (Admin Web MVP).
+- Proxima execucao recomendada (unica): `T9.0.1`.
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -41,7 +41,7 @@ Referencia de atualizacao: 25/02/2026.
 ### Backend (Django)
 - Status: operacional (Auth JWT, Finance MVP completo, OCR mock, nutricao, producao, relatorios).
 - Banco: PostgreSQL (`mrquentinhabd`).
-- Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `production`, `ocr_ai`.
+- Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `production`, `ocr_ai`, `portal`.
 - Pagamentos online (`7.2.1` + `7.2.2` + `7.2.3`):
   - `PaymentIntent` persistido com idempotencia por pagamento/chave.
   - provider abstraction inicial (`mock`) com payload de intent para PIX/CARD/VR.
@@ -87,9 +87,12 @@ Referencia de atualizacao: 25/02/2026.
   - `GET /api/v1/orders/payments/<id>/intent/latest/`
 - Webhook pagamentos:
   - `POST /api/v1/orders/payments/webhook/` (`X-Webhook-Token`)
+- Portal CMS publico:
+  - `GET /api/v1/portal/config/`
+  - `GET /api/v1/portal/config/version`
 
 ## Plano da etapa ativa
-- Trilha principal: `6.3 Portal CMS backend-only`.
-- Etapa 7.2 concluida com `T7.2.1`, `T7.2.2` e `T7.2.3`.
-- Proxima subetapa unica: `T6.3.1` (Config/Sections + API publica/admin).
-- Trilhas correlatas apos 6.3.1: `9.0.1`, `9.0.2`.
+- Trilha principal: `9.0 Admin Web MVP`.
+- Etapa 6.3.1 concluida (Portal CMS backend-only: Config/Sections + API publica/admin).
+- Proxima subetapa unica: `T9.0.1` (Admin Web MVP foundation).
+- Trilhas correlatas apos 9.0.1: `T9.0.2`, `T6.3.2`.
