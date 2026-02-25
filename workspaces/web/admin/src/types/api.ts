@@ -203,6 +203,20 @@ export type PurchaseRequestData = {
   request_items: PurchaseRequestItemData[];
 };
 
+export type PurchaseRequestFromMenuItemData = {
+  ingredient_id: number;
+  ingredient_name: string;
+  required_qty: string;
+  unit: IngredientUnit;
+};
+
+export type PurchaseRequestFromMenuResultData = {
+  created: boolean;
+  purchase_request_id: number | null;
+  message: string;
+  items: PurchaseRequestFromMenuItemData[];
+};
+
 export type PurchaseItemData = {
   id: number;
   ingredient: ProcurementIngredientSummaryData;

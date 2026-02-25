@@ -18,6 +18,8 @@ import type {
   ProductionBatchData,
   PurchaseData,
   PurchaseRequestData,
+  PurchaseRequestFromMenuResultData,
+  ProcurementRequestStatus,
   StockItemData,
   StockMovementData,
   UpsertMenuDayPayload,
@@ -372,6 +374,27 @@ export async function listPurchaseRequestsAdmin(): Promise<PurchaseRequestData[]
   });
 
   return normalizeListPayload(payload);
+}
+
+export async function updatePurchaseRequestStatusAdmin(
+  requestId: number,
+  status: ProcurementRequestStatus,
+): Promise<PurchaseRequestData> {
+  return requestJson<PurchaseRequestData>(`/api/v1/procurement/requests//`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function generatePurchaseRequestFromMenuAdmin(
+  menuDayId: number,
+): Promise<PurchaseRequestFromMenuResultData> {
+  return requestJson<PurchaseRequestFromMenuResultData>("/api/v1/procurement/requests/from-menu/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ menu_day_id: menuDayId }),
+  });
 }
 
 export async function listPurchasesAdmin(): Promise<PurchaseData[]> {
