@@ -69,7 +69,7 @@ export const ADMIN_MODULES: AdminModule[] = [
     title: "Relatórios",
     description: "Fluxo de caixa global, compras, produção e exportações em CSV.",
     stage: "T9.1.2",
-    status: "em implementação",
+    status: "ativo",
     path: "/modulos/relatorios",
   },
 ];

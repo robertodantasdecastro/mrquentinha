@@ -22,7 +22,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <section id="dashboard" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Etapa 9.1.2</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Etapa 9.1 concluída</p>
         <h1 className="mt-1 text-2xl font-bold text-text">Admin Web - Relatórios e UX/IX</h1>
         <p className="mt-3 text-sm text-muted">
           Hotpages por módulo, relatórios integrados e visão de fluxo de caixa global com exportação CSV.
@@ -47,8 +47,8 @@ const Dashboard = () => {
             <p className="mt-2 text-lg font-semibold text-text">CSV</p>
           </article>
           <article className="rounded-xl border border-border bg-bg p-4 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Proxima entrega</p>
-            <p className="mt-2 text-lg font-semibold text-text">T9.1.2</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Próxima entrega</p>
+            <p className="mt-2 text-lg font-semibold text-text">T6.3.2 (após lock 6.2)</p>
           </article>
         </div>
       </section>

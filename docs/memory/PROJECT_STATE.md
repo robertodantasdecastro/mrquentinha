@@ -3,9 +3,9 @@
 Referencia de atualizacao: 25/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
-- Proxima execucao recomendada (unica): `T9.1.2`.
+- Proxima execucao recomendada (unica): `T6.3.2` (Codex apos lock visual `T6.2.1` no Antigravity).
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -60,15 +60,15 @@ Referencia de atualizacao: 25/02/2026.
 - Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
 
 ### Admin Web (Next.js - 3002)
-- Status: `T9.1.1` concluida (Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao + Usuarios/RBAC operacionais).
+- Status: `T9.1.2` concluida (relatorios/exportacoes + UX/IX modular).
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF1`): correcoes de `onChange` para evitar crash client-side no login e ajuste de `allowedDevOrigins` no Next 16 para acesso em `10.211.55.21:3002`.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF2`): liberacao de CORS do backend para origem `:3002`, fallback automatico da API no Admin Web e exibicao de erros diretamente no card de login.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF3`): padronizacao visual global com cores de status (success/warning/danger/info) e aplicacao da logo oficial (PNG original) no Admin Web, Portal e Client.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF4`): rotas diretas `/modulos` e `/prioridades` com redirect para `/#modulos` e `/#prioridades`, evitando erro 404 em acesso por URL/bookmark (substituido pela navegacao por hotpages).
-- Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao estaveis com fluxo operacional, Usuarios/RBAC com atribuicao de papeis e status visuais coloridos alinhados a identidade oficial da marca.
-- Atualizacao em andamento: hotpages por modulo com menu contextual, filtro por servico e graficos, incluindo pagina de Relatorios integrada (CSV).
+- Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao e Usuarios/RBAC estaveis, com hotpages, menus contextuais, graficos e relatorios/exportacoes CSV com filtros por periodo.
+- Atualizacao concluida em 25/02/2026 (`T9.1.2`): exportacoes por modulo (Pedidos/Compras/Producao/Financeiro), traducao pt-BR de status operacionais e consolidacao do modulo de Relatorios como ativo.
 - Workspace ativo: `workspaces/web/admin`.
-- Proximo alvo: hardening final de UX e relatorios exportaveis no bloco Admin Web apos alinhamento de prioridades.
+- Proximo alvo: aguardando lock visual `T6.2.1` para iniciar `T6.3.2` (integracao CMS no portal, trilha Codex).
 
 ## Portas e scripts oficiais
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
@@ -105,7 +105,7 @@ Referencia de atualizacao: 25/02/2026.
   - `GET /api/v1/portal/config/version`
 
 ## Plano da etapa ativa
-- Trilha principal: `9.1 Admin Web completo`.
+- Trilha principal: `9.1 Admin Web completo` (concluida).
 - T9.0.1 concluida (Admin Web foundation: shell + auth + dashboard inicial).
 - T9.0.2 concluida (Admin Web operacional: Pedidos, Financeiro e Estoque conectados ao backend).
 - T9.0.3 concluida (Admin Web expansion: baseline de Cardapio, Compras e Producao).
@@ -114,5 +114,6 @@ Referencia de atualizacao: 25/02/2026.
 - T9.1.1-HF2 concluida (hotfix de login no Admin Web: CORS backend para `:3002` + fallback de API base + feedback inline de erro no formulario).
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF3`): padronizacao visual global com cores de status (success/warning/danger/info) e aplicacao da logo oficial (PNG original) no Admin Web, Portal e Client.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF4`): rotas diretas `/modulos` e `/prioridades` no Admin Web agora redirecionam para `/#modulos` e `/#prioridades`, evitando erro 404 em acesso por URL/bookmark.
-- Proxima subetapa unica: executar `T9.1.2` (relatorios/exportacoes no Admin Web).
-- Trilhas correlatas apos 9.1.1: `T6.2.1` (Antigravity), `T6.3.2` (Codex apos lock visual), `T9.1.2`.
+- T9.1.2 concluida (relatorios/exportacoes no Admin Web com filtro por periodo e exportacao CSV funcional por modulo).
+- Proxima subetapa unica: executar `T6.3.2` apos lock visual `T6.2.1` no Antigravity.
+- Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T6.3.2` (Codex apos lock visual), `T8.0.1`.

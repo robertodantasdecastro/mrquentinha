@@ -653,3 +653,12 @@
   - status operacionais traduzidos para pt-BR em Pedidos, Compras e Produção (badges, selects e mensagens).
   - novo util compartilhado `workspaces/web/admin/src/lib/labels.ts` para rotulos de status.
   - Financeiro Ops ajustado para exibir margem em percentual e direcao de movimento em pt-BR.
+
+- T9.1.2 (fechamento): etapa concluida e memoria sincronizada
+  - modulo de Relatorios marcado como `ativo` no Admin Web (cards e hotpages).
+  - dashboard do Admin atualizado para refletir `Etapa 9.1 concluida`.
+  - arquivos de memoria sincronizados para apontar `9.1.2` como concluida e proximo passo `T6.3.2` apos lock visual `T6.2.1`.
+  - validacoes finais executadas com sucesso:
+    - `bash scripts/gemini_check.sh`
+    - `bash scripts/sync_memory.sh --check`
+    - `bash scripts/quality_gate_all.sh`

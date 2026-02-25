@@ -10,8 +10,8 @@ export default function RelatoriosModulePage() {
       <ModulePageShell
         title="Relatórios"
         description="Fluxo de caixa global integrado com pedidos, compras e produção."
-        statusLabel="Em implementação"
-        statusTone="info"
+        statusLabel="Ativo"
+        statusTone="success"
         menuItems={RELATORIOS_MENU_ITEMS}
         activeKey="all"
       >
