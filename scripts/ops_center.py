@@ -1062,6 +1062,7 @@ def run_dashboard(
         curses.curs_set(0)
     except curses.error:
         pass
+    stdscr.keypad(True)
 
     try:
         if curses.has_colors():
@@ -1081,7 +1082,13 @@ def run_dashboard(
         pass
 
     try:
-        curses.mousemask(curses.ALL_MOUSE_EVENTS)
+        mask = 0
+        for name in ("BUTTON1_CLICKED", "BUTTON1_RELEASED", "BUTTON1_PRESSED", "ALL_MOUSE_EVENTS"):
+            if hasattr(curses, name):
+                mask |= getattr(curses, name)
+        if mask == 0:
+            mask = curses.ALL_MOUSE_EVENTS
+        curses.mousemask(mask)
         curses.mouseinterval(0)
     except Exception:
         pass
