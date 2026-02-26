@@ -10,6 +10,8 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
             "id",
             "active_template",
             "available_templates",
+            "client_active_template",
+            "client_available_templates",
             "site_name",
             "site_title",
             "meta_description",
@@ -38,6 +40,14 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
             "active_template",
             getattr(instance, "active_template", ""),
         )
+        client_available_templates = attrs.get(
+            "client_available_templates",
+            getattr(instance, "client_available_templates", []),
+        )
+        client_active_template = attrs.get(
+            "client_active_template",
+            getattr(instance, "client_active_template", ""),
+        )
 
         template_ids: set[str] = set()
         for item in available_templates:
@@ -51,6 +61,20 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
         if template_ids and active_template not in template_ids:
             raise serializers.ValidationError(
                 "active_template precisa existir em available_templates."
+            )
+
+        client_template_ids: set[str] = set()
+        for item in client_available_templates:
+            if isinstance(item, dict):
+                template_id = str(item.get("id", "")).strip()
+            else:
+                template_id = str(item).strip()
+            if template_id:
+                client_template_ids.add(template_id)
+
+        if client_template_ids and client_active_template not in client_template_ids:
+            raise serializers.ValidationError(
+                "client_active_template precisa existir em client_available_templates."
             )
 
         return attrs
@@ -89,8 +113,11 @@ class PortalPublicSectionSerializer(serializers.Serializer):
 
 
 class PortalPublicConfigSerializer(serializers.Serializer):
+    channel = serializers.CharField()
     active_template = serializers.CharField()
     available_templates = serializers.JSONField()
+    client_active_template = serializers.CharField()
+    client_available_templates = serializers.JSONField()
     site_name = serializers.CharField()
     site_title = serializers.CharField()
     meta_description = serializers.CharField()

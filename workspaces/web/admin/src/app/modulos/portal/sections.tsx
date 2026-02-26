@@ -45,6 +45,8 @@ type PortalPageOption = {
 const TEMPLATE_LABEL_FALLBACK: Record<string, string> = {
   classic: "Classico",
   "letsfit-clean": "LetsFit Clean",
+  "client-classic": "Cliente Classico",
+  "client-quentinhas": "Cliente Quentinhas",
 };
 
 const PORTAL_PAGE_LABELS: Record<string, string> = {
@@ -138,6 +140,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   const [config, setConfig] = useState<PortalConfigData | null>(null);
   const [sections, setSections] = useState<PortalSectionData[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [selectedClientTemplateId, setSelectedClientTemplateId] = useState("");
   const [contentTemplateId, setContentTemplateId] = useState("");
   const [contentPageFilter, setContentPageFilter] = useState("all");
   const [selectedSectionId, setSelectedSectionId] = useState("");
@@ -161,6 +164,25 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
 
     return normalizeTemplateOptions(config.available_templates);
   }, [config]);
+
+  const clientTemplateOptions = useMemo(() => {
+    if (!config) {
+      return [] as TemplateOption[];
+    }
+
+    return normalizeTemplateOptions(config.client_available_templates);
+  }, [config]);
+
+  const contentTemplateOptions = useMemo(() => {
+    const optionMap = new Map<string, TemplateOption>();
+    for (const option of templateOptions) {
+      optionMap.set(option.id, option);
+    }
+    for (const option of clientTemplateOptions) {
+      optionMap.set(option.id, option);
+    }
+    return Array.from(optionMap.values());
+  }, [clientTemplateOptions, templateOptions]);
 
   const pageOptions = useMemo<PortalPageOption[]>(() => {
     const values = new Set<string>();
@@ -216,6 +238,20 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     );
   }, [config, templateOptions]);
 
+  const activeClientTemplateLabel = useMemo(() => {
+    if (!config) {
+      return "-";
+    }
+
+    return (
+      clientTemplateOptions.find(
+        (option) => option.id === config.client_active_template,
+      )?.label ??
+      TEMPLATE_LABEL_FALLBACK[config.client_active_template] ??
+      config.client_active_template
+    );
+  }, [clientTemplateOptions, config]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -232,15 +268,21 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         const normalizedTemplateOptions = normalizeTemplateOptions(
           configPayload.available_templates,
         );
+        const normalizedClientTemplateOptions = normalizeTemplateOptions(
+          configPayload.client_available_templates,
+        );
         const defaultTemplateId = normalizedTemplateOptions.some(
           (option) => option.id === configPayload.active_template,
         )
           ? configPayload.active_template
-          : (normalizedTemplateOptions[0]?.id ?? "");
+          : (normalizedTemplateOptions[0]?.id ??
+            normalizedClientTemplateOptions[0]?.id ??
+            "");
 
         setConfig(configPayload);
         setSections(sectionsPayload);
         setSelectedTemplateId(configPayload.active_template);
+        setSelectedClientTemplateId(configPayload.client_active_template);
         setContentTemplateId(defaultTemplateId);
         setContentPageFilter("all");
         setErrorMessage("");
@@ -336,6 +378,30 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     }
   }
 
+  async function handleSaveClientTemplate() {
+    if (!config || !selectedClientTemplateId) {
+      return;
+    }
+
+    setSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedConfig = await updatePortalConfigAdmin(config.id, {
+        client_active_template: selectedClientTemplateId,
+      });
+      setConfig(updatedConfig);
+      setSelectedClientTemplateId(updatedConfig.client_active_template);
+      setContentTemplateId(updatedConfig.client_active_template);
+      setSuccessMessage("Template ativo do Web Cliente atualizado com sucesso.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSaveSection() {
     if (!selectedSection) {
       return;
@@ -389,6 +455,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
       const publishedConfig = await publishPortalConfigAdmin();
       setConfig(publishedConfig);
       setSelectedTemplateId(publishedConfig.active_template);
+      setSelectedClientTemplateId(publishedConfig.client_active_template);
       setContentTemplateId(publishedConfig.active_template);
       setSuccessMessage("Configuracao do portal publicada com sucesso.");
     } catch (error) {
@@ -416,14 +483,20 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </div>
         {loading && <p className="mt-3 text-sm text-muted">Carregando configuracoes do portal...</p>}
         {!loading && config && (
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <div className="mt-4 grid gap-3 md:grid-cols-5">
             <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Template ativo</p>
               <p className="mt-1 text-base font-semibold text-text">{activeTemplateLabel}</p>
             </article>
             <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Template cliente</p>
+              <p className="mt-1 text-base font-semibold text-text">{activeClientTemplateLabel}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Templates disponiveis</p>
-              <p className="mt-1 text-base font-semibold text-text">{templateOptions.length}</p>
+              <p className="mt-1 text-base font-semibold text-text">
+                {templateOptions.length + clientTemplateOptions.length}
+              </p>
             </article>
             <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Secoes CMS</p>
@@ -439,45 +512,84 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
 
       {(showAll || activeSection === "template") && (
         <section id="template" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-text">Template ativo do portal</h2>
+          <h2 className="text-lg font-semibold text-text">Templates ativos por canal</h2>
           <p className="mt-1 text-sm text-muted">
-            Escolha entre os templates existentes no backend e salve o template principal.
+            Escolha templates do Portal e do Web Cliente com publicacao unificada.
           </p>
-          <div className="mt-4 grid gap-3 md:max-w-xl">
-            <label className="flex flex-col gap-2 text-sm font-medium text-text">
-              Template
-              <select
-                value={selectedTemplateId}
-                onChange={(event) => setSelectedTemplateId(event.target.value)}
-                disabled={loading || saving || templateOptions.length === 0}
-                className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
-              >
-                {templateOptions.length === 0 && (
-                  <option value="">Nenhum template disponivel</option>
-                )}
-                {templateOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div>
-              <button
-                type="button"
-                onClick={() => void handleSaveTemplate()}
-                disabled={
-                  loading ||
-                  saving ||
-                  !config ||
-                  !selectedTemplateId ||
-                  selectedTemplateId === config.active_template
-                }
-                className="rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? "Salvando..." : "Salvar template"}
-              </button>
-            </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <label className="flex flex-col gap-2 text-sm font-medium text-text">
+                Template do Portal
+                <select
+                  value={selectedTemplateId}
+                  onChange={(event) => setSelectedTemplateId(event.target.value)}
+                  disabled={loading || saving || templateOptions.length === 0}
+                  className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+                >
+                  {templateOptions.length === 0 && (
+                    <option value="">Nenhum template disponivel</option>
+                  )}
+                  {templateOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => void handleSaveTemplate()}
+                  disabled={
+                    loading ||
+                    saving ||
+                    !config ||
+                    !selectedTemplateId ||
+                    selectedTemplateId === config.active_template
+                  }
+                  className="rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? "Salvando..." : "Salvar template do portal"}
+                </button>
+              </div>
+            </article>
+
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <label className="flex flex-col gap-2 text-sm font-medium text-text">
+                Template do Web Cliente
+                <select
+                  value={selectedClientTemplateId}
+                  onChange={(event) => setSelectedClientTemplateId(event.target.value)}
+                  disabled={loading || saving || clientTemplateOptions.length === 0}
+                  className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+                >
+                  {clientTemplateOptions.length === 0 && (
+                    <option value="">Nenhum template de cliente disponivel</option>
+                  )}
+                  {clientTemplateOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => void handleSaveClientTemplate()}
+                  disabled={
+                    loading ||
+                    saving ||
+                    !config ||
+                    !selectedClientTemplateId ||
+                    selectedClientTemplateId === config.client_active_template
+                  }
+                  className="rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? "Salvando..." : "Salvar template do cliente"}
+                </button>
+              </div>
+            </article>
           </div>
         </section>
       )}
@@ -509,7 +621,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
                 onChange={(event) => setContentTemplateId(event.currentTarget.value)}
                 className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
               >
-                {templateOptions.map((option) => (
+                {contentTemplateOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>

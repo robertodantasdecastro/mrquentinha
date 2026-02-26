@@ -1,6 +1,7 @@
 import hashlib
 import json
 from datetime import datetime
+from typing import Literal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -10,14 +11,25 @@ from django.utils import timezone
 from .models import PortalConfig, PortalPage, PortalSection
 from .selectors import get_portal_singleton, list_sections_by_template_page
 
-DEFAULT_TEMPLATE_ITEMS = [
+PortalChannel = Literal["portal", "client"]
+CHANNEL_PORTAL: PortalChannel = "portal"
+CHANNEL_CLIENT: PortalChannel = "client"
+
+DEFAULT_PORTAL_TEMPLATE_ITEMS = [
     {"id": "classic", "label": "Classic"},
     {"id": "letsfit-clean", "label": "LetsFit Clean"},
 ]
 
+DEFAULT_CLIENT_TEMPLATE_ITEMS = [
+    {"id": "client-classic", "label": "Cliente Classico"},
+    {"id": "client-quentinhas", "label": "Cliente Quentinhas"},
+]
+
 DEFAULT_CONFIG_PAYLOAD = {
     "active_template": "classic",
-    "available_templates": DEFAULT_TEMPLATE_ITEMS,
+    "available_templates": DEFAULT_PORTAL_TEMPLATE_ITEMS,
+    "client_active_template": "client-classic",
+    "client_available_templates": DEFAULT_CLIENT_TEMPLATE_ITEMS,
     "site_name": "Mr Quentinha",
     "site_title": "Mr Quentinha | Marmitas do dia",
     "meta_description": "Marmitas saudaveis com entrega agendada.",
@@ -250,12 +262,40 @@ DEFAULT_SECTION_FIXTURES = [
             "email": "atendimento@mrquentinha.com.br",
         },
     },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.HOME,
+        "key": "hero",
+        "title": "Web Cliente Classico",
+        "sort_order": 10,
+        "body_json": {
+            "headline": "Cardapio do dia com entrega organizada",
+            "subheadline": "Monte seu pedido rapido e acompanhe status em tempo real.",
+        },
+    },
+    {
+        "template_id": "client-quentinhas",
+        "page": PortalPage.HOME,
+        "key": "hero",
+        "title": "Web Cliente Quentinhas",
+        "sort_order": 10,
+        "body_json": {
+            "headline": "Sua quentinha favorita chegou no estilo Mr Quentinha",
+            "subheadline": (
+                "Visual inspirado em vitrines digitais de quentinhas, com foco em "
+                "praticidade e conversao."
+            ),
+            "badge": "Entrega agendada",
+        },
+    },
 ]
 
 
 CONFIG_MUTABLE_FIELDS = [
     "active_template",
     "available_templates",
+    "client_active_template",
+    "client_available_templates",
     "site_name",
     "site_title",
     "meta_description",
@@ -285,34 +325,33 @@ def _extract_template_ids(available_templates: list) -> set[str]:
     return template_ids
 
 
-def _seed_sections_if_empty(config: PortalConfig) -> None:
-    if PortalSection.objects.filter(config=config).exists():
-        return
-
+def _seed_missing_sections(config: PortalConfig) -> None:
     for fixture in DEFAULT_SECTION_FIXTURES:
-        PortalSection.objects.create(
+        PortalSection.objects.get_or_create(
             config=config,
             template_id=fixture["template_id"],
             page=fixture["page"],
             key=fixture["key"],
-            title=fixture["title"],
-            body_json=fixture["body_json"],
-            is_enabled=True,
-            sort_order=fixture["sort_order"],
+            defaults={
+                "title": fixture["title"],
+                "body_json": fixture["body_json"],
+                "is_enabled": True,
+                "sort_order": fixture["sort_order"],
+            },
         )
 
 
 def ensure_portal_config() -> PortalConfig:
     config = get_portal_singleton()
     if config is not None:
-        _seed_sections_if_empty(config)
+        _seed_missing_sections(config)
         return config
 
     config = PortalConfig.objects.create(
         singleton_key=PortalConfig.SINGLETON_KEY,
         **DEFAULT_CONFIG_PAYLOAD,
     )
-    _seed_sections_if_empty(config)
+    _seed_missing_sections(config)
     return config
 
 
@@ -346,11 +385,28 @@ def save_portal_config(
 
     available_templates = payload.get("available_templates", config.available_templates)
     active_template = payload.get("active_template", config.active_template)
+    client_available_templates = payload.get(
+        "client_available_templates",
+        config.client_available_templates,
+    )
+    client_active_template = payload.get(
+        "client_active_template",
+        config.client_active_template,
+    )
 
     if available_templates and active_template not in _extract_template_ids(
         available_templates
     ):
         raise ValidationError("active_template precisa existir em available_templates.")
+
+    if (
+        client_available_templates
+        and client_active_template
+        not in _extract_template_ids(client_available_templates)
+    ):
+        raise ValidationError(
+            "client_active_template precisa existir em client_available_templates."
+        )
 
     if created:
         config.save()
@@ -384,34 +440,49 @@ def publish_portal_config() -> PortalConfig:
     return config
 
 
-def _resolve_templates(config: PortalConfig) -> list[dict]:
+def _resolve_templates(config: PortalConfig, *, channel: PortalChannel) -> list[dict]:
+    if channel == CHANNEL_CLIENT:
+        if config.client_available_templates:
+            return config.client_available_templates
+        return DEFAULT_CLIENT_TEMPLATE_ITEMS
+
     if config.available_templates:
         return config.available_templates
-
-    template_ids = (
-        PortalSection.objects.filter(config=config)
-        .values_list("template_id", flat=True)
-        .distinct()
-        .order_by("template_id")
-    )
-    return [
-        {"id": template_id, "label": template_id.title()}
-        for template_id in template_ids
-    ]
+    return DEFAULT_PORTAL_TEMPLATE_ITEMS
 
 
-def build_public_portal_payload(*, page: str = PortalPage.HOME) -> dict:
+def _resolve_active_template(config: PortalConfig, *, channel: PortalChannel) -> str:
+    if channel == CHANNEL_CLIENT:
+        return config.client_active_template
+    return config.active_template
+
+
+def build_public_portal_payload(
+    *,
+    page: str = PortalPage.HOME,
+    channel: PortalChannel = CHANNEL_PORTAL,
+) -> dict:
+    if channel not in {CHANNEL_PORTAL, CHANNEL_CLIENT}:
+        raise ValidationError("Canal invalido para configuracao publica.")
+
     config = ensure_portal_config()
+    active_template = _resolve_active_template(config, channel=channel)
     sections = list_sections_by_template_page(
         config=config,
-        template_id=config.active_template,
+        template_id=active_template,
         page=page,
         enabled_only=True,
     )
 
     return {
-        "active_template": config.active_template,
-        "available_templates": _resolve_templates(config),
+        "channel": channel,
+        "active_template": active_template,
+        "available_templates": _resolve_templates(config, channel=channel),
+        "client_active_template": config.client_active_template,
+        "client_available_templates": _resolve_templates(
+            config,
+            channel=CHANNEL_CLIENT,
+        ),
         "site_name": config.site_name,
         "site_title": config.site_title,
         "meta_description": config.meta_description,
@@ -448,24 +519,48 @@ def _serialize_dt(value: datetime | None) -> str | None:
 
 def build_portal_version_payload() -> dict:
     config = ensure_portal_config()
-    sections_qs = PortalSection.objects.filter(
-        config=config, template_id=config.active_template
+    portal_sections_qs = PortalSection.objects.filter(
+        config=config,
+        template_id=config.active_template,
+    )
+    client_sections_qs = PortalSection.objects.filter(
+        config=config,
+        template_id=config.client_active_template,
     )
 
-    latest_section = sections_qs.aggregate(latest=Max("updated_at"))["latest"]
+    latest_section = max(
+        filter(
+            None,
+            [
+                portal_sections_qs.aggregate(latest=Max("updated_at"))["latest"],
+                client_sections_qs.aggregate(latest=Max("updated_at"))["latest"],
+            ],
+        ),
+        default=None,
+    )
     timestamps = [ts for ts in [config.updated_at, latest_section] if ts is not None]
     resolved_updated_at = max(timestamps) if timestamps else config.updated_at
 
     fingerprint_payload = {
         "active_template": config.active_template,
+        "client_active_template": config.client_active_template,
         "config_updated_at": _serialize_dt(config.updated_at),
-        "sections": [
-            {
-                "id": row["id"],
-                "updated_at": _serialize_dt(row["updated_at"]),
-            }
-            for row in sections_qs.order_by("id").values("id", "updated_at")
-        ],
+        "sections": {
+            "portal": [
+                {
+                    "id": row["id"],
+                    "updated_at": _serialize_dt(row["updated_at"]),
+                }
+                for row in portal_sections_qs.order_by("id").values("id", "updated_at")
+            ],
+            "client": [
+                {
+                    "id": row["id"],
+                    "updated_at": _serialize_dt(row["updated_at"]),
+                }
+                for row in client_sections_qs.order_by("id").values("id", "updated_at")
+            ],
+        },
     }
     digest = hashlib.sha256(
         json.dumps(fingerprint_payload, sort_keys=True).encode("utf-8")

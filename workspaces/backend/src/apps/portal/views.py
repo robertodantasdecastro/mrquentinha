@@ -16,6 +16,7 @@ from .serializers import (
     PortalVersionSerializer,
 )
 from .services import (
+    CHANNEL_PORTAL,
     build_portal_version_payload,
     build_public_portal_payload,
     publish_portal_config,
@@ -43,8 +44,12 @@ class PortalConfigPublicAPIView(APIView):
 
     def get(self, request):
         page = request.query_params.get("page", PortalPage.HOME)
+        channel = request.query_params.get("channel", CHANNEL_PORTAL)
 
-        payload = build_public_portal_payload(page=page)
+        try:
+            payload = build_public_portal_payload(page=page, channel=channel)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
         serializer = PortalPublicConfigSerializer(payload)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

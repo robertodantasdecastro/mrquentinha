@@ -15,6 +15,13 @@
 - Admin Web (Cardapio): nova secao de composicao para cadastrar ingredientes e pratos (quentinhas) com receita.
 - Admin Web (Compras): fluxo completo de compra operacional com selecao de cardapio, geracao de requisicao e registro de compra com itens.
 - Admin Web (Cardapio): suporte a periodos de refeicao (Manha/Cafe, Almoco, Jantar, Lanche) para padronizar titulos de menu no ciclo diario.
+- Portal CMS (backend): `PortalConfig` ganhou `client_active_template` e `client_available_templates`, com validacao dedicada e suporte a payload publico por `channel=client`.
+- Portal CMS (backend): versionamento publico (`/api/v1/portal/config/version`) passou a considerar secoes e template ativo de portal + cliente no fingerprint.
+- Admin Web (`/modulos/portal`): configuracao do canal Web Cliente adicionada com seletor dedicado de template e resumo de templates por canal.
+- Web Cliente (3001): layout passou a ler template ativo do CMS em runtime (`/api/v1/portal/config/?channel=client&page=home`) com fallback seguro para `client-classic`.
+- Web Cliente (3001): tema `client-quentinhas` finalizado com variaveis visuais e adaptacoes em header/footer/jornada do cardapio.
+- Hotfix build client: erro de prerender resolvido com `\"use client\"` no `Footer` apos introducao do hook de template.
+- Validacao final: `bash scripts/quality_gate_all.sh` executado com sucesso (`129 passed`, builds Portal/Client/Admin e smokes `stack/client`).
 
 ## 25/02/2026
 - Backend: adicionadas exportacoes CSV (pedidos, compras, producao, fluxo de caixa e DRE) com headers em pt-BR.

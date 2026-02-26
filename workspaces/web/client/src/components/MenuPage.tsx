@@ -21,6 +21,7 @@ import {
   type CheckoutState,
   type IntentPanelData,
 } from "@/components/CartDrawer";
+import { useClientTemplate } from "@/components/ClientTemplateProvider";
 import { MenuDayView, type MenuFetchState } from "@/components/MenuDayView";
 import type {
   CreatedOrderResponse,
@@ -211,6 +212,8 @@ function getJourneyStepLabel(state: JourneyStepState): string {
 
 export function MenuPage() {
   const router = useRouter();
+  const { template } = useClientTemplate();
+  const isQuentinhasTemplate = template === "client-quentinhas";
   const [selectedDate, setSelectedDate] = useState<string>(getTodayIsoDate());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     hasStoredAuthSession(),
@@ -600,12 +603,19 @@ export function MenuPage() {
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl border border-border bg-surface/70 p-5">
+      <div
+        className={[
+          "rounded-2xl border border-border p-5",
+          isQuentinhasTemplate ? "bg-bg" : "bg-surface/70",
+        ].join(" ")}
+      >
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          Web Cliente
+          {isQuentinhasTemplate ? "Web Cliente · Quentinhas" : "Web Cliente"}
         </p>
         <h1 className="mt-1 text-2xl font-bold text-text">
-          Monte seu pedido e acompanhe seus status
+          {isQuentinhasTemplate
+            ? "Escolha sua quentinha e acompanhe cada etapa"
+            : "Monte seu pedido e acompanhe seus status"}
         </h1>
         <p className="mt-2 text-sm text-muted">
           {isAuthenticated

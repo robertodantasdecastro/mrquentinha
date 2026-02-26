@@ -493,6 +493,8 @@ export type PortalConfigData = {
   id: number;
   active_template: string;
   available_templates: Array<PortalTemplateData | string>;
+  client_active_template: string;
+  client_available_templates: Array<PortalTemplateData | string>;
   site_name: string;
   site_title: string;
   meta_description: string;
@@ -509,7 +511,13 @@ export type PortalConfigData = {
 };
 
 export type PortalConfigWritePayload = Partial<
-  Pick<PortalConfigData, "active_template" | "available_templates">
+  Pick<
+    PortalConfigData,
+    | "active_template"
+    | "available_templates"
+    | "client_active_template"
+    | "client_available_templates"
+  >
 >;
 
 export type PortalSectionData = {

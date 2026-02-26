@@ -9,7 +9,7 @@ export default function PortalModulePage() {
     <AdminSessionGate>
       <ModulePageShell
         title="Portal CMS"
-        description="Gerencie o template ativo do portal e publique a configuracao."
+        description="Gerencie templates do Portal e Web Cliente e publique a configuracao."
         statusLabel="Ativo"
         statusTone="success"
         menuItems={PORTAL_MENU_ITEMS}

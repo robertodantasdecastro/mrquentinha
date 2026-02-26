@@ -1,8 +1,10 @@
 import { TemplateProvider } from "@mrquentinha/ui";
 import type { Metadata } from "next";
 
+import { ClientTemplateProvider } from "@/components/ClientTemplateProvider";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { fetchClientActiveTemplate } from "@/lib/clientTemplate";
 
 import "./globals.css";
 
@@ -33,26 +35,34 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const template = await fetchClientActiveTemplate();
+
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+      data-client-template={template}
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: initThemeScript }} />
       </head>
       <body className="bg-bg text-text antialiased">
-        <TemplateProvider template="clean">
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 md:px-6 md:py-8">
-              {children}
-            </main>
-            <Footer />
-          </div>
-        </TemplateProvider>
+        <ClientTemplateProvider initialTemplate={template}>
+          <TemplateProvider template="clean">
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 md:px-6 md:py-8">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </TemplateProvider>
+        </ClientTemplateProvider>
       </body>
     </html>
   );

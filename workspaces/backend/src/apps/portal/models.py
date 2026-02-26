@@ -20,6 +20,11 @@ class PortalConfig(models.Model):
     )
     active_template = models.CharField(max_length=64, default="classic")
     available_templates = models.JSONField(default=list, blank=True)
+    client_active_template = models.CharField(
+        max_length=64,
+        default="client-classic",
+    )
+    client_available_templates = models.JSONField(default=list, blank=True)
     site_name = models.CharField(max_length=120, default="Mr Quentinha")
     site_title = models.CharField(max_length=180, blank=True, default="")
     meta_description = models.TextField(blank=True, default="")

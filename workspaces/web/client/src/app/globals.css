@@ -25,6 +25,20 @@
   --mrq-status-info-soft: #e7efff;
 }
 
+[data-client-template="client-quentinhas"] {
+  --mrq-primary: #ff6a00;
+  --mrq-primary-soft: #ff8e2a;
+  --mrq-bg: #fff7f0;
+  --mrq-surface: #ffe8d3;
+  --mrq-text: #24150c;
+  --mrq-muted: #7a6758;
+  --mrq-border: #f4cba5;
+  --mrq-radius-lg: 14px;
+  --mrq-radius-md: 10px;
+  --mrq-radius-sm: 8px;
+  --font-sans: "Montserrat", "Poppins", "Segoe UI", Arial, sans-serif;
+}
+
 [data-theme="dark"] {
   --mrq-bg: #101114;
   --mrq-surface: #1a1d22;
@@ -40,6 +54,14 @@
   --mrq-status-danger-soft: #3e1a1a;
   --mrq-status-info: #7da6ff;
   --mrq-status-info-soft: #15274d;
+}
+
+[data-theme="dark"][data-client-template="client-quentinhas"] {
+  --mrq-bg: #15100d;
+  --mrq-surface: #211a16;
+  --mrq-text: #f7efe9;
+  --mrq-muted: #c2aa99;
+  --mrq-border: #3a2d25;
 }
 
 @theme inline {
@@ -75,6 +97,14 @@
 html,
 body {
   min-height: 100%;
+}
+
+[data-client-template="client-quentinhas"] body {
+  background:
+    radial-gradient(circle at 10% 8%, rgb(255 106 0 / 19%), transparent 34%),
+    radial-gradient(circle at 88% 6%, rgb(152 78 24 / 14%), transparent 24%),
+    linear-gradient(180deg, rgb(255 242 230 / 45%), transparent 42%),
+    var(--mrq-bg);
 }
 
 body {

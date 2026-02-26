@@ -14,7 +14,21 @@ def test_portal_public_config_get_sem_auth_retorna_200(anonymous_client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["active_template"]
+    assert payload["client_active_template"]
     assert "sections" in payload
+
+
+@pytest.mark.django_db
+def test_portal_public_config_client_channel_retorna_200(anonymous_client):
+    ensure_portal_config()
+
+    response = anonymous_client.get("/api/v1/portal/config/?channel=client&page=home")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["channel"] == "client"
+    assert payload["active_template"] == payload["client_active_template"]
+    assert isinstance(payload["client_available_templates"], list)
 
 
 @pytest.mark.django_db
