@@ -22,11 +22,12 @@ export const PORTAL_BASE_PATH = "/modulos/portal";
 export const PORTAL_MENU_ITEMS = [
   { key: "all", label: "Todos", href: PORTAL_BASE_PATH },
   { key: "template", label: "Template ativo", href: `${PORTAL_BASE_PATH}/template#template` },
+  { key: "conectividade", label: "Conectividade", href: `${PORTAL_BASE_PATH}/conectividade#conectividade` },
   { key: "conteudo", label: "Conteudo dinamico", href: `${PORTAL_BASE_PATH}/conteudo#conteudo` },
   { key: "publicacao", label: "Publicacao", href: `${PORTAL_BASE_PATH}/publicacao#publicacao` },
 ];
 
-export type PortalSectionKey = "all" | "template" | "conteudo" | "publicacao";
+export type PortalSectionKey = "all" | "template" | "conectividade" | "conteudo" | "publicacao";
 
 type PortalSectionsProps = {
   activeSection?: PortalSectionKey;
@@ -136,6 +137,21 @@ function parseBodyJson(value: string): unknown {
   return JSON.parse(normalized) as unknown;
 }
 
+function stringifyOrigins(origins: string[] | undefined): string {
+  if (!Array.isArray(origins) || origins.length === 0) {
+    return "";
+  }
+
+  return origins.join("\n");
+}
+
+function parseOrigins(value: string): string[] {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
 export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   const [config, setConfig] = useState<PortalConfigData | null>(null);
   const [sections, setSections] = useState<PortalSectionData[]>([]);
@@ -148,6 +164,19 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   const [sectionSortOrderDraft, setSectionSortOrderDraft] = useState("0");
   const [sectionEnabledDraft, setSectionEnabledDraft] = useState(true);
   const [sectionBodyJsonDraft, setSectionBodyJsonDraft] = useState("{}");
+  const [localHostnameDraft, setLocalHostnameDraft] = useState("mrquentinha");
+  const [localNetworkIpDraft, setLocalNetworkIpDraft] = useState("");
+  const [rootDomainDraft, setRootDomainDraft] = useState("mrquentinha.local");
+  const [portalDomainDraft, setPortalDomainDraft] = useState("www.mrquentinha.local");
+  const [clientDomainDraft, setClientDomainDraft] = useState("app.mrquentinha.local");
+  const [adminDomainDraft, setAdminDomainDraft] = useState("admin.mrquentinha.local");
+  const [apiDomainDraft, setApiDomainDraft] = useState("api.mrquentinha.local");
+  const [portalBaseUrlDraft, setPortalBaseUrlDraft] = useState("http://mrquentinha:3000");
+  const [clientBaseUrlDraft, setClientBaseUrlDraft] = useState("http://mrquentinha:3001");
+  const [adminBaseUrlDraft, setAdminBaseUrlDraft] = useState("http://mrquentinha:3002");
+  const [backendBaseUrlDraft, setBackendBaseUrlDraft] = useState("http://mrquentinha:8000");
+  const [proxyBaseUrlDraft, setProxyBaseUrlDraft] = useState("http://mrquentinha:8088");
+  const [corsAllowedOriginsDraft, setCorsAllowedOriginsDraft] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -285,6 +314,19 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         setSelectedClientTemplateId(configPayload.client_active_template);
         setContentTemplateId(defaultTemplateId);
         setContentPageFilter("all");
+        setLocalHostnameDraft(configPayload.local_hostname || "mrquentinha");
+        setLocalNetworkIpDraft(configPayload.local_network_ip || "");
+        setRootDomainDraft(configPayload.root_domain || "mrquentinha.local");
+        setPortalDomainDraft(configPayload.portal_domain || "www.mrquentinha.local");
+        setClientDomainDraft(configPayload.client_domain || "app.mrquentinha.local");
+        setAdminDomainDraft(configPayload.admin_domain || "admin.mrquentinha.local");
+        setApiDomainDraft(configPayload.api_domain || "api.mrquentinha.local");
+        setPortalBaseUrlDraft(configPayload.portal_base_url || "http://mrquentinha:3000");
+        setClientBaseUrlDraft(configPayload.client_base_url || "http://mrquentinha:3001");
+        setAdminBaseUrlDraft(configPayload.admin_base_url || "http://mrquentinha:3002");
+        setBackendBaseUrlDraft(configPayload.backend_base_url || "http://mrquentinha:8000");
+        setProxyBaseUrlDraft(configPayload.proxy_base_url || "http://mrquentinha:8088");
+        setCorsAllowedOriginsDraft(stringifyOrigins(configPayload.cors_allowed_origins));
         setErrorMessage("");
       } catch (error) {
         if (mounted) {
@@ -395,6 +437,79 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
       setSelectedClientTemplateId(updatedConfig.client_active_template);
       setContentTemplateId(updatedConfig.client_active_template);
       setSuccessMessage("Template ativo do Web Cliente atualizado com sucesso.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleApplyLocalPreset() {
+    const normalizedHost = (localHostnameDraft || "mrquentinha").trim() || "mrquentinha";
+
+    setLocalHostnameDraft(normalizedHost);
+    setRootDomainDraft(`${normalizedHost}.local`);
+    setPortalDomainDraft(`www.${normalizedHost}.local`);
+    setClientDomainDraft(`app.${normalizedHost}.local`);
+    setAdminDomainDraft(`admin.${normalizedHost}.local`);
+    setApiDomainDraft(`api.${normalizedHost}.local`);
+    setPortalBaseUrlDraft(`http://${normalizedHost}:3000`);
+    setClientBaseUrlDraft(`http://${normalizedHost}:3001`);
+    setAdminBaseUrlDraft(`http://${normalizedHost}:3002`);
+    setBackendBaseUrlDraft(`http://${normalizedHost}:8000`);
+    setProxyBaseUrlDraft(`http://${normalizedHost}:8088`);
+    setCorsAllowedOriginsDraft(
+      [
+        `http://${normalizedHost}:3000`,
+        `http://${normalizedHost}:3001`,
+        `http://${normalizedHost}:3002`,
+      ].join("\n"),
+    );
+    setSuccessMessage("Preset local aplicado. Revise os campos e salve.");
+    setErrorMessage("");
+  }
+
+  async function handleSaveConnectivity() {
+    if (!config) {
+      return;
+    }
+
+    setSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedConfig = await updatePortalConfigAdmin(config.id, {
+        local_hostname: localHostnameDraft.trim() || "mrquentinha",
+        local_network_ip: localNetworkIpDraft.trim(),
+        root_domain: rootDomainDraft.trim(),
+        portal_domain: portalDomainDraft.trim(),
+        client_domain: clientDomainDraft.trim(),
+        admin_domain: adminDomainDraft.trim(),
+        api_domain: apiDomainDraft.trim(),
+        portal_base_url: portalBaseUrlDraft.trim(),
+        client_base_url: clientBaseUrlDraft.trim(),
+        admin_base_url: adminBaseUrlDraft.trim(),
+        backend_base_url: backendBaseUrlDraft.trim(),
+        proxy_base_url: proxyBaseUrlDraft.trim(),
+        cors_allowed_origins: parseOrigins(corsAllowedOriginsDraft),
+      });
+
+      setConfig(updatedConfig);
+      setLocalHostnameDraft(updatedConfig.local_hostname);
+      setLocalNetworkIpDraft(updatedConfig.local_network_ip);
+      setRootDomainDraft(updatedConfig.root_domain);
+      setPortalDomainDraft(updatedConfig.portal_domain);
+      setClientDomainDraft(updatedConfig.client_domain);
+      setAdminDomainDraft(updatedConfig.admin_domain);
+      setApiDomainDraft(updatedConfig.api_domain);
+      setPortalBaseUrlDraft(updatedConfig.portal_base_url);
+      setClientBaseUrlDraft(updatedConfig.client_base_url);
+      setAdminBaseUrlDraft(updatedConfig.admin_base_url);
+      setBackendBaseUrlDraft(updatedConfig.backend_base_url);
+      setProxyBaseUrlDraft(updatedConfig.proxy_base_url);
+      setCorsAllowedOriginsDraft(stringifyOrigins(updatedConfig.cors_allowed_origins));
+      setSuccessMessage("Conectividade entre aplicacoes atualizada com sucesso.");
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
@@ -590,6 +705,157 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
                 </button>
               </div>
             </article>
+          </div>
+        </section>
+      )}
+
+      {(showAll || activeSection === "conectividade") && (
+        <section
+          id="conectividade"
+          className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm"
+        >
+          <h2 className="text-lg font-semibold text-text">Conectividade e dominios</h2>
+          <p className="mt-1 text-sm text-muted">
+            Configure host local, dominios/subdominios e URLs de cada aplicacao para
+            desenvolvimento em rede local.
+          </p>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <label className="grid gap-1 text-sm text-muted">
+              Host local da maquina
+              <input
+                value={localHostnameDraft}
+                onChange={(event) => setLocalHostnameDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                placeholder="mrquentinha"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              IP da rede local (opcional)
+              <input
+                value={localNetworkIpDraft}
+                onChange={(event) => setLocalNetworkIpDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                placeholder="10.211.55.21"
+              />
+            </label>
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={handleApplyLocalPreset}
+                className="w-full rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+              >
+                Aplicar preset local
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <label className="grid gap-1 text-sm text-muted">
+              Dominio raiz
+              <input
+                value={rootDomainDraft}
+                onChange={(event) => setRootDomainDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              Subdominio Portal
+              <input
+                value={portalDomainDraft}
+                onChange={(event) => setPortalDomainDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              Subdominio Cliente
+              <input
+                value={clientDomainDraft}
+                onChange={(event) => setClientDomainDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              Subdominio Admin
+              <input
+                value={adminDomainDraft}
+                onChange={(event) => setAdminDomainDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              Subdominio API
+              <input
+                value={apiDomainDraft}
+                onChange={(event) => setApiDomainDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <label className="grid gap-1 text-sm text-muted">
+              URL Portal
+              <input
+                value={portalBaseUrlDraft}
+                onChange={(event) => setPortalBaseUrlDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              URL Web Cliente
+              <input
+                value={clientBaseUrlDraft}
+                onChange={(event) => setClientBaseUrlDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              URL Web Admin
+              <input
+                value={adminBaseUrlDraft}
+                onChange={(event) => setAdminBaseUrlDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              URL Backend API
+              <input
+                value={backendBaseUrlDraft}
+                onChange={(event) => setBackendBaseUrlDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              URL Proxy local
+              <input
+                value={proxyBaseUrlDraft}
+                onChange={(event) => setProxyBaseUrlDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+          </div>
+
+          <label className="mt-4 grid gap-1 text-sm text-muted">
+            CORS allowlist (uma origem por linha)
+            <textarea
+              rows={5}
+              value={corsAllowedOriginsDraft}
+              onChange={(event) => setCorsAllowedOriginsDraft(event.currentTarget.value)}
+              className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              placeholder={"http://mrquentinha:3000\nhttp://mrquentinha:3001\nhttp://mrquentinha:3002"}
+            />
+          </label>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => void handleSaveConnectivity()}
+              disabled={loading || saving || !config}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {saving ? "Salvando..." : "Salvar conectividade"}
+            </button>
           </div>
         </section>
       )}

@@ -15,6 +15,8 @@ def test_portal_public_config_get_sem_auth_retorna_200(anonymous_client):
     payload = response.json()
     assert payload["active_template"]
     assert payload["client_active_template"]
+    assert payload["local_hostname"] == "mrquentinha"
+    assert payload["backend_base_url"].endswith(":8000")
     assert "sections" in payload
 
 

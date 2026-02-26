@@ -33,4 +33,5 @@ Fila atual:
 28. [x] T9.1.3-A7 Ciclo operacional completo (linha de producao + dashboard realtime + entrega/confirmacao) - concluida em 26/02/2026.
 29. [x] T7.2.3-HF2 Fluxo cliente web ponta a ponta + hardening localhost:3000 - concluida em 26/02/2026.
 30. [x] T6.3.2-A4 Web Cliente com template dinamico via CMS (client-classic/client-quentinhas) + seletor no Admin Web - concluida em 26/02/2026.
-31. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
+31. [x] T6.3.2-A5 Portal CMS: configuracao de dominios/subdominios e conectividade local (host `mrquentinha`) para Portal/Client/Admin/API - concluida em 26/02/2026.
+32. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).

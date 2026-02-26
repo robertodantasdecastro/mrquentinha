@@ -75,7 +75,7 @@ export const ADMIN_MODULES: AdminModule[] = [
   {
     slug: "portal",
     title: "Portal CMS",
-    description: "Templates ativos do Portal e Web Cliente com publicação unificada.",
+    description: "Templates, conectividade e publicacao do Portal e Web Cliente.",
     stage: "T6.3.2",
     status: "ativo",
     path: "/modulos/portal",

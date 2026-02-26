@@ -21,6 +21,19 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
             "android_download_url",
             "ios_download_url",
             "qr_target_url",
+            "local_hostname",
+            "local_network_ip",
+            "root_domain",
+            "portal_domain",
+            "client_domain",
+            "admin_domain",
+            "api_domain",
+            "portal_base_url",
+            "client_base_url",
+            "admin_base_url",
+            "backend_base_url",
+            "proxy_base_url",
+            "cors_allowed_origins",
             "is_published",
             "published_at",
             "created_at",
@@ -127,6 +140,19 @@ class PortalPublicConfigSerializer(serializers.Serializer):
     android_download_url = serializers.CharField()
     ios_download_url = serializers.CharField()
     qr_target_url = serializers.CharField()
+    local_hostname = serializers.CharField()
+    local_network_ip = serializers.CharField()
+    root_domain = serializers.CharField()
+    portal_domain = serializers.CharField()
+    client_domain = serializers.CharField()
+    admin_domain = serializers.CharField()
+    api_domain = serializers.CharField()
+    portal_base_url = serializers.CharField()
+    client_base_url = serializers.CharField()
+    admin_base_url = serializers.CharField()
+    backend_base_url = serializers.CharField()
+    proxy_base_url = serializers.CharField()
+    cors_allowed_origins = serializers.JSONField()
     is_published = serializers.BooleanField()
     updated_at = serializers.DateTimeField()
     page = serializers.CharField()

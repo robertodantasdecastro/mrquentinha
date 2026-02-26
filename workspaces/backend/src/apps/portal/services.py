@@ -39,6 +39,26 @@ DEFAULT_CONFIG_PAYLOAD = {
     "android_download_url": "https://www.mrquentinha.com.br/app#android",
     "ios_download_url": "https://www.mrquentinha.com.br/app#ios",
     "qr_target_url": "https://www.mrquentinha.com.br/app",
+    "local_hostname": "mrquentinha",
+    "local_network_ip": "",
+    "root_domain": "mrquentinha.local",
+    "portal_domain": "www.mrquentinha.local",
+    "client_domain": "app.mrquentinha.local",
+    "admin_domain": "admin.mrquentinha.local",
+    "api_domain": "api.mrquentinha.local",
+    "portal_base_url": "http://mrquentinha:3000",
+    "client_base_url": "http://mrquentinha:3001",
+    "admin_base_url": "http://mrquentinha:3002",
+    "backend_base_url": "http://mrquentinha:8000",
+    "proxy_base_url": "http://mrquentinha:8088",
+    "cors_allowed_origins": [
+        "http://mrquentinha:3000",
+        "http://mrquentinha:3001",
+        "http://mrquentinha:3002",
+        "http://10.211.55.21:3000",
+        "http://10.211.55.21:3001",
+        "http://10.211.55.21:3002",
+    ],
     "is_published": False,
 }
 
@@ -305,6 +325,19 @@ CONFIG_MUTABLE_FIELDS = [
     "android_download_url",
     "ios_download_url",
     "qr_target_url",
+    "local_hostname",
+    "local_network_ip",
+    "root_domain",
+    "portal_domain",
+    "client_domain",
+    "admin_domain",
+    "api_domain",
+    "portal_base_url",
+    "client_base_url",
+    "admin_base_url",
+    "backend_base_url",
+    "proxy_base_url",
+    "cors_allowed_origins",
     "is_published",
     "published_at",
 ]
@@ -341,9 +374,43 @@ def _seed_missing_sections(config: PortalConfig) -> None:
         )
 
 
+def _ensure_connection_defaults(config: PortalConfig) -> None:
+    fallback_fields = [
+        "local_hostname",
+        "root_domain",
+        "portal_domain",
+        "client_domain",
+        "admin_domain",
+        "api_domain",
+        "portal_base_url",
+        "client_base_url",
+        "admin_base_url",
+        "backend_base_url",
+        "proxy_base_url",
+    ]
+
+    update_fields: list[str] = []
+    for field_name in fallback_fields:
+        current_value = getattr(config, field_name)
+        if str(current_value).strip():
+            continue
+
+        setattr(config, field_name, DEFAULT_CONFIG_PAYLOAD[field_name])
+        update_fields.append(field_name)
+
+    if not config.cors_allowed_origins:
+        config.cors_allowed_origins = DEFAULT_CONFIG_PAYLOAD["cors_allowed_origins"]
+        update_fields.append("cors_allowed_origins")
+
+    if update_fields:
+        update_fields.append("updated_at")
+        config.save(update_fields=update_fields)
+
+
 def ensure_portal_config() -> PortalConfig:
     config = get_portal_singleton()
     if config is not None:
+        _ensure_connection_defaults(config)
         _seed_missing_sections(config)
         return config
 
@@ -351,6 +418,7 @@ def ensure_portal_config() -> PortalConfig:
         singleton_key=PortalConfig.SINGLETON_KEY,
         **DEFAULT_CONFIG_PAYLOAD,
     )
+    _ensure_connection_defaults(config)
     _seed_missing_sections(config)
     return config
 
@@ -492,6 +560,19 @@ def build_public_portal_payload(
         "android_download_url": config.android_download_url,
         "ios_download_url": config.ios_download_url,
         "qr_target_url": config.qr_target_url,
+        "local_hostname": config.local_hostname,
+        "local_network_ip": config.local_network_ip,
+        "root_domain": config.root_domain,
+        "portal_domain": config.portal_domain,
+        "client_domain": config.client_domain,
+        "admin_domain": config.admin_domain,
+        "api_domain": config.api_domain,
+        "portal_base_url": config.portal_base_url,
+        "client_base_url": config.client_base_url,
+        "admin_base_url": config.admin_base_url,
+        "backend_base_url": config.backend_base_url,
+        "proxy_base_url": config.proxy_base_url,
+        "cors_allowed_origins": config.cors_allowed_origins,
         "is_published": config.is_published,
         "updated_at": config.updated_at,
         "page": page,

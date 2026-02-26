@@ -22,6 +22,11 @@
 - Web Cliente (3001): tema `client-quentinhas` finalizado com variaveis visuais e adaptacoes em header/footer/jornada do cardapio.
 - Hotfix build client: erro de prerender resolvido com `\"use client\"` no `Footer` apos introducao do hook de template.
 - Validacao final: `bash scripts/quality_gate_all.sh` executado com sucesso (`129 passed`, builds Portal/Client/Admin e smokes `stack/client`).
+- Portal CMS (backend): nova camada de conectividade no `PortalConfig` com campos de dominio/subdominio e URLs de Portal/Client/Admin/API/Proxy, alem de `cors_allowed_origins`.
+- Portal CMS (backend): defaults de ambiente local adicionados com host `mrquentinha` e hardening para preencher origens CORS quando o singleton ja existia sem configuracao.
+- Admin Web (`/modulos/portal`): nova secao `Conectividade` para editar host local, dominios/subdominios, URLs de apps e allowlist de CORS (uma origem por linha), com botao de preset local.
+- Admin Web (`/modulos/portal`): menu/descricoes atualizados para refletir gerenciamento de templates + conectividade.
+- Validacao final: `bash scripts/quality_gate_all.sh` executado com sucesso (`130 passed`, builds Portal/Client/Admin e smokes `stack/client`).
 
 ## 25/02/2026
 - Backend: adicionadas exportacoes CSV (pedidos, compras, producao, fluxo de caixa e DRE) com headers em pt-BR.

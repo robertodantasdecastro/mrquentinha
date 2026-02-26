@@ -504,6 +504,19 @@ export type PortalConfigData = {
   android_download_url: string;
   ios_download_url: string;
   qr_target_url: string;
+  local_hostname: string;
+  local_network_ip: string;
+  root_domain: string;
+  portal_domain: string;
+  client_domain: string;
+  admin_domain: string;
+  api_domain: string;
+  portal_base_url: string;
+  client_base_url: string;
+  admin_base_url: string;
+  backend_base_url: string;
+  proxy_base_url: string;
+  cors_allowed_origins: string[];
   is_published: boolean;
   published_at: string | null;
   created_at: string;
@@ -517,6 +530,19 @@ export type PortalConfigWritePayload = Partial<
     | "available_templates"
     | "client_active_template"
     | "client_available_templates"
+    | "local_hostname"
+    | "local_network_ip"
+    | "root_domain"
+    | "portal_domain"
+    | "client_domain"
+    | "admin_domain"
+    | "api_domain"
+    | "portal_base_url"
+    | "client_base_url"
+    | "admin_base_url"
+    | "backend_base_url"
+    | "proxy_base_url"
+    | "cors_allowed_origins"
   >
 >;
 

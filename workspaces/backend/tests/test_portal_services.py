@@ -1,6 +1,6 @@
 import pytest
 
-from apps.portal.models import PortalSection
+from apps.portal.models import PortalConfig, PortalSection
 from apps.portal.services import (
     build_public_portal_payload,
     ensure_portal_config,
@@ -15,6 +15,27 @@ def test_portal_config_singleton():
 
     assert first.id == second.id
     assert first.singleton_key == "default"
+    assert first.local_hostname == "mrquentinha"
+    assert first.portal_base_url == "http://mrquentinha:3000"
+
+
+@pytest.mark.django_db
+def test_ensure_portal_config_preenche_cors_padrao_quando_vazio():
+    PortalConfig.objects.create(
+        singleton_key=PortalConfig.SINGLETON_KEY,
+        cors_allowed_origins=[],
+    )
+
+    config = ensure_portal_config()
+
+    assert config.cors_allowed_origins == [
+        "http://mrquentinha:3000",
+        "http://mrquentinha:3001",
+        "http://mrquentinha:3002",
+        "http://10.211.55.21:3000",
+        "http://10.211.55.21:3001",
+        "http://10.211.55.21:3002",
+    ]
 
 
 @pytest.mark.django_db

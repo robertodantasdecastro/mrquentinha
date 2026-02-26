@@ -3,7 +3,7 @@
 Referencia de atualizacao: 26/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `6.3.2-A3`, `6.3.2-A4`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T8.0.1` (discovery de financas pessoais e segregacao de escopo).
 
@@ -76,6 +76,7 @@ Referencia de atualizacao: 26/02/2026.
 - Atualizacao concluida em 25/02/2026 (`T9.1.2`): exportacoes por modulo (Pedidos/Compras/Producao/Financeiro), traducao pt-BR de status operacionais e consolidacao do modulo de Relatorios como ativo.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A1`): modulo `Portal CMS` no Admin Web para selecionar template ativo existente e publicar configuracao de portal.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A4`): `Portal CMS` passou a configurar template ativo do Web Cliente (`client_active_template`) e disponibilizar edicao de conteudo para templates de portal e cliente.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A5`): `Portal CMS` passou a ter area de conectividade para configurar dominio/subdominios e URLs de Portal/Client/Admin/API/Proxy em ambiente dev local (`host mrquentinha`) com lista de origens CORS.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A2`): Portal Web passou a consumir `active_template` do CMS em runtime (server-side), refletindo mudancas do Admin sem rebuild por variavel de ambiente.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A1`): Cardapio ganhou secao de composicao (ingredientes + prato com receita) para viabilizar ciclo completo de operacao.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A2`): Compras ganhou registro operacional de compra com itens (entrada em estoque), alem da geracao de requisicao por cardapio com seletor.
