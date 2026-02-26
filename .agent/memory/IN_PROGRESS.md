@@ -3,32 +3,24 @@
 Atualize este arquivo no inicio de qualquer sessao em modo escrita.
 
 ## Registro atual
-- data_hora: 2026-02-25 23:45
+- data_hora: 2026-02-26 00:55
 - agente: codex
 - branch: main
-- etapa: T9.1.2 Admin Web relatorios/exportacoes (concluida)
+- etapa: T6.3.2-A1 Admin Web Portal CMS (concluida)
 - areas_ou_arquivos_tocados:
-  - workspaces/web/admin/src/lib/labels.ts
+  - workspaces/web/admin/src/types/api.ts
   - workspaces/web/admin/src/lib/api.ts
   - workspaces/web/admin/src/lib/adminModules.ts
-  - workspaces/web/admin/src/components/AdminFoundation.tsx
-  - workspaces/web/admin/src/components/modules/OrdersOpsPanel.tsx
-  - workspaces/web/admin/src/components/modules/ProcurementOpsPanel.tsx
-  - workspaces/web/admin/src/components/modules/ProductionOpsPanel.tsx
-  - workspaces/web/admin/src/components/modules/FinanceOpsPanel.tsx
-  - workspaces/web/admin/src/components/modules/MenuOpsPanel.tsx
-  - workspaces/web/admin/src/app/modulos/relatorios/page.tsx
-  - workspaces/web/admin/src/app/modulos/relatorios/[service]/page.tsx
-  - workspaces/web/admin/src/app/modulos/financeiro/page.tsx
-  - workspaces/web/admin/src/app/modulos/financeiro/[service]/page.tsx
-  - workspaces/web/admin/src/app/modulos/usuarios-rbac/sections.tsx
+  - workspaces/web/admin/src/app/modulos/portal/page.tsx
+  - workspaces/web/admin/src/app/modulos/portal/[service]/page.tsx
+  - workspaces/web/admin/src/app/modulos/portal/sections.tsx
   - docs/memory/CHANGELOG.md
   - docs/memory/PROJECT_STATE.md
   - .agent/memory/CONTEXT_PACK.md
   - .agent/memory/TODO_NEXT.md
   - .agent/memory/IN_PROGRESS.md
-- objetivo_imediato: fechamento completo de T9.1.2 com exportacoes por modulo, rotulos pt-BR de status e memoria sincronizada.
-- proximo_comando: aguardar lock visual T6.2.1 (Antigravity) para iniciar T6.3.2 (Codex).
+- objetivo_imediato: consolidar trilha T6.3.2 no portal com consumo do CMS sem conflitar com ownership visual do Antigravity.
+- proximo_comando: implementar consumo de `GET /api/v1/portal/config/` no portal com fallback seguro por template/pagina.
 
 ## Registro anterior (manter historico curto)
 - data_hora: 2026-02-25 17:51

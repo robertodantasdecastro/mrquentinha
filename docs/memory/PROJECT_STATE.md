@@ -1,6 +1,6 @@
 # Project State (dev)
 
-Referencia de atualizacao: 25/02/2026.
+Referencia de atualizacao: 26/02/2026.
 
 ## Etapas
 - Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`.
@@ -67,6 +67,7 @@ Referencia de atualizacao: 25/02/2026.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF4`): rotas diretas `/modulos` e `/prioridades` com redirect para `/#modulos` e `/#prioridades`, evitando erro 404 em acesso por URL/bookmark (substituido pela navegacao por hotpages).
 - Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao e Usuarios/RBAC estaveis, com hotpages, menus contextuais, graficos e relatorios/exportacoes CSV com filtros por periodo.
 - Atualizacao concluida em 25/02/2026 (`T9.1.2`): exportacoes por modulo (Pedidos/Compras/Producao/Financeiro), traducao pt-BR de status operacionais e consolidacao do modulo de Relatorios como ativo.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A1`): modulo `Portal CMS` no Admin Web para selecionar template ativo existente e publicar configuracao de portal.
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo: aguardando lock visual `T6.2.1` para iniciar `T6.3.2` (integracao CMS no portal, trilha Codex).
 

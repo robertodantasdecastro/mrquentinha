@@ -22,4 +22,5 @@ Fila atual:
 17. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
 18. [ ] T6.3.2 Integracao CMS no portal (Codex apos lock visual 6.2, sem conflito).
 19. [x] T9.1.2 Admin Web relatorios/exportacoes (hotpages, menus contextuais, graficos e exportacao CSV por modulo) - concluida em 25/02/2026.
-20. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
+20. [x] T6.3.2-A1 Admin Web `Portal CMS`: selecao de template ativo + publicacao da configuracao - concluida em 26/02/2026.
+21. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).

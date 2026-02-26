@@ -339,3 +339,31 @@ export type ProductionBatchData = {
   updated_at: string;
   production_items: ProductionItemData[];
 };
+
+export type PortalTemplateData = {
+  id: string;
+  label?: string;
+};
+
+export type PortalConfigData = {
+  id: number;
+  active_template: string;
+  available_templates: Array<PortalTemplateData | string>;
+  site_name: string;
+  site_title: string;
+  meta_description: string;
+  primary_color: string;
+  secondary_color: string;
+  dark_bg_color: string;
+  android_download_url: string;
+  ios_download_url: string;
+  qr_target_url: string;
+  is_published: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PortalConfigWritePayload = Partial<
+  Pick<PortalConfigData, "active_template" | "available_templates">
+>;

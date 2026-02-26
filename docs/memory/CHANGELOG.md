@@ -1,5 +1,12 @@
 # Changelog (por sprint)
 
+## 26/02/2026
+- Admin Web: novo modulo `Portal CMS` em `/modulos/portal` para selecionar template ativo entre os templates cadastrados no backend.
+- Admin Web: adicionadas rotas de servico do modulo (`/modulos/portal/[service]`) para acesso direto em `template` e `publicacao`.
+- Admin Web: cliente de API ganhou suporte aos endpoints de administracao do portal (`list/create/patch/publish` em `/api/v1/portal/admin/config/`).
+- Admin Web: dashboard de modulos atualizado com card do `Portal CMS` na etapa `T6.3.2`.
+- Qualidade: `bash scripts/quality_gate_all.sh` executado com sucesso apos a entrega.
+
 ## 25/02/2026
 - Backend: adicionadas exportacoes CSV (pedidos, compras, producao, fluxo de caixa e DRE) com headers em pt-BR.
 - Admin Web: modulo `/modulos` agora e client component; hotpages divididas em `sections.tsx` para evitar export nomeado em `page.tsx` (fix do `next build`).

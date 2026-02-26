@@ -72,6 +72,14 @@ export const ADMIN_MODULES: AdminModule[] = [
     status: "ativo",
     path: "/modulos/relatorios",
   },
+  {
+    slug: "portal",
+    title: "Portal CMS",
+    description: "Configuração do template ativo do portal e publicação do painel.",
+    stage: "T6.3.2",
+    status: "ativo",
+    path: "/modulos/portal",
+  },
 ];
 
 export function resolveModuleStatusTone(status: string):

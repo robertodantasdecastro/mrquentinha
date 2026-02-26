@@ -22,6 +22,8 @@ import type {
   OrderData,
   OrderStatus,
   ProductionBatchData,
+  PortalConfigData,
+  PortalConfigWritePayload,
   PurchaseData,
   PurchaseRequestData,
   PurchaseRequestFromMenuResultData,
@@ -693,6 +695,57 @@ export async function completeProductionBatchAdmin(
   batchId: number,
 ): Promise<ProductionBatchData> {
   return requestJson<ProductionBatchData>(`/api/v1/production/batches/${batchId}/complete/`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({}),
+  });
+}
+
+export async function listPortalConfigsAdmin(): Promise<PortalConfigData[]> {
+  const payload = await requestJson<PortalConfigData[] | { results?: PortalConfigData[] }>(
+    "/api/v1/portal/admin/config/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function createPortalConfigAdmin(
+  payload: PortalConfigWritePayload = {},
+): Promise<PortalConfigData> {
+  return requestJson<PortalConfigData>("/api/v1/portal/admin/config/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function ensurePortalConfigAdmin(): Promise<PortalConfigData> {
+  const existingConfigs = await listPortalConfigsAdmin();
+  if (existingConfigs.length > 0) {
+    return existingConfigs[0];
+  }
+
+  return createPortalConfigAdmin({});
+}
+
+export async function updatePortalConfigAdmin(
+  configId: number,
+  payload: PortalConfigWritePayload,
+): Promise<PortalConfigData> {
+  return requestJson<PortalConfigData>(`/api/v1/portal/admin/config/${configId}/`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function publishPortalConfigAdmin(): Promise<PortalConfigData> {
+  return requestJson<PortalConfigData>("/api/v1/portal/admin/config/publish/", {
     method: "POST",
     auth: true,
     body: JSON.stringify({}),
