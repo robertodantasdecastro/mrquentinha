@@ -27,6 +27,7 @@ import type {
   HealthPayload,
   IngredientData,
   MenuDayData,
+  OrdersOpsDashboardData,
   OrderData,
   OrderStatus,
   ProductionBatchData,
@@ -473,6 +474,14 @@ export async function listOrdersAdmin(): Promise<OrderData[]> {
   );
 
   return normalizeListPayload(payload);
+}
+
+export async function fetchOrdersOpsDashboardAdmin(): Promise<OrdersOpsDashboardData> {
+  return requestJson<OrdersOpsDashboardData>("/api/v1/orders/ops/dashboard/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
 }
 
 export async function updateOrderStatusAdmin(

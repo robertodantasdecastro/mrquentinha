@@ -410,8 +410,32 @@ def _apply_to_purchase(*, job: OCRJob, purchase_id: int, mode: str) -> dict:
         mode=mode,
     )
 
+    parsed = job.parsed_json if isinstance(job.parsed_json, dict) else {}
+    supplier_name = parsed.get("supplier_name")
+    invoice_number = parsed.get("invoice_number")
+    total_amount = _to_decimal(parsed.get("total_amount"))
+
+    fields_to_update: list[str] = []
+    if mode == "overwrite" or (not purchase.supplier_name and supplier_name):
+        if supplier_name:
+            purchase.supplier_name = str(supplier_name).strip()
+            fields_to_update.append("supplier_name")
+
+    if mode == "overwrite" or (not purchase.invoice_number and invoice_number):
+        if invoice_number:
+            purchase.invoice_number = str(invoice_number).strip()
+            fields_to_update.append("invoice_number")
+
+    if mode == "overwrite" or (purchase.total_amount <= 0 and total_amount is not None):
+        if total_amount is not None and total_amount >= 0:
+            purchase.total_amount = total_amount
+            fields_to_update.append("total_amount")
+
     if saved_image:
-        purchase.save(update_fields=["receipt_image"])
+        fields_to_update.append("receipt_image")
+
+    if fields_to_update:
+        purchase.save(update_fields=fields_to_update)
 
     return {
         "target_type": "PURCHASE",

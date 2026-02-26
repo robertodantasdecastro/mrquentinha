@@ -112,11 +112,18 @@ def complete_batch(*, batch_id: int) -> ProductionBatch:
         return get_batch_detail(batch.id)
 
     for batch_item in batch.items.all():
-        if batch_item.qty_produced <= 0:
+        qty_produced = batch_item.qty_produced
+        if qty_produced <= 0:
+            # Se nao houver apontamento manual, considera o planejado como produzido.
+            qty_produced = batch_item.qty_planned
+            batch_item.qty_produced = qty_produced
+            batch_item.save(update_fields=["qty_produced"])
+
+        if qty_produced <= 0:
             continue
 
         dish = batch_item.menu_item.dish
-        multiplier = Decimal(batch_item.qty_produced)
+        multiplier = Decimal(qty_produced)
 
         for dish_ingredient in dish.dish_ingredients.all():
             ingredient = dish_ingredient.ingredient
@@ -139,6 +146,12 @@ def complete_batch(*, batch_id: int) -> ProductionBatch:
                 note=f"Consumo por producao do lote {batch.id}",
                 created_by=batch.created_by,
             )
+
+        available_qty = max(qty_produced - batch_item.qty_waste, 0)
+        menu_item = batch_item.menu_item
+        menu_item.available_qty = available_qty
+        menu_item.is_active = True
+        menu_item.save(update_fields=["available_qty", "is_active"])
 
     batch.status = ProductionBatchStatus.DONE
     batch.save(update_fields=["status", "updated_at"])

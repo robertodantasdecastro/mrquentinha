@@ -15,8 +15,8 @@ from apps.catalog.models import (
     MenuItem,
 )
 from apps.finance.models import AccountType, CashDirection, CashMovement
-from apps.orders.models import PaymentWebhookEvent
-from apps.orders.services import create_order
+from apps.orders.models import OrderStatus, PaymentWebhookEvent
+from apps.orders.services import create_order, update_order_status
 
 
 def _create_menu_item_for_api(menu_date: date) -> MenuItem:
@@ -427,6 +427,49 @@ def test_payment_intent_post_retorna_404_para_pagamento_de_outro_cliente(
     )
 
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_cliente_confirma_recebimento_quando_pedido_entregue(create_user_with_roles):
+    delivery_date = date(2026, 3, 25)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    customer = create_user_with_roles(
+        username="cliente_recebimento",
+        role_codes=[SystemRole.CLIENTE],
+    )
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    update_order_status(order_id=order.id, new_status=OrderStatus.CONFIRMED)
+    update_order_status(order_id=order.id, new_status=OrderStatus.IN_PROGRESS)
+    update_order_status(order_id=order.id, new_status=OrderStatus.OUT_FOR_DELIVERY)
+    update_order_status(order_id=order.id, new_status=OrderStatus.DELIVERED)
+
+    customer_client = _auth_client(customer)
+    response = customer_client.post(
+        f"/api/v1/orders/orders/{order.id}/confirm-receipt/",
+        data=json.dumps({}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == OrderStatus.RECEIVED
+
+
+@pytest.mark.django_db
+def test_orders_ops_dashboard_retorna_pipeline_e_kpis(admin_user):
+    admin_client = _auth_client(admin_user)
+
+    response = admin_client.get("/api/v1/orders/ops/dashboard/")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "kpis" in body
+    assert "pipeline" in body
+    assert "series_last_7_days" in body
 
 
 @pytest.mark.django_db

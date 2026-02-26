@@ -301,6 +301,14 @@ export async function listOrders(): Promise<OrderData[]> {
   return normalizeListPayload(payload);
 }
 
+export async function confirmOrderReceipt(orderId: number): Promise<OrderData> {
+  return requestJson<OrderData>(`/api/v1/orders/orders/${orderId}/confirm-receipt/`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({}),
+  });
+}
+
 export async function loginAccount(
   username: string,
   password: string,

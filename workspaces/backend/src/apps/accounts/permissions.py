@@ -41,6 +41,8 @@ ORDER_STATUS_UPDATE_ROLES = (
     SystemRole.ADMIN,
     SystemRole.COZINHA,
     SystemRole.FINANCEIRO,
+    SystemRole.COMPRAS,
+    SystemRole.ESTOQUE,
 )
 PAYMENT_READ_ROLES = (SystemRole.ADMIN, SystemRole.FINANCEIRO, SystemRole.CLIENTE)
 PAYMENT_WRITE_ROLES = (SystemRole.ADMIN, SystemRole.FINANCEIRO)

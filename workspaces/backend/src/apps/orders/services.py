@@ -222,8 +222,16 @@ def _is_valid_order_transition(current_status: str, new_status: str) -> bool:
     allowed_transitions = {
         OrderStatus.CREATED: {OrderStatus.CONFIRMED, OrderStatus.CANCELED},
         OrderStatus.CONFIRMED: {OrderStatus.IN_PROGRESS, OrderStatus.CANCELED},
-        OrderStatus.IN_PROGRESS: {OrderStatus.DELIVERED, OrderStatus.CANCELED},
-        OrderStatus.DELIVERED: set(),
+        OrderStatus.IN_PROGRESS: {
+            OrderStatus.OUT_FOR_DELIVERY,
+            OrderStatus.CANCELED,
+        },
+        OrderStatus.OUT_FOR_DELIVERY: {
+            OrderStatus.DELIVERED,
+            OrderStatus.CANCELED,
+        },
+        OrderStatus.DELIVERED: {OrderStatus.RECEIVED},
+        OrderStatus.RECEIVED: set(),
         OrderStatus.CANCELED: set(),
     }
     return new_status in allowed_transitions[current_status]
@@ -236,9 +244,12 @@ def update_order_status(*, order_id: int, new_status: str, actor_user=None) -> O
     except Order.DoesNotExist as exc:
         raise ValidationError("Pedido nao encontrado.") from exc
 
-    if actor_user is not None and not has_global_order_access(actor_user):
-        if order.customer_id != getattr(actor_user, "id", None):
-            raise ValidationError("Pedido nao encontrado.")
+    actor_is_global = actor_user is not None and has_global_order_access(actor_user)
+    actor_is_owner = actor_user is not None and order.customer_id == getattr(
+        actor_user, "id", None
+    )
+    if actor_user is not None and not actor_is_global and not actor_is_owner:
+        raise ValidationError("Pedido nao encontrado.")
 
     status_choices = {choice for choice, _ in OrderStatus.choices}
     if new_status not in status_choices:
@@ -246,6 +257,22 @@ def update_order_status(*, order_id: int, new_status: str, actor_user=None) -> O
 
     if not _is_valid_order_transition(order.status, new_status):
         raise ValidationError(f"Transicao invalida: {order.status} -> {new_status}.")
+
+    if actor_user is not None and not actor_is_global:
+        if not actor_is_owner:
+            raise ValidationError("Pedido nao encontrado.")
+
+        is_customer_receipt_confirmation = (
+            order.status == OrderStatus.DELIVERED and new_status == OrderStatus.RECEIVED
+        )
+        is_customer_cancel = new_status == OrderStatus.CANCELED and order.status in {
+            OrderStatus.CREATED,
+            OrderStatus.CONFIRMED,
+        }
+        if not (is_customer_receipt_confirmation or is_customer_cancel):
+            raise ValidationError(
+                "Cliente so pode cancelar pedido no inicio ou confirmar recebimento."
+            )
 
     if order.status != new_status:
         order.status = new_status

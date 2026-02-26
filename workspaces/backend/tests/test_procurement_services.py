@@ -160,6 +160,7 @@ def test_generate_purchase_request_from_menu_sem_estoque_cria_itens_corretos():
 
     assert result["created"] is True
     assert result["purchase_request_id"] is not None
+    assert "alerts" in result
     assert len(result["items"]) == 2
 
     items_by_ingredient = {item["ingredient_id"]: item for item in result["items"]}
@@ -216,6 +217,7 @@ def test_generate_purchase_request_from_menu_com_estoque_parcial_cria_somente_fa
     result = generate_purchase_request_from_menu(menu_day.id)
 
     assert result["created"] is True
+    assert "alerts" in result
     assert len(result["items"]) == 1
     assert result["items"][0]["ingredient_id"] == arroz.id
     assert result["items"][0]["required_qty"] == Decimal("1.800")

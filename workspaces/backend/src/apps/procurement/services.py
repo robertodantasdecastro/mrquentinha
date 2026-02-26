@@ -16,6 +16,7 @@ from .models import (
     PurchaseRequestItem,
     PurchaseRequestStatus,
 )
+from .notifications import notify_purchase_request_created
 
 QTY_DECIMAL_PLACES = Decimal("0.001")
 DEFAULT_MENU_MULTIPLIER = Decimal("1")
@@ -187,6 +188,7 @@ def generate_purchase_request_from_menu(menu_day_id: int, requested_by=None) -> 
         items_payload=shortage_items,
         requested_by=requested_by,
     )
+    alert_result = notify_purchase_request_created(purchase_request)
 
     response_items = [
         {
@@ -203,6 +205,7 @@ def generate_purchase_request_from_menu(menu_day_id: int, requested_by=None) -> 
         "purchase_request_id": purchase_request.id,
         "message": "purchase request gerada",
         "items": response_items,
+        "alerts": alert_result,
     }
 
 

@@ -94,6 +94,7 @@ class PurchaseRequestFromMenuResultSerializer(serializers.Serializer):
     purchase_request_id = serializers.IntegerField(allow_null=True)
     message = serializers.CharField()
     items = PurchaseRequestFromMenuItemSerializer(many=True)
+    alerts = serializers.DictField(required=False)
 
 
 class PurchaseItemWriteSerializer(serializers.Serializer):

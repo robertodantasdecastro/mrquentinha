@@ -43,6 +43,14 @@ export type OrderItemData = {
 
 export type PaymentMethod = "PIX" | "CARD" | "VR" | "CASH";
 export type OnlinePaymentMethod = "PIX" | "CARD" | "VR";
+export type OrderStatus =
+  | "CREATED"
+  | "CONFIRMED"
+  | "IN_PROGRESS"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "RECEIVED"
+  | "CANCELED";
 
 export type PaymentSummary = {
   id: number;
@@ -58,7 +66,7 @@ export type OrderData = {
   customer: number | null;
   order_date: string;
   delivery_date: string;
-  status: string;
+  status: OrderStatus;
   total_amount: string;
   created_at: string;
   updated_at: string;

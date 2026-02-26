@@ -6,6 +6,7 @@ import {
   ApiError,
   createMenuDayAdmin,
   deleteMenuDayAdmin,
+  generatePurchaseRequestFromMenuAdmin,
   listDishesAdmin,
   listMenuDaysAdmin,
   updateMenuDayAdmin,
@@ -14,6 +15,7 @@ import type {
   DishData,
   MenuDayData,
   MenuItemWritePayload,
+  PurchaseRequestFromMenuResultData,
   UpsertMenuDayPayload,
 } from "@/types/api";
 
@@ -186,6 +188,7 @@ export function MenuOpsPanel() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+  const [autoGenerateProcurement, setAutoGenerateProcurement] = useState<boolean>(true);
   const [deletingMenuId, setDeletingMenuId] = useState<number | null>(null);
   const [message, setMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -296,15 +299,35 @@ export function MenuOpsPanel() {
           ? await createMenuDayAdmin(payload)
           : await updateMenuDayAdmin(editingMenuId, payload);
 
+      let procurementResult: PurchaseRequestFromMenuResultData | null = null;
+      if (autoGenerateProcurement) {
+        procurementResult = await generatePurchaseRequestFromMenuAdmin(savedMenu.id);
+      }
+
       setEditingMenuId(savedMenu.id);
       setMenuDate(savedMenu.menu_date);
       setTitle(savedMenu.title);
       setDrafts(buildDraftsFromMenu(savedMenu, dishes));
-      setMessage(
-        editingMenuId === null
-          ? "Menu salvo com sucesso."
-          : "Menu atualizado com sucesso.",
-      );
+      const baseMessage =
+        editingMenuId === null ? "Menu salvo com sucesso." : "Menu atualizado com sucesso.";
+      if (procurementResult) {
+        const emailInfo =
+          procurementResult.alerts?.email?.sent_count !== undefined
+            ? ` Email: ${procurementResult.alerts?.email?.sent_count} envio(s).`
+            : "";
+        const whatsappInfo =
+          procurementResult.alerts?.whatsapp?.configured
+            ? procurementResult.alerts?.whatsapp?.sent
+              ? " WhatsApp enviado."
+              : " WhatsApp configurado com falha no envio."
+            : "";
+
+        setMessage(
+          `${baseMessage} Estoque verificado: ${procurementResult.message}.${emailInfo}${whatsappInfo}`,
+        );
+      } else {
+        setMessage(baseMessage);
+      }
 
       await loadMenuModule({ silent: true });
     } catch (error) {
@@ -545,6 +568,16 @@ export function MenuOpsPanel() {
               </div>
 
               <div className="mt-4 flex justify-end">
+                <label className="mr-auto inline-flex items-center gap-2 text-xs text-muted">
+                  <input
+                    type="checkbox"
+                    checked={autoGenerateProcurement}
+                    onChange={(event) =>
+                      setAutoGenerateProcurement(event.currentTarget.checked)
+                    }
+                  />
+                  Verificar estoque e gerar requisicao de compra automaticamente.
+                </label>
                 <button
                   type="submit"
                   disabled={saving || dishes.length === 0}

@@ -235,3 +235,5 @@ def test_apply_ocr_job_para_purchase_salva_imagem_de_comprovante(
 
     purchase.refresh_from_db()
     assert purchase.receipt_image.name
+    assert purchase.invoice_number == "NF-77"
+    assert purchase.total_amount == Decimal("58.90")

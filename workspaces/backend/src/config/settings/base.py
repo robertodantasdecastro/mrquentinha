@@ -103,6 +103,24 @@ PAYMENTS_WEBHOOK_TOKEN = env(
     default="dev-mrquentinha-webhook-token",
 )
 
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@mrquentinha.local")
+PROCUREMENT_ALERT_FROM_EMAIL = env(
+    "PROCUREMENT_ALERT_FROM_EMAIL",
+    default=DEFAULT_FROM_EMAIL,
+)
+PROCUREMENT_WHATSAPP_WEBHOOK_URL = env(
+    "PROCUREMENT_WHATSAPP_WEBHOOK_URL",
+    default="",
+)
+PROCUREMENT_WHATSAPP_WEBHOOK_TOKEN = env(
+    "PROCUREMENT_WHATSAPP_WEBHOOK_TOKEN",
+    default="",
+)
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",

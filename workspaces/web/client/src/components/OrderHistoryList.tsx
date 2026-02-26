@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
-import { ApiError, listOrders } from "@/lib/api";
+import { ApiError, confirmOrderReceipt, listOrders } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
-import type { OrderData } from "@/types/api";
+import type { OrderData, OrderStatus } from "@/types/api";
 
 type HistoryState = "loading" | "ready" | "unauthorized" | "error";
 
@@ -29,7 +29,7 @@ function resolveErrorMessage(error: unknown): string {
   return "Falha ao carregar os pedidos.";
 }
 
-function resolveOrderTone(status: string): StatusTone {
+function resolveOrderTone(status: OrderStatus): StatusTone {
   if (status === "CREATED" || status === "CONFIRMED") {
     return "warning";
   }
@@ -38,7 +38,15 @@ function resolveOrderTone(status: string): StatusTone {
     return "info";
   }
 
+  if (status === "OUT_FOR_DELIVERY") {
+    return "warning";
+  }
+
   if (status === "DELIVERED") {
+    return "success";
+  }
+
+  if (status === "RECEIVED") {
     return "success";
   }
 
@@ -47,6 +55,27 @@ function resolveOrderTone(status: string): StatusTone {
   }
 
   return "neutral";
+}
+
+function formatOrderStatusLabel(status: OrderStatus): string {
+  switch (status) {
+    case "CREATED":
+      return "Criado";
+    case "CONFIRMED":
+      return "Confirmado";
+    case "IN_PROGRESS":
+      return "Em preparo";
+    case "OUT_FOR_DELIVERY":
+      return "Saiu para entrega";
+    case "DELIVERED":
+      return "Entregue";
+    case "RECEIVED":
+      return "Recebido";
+    case "CANCELED":
+      return "Cancelado";
+    default:
+      return status;
+  }
 }
 
 function resolvePaymentTone(status: string): StatusTone {
@@ -69,6 +98,7 @@ export function OrderHistoryList() {
   const [historyState, setHistoryState] = useState<HistoryState>("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [orders, setOrders] = useState<OrderData[]>([]);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -121,6 +151,22 @@ export function OrderHistoryList() {
     [orders],
   );
 
+  async function handleConfirmReceipt(orderId: number) {
+    setConfirmingOrderId(orderId);
+    setErrorMessage("");
+
+    try {
+      const updated = await confirmOrderReceipt(orderId);
+      setOrders((current) =>
+        current.map((order) => (order.id === orderId ? updated : order)),
+      );
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setConfirmingOrderId(null);
+    }
+  }
+
   return (
     <section className="rounded-2xl border border-border bg-surface/80 p-5 shadow-sm">
       <div className="mb-4 flex flex-col gap-2">
@@ -170,13 +216,28 @@ export function OrderHistoryList() {
 
                 <div className="text-right">
                   <StatusPill tone={resolveOrderTone(order.status)}>
-                    {order.status}
+                    {formatOrderStatusLabel(order.status)}
                   </StatusPill>
                   <p className="mt-1 text-sm font-semibold text-text">
                     {formatCurrency(order.total_amount)}
                   </p>
                 </div>
               </div>
+
+              {order.status === "DELIVERED" && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => void handleConfirmReceipt(order.id)}
+                    disabled={confirmingOrderId === order.id}
+                    className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {confirmingOrderId === order.id
+                      ? "Confirmando..."
+                      : "Confirmar recebimento"}
+                  </button>
+                </div>
+              )}
 
               {order.order_items.length > 0 && (
                 <ul className="mt-3 space-y-1 text-sm text-muted">
@@ -207,6 +268,12 @@ export function OrderHistoryList() {
               )}
             </article>
           ))}
+        </div>
+      )}
+
+      {historyState === "ready" && errorMessage && (
+        <div className="mt-4 rounded-xl border border-red-300/70 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-300">
+          {errorMessage}
         </div>
       )}
     </section>

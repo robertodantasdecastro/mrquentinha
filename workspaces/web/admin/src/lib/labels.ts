@@ -12,8 +12,12 @@ export function formatOrderStatusLabel(status: OrderStatus): string {
       return "Confirmado";
     case "IN_PROGRESS":
       return "Em preparo";
+    case "OUT_FOR_DELIVERY":
+      return "Saiu para entrega";
     case "DELIVERED":
       return "Entregue";
+    case "RECEIVED":
+      return "Recebido";
     case "CANCELED":
       return "Cancelado";
     default:

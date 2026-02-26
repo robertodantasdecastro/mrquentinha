@@ -20,6 +20,7 @@ def api_index_view(_request):
                 "accounts": "/api/v1/accounts",
                 "catalog": "/api/v1/catalog",
                 "orders": "/api/v1/orders",
+                "orders_ops_dashboard": "/api/v1/orders/ops/dashboard/",
                 "finance": "/api/v1/finance",
                 "production": "/api/v1/production",
                 "ocr": "/api/v1/ocr",

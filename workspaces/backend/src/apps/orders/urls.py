@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     OrdersExportAPIView,
+    OrdersOpsDashboardAPIView,
     OrderViewSet,
     PaymentViewSet,
     PaymentWebhookAPIView,
@@ -22,6 +23,11 @@ urlpatterns = [
         "reports/orders/",
         OrdersExportAPIView.as_view(),
         name="orders-export",
+    ),
+    path(
+        "ops/dashboard/",
+        OrdersOpsDashboardAPIView.as_view(),
+        name="orders-ops-dashboard",
     ),
     path("", include(router.urls)),
 ]

@@ -755,3 +755,41 @@
     - backend: `ruff`, `black --check`, `pytest tests/test_ocr_api.py tests/test_procurement_api.py`;
     - admin: `npm run lint && npm run build`;
     - full stack: `bash scripts/quality_gate_all.sh` -> `OK` (`124 passed`).
+
+- T9.1.3-A7 (26/02/2026): ciclo operacional completo (linha de producao) + dashboard realtime
+  - backend/orders:
+    - status de pedido evoluidos para ciclo completo de entrega:
+      - `OUT_FOR_DELIVERY` (saiu para entrega)
+      - `RECEIVED` (cliente confirmou recebimento)
+    - novas regras de transicao e permissao:
+      - operacao interna: `CREATED -> CONFIRMED -> IN_PROGRESS -> OUT_FOR_DELIVERY -> DELIVERED`
+      - cliente: pode cancelar apenas no inicio e confirmar recebimento quando entregue;
+    - novo endpoint:
+      - `POST /api/v1/orders/orders/{id}/confirm-receipt/`
+    - novo dashboard operacional:
+      - `GET /api/v1/orders/ops/dashboard/` com KPIs, pipeline, alertas e serie de 7 dias.
+  - backend/producao:
+    - conclusao de lote passou a usar `qty_planned` quando `qty_produced` nao for informado;
+    - ao concluir lote, sistema atualiza `menu_item.available_qty` (descontando perdas) para refletir disponibilidade de venda.
+  - backend/compras:
+    - geracao de requisicao por cardapio agora dispara notificacoes para responsavel de compras:
+      - email (backend de email configuravel),
+      - webhook WhatsApp opcional;
+    - resultado de `from-menu` agora inclui bloco `alerts` com status de envio.
+  - backend/ocr:
+    - ao aplicar OCR com sucesso para `PURCHASE`, sistema atualiza metadados da compra (`supplier_name`, `invoice_number`, `total_amount`) quando apropriado e persiste foto em `receipt_image`.
+  - admin web:
+    - dashboard inicial reestruturado para estilo linha de producao com polling a cada 30s (KPIs + alertas + pipeline clicavel).
+    - cardapio ganhou opcao de auto-checagem de estoque e auto-geracao de requisicao de compra ao salvar menu.
+    - pedidos ganhou novos status operacionais (`Saiu para entrega`, `Recebido`).
+  - client web:
+    - historico de pedidos ganhou acao `Confirmar recebimento` (consumindo `confirm-receipt`).
+    - rotulos de status em pt-BR atualizados para novo ciclo.
+  - configuracao:
+    - novas variaveis documentadas em `.env.example`:
+      - `EMAIL_BACKEND`, `DEFAULT_FROM_EMAIL`, `PROCUREMENT_ALERT_FROM_EMAIL`,
+      - `PROCUREMENT_WHATSAPP_WEBHOOK_URL`, `PROCUREMENT_WHATSAPP_WEBHOOK_TOKEN`.
+  - migracoes:
+    - `orders.0004_alter_order_status` criada/aplicada para refletir novos status.
+  - validacao executada:
+    - `bash scripts/quality_gate_all.sh` -> `OK` (`127 passed`, builds e smokes OK).

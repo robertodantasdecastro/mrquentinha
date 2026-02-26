@@ -205,3 +205,43 @@ def test_complete_batch_duas_vezes_nao_duplica_movimentos():
 
     stock_item = StockItem.objects.get(ingredient=ingredient)
     assert stock_item.balance_qty == Decimal("3.000")
+
+
+@pytest.mark.django_db
+def test_complete_batch_sem_qtd_produzida_usa_planejado_e_atualiza_disponibilidade():
+    production_date = date(2026, 3, 19)
+    menu_item, ingredient = _create_menu_item_for_production(
+        menu_date=production_date,
+        dish_name="Prato Producao 5",
+        ingredient_name="Ingrediente Producao 5",
+        recipe_qty=Decimal("1.000"),
+    )
+    StockItem.objects.create(
+        ingredient=ingredient,
+        balance_qty=Decimal("12.000"),
+        unit=IngredientUnit.KILOGRAM,
+    )
+
+    batch = create_batch_for_date(
+        production_date=production_date,
+        items_payload=[
+            {
+                "menu_item": menu_item,
+                "qty_planned": 5,
+                "qty_waste": 1,
+            }
+        ],
+    )
+
+    complete_batch(batch_id=batch.id)
+
+    menu_item.refresh_from_db()
+    assert menu_item.available_qty == 4
+
+    movement = StockMovement.objects.get(
+        movement_type=StockMovementType.OUT,
+        reference_type=StockReferenceType.PRODUCTION,
+        reference_id=batch.id,
+        ingredient=ingredient,
+    )
+    assert movement.qty == Decimal("5.000")

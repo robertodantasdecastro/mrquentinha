@@ -894,6 +894,7 @@ class Command(BaseCommand):
                 OrderStatus.CREATED,
                 OrderStatus.CONFIRMED,
                 OrderStatus.IN_PROGRESS,
+                OrderStatus.OUT_FOR_DELIVERY,
             }:
                 update_order_status(order_id=order.id, new_status=OrderStatus.CANCELED)
             return
@@ -901,6 +902,7 @@ class Command(BaseCommand):
         transitions = [
             OrderStatus.CONFIRMED,
             OrderStatus.IN_PROGRESS,
+            OrderStatus.OUT_FOR_DELIVERY,
             OrderStatus.DELIVERED,
         ]
 
@@ -910,7 +912,7 @@ class Command(BaseCommand):
                 break
             if order.status == OrderStatus.CANCELED:
                 break
-            if order.status == OrderStatus.DELIVERED:
+            if order.status in {OrderStatus.DELIVERED, OrderStatus.RECEIVED}:
                 break
 
             if (
@@ -926,8 +928,16 @@ class Command(BaseCommand):
                     order_id=order.id, new_status=OrderStatus.IN_PROGRESS
                 )
             elif (
-                transition == OrderStatus.DELIVERED
+                transition == OrderStatus.OUT_FOR_DELIVERY
                 and order.status == OrderStatus.IN_PROGRESS
+            ):
+                update_order_status(
+                    order_id=order.id,
+                    new_status=OrderStatus.OUT_FOR_DELIVERY,
+                )
+            elif (
+                transition == OrderStatus.DELIVERED
+                and order.status == OrderStatus.OUT_FOR_DELIVERY
             ):
                 update_order_status(order_id=order.id, new_status=OrderStatus.DELIVERED)
 

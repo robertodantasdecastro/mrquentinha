@@ -3,6 +3,33 @@
 Atualize este arquivo no inicio de qualquer sessao em modo escrita.
 
 ## Registro atual
+- data_hora: 2026-02-26 06:05
+- agente: codex
+- branch: main
+- etapa: T9.1.3-A7 ciclo operacional completo (linha de producao + dashboard realtime) (concluida)
+- areas_ou_arquivos_tocados:
+  - workspaces/backend/src/apps/orders/models.py
+  - workspaces/backend/src/apps/orders/services.py
+  - workspaces/backend/src/apps/orders/views.py
+  - workspaces/backend/src/apps/orders/urls.py
+  - workspaces/backend/src/apps/orders/migrations/0004_alter_order_status.py
+  - workspaces/backend/src/apps/procurement/notifications.py
+  - workspaces/backend/src/apps/procurement/services.py
+  - workspaces/backend/src/apps/production/services.py
+  - workspaces/backend/src/apps/ocr_ai/services.py
+  - workspaces/web/admin/src/components/AdminFoundation.tsx
+  - workspaces/web/admin/src/components/modules/MenuOpsPanel.tsx
+  - workspaces/web/admin/src/components/modules/OrdersOpsPanel.tsx
+  - workspaces/web/client/src/components/OrderHistoryList.tsx
+  - docs/memory/CHANGELOG.md
+  - docs/memory/PROJECT_STATE.md
+  - .agent/memory/CONTEXT_PACK.md
+  - .agent/memory/TODO_NEXT.md
+  - .agent/memory/IN_PROGRESS.md
+- objetivo_imediato: consolidar ciclo operacional ponta a ponta com alertas de compras, entrega e confirmacao de recebimento.
+- proximo_comando: iniciar T8.0.1 (discovery de financas pessoais com segregacao de escopo).
+
+## Registro anterior (manter historico curto)
 - data_hora: 2026-02-26 05:20
 - agente: codex
 - branch: main
@@ -23,28 +50,4 @@ Atualize este arquivo no inicio de qualquer sessao em modo escrita.
   - .agent/memory/TODO_NEXT.md
   - .agent/memory/IN_PROGRESS.md
 - objetivo_imediato: consolidar captura/upload por camera nas compras e garantir persistencia das fotos usadas no OCR.
-- proximo_comando: iniciar T8.0.1 (discovery de financas pessoais com segregacao de escopo).
-
-## Registro anterior (manter historico curto)
-- data_hora: 2026-02-26 03:35
-- agente: codex
-- branch: main
-- etapa: T9.1.3-A5 fotos dinamicas no cardapio (concluida)
-- areas_ou_arquivos_tocados:
-  - workspaces/backend/src/apps/catalog/management/commands/sync_catalog_photos.py
-  - workspaces/backend/src/apps/catalog/serializers.py
-  - workspaces/backend/src/apps/catalog/selectors.py
-  - workspaces/backend/src/apps/catalog/views.py
-  - workspaces/backend/tests/test_catalog_photo_sync_command.py
-  - workspaces/backend/tests/test_catalog_api.py
-  - workspaces/web/portal/src/components/CardapioList.tsx
-  - workspaces/web/client/src/components/MenuDayView.tsx
-  - workspaces/web/client/src/types/api.ts
-  - workspaces/mobile/brand/contentApi.ts
-  - docs/memory/CHANGELOG.md
-  - docs/memory/PROJECT_STATE.md
-  - .agent/memory/CONTEXT_PACK.md
-  - .agent/memory/TODO_NEXT.md
-  - .agent/memory/IN_PROGRESS.md
-- objetivo_imediato: consolidar ciclo completo do cardapio com fotos dinamicas de pratos/insumos para portal, client e contrato mobile.
 - proximo_comando: iniciar discovery de escopo e requisitos da T8.0.1.

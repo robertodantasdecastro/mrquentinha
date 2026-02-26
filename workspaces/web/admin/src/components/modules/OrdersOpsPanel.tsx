@@ -15,7 +15,9 @@ const STATUS_OPTIONS: OrderStatus[] = [
   "CREATED",
   "CONFIRMED",
   "IN_PROGRESS",
+  "OUT_FOR_DELIVERY",
   "DELIVERED",
+  "RECEIVED",
   "CANCELED",
 ];
 
@@ -62,7 +64,15 @@ function resolveOrderStatusTone(status: OrderStatus): StatusTone {
     return "info";
   }
 
+  if (status === "OUT_FOR_DELIVERY") {
+    return "warning";
+  }
+
   if (status === "DELIVERED") {
+    return "success";
+  }
+
+  if (status === "RECEIVED") {
     return "success";
   }
 
@@ -81,13 +91,18 @@ export function OrdersOpsPanel() {
   const pendingCount = useMemo(
     () =>
       orders.filter((order) =>
-        ["CREATED", "CONFIRMED", "IN_PROGRESS"].includes(order.status),
+        ["CREATED", "CONFIRMED", "IN_PROGRESS", "OUT_FOR_DELIVERY"].includes(
+          order.status,
+        ),
       ).length,
     [orders],
   );
 
   const deliveredCount = useMemo(
-    () => orders.filter((order) => order.status === "DELIVERED").length,
+    () =>
+      orders.filter((order) =>
+        ["DELIVERED", "RECEIVED"].includes(order.status),
+      ).length,
     [orders],
   );
 

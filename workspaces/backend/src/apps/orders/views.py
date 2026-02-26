@@ -1,7 +1,10 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Sum
+from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -19,10 +22,13 @@ from apps.accounts.permissions import (
     RoleMatrixPermission,
 )
 from apps.accounts.services import SystemRole
+from apps.catalog.models import MenuDay
 from apps.common.csv_export import build_csv_response
 from apps.common.reports import parse_period
+from apps.procurement.models import Purchase, PurchaseRequest, PurchaseRequestStatus
+from apps.production.models import ProductionBatch, ProductionBatchStatus
 
-from .models import PaymentStatus
+from .models import Order, OrderStatus, Payment, PaymentStatus
 from .selectors import list_orders, list_orders_by_period, list_payments
 from .serializers import (
     OrderSerializer,
@@ -106,6 +112,7 @@ class OrderViewSet(
         "list": ORDER_READ_ROLES,
         "retrieve": ORDER_READ_ROLES,
         "status": (*ORDER_STATUS_UPDATE_ROLES, SystemRole.CLIENTE),
+        "confirm_receipt": (*ORDER_STATUS_UPDATE_ROLES, SystemRole.CLIENTE),
     }
 
     def get_queryset(self):
@@ -148,6 +155,22 @@ class OrderViewSet(
             updated_order = update_order_status(
                 order_id=order.id,
                 new_status=input_serializer.validated_data["status"],
+                actor_user=request.user,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        output = self.get_serializer(updated_order)
+        return Response(output.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="confirm-receipt")
+    def confirm_receipt(self, request, pk=None):
+        order = self.get_object()
+
+        try:
+            updated_order = update_order_status(
+                order_id=order.id,
+                new_status=OrderStatus.RECEIVED,
                 actor_user=request.user,
             )
         except DjangoValidationError as exc:
@@ -322,3 +345,170 @@ class OrdersExportAPIView(APIView):
 
         filename = f"pedidos_{from_date.isoformat()}_{to_date.isoformat()}.csv"
         return build_csv_response(filename=filename, header=header, rows=rows)
+
+
+class OrdersOpsDashboardAPIView(APIView):
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"GET": MANAGEMENT_ROLES}
+
+    def get(self, _request):
+        today = timezone.localdate()
+
+        menus_hoje = MenuDay.objects.filter(menu_date=today).count()
+        requisicoes_abertas = PurchaseRequest.objects.filter(
+            status=PurchaseRequestStatus.OPEN
+        ).count()
+        requisicoes_aprovadas = PurchaseRequest.objects.filter(
+            status=PurchaseRequestStatus.APPROVED
+        ).count()
+        compras_hoje = Purchase.objects.filter(purchase_date=today).count()
+
+        lotes_hoje = ProductionBatch.objects.filter(production_date=today)
+        lotes_planejados = lotes_hoje.filter(
+            status=ProductionBatchStatus.PLANNED
+        ).count()
+        lotes_em_progresso = lotes_hoje.filter(
+            status=ProductionBatchStatus.IN_PROGRESS
+        ).count()
+        lotes_concluidos = lotes_hoje.filter(status=ProductionBatchStatus.DONE).count()
+
+        pedidos_hoje_qs = Order.objects.filter(delivery_date=today)
+        pedidos_total = pedidos_hoje_qs.count()
+        pedidos_fila = pedidos_hoje_qs.filter(
+            status__in=[
+                OrderStatus.CREATED,
+                OrderStatus.CONFIRMED,
+                OrderStatus.IN_PROGRESS,
+                OrderStatus.OUT_FOR_DELIVERY,
+            ]
+        ).count()
+        pedidos_entregues = pedidos_hoje_qs.filter(status=OrderStatus.DELIVERED).count()
+        pedidos_recebidos = pedidos_hoje_qs.filter(status=OrderStatus.RECEIVED).count()
+
+        receita_hoje = Payment.objects.filter(
+            order__delivery_date=today,
+            status=PaymentStatus.PAID,
+        ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+        pipeline = [
+            {
+                "stage": "Cardapio",
+                "count": menus_hoje,
+                "status": "ok" if menus_hoje > 0 else "warning",
+                "detail": "menus do dia publicados",
+                "path": "/modulos/cardapio",
+            },
+            {
+                "stage": "Compras",
+                "count": requisicoes_abertas + requisicoes_aprovadas,
+                "status": "warning" if requisicoes_abertas > 0 else "ok",
+                "detail": "requisicoes pendentes para suprir estoque",
+                "path": "/modulos/compras",
+            },
+            {
+                "stage": "Producao",
+                "count": lotes_planejados + lotes_em_progresso + lotes_concluidos,
+                "status": "ok" if lotes_concluidos > 0 else "warning",
+                "detail": "lotes planejados, em progresso e concluidos",
+                "path": "/modulos/producao",
+            },
+            {
+                "stage": "Pedidos",
+                "count": pedidos_total,
+                "status": "ok" if pedidos_total > 0 else "neutral",
+                "detail": "pedidos para entrega hoje",
+                "path": "/modulos/pedidos",
+            },
+            {
+                "stage": "Entrega",
+                "count": pedidos_entregues,
+                "status": "ok" if pedidos_entregues > 0 else "neutral",
+                "detail": "pedidos marcados como entregues",
+                "path": "/modulos/pedidos",
+            },
+            {
+                "stage": "Confirmacao",
+                "count": pedidos_recebidos,
+                "status": "ok" if pedidos_recebidos > 0 else "neutral",
+                "detail": "confirmacoes de recebimento do cliente",
+                "path": "/modulos/pedidos",
+            },
+        ]
+
+        alerts: list[dict] = []
+        if requisicoes_abertas > 0:
+            alerts.append(
+                {
+                    "level": "warning",
+                    "title": "Compras pendentes",
+                    "detail": (
+                        f"Existem {requisicoes_abertas} requisicoes abertas "
+                        "para compra."
+                    ),
+                    "path": "/modulos/compras",
+                }
+            )
+        if lotes_planejados > 0 and lotes_concluidos == 0:
+            alerts.append(
+                {
+                    "level": "info",
+                    "title": "Producao aguardando conclusao",
+                    "detail": (
+                        f"{lotes_planejados} lote(s) planejado(s) ainda sem conclusao."
+                    ),
+                    "path": "/modulos/producao",
+                }
+            )
+        if pedidos_fila > 0:
+            alerts.append(
+                {
+                    "level": "info",
+                    "title": "Fila de pedidos ativa",
+                    "detail": f"{pedidos_fila} pedido(s) em fila operacional.",
+                    "path": "/modulos/pedidos",
+                }
+            )
+
+        series = []
+        for day_offset in range(6, -1, -1):
+            target_day = today - timedelta(days=day_offset)
+            total_orders = Order.objects.filter(delivery_date=target_day).count()
+            paid_revenue = Payment.objects.filter(
+                order__delivery_date=target_day,
+                status=PaymentStatus.PAID,
+            ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+            total_deliveries = Order.objects.filter(
+                delivery_date=target_day,
+                status__in=[OrderStatus.DELIVERED, OrderStatus.RECEIVED],
+            ).count()
+            series.append(
+                {
+                    "date": target_day.isoformat(),
+                    "orders": total_orders,
+                    "revenue": f"{paid_revenue:.2f}",
+                    "deliveries": total_deliveries,
+                }
+            )
+
+        return Response(
+            {
+                "generated_at": timezone.now().isoformat(),
+                "kpis": {
+                    "menus_hoje": menus_hoje,
+                    "requisicoes_abertas": requisicoes_abertas,
+                    "requisicoes_aprovadas": requisicoes_aprovadas,
+                    "compras_hoje": compras_hoje,
+                    "lotes_planejados": lotes_planejados,
+                    "lotes_em_progresso": lotes_em_progresso,
+                    "lotes_concluidos": lotes_concluidos,
+                    "pedidos_hoje": pedidos_total,
+                    "pedidos_fila": pedidos_fila,
+                    "pedidos_entregues": pedidos_entregues,
+                    "pedidos_recebidos": pedidos_recebidos,
+                    "receita_hoje": f"{receita_hoje:.2f}",
+                },
+                "pipeline": pipeline,
+                "alerts": alerts,
+                "series_last_7_days": series,
+            }
+        )

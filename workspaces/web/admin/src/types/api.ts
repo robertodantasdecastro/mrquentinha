@@ -57,7 +57,9 @@ export type OrderStatus =
   | "CREATED"
   | "CONFIRMED"
   | "IN_PROGRESS"
+  | "OUT_FOR_DELIVERY"
   | "DELIVERED"
+  | "RECEIVED"
   | "CANCELED";
 
 export type OrderItemData = {
@@ -315,6 +317,59 @@ export type PurchaseRequestFromMenuResultData = {
   purchase_request_id: number | null;
   message: string;
   items: PurchaseRequestFromMenuItemData[];
+  alerts?: {
+    email?: {
+      configured?: boolean;
+      sent_count?: number;
+      recipients?: string[];
+    };
+    whatsapp?: {
+      configured?: boolean;
+      sent?: boolean;
+      error?: string | null;
+    };
+  };
+};
+
+export type OpsPipelineStageData = {
+  stage: string;
+  count: number;
+  status: "ok" | "warning" | "info" | "neutral";
+  detail: string;
+  path: string;
+};
+
+export type OpsAlertData = {
+  level: "warning" | "info" | "danger";
+  title: string;
+  detail: string;
+  path: string;
+};
+
+export type OrdersOpsDashboardData = {
+  generated_at: string;
+  kpis: {
+    menus_hoje: number;
+    requisicoes_abertas: number;
+    requisicoes_aprovadas: number;
+    compras_hoje: number;
+    lotes_planejados: number;
+    lotes_em_progresso: number;
+    lotes_concluidos: number;
+    pedidos_hoje: number;
+    pedidos_fila: number;
+    pedidos_entregues: number;
+    pedidos_recebidos: number;
+    receita_hoje: string;
+  };
+  pipeline: OpsPipelineStageData[];
+  alerts: OpsAlertData[];
+  series_last_7_days: Array<{
+    date: string;
+    orders: number;
+    revenue: string;
+    deliveries: number;
+  }>;
 };
 
 export type PurchaseItemData = {
