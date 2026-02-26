@@ -56,9 +56,34 @@ function resolveBrowserBaseUrl(): string {
   return `${protocol}//${hostname}:8000`;
 }
 
+function isLoopbackHost(host: string): boolean {
+  return host === "localhost" || host === "127.0.0.1";
+}
+
+function shouldPreferBrowserHostBaseUrl(fromEnv: string): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const browserHost = window.location.hostname;
+  if (!browserHost || isLoopbackHost(browserHost)) {
+    return false;
+  }
+
+  try {
+    const envUrl = new URL(fromEnv);
+    return isLoopbackHost(envUrl.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function getApiBaseUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") ?? "";
   if (fromEnv) {
+    if (shouldPreferBrowserHostBaseUrl(fromEnv)) {
+      return resolveBrowserBaseUrl();
+    }
     return fromEnv;
   }
 

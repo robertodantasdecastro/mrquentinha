@@ -60,7 +60,7 @@ Comportamento do script:
 - encerra processo antigo do `next dev` na porta `3001` (SIGINT e depois SIGTERM);
 - remove lock stale em `workspaces/web/client/.next/dev/lock` quando nao houver processo ativo;
 - define default de ambiente se nao estiver exportado:
-  - `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000`
+  - `NEXT_PUBLIC_API_BASE_URL=http://<IP_PRIMARIO_DA_VM>:8000` (fallback `127.0.0.1:8000`)
 - sobe o client em `http://0.0.0.0:3001`.
 
 Se voce quiser validar especificamente em `localhost:3000` (sem portal na mesma porta):

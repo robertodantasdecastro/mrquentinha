@@ -115,7 +115,14 @@ if [[ ! -d node_modules ]]; then
   npm install
 fi
 
-export NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:8000}"
+if [[ -z "${NEXT_PUBLIC_API_BASE_URL:-}" ]]; then
+  primary_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  if [[ -n "$primary_ip" ]]; then
+    export NEXT_PUBLIC_API_BASE_URL="http://$primary_ip:8000"
+  else
+    export NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8000"
+  fi
+fi
 export NEXT_PUBLIC_DEMO_CUSTOMER_ID="${NEXT_PUBLIC_DEMO_CUSTOMER_ID:-1}"
 
 echo "[client] NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL"
