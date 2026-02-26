@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from datetime import date
+from decimal import Decimal
 from io import BytesIO
 
 import pytest
@@ -13,6 +15,7 @@ from apps.catalog.models import (
     NutritionSource,
 )
 from apps.ocr_ai.models import OCRJob, OCRJobStatus, OCRKind
+from apps.procurement.models import Purchase, PurchaseItem
 
 
 def build_test_image(*, filename: str = "ocr.png") -> SimpleUploadedFile:
@@ -126,3 +129,109 @@ def test_apply_ocr_job_para_ingredient_preenche_nutrition_fact(
 
     job = OCRJob.objects.get(pk=job_id)
     assert job.status == OCRJobStatus.APPLIED
+
+
+@pytest.mark.django_db
+def test_apply_ocr_job_para_purchase_item_salva_imagem_de_rotulo(
+    client, settings, tmp_path
+):
+    settings.MEDIA_ROOT = tmp_path / "media"
+
+    ingredient = Ingredient.objects.create(
+        name="cenoura teste",
+        unit=IngredientUnit.KILOGRAM,
+    )
+    purchase = Purchase.objects.create(
+        supplier_name="Fornecedor OCR",
+        purchase_date=date(2026, 2, 26),
+        total_amount=Decimal("10.00"),
+    )
+    purchase_item = PurchaseItem.objects.create(
+        purchase=purchase,
+        ingredient=ingredient,
+        qty=Decimal("1.000"),
+        unit=IngredientUnit.KILOGRAM,
+        unit_price=Decimal("10.00"),
+    )
+
+    create_response = client.post(
+        "/api/v1/ocr/jobs/",
+        data={
+            "kind": OCRKind.LABEL_FRONT,
+            "image": build_test_image(filename="label-front.png"),
+            "raw_text": "Produto: Cenoura teste",
+        },
+    )
+    assert create_response.status_code == 201
+    job_id = create_response.json()["id"]
+
+    apply_response = client.post(
+        f"/api/v1/ocr/jobs/{job_id}/apply/",
+        data=json.dumps(
+            {
+                "target_type": "PURCHASE_ITEM",
+                "target_id": purchase_item.id,
+                "mode": "merge",
+            }
+        ),
+        content_type="application/json",
+    )
+
+    assert apply_response.status_code == 200
+    apply_body = apply_response.json()
+    assert apply_body["status"] == OCRJobStatus.APPLIED
+    assert apply_body["target_type"] == "PURCHASE_ITEM"
+    assert apply_body["saved_image_field"] == "label_front_image"
+
+    purchase_item.refresh_from_db()
+    assert purchase_item.label_front_image.name
+    assert purchase_item.metadata["ocr"]["job_id"] == job_id
+
+
+@pytest.mark.django_db
+def test_apply_ocr_job_para_purchase_salva_imagem_de_comprovante(
+    client, settings, tmp_path
+):
+    settings.MEDIA_ROOT = tmp_path / "media"
+
+    purchase = Purchase.objects.create(
+        supplier_name="Fornecedor OCR",
+        purchase_date=date(2026, 2, 26),
+        total_amount=Decimal("58.90"),
+    )
+
+    create_response = client.post(
+        "/api/v1/ocr/jobs/",
+        data={
+            "kind": OCRKind.RECEIPT,
+            "image": build_test_image(filename="receipt.png"),
+            "raw_text": "\n".join(
+                [
+                    "Fornecedor: Fornecedor OCR",
+                    "NF: NF-77",
+                    "Total R$ 58,90",
+                ]
+            ),
+        },
+    )
+    assert create_response.status_code == 201
+    job_id = create_response.json()["id"]
+
+    apply_response = client.post(
+        f"/api/v1/ocr/jobs/{job_id}/apply/",
+        data=json.dumps(
+            {
+                "target_type": "PURCHASE",
+                "target_id": purchase.id,
+                "mode": "merge",
+            }
+        ),
+        content_type="application/json",
+    )
+    assert apply_response.status_code == 200
+    apply_body = apply_response.json()
+    assert apply_body["target_type"] == "PURCHASE"
+    assert apply_body["saved_image_field"] == "receipt_image"
+
+    purchase.refresh_from_db()
+    assert purchase.receipt_image.name

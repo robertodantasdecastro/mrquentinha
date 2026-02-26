@@ -10,8 +10,12 @@ import type {
   AdminUserData,
   AssignUserRolesPayload,
   AssignUserRolesResultData,
+  ApplyOcrPayload,
+  ApplyOcrResultData,
   CreateDishPayload,
   CreateIngredientPayload,
+  OcrJobData,
+  OcrKind,
   CreatePurchasePayload,
   CreateStockMovementPayload,
   CreateProductionBatchPayload,
@@ -31,6 +35,7 @@ import type {
   PortalSectionData,
   PortalSectionWritePayload,
   PurchaseData,
+  PurchaseItemData,
   PurchaseRequestData,
   PurchaseRequestFromMenuResultData,
   ProcurementRequestStatus,
@@ -811,6 +816,73 @@ export async function createPurchaseAdmin(
   payload: CreatePurchasePayload,
 ): Promise<PurchaseData> {
   return requestJson<PurchaseData>("/api/v1/procurement/purchases/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadPurchaseReceiptImageAdmin(
+  purchaseId: number,
+  file: File,
+): Promise<PurchaseData> {
+  const body = new FormData();
+  body.append("receipt_image", file);
+
+  return requestFormData<PurchaseData>(
+    `/api/v1/procurement/purchases/${purchaseId}/receipt-image/`,
+    {
+      method: "POST",
+      auth: true,
+      body,
+    },
+  );
+}
+
+export async function uploadPurchaseItemLabelImageAdmin(
+  purchaseId: number,
+  purchaseItemId: number,
+  file: File,
+  side: "front" | "back" = "front",
+): Promise<PurchaseItemData> {
+  const body = new FormData();
+  body.append("label_image", file);
+  body.append("side", side);
+
+  return requestFormData<PurchaseItemData>(
+    `/api/v1/procurement/purchases/${purchaseId}/items/${purchaseItemId}/label-image/`,
+    {
+      method: "POST",
+      auth: true,
+      body,
+    },
+  );
+}
+
+export async function createOcrJobAdmin(
+  kind: OcrKind,
+  file: File,
+  rawText?: string,
+): Promise<OcrJobData> {
+  const body = new FormData();
+  body.append("kind", kind);
+  body.append("image", file);
+  if (rawText && rawText.trim()) {
+    body.append("raw_text", rawText.trim());
+  }
+
+  return requestFormData<OcrJobData>("/api/v1/ocr/jobs/", {
+    method: "POST",
+    auth: true,
+    body,
+  });
+}
+
+export async function applyOcrJobAdmin(
+  jobId: number,
+  payload: ApplyOcrPayload,
+): Promise<ApplyOcrResultData> {
+  return requestJson<ApplyOcrResultData>(`/api/v1/ocr/jobs/${jobId}/apply/`, {
     method: "POST",
     auth: true,
     body: JSON.stringify(payload),

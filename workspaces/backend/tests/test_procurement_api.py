@@ -1,8 +1,10 @@
 import json
 from datetime import date
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.catalog.models import (
     Dish,
@@ -15,6 +17,20 @@ from apps.catalog.models import (
 from apps.finance.models import APBill
 from apps.inventory.selectors import get_stock_by_ingredient
 from apps.procurement.models import PurchaseRequest
+
+
+def build_test_image(*, filename: str = "label.png") -> SimpleUploadedFile:
+    from PIL import Image
+
+    image = Image.new("RGB", (32, 32), color=(245, 245, 245))
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+
+    return SimpleUploadedFile(
+        filename,
+        buffer.getvalue(),
+        content_type="image/png",
+    )
 
 
 @pytest.mark.django_db
@@ -143,3 +159,45 @@ def test_procurement_request_from_menu_endpoint_gera_purchase_request(client):
     purchase_request = PurchaseRequest.objects.get(pk=body["purchase_request_id"])
     assert purchase_request.items.count() == 1
     assert purchase_request.items.first().required_qty == Decimal("3.000")
+
+
+@pytest.mark.django_db
+def test_procurement_purchase_item_label_image_endpoint_salva_arquivo(client):
+    ingredient = Ingredient.objects.create(name="cenoura", unit=IngredientUnit.KILOGRAM)
+
+    payload = {
+        "supplier_name": "Fornecedor Foto",
+        "purchase_date": "2026-02-26",
+        "items": [
+            {
+                "ingredient": ingredient.id,
+                "qty": "2.000",
+                "unit": "kg",
+                "unit_price": "5.00",
+            }
+        ],
+    }
+
+    create_response = client.post(
+        "/api/v1/procurement/purchases/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert create_response.status_code == 201
+
+    purchase_body = create_response.json()
+    purchase_id = purchase_body["id"]
+    purchase_item_id = purchase_body["purchase_items"][0]["id"]
+
+    upload_response = client.post(
+        f"/api/v1/procurement/purchases/{purchase_id}/items/{purchase_item_id}/label-image/",
+        data={
+            "side": "front",
+            "label_image": build_test_image(),
+        },
+    )
+
+    assert upload_response.status_code == 200
+    upload_body = upload_response.json()
+    assert upload_body["id"] == purchase_item_id
+    assert upload_body["label_front_image_url"] is not None

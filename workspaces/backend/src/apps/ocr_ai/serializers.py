@@ -50,7 +50,9 @@ class OCRJobSerializer(serializers.ModelSerializer):
 
 
 class OCRJobApplySerializer(serializers.Serializer):
-    target_type = serializers.ChoiceField(choices=["INGREDIENT", "PURCHASE_ITEM"])
+    target_type = serializers.ChoiceField(
+        choices=["INGREDIENT", "PURCHASE_ITEM", "PURCHASE"]
+    )
     target_id = serializers.IntegerField(min_value=1)
     mode = serializers.ChoiceField(choices=["overwrite", "merge"], default="merge")
 
@@ -61,6 +63,7 @@ class OCRJobApplyResultSerializer(serializers.Serializer):
     target_type = serializers.CharField()
     target_id = serializers.IntegerField()
     nutrition_fact_id = serializers.IntegerField(required=False)
+    saved_image_field = serializers.CharField(required=False, allow_null=True)
 
     def create(self, validated_data):
         raise NotImplementedError
@@ -70,7 +73,9 @@ class OCRJobApplyResultSerializer(serializers.Serializer):
 
 
 class OCRJobApplyServiceSerializer(serializers.Serializer):
-    target_type = serializers.ChoiceField(choices=["INGREDIENT", "PURCHASE_ITEM"])
+    target_type = serializers.ChoiceField(
+        choices=["INGREDIENT", "PURCHASE_ITEM", "PURCHASE"]
+    )
     target_id = serializers.IntegerField(min_value=1)
     mode = serializers.ChoiceField(choices=["overwrite", "merge"], default="merge")
 

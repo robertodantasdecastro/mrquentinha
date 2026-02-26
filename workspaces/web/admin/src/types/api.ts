@@ -357,6 +357,37 @@ export type CreatePurchasePayload = {
   items: CreatePurchaseItemPayload[];
 };
 
+export type OcrKind = "LABEL_FRONT" | "LABEL_BACK" | "RECEIPT";
+
+export type OcrJobStatus = "PENDING" | "PROCESSED" | "APPLIED" | "FAILED";
+
+export type OcrJobData = {
+  id: number;
+  kind: OcrKind;
+  status: OcrJobStatus;
+  image_url: string | null;
+  raw_text: string | null;
+  parsed_json: Record<string, unknown>;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ApplyOcrPayload = {
+  target_type: "INGREDIENT" | "PURCHASE_ITEM" | "PURCHASE";
+  target_id: number;
+  mode: "overwrite" | "merge";
+};
+
+export type ApplyOcrResultData = {
+  job_id: number;
+  status: OcrJobStatus;
+  target_type: "INGREDIENT" | "PURCHASE_ITEM" | "PURCHASE";
+  target_id: number;
+  nutrition_fact_id?: number;
+  saved_image_field?: string | null;
+};
+
 export type ProductionBatchStatus =
   | "PLANNED"
   | "IN_PROGRESS"

@@ -949,6 +949,7 @@ export function DishCompositionPanel() {
                   <input
                     type="file"
                     accept="image/*"
+                    capture="environment"
                     onChange={(event) =>
                       setIngredientImageFile(event.currentTarget.files?.[0] ?? null)
                     }
@@ -1012,6 +1013,7 @@ export function DishCompositionPanel() {
                   <input
                     type="file"
                     accept="image/*"
+                    capture="environment"
                     onChange={(event) =>
                       setDishImageFile(event.currentTarget.files?.[0] ?? null)
                     }

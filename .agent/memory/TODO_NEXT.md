@@ -29,4 +29,5 @@ Fila atual:
 24. [x] T6.3.2-A3 Midias LetsFit multi-frontend (backend, portal, client, mobile) com catalogo unico de fotos - concluida em 26/02/2026.
 25. [x] T9.1.3-A4 Cardapio concluido no Admin: edicao de pratos/insumos e composicao completa com validacoes de operacao - concluida em 26/02/2026.
 26. [x] T9.1.3-A5 Fotos dinamicas de pratos + insumos no banco/API para todos os frontends - concluida em 26/02/2026.
-27. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
+27. [x] T9.1.3-A6 Captura/upload de imagens de compra + OCR com persistencia no destino final - concluida em 26/02/2026.
+28. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).

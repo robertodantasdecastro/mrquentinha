@@ -1,11 +1,14 @@
 import re
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db import transaction
+from django.utils.text import slugify
 
 from apps.catalog.models import NutritionFact, NutritionSource
-from apps.procurement.models import PurchaseItem
+from apps.procurement.models import Purchase, PurchaseItem
 
 from .models import OCRJob, OCRJobStatus, OCRKind
 
@@ -359,6 +362,64 @@ def _deep_merge_dicts(base: dict, incoming: dict) -> dict:
     return merged
 
 
+def _save_ocr_image_into_field(
+    *,
+    job: OCRJob,
+    target_instance,
+    field_name: str,
+    mode: str,
+) -> bool:
+    target_field = getattr(target_instance, field_name)
+    if mode != "overwrite" and target_field:
+        return False
+
+    with job.image.open("rb"):
+        image_bytes = job.image.read()
+
+    extension = Path(job.image.name).suffix or ".jpg"
+    target_slug = slugify(target_instance.__class__.__name__) or "target"
+    filename = (
+        f"ocr/applied/{target_slug}-{target_instance.id}-" f"job-{job.id}{extension}"
+    )
+    target_field.save(filename, ContentFile(image_bytes), save=False)
+    return True
+
+
+def _resolve_purchase_item_image_field(kind: str) -> str:
+    if kind == OCRKind.LABEL_FRONT:
+        return "label_front_image"
+    if kind == OCRKind.LABEL_BACK:
+        return "label_back_image"
+    raise ValidationError(
+        "Somente LABEL_FRONT/LABEL_BACK podem ser aplicados em PURCHASE_ITEM."
+    )
+
+
+def _apply_to_purchase(*, job: OCRJob, purchase_id: int, mode: str) -> dict:
+    purchase = Purchase.objects.filter(pk=purchase_id).first()
+    if purchase is None:
+        raise ValidationError("Compra de destino nao encontrada.")
+
+    if job.kind != OCRKind.RECEIPT:
+        raise ValidationError("Somente OCR de RECEIPT pode ser aplicado em PURCHASE.")
+
+    saved_image = _save_ocr_image_into_field(
+        job=job,
+        target_instance=purchase,
+        field_name="receipt_image",
+        mode=mode,
+    )
+
+    if saved_image:
+        purchase.save(update_fields=["receipt_image"])
+
+    return {
+        "target_type": "PURCHASE",
+        "target_id": purchase.id,
+        "saved_image_field": "receipt_image" if saved_image else None,
+    }
+
+
 def _apply_to_purchase_item(*, job: OCRJob, purchase_item_id: int, mode: str) -> dict:
     purchase_item = PurchaseItem.objects.filter(pk=purchase_item_id).first()
     if purchase_item is None:
@@ -380,11 +441,24 @@ def _apply_to_purchase_item(*, job: OCRJob, purchase_item_id: int, mode: str) ->
             purchase_item.metadata or {}, incoming_metadata
         )
 
-    purchase_item.save(update_fields=["metadata"])
+    image_field_name = _resolve_purchase_item_image_field(job.kind)
+    saved_image = _save_ocr_image_into_field(
+        job=job,
+        target_instance=purchase_item,
+        field_name=image_field_name,
+        mode=mode,
+    )
+
+    fields_to_update = ["metadata"]
+    if saved_image:
+        fields_to_update.append(image_field_name)
+
+    purchase_item.save(update_fields=fields_to_update)
 
     return {
         "target_type": "PURCHASE_ITEM",
         "target_id": purchase_item.id,
+        "saved_image_field": image_field_name if saved_image else None,
     }
 
 
@@ -417,8 +491,16 @@ def apply_ocr_job(
             purchase_item_id=target_id,
             mode=mode,
         )
+    elif target_type == "PURCHASE":
+        result = _apply_to_purchase(
+            job=job,
+            purchase_id=target_id,
+            mode=mode,
+        )
     else:
-        raise ValidationError("target_type invalido. Use INGREDIENT ou PURCHASE_ITEM.")
+        raise ValidationError(
+            "target_type invalido. Use INGREDIENT, PURCHASE_ITEM ou PURCHASE."
+        )
 
     job.status = OCRJobStatus.APPLIED
     job.save(update_fields=["status", "updated_at"])

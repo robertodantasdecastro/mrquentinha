@@ -13,7 +13,7 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
-- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A5`, `6.3.2-A3`, `T9.1.1-HF1`, `T9.1.1-HF2`, `T9.1.1-HF3`, `T9.1.1-HF4`.
+- Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A6`, `6.3.2-A3`, `T9.1.1-HF1`, `T9.1.1-HF2`, `T9.1.1-HF3`, `T9.1.1-HF4`.
 - Etapa ativa: `6.2` (ownership Antigravity para consolidacao visual do portal).
 - Proxima subetapa recomendada para Codex: `T8.0.1` (discovery de financas pessoais com segregacao de escopo).
 - Entrega parcial de `T6.3.2` concluida em 26/02/2026: Admin Web ganhou modulo `Portal CMS` com selecao de template ativo e acao de publicacao da configuracao.
@@ -22,6 +22,7 @@
 - Entrega parcial de `T9.1.3` concluida em 26/02/2026: Admin Web cobriu ciclo operacional de composicao de prato, compras e periodos diarios de refeicao.
 - Entrega complementar de `T9.1.3` concluida em 26/02/2026: Cardapio no Admin com edicao de prato/insumo e composicao completa.
 - Entrega complementar de `T9.1.3` concluida em 26/02/2026 (`A5`): fotos de pratos/insumos sincronizadas no banco com fallback local e retorno da composicao com `image_url` no cardapio para portal/client/mobile.
+- Entrega complementar de `T9.1.3` concluida em 26/02/2026 (`A6`): fluxo de compras no Admin com captura/upload por camera para comprovante e produto, OCR aplicado automaticamente e persistencia das fotos no destino final (`purchase`/`purchase_item`).
 - Entrega concluida em 26/02/2026 (`T6.3.2-A3`): midias LetsFit dinamicas no CMS/Portal, editor de secoes no Admin e upload de fotos para insumos/pratos com contrato compartilhado para mobile.
 - Hotfix mais recente: rotas diretas do Admin (`/modulos` e `/prioridades`) corrigidas com redirect para as ancoras da home, eliminando 404 em acesso por URL direta.
 - Fechamento T9.1.2: relatorios ativos no Admin com exportacao CSV por modulo (Pedidos/Compras/Producao/Financeiro/Relatorios), filtro por periodo e rotulos pt-BR de status operacionais.

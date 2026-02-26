@@ -727,3 +727,31 @@
     - backend: `ruff`, `black --check`, `pytest tests/test_catalog_photo_sync_command.py tests/test_catalog_api.py`;
     - frontend: `npm run lint && npm run build` em `web/portal` e `web/client`;
     - fluxo completo: `bash scripts/quality_gate_all.sh` -> `OK`.
+
+- T9.1.3-A6 (26/02/2026): captura/upload de imagens operacionais (compras + OCR)
+  - backend/ocr:
+    - `apply_ocr_job` passou a aceitar `target_type=PURCHASE`;
+    - ao aplicar OCR com sucesso, a foto do job agora e gravada automaticamente no destino:
+      - `PURCHASE` + `RECEIPT` -> `purchase.receipt_image`;
+      - `PURCHASE_ITEM` + `LABEL_FRONT/LABEL_BACK` -> `label_front_image/label_back_image`;
+    - resultado do apply inclui `saved_image_field`.
+  - backend/procurement:
+    - novo endpoint multipart para foto de item da compra:
+      - `POST/PATCH /api/v1/procurement/purchases/{id}/items/{item_id}/label-image/`
+      - suporta `side=front|back`.
+  - admin web/compras:
+    - formulario de compra ganhou captura/upload de comprovante com `accept=\"image/*\"` + `capture=\"environment\"`;
+    - cada item da compra ganhou captura/upload da foto do produto para OCR;
+    - opcao de aplicar OCR automaticamente nas fotos enviadas;
+    - fluxo de registro passou a:
+      - criar compra,
+      - subir comprovante e fotos dos itens,
+      - criar/aplicar OCR automaticamente (com `raw_text` guiado para garantir processamento no MVP),
+      - persistir fotos no destino final (compra/item) apos sucesso;
+    - lista de compras recentes passou a exibir icones (comprovante e fotos por item).
+  - admin web/cardapio:
+    - upload de foto de insumo/prato tambem recebeu `capture=\"environment\"`.
+  - validacao executada:
+    - backend: `ruff`, `black --check`, `pytest tests/test_ocr_api.py tests/test_procurement_api.py`;
+    - admin: `npm run lint && npm run build`;
+    - full stack: `bash scripts/quality_gate_all.sh` -> `OK` (`124 passed`).

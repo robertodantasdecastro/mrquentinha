@@ -23,6 +23,7 @@ from .models import Purchase, PurchaseRequest, PurchaseRequestStatus
 from .selectors import list_purchases_by_period
 from .serializers import (
     GeneratePurchaseRequestFromMenuSerializer,
+    PurchaseItemReadSerializer,
     PurchaseRequestFromMenuResultSerializer,
     PurchaseRequestSerializer,
     PurchaseSerializer,
@@ -167,6 +168,35 @@ class PurchaseViewSet(viewsets.ModelViewSet):
         purchase.save(update_fields=["receipt_image", "updated_at"])
 
         output = self.get_serializer(purchase)
+        return Response(output.data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=True,
+        methods=["post", "patch"],
+        url_path=r"items/(?P<item_id>\d+)/label-image",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def label_image(self, request, pk=None, item_id=None):
+        purchase = self.get_object()
+        purchase_item = (
+            purchase.items.filter(pk=item_id).select_related("ingredient").first()
+        )
+        if purchase_item is None:
+            raise DRFValidationError(["Item da compra nao encontrado."])
+
+        image = request.FILES.get("label_image") or request.FILES.get("image")
+        if image is None:
+            raise DRFValidationError(["Envie o arquivo em 'label_image'."])
+
+        side = str(request.data.get("side", "front")).strip().lower()
+        if side not in {"front", "back"}:
+            raise DRFValidationError(["Campo 'side' deve ser 'front' ou 'back'."])
+
+        field_name = "label_front_image" if side == "front" else "label_back_image"
+        setattr(purchase_item, field_name, image)
+        purchase_item.save(update_fields=[field_name])
+
+        output = PurchaseItemReadSerializer(purchase_item, context={"request": request})
         return Response(output.data, status=status.HTTP_200_OK)
 
 
