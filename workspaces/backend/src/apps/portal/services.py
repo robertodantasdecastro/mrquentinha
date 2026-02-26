@@ -107,14 +107,15 @@ DEFAULT_SECTION_FIXTURES = [
         "template_id": "letsfit-clean",
         "page": PortalPage.HOME,
         "key": "hero",
-        "title": "Template LetsFit Clean",
+        "title": "Hero LetsFit",
         "sort_order": 10,
         "body_json": {
             "kicker": "Plano inteligente",
             "headline": "Sua semana organizada com marmitas prontas",
             "subheadline": "Escolha kits e acompanhe seu pedido em tempo real.",
+            "background_image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
             "cta_primary": {"label": "Montar kit", "href": "/cardapio"},
-            "cta_secondary": {"label": "Como funciona", "href": "/contato"},
+            "cta_secondary": {"label": "Como funciona", "href": "/como-funciona"},
         },
     },
     {
@@ -125,9 +126,10 @@ DEFAULT_SECTION_FIXTURES = [
         "sort_order": 20,
         "body_json": {
             "items": [
-                "Rotina sem improviso",
-                "Preparo com padrao",
-                "Entrega recorrente",
+                {"text": "Pronto em 5 min", "icon": "clock"},
+                {"text": "Entrega agendada", "icon": "truck"},
+                {"text": "Ingredientes selecionados", "icon": "check"},
+                {"text": "Pagamento no app", "icon": "card"},
             ]
         },
     },
@@ -135,13 +137,32 @@ DEFAULT_SECTION_FIXTURES = [
         "template_id": "letsfit-clean",
         "page": PortalPage.HOME,
         "key": "categories",
-        "title": "Categorias letsfit-clean",
+        "title": "Categorias letsfit",
         "sort_order": 30,
         "body_json": {
             "items": [
-                {"name": "Base + proteina", "description": "Combinacoes do dia"},
-                {"name": "Low carb", "description": "Opcao com menos carboidrato"},
-                {"name": "Performance", "description": "Reforco proteico"},
+                {
+                    "name": "Dia a dia",
+                    "description": "Comida caseira equilibrada para todos os dias.",
+                    "image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
+                },
+                {
+                    "name": "Low carb",
+                    "description": "Opcao com menos carboidrato e foco em proteina.",
+                    "image_url": "https://images.unsplash.com/photo-1603569283847-aa295f0d016a",
+                },
+                {
+                    "name": "Vegetariano",
+                    "description": (
+                        "Receitas leves com legumes, graos e proteina vegetal."
+                    ),
+                    "image_url": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd",
+                },
+                {
+                    "name": "Kits semanais",
+                    "description": "Pacotes fechados para a semana inteira.",
+                    "image_url": "https://images.unsplash.com/photo-1579113800032-c38bd7635818",
+                },
             ]
         },
     },
@@ -152,11 +173,42 @@ DEFAULT_SECTION_FIXTURES = [
         "title": "Monte seu kit",
         "sort_order": 40,
         "body_json": {
-            "steps": [
-                "Escolha a data",
-                "Selecione pratos",
-                "Confirme e acompanhe",
-            ]
+            "kicker": "Nao sabe o que escolher?",
+            "headline": "Monte seu kit para a semana",
+            "description": (
+                "Selecione dias e objetivo. "
+                "O sistema sugere combinacoes do cardapio do dia."
+            ),
+            "cta_label": "Simular kit personalizado",
+            "cta_href": "/cardapio",
+        },
+    },
+    {
+        "template_id": "letsfit-clean",
+        "page": PortalPage.HOME,
+        "key": "how_to_heat",
+        "title": "Conservacao e aquecimento",
+        "sort_order": 45,
+        "body_json": {
+            "title": "Facil de preparar e armazenar",
+            "subheadline": "As embalagens vao do freezer ao micro-ondas com seguranca.",
+            "cards": [
+                {
+                    "tone": "cold",
+                    "title": "Conservacao",
+                    "description": (
+                        "Geladeira por ate 3 dias ou freezer por ate 30 dias."
+                    ),
+                },
+                {
+                    "tone": "hot",
+                    "title": "Aquecimento",
+                    "description": (
+                        "No micro-ondas por 5 a 7 minutos "
+                        "apos abrir um respiro na embalagem."
+                    ),
+                },
+            ],
         },
     },
     {
@@ -168,12 +220,21 @@ DEFAULT_SECTION_FIXTURES = [
         "body_json": {
             "items": [
                 {
-                    "question": "Posso alterar o pedido?",
-                    "answer": "Sim, ate o horario limite do dia anterior.",
+                    "question": "Como agendar a entrega?",
+                    "answer": "No checkout, selecione a data de entrega disponivel.",
                 },
                 {
                     "question": "Aceita VR/VA?",
-                    "answer": "No MVP, o aceite depende da forma de pagamento.",
+                    "answer": (
+                        "Aceitamos VR e VA conforme rede habilitada no pagamento."
+                    ),
+                },
+                {
+                    "question": "A comida chega congelada?",
+                    "answer": (
+                        "Voce escolhe entre entrega fresca para o dia "
+                        "ou ultracongelada."
+                    ),
                 },
             ]
         },
@@ -224,15 +285,35 @@ def _extract_template_ids(available_templates: list) -> set[str]:
     return template_ids
 
 
+def _seed_sections_if_empty(config: PortalConfig) -> None:
+    if PortalSection.objects.filter(config=config).exists():
+        return
+
+    for fixture in DEFAULT_SECTION_FIXTURES:
+        PortalSection.objects.create(
+            config=config,
+            template_id=fixture["template_id"],
+            page=fixture["page"],
+            key=fixture["key"],
+            title=fixture["title"],
+            body_json=fixture["body_json"],
+            is_enabled=True,
+            sort_order=fixture["sort_order"],
+        )
+
+
 def ensure_portal_config() -> PortalConfig:
     config = get_portal_singleton()
     if config is not None:
+        _seed_sections_if_empty(config)
         return config
 
-    return PortalConfig.objects.create(
+    config = PortalConfig.objects.create(
         singleton_key=PortalConfig.SINGLETON_KEY,
         **DEFAULT_CONFIG_PAYLOAD,
     )
+    _seed_sections_if_empty(config)
+    return config
 
 
 @transaction.atomic

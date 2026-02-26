@@ -1,8 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-
-export type TemplateType = "letsfit-clean" | "classic";
+import type { TemplateType } from "@/lib/portalTemplate";
 
 interface TemplateContextData {
   template: TemplateType;
@@ -14,10 +13,18 @@ const TemplateContext = createContext<TemplateContextData>({
 
 export const useTemplate = () => useContext(TemplateContext);
 
-export function PortalTemplateProvider({ children }: { children: React.ReactNode }) {
-  const [template, setTemplate] = useState<TemplateType>(
-    process.env.NEXT_PUBLIC_PORTAL_TEMPLATE === "letsfit-clean" ? "letsfit-clean" : "classic"
-  );
+export function PortalTemplateProvider({
+  children,
+  initialTemplate = "classic",
+}: {
+  children: React.ReactNode;
+  initialTemplate?: TemplateType;
+}) {
+  const [template, setTemplate] = useState<TemplateType>(initialTemplate);
+
+  useEffect(() => {
+    setTemplate(initialTemplate);
+  }, [initialTemplate]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-portal-template", template);

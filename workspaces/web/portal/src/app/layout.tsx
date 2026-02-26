@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { PortalTemplateProvider } from "@/components/TemplateProvider";
+import { fetchPortalActiveTemplate } from "@/lib/portalTemplate";
 
 import "./globals.css";
 
@@ -33,18 +34,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const template = await fetchPortalActiveTemplate("home");
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: initThemeScript }} />
       </head>
       <body className="bg-bg text-text antialiased">
-        <PortalTemplateProvider>
+        <PortalTemplateProvider initialTemplate={template}>
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-6 md:py-10">

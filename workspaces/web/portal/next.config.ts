@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["http://10.211.55.21:3000", "http://localhost:3000"],
+  allowedDevOrigins: [
+    "10.211.55.21",
+    "10.211.55.2",
+    "localhost",
+    "127.0.0.1",
+  ],
   transpilePackages: ["@mrquentinha/ui"],
   experimental: { externalDir: true },
   images: {
@@ -28,6 +33,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "api.mrquentinha.com.br",
         pathname: "/media/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
       },
     ],
   },

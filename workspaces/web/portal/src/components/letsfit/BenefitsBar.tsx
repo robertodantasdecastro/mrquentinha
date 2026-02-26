@@ -1,21 +1,54 @@
-import { CheckCircle2, Clock, Truck, CreditCard } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  Package,
+  Truck,
+  type LucideIcon,
+} from "lucide-react";
 
-export function BenefitsBar() {
-    const benefits = [
-        { icon: <Clock className="h-6 w-6 text-primary" />, text: "Pronto em 5 min" },
-        { icon: <Truck className="h-6 w-6 text-primary" />, text: "Entrega agendada" },
-        { icon: <CheckCircle2 className="h-6 w-6 text-primary" />, text: "Ingredientes selecionados" },
-        { icon: <CreditCard className="h-6 w-6 text-primary" />, text: "Aceitamos VR e VA" },
-    ];
+export type BenefitItem = {
+  text: string;
+  icon?: string;
+};
 
-    return (
-        <section className="bg-surface py-6 px-4 md:px-8 border-y border-border flex flex-wrap justify-center gap-6 md:gap-12">
-            {benefits.map((benefit, i) => (
-                <div key={i} className="flex items-center gap-3">
-                    {benefit.icon}
-                    <span className="font-medium text-sm text-text">{benefit.text}</span>
-                </div>
-            ))}
-        </section>
-    );
+type BenefitsBarProps = {
+  items?: BenefitItem[];
+};
+
+const ICON_BY_KEY: Record<string, LucideIcon> = {
+  clock: Clock,
+  truck: Truck,
+  check: CheckCircle2,
+  card: CreditCard,
+};
+
+const BENEFITS_DEFAULTS: BenefitItem[] = [
+  { text: "Pronto em 5 min", icon: "clock" },
+  { text: "Entrega agendada", icon: "truck" },
+  { text: "Ingredientes selecionados", icon: "check" },
+  { text: "Pagamento no app", icon: "card" },
+];
+
+function resolveIcon(iconKey?: string): LucideIcon {
+  if (iconKey && ICON_BY_KEY[iconKey]) {
+    return ICON_BY_KEY[iconKey];
+  }
+  return Package;
+}
+
+export function BenefitsBar({ items = BENEFITS_DEFAULTS }: BenefitsBarProps) {
+  return (
+    <section className="flex flex-wrap justify-center gap-6 border-y border-border bg-surface px-4 py-6 md:gap-12 md:px-8">
+      {items.map((benefit, index) => {
+        const IconComponent = resolveIcon(benefit.icon);
+        return (
+          <div key={`${benefit.text}-${index}`} className="flex items-center gap-3">
+            <IconComponent className="h-6 w-6 text-primary" />
+            <span className="text-sm font-medium text-text">{benefit.text}</span>
+          </div>
+        );
+      })}
+    </section>
+  );
 }

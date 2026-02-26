@@ -10,7 +10,7 @@ import {
   type CardapioSectionKey,
 } from "@/app/modulos/cardapio/sections";
 
-const SECTION_KEYS: CardapioSectionKey[] = ["all", "planejamento", "menus", "tendencias"];
+const SECTION_KEYS: CardapioSectionKey[] = ["all", "planejamento", "composicao", "menus", "tendencias"];
 
 function resolveSectionKey(value: string | string[] | undefined): CardapioSectionKey {
   if (Array.isArray(value)) {

@@ -24,6 +24,18 @@ type MenuItemDraft = {
   isActive: boolean;
 };
 
+type MealPeriodOption = {
+  value: string;
+  label: string;
+};
+
+const MEAL_PERIOD_OPTIONS: MealPeriodOption[] = [
+  { value: "manha-cafe", label: "Manha (Cafe)" },
+  { value: "almoco", label: "Almoco" },
+  { value: "jantar", label: "Jantar (Noite)" },
+  { value: "lanche", label: "Lanche" },
+];
+
 const EMPTY_DRAFT: MenuItemDraft = {
   selected: false,
   salePrice: "0.00",
@@ -59,8 +71,8 @@ function buildTodayDateIso(): string {
   return local.toISOString().slice(0, 10);
 }
 
-function buildDefaultTitle(menuDate: string): string {
-  return `Cardápio ${formatDate(menuDate)}`;
+function buildDefaultTitle(menuDate: string, mealPeriodLabel: string): string {
+  return `Cardapio ${mealPeriodLabel} - ${formatDate(menuDate)}`;
 }
 
 function normalizePrice(value: string): string {
@@ -157,7 +169,7 @@ function buildMenuPayload({
 
   return {
     menu_date: menuDate,
-    title: title.trim() || buildDefaultTitle(menuDate),
+    title: title.trim() || buildDefaultTitle(menuDate, MEAL_PERIOD_OPTIONS[0].label),
     items,
   };
 }
@@ -168,6 +180,7 @@ export function MenuOpsPanel() {
   const [drafts, setDrafts] = useState<Record<number, MenuItemDraft>>({});
   const [editingMenuId, setEditingMenuId] = useState<number | null>(null);
   const [menuDate, setMenuDate] = useState<string>("");
+  const [mealPeriod, setMealPeriod] = useState<string>(MEAL_PERIOD_OPTIONS[0].value);
   const [title, setTitle] = useState<string>("");
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -186,9 +199,12 @@ export function MenuOpsPanel() {
 
   function startCreateMode(availableDishes: DishData[], options?: { keepDate?: boolean }) {
     const nextDate = options?.keepDate && menuDate ? menuDate : todayIso;
+    const selectedPeriodLabel =
+      MEAL_PERIOD_OPTIONS.find((option) => option.value === mealPeriod)?.label ??
+      MEAL_PERIOD_OPTIONS[0].label;
     setEditingMenuId(null);
     setMenuDate(nextDate);
-    setTitle(buildDefaultTitle(nextDate));
+    setTitle(buildDefaultTitle(nextDate, selectedPeriodLabel));
     setDrafts(buildEmptyDrafts(availableDishes));
   }
 
@@ -399,21 +415,54 @@ export function MenuOpsPanel() {
                     type="date"
                     required
                     value={menuDate}
-                    onChange={(event) => setMenuDate(event.currentTarget.value)}
+                    onChange={(event) => {
+                      const nextDate = event.currentTarget.value;
+                      setMenuDate(nextDate);
+                    }}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                   />
                 </label>
 
                 <label className="grid gap-1 text-sm text-muted">
+                  Periodo
+                  <select
+                    value={mealPeriod}
+                    onChange={(event) => setMealPeriod(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  >
+                    {MEAL_PERIOD_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="grid gap-1 text-sm text-muted sm:col-span-2">
                   Título
                   <input
                     required
                     value={title}
                     onChange={(event) => setTitle(event.currentTarget.value)}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-                    placeholder="Cardápio da semana"
+                    placeholder="Cardapio da semana"
                   />
                 </label>
+              </div>
+
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedPeriodLabel =
+                      MEAL_PERIOD_OPTIONS.find((option) => option.value === mealPeriod)?.label ??
+                      MEAL_PERIOD_OPTIONS[0].label;
+                    setTitle(buildDefaultTitle(menuDate || todayIso, selectedPeriodLabel));
+                  }}
+                  className="rounded-md border border-border bg-bg px-3 py-1 text-xs font-semibold text-text transition hover:border-primary hover:text-primary"
+                >
+                  Aplicar titulo padrao
+                </button>
               </div>
 
               <div className="mt-4 space-y-2">

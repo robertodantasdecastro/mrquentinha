@@ -6,6 +6,15 @@
 - Admin Web: cliente de API ganhou suporte aos endpoints de administracao do portal (`list/create/patch/publish` em `/api/v1/portal/admin/config/`).
 - Admin Web: dashboard de modulos atualizado com card do `Portal CMS` na etapa `T6.3.2`.
 - Qualidade: `bash scripts/quality_gate_all.sh` executado com sucesso apos a entrega.
+- Portal Web: integracao de template com CMS concluida no render server-side (`/api/v1/portal/config/`), removendo dependencia de `NEXT_PUBLIC_PORTAL_TEMPLATE`.
+- Portal Web: `layout` e `home` agora leem `active_template` em tempo de requisicao e aplicam fallback seguro para `classic`.
+- Operacao: servico do Portal (porta `3000`) reiniciado para carregar a integracao.
+- Portal Web: fallback automatico da API de cardapio para host atual (`:8000`) quando `NEXT_PUBLIC_API_BASE_URL` nao estiver definido.
+- Web Client: fallback automatico da API para host atual (`:8000`) + tratamento amigavel de falha de rede em `requestJson`.
+- Portal Web: ajuste de `next.config.ts` com `allowedDevOrigins` para IP da VM e `images.unsplash.com` em `images.remotePatterns`.
+- Admin Web (Cardapio): nova secao de composicao para cadastrar ingredientes e pratos (quentinhas) com receita.
+- Admin Web (Compras): fluxo completo de compra operacional com selecao de cardapio, geracao de requisicao e registro de compra com itens.
+- Admin Web (Cardapio): suporte a periodos de refeicao (Manha/Cafe, Almoco, Jantar, Lanche) para padronizar titulos de menu no ciclo diario.
 
 ## 25/02/2026
 - Backend: adicionadas exportacoes CSV (pedidos, compras, producao, fluxo de caixa e DRE) com headers em pt-BR.
@@ -669,3 +678,20 @@
     - `bash scripts/gemini_check.sh`
     - `bash scripts/sync_memory.sh --check`
     - `bash scripts/quality_gate_all.sh`
+
+- T6.3.2-A3 (26/02/2026): midias dinamicas LetsFit multi-frontend
+  - backend portal:
+    - fixtures `letsfit-clean` evoluidas para seções completas (`hero`, `benefits`, `categories`, `kit`, `how_to_heat`, `faq`) com estrutura de fotos/links no `body_json`;
+    - `ensure_portal_config` passou a semear secoes default quando inexistentes (idempotente);
+    - `scripts/start_backend_dev.sh` agora valida escrita em `MEDIA_ROOT` antes de subir o Django.
+  - admin web:
+    - novo editor de conteudo dinamico no modulo Portal (`template`, `pagina`, `secao`, `body_json`);
+    - upload de imagem para insumos e pratos no painel de composicao (`DishCompositionPanel`);
+    - API admin tipada para secoes do portal e upload multipart de imagens.
+  - portal web:
+    - novo `portalTemplate.ts` com fetch server-side do payload completo do CMS;
+    - home LetsFit agora renderiza componentes com dados dinamicos vindos do `body_json` (inclui fotos e CTAs).
+  - mobile:
+    - adicionado contrato compartilhado `workspaces/mobile/brand/contentApi.ts` para consumo dinamico de conteudo/fotos do portal e cardapio.
+  - validacao executada:
+    - `bash scripts/quality_gate_all.sh` (backend lint/test; build portal/client/admin; smoke stack/client) -> `OK`.

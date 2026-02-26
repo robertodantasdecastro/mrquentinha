@@ -15,12 +15,14 @@ import type { DishData, MenuDayData } from "@/types/api";
 import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { MenuOpsPanel } from "@/components/modules/MenuOpsPanel";
+import { DishCompositionPanel } from "@/components/modules/DishCompositionPanel";
 
 export const CARDAPIO_BASE_PATH = "/modulos/cardapio";
 
 export const CARDAPIO_MENU_ITEMS = [
   { key: "all", label: "Todos", href: CARDAPIO_BASE_PATH },
   { key: "planejamento", label: "Planejamento", href: `${CARDAPIO_BASE_PATH}/planejamento#planejamento` },
+  { key: "composicao", label: "Composição", href: `${CARDAPIO_BASE_PATH}/composicao#composicao` },
   { key: "menus", label: "Menus", href: `${CARDAPIO_BASE_PATH}/menus#menus` },
   { key: "tendencias", label: "Tendências", href: `${CARDAPIO_BASE_PATH}/tendencias#tendencias` },
 ];
@@ -28,6 +30,7 @@ export const CARDAPIO_MENU_ITEMS = [
 export type CardapioSectionKey =
   | "all"
   | "planejamento"
+  | "composicao"
   | "menus"
   | "tendencias";
 
@@ -164,6 +167,12 @@ export function CardapioSections({ activeSection = "all" }: CardapioSectionsProp
               </article>
             </div>
           )}
+        </section>
+      )}
+
+      {(showAll || activeSection === "composicao") && (
+        <section id="composicao" className="scroll-mt-24">
+          <DishCompositionPanel />
         </section>
       )}
 

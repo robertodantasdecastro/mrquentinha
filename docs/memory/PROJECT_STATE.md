@@ -3,9 +3,9 @@
 Referencia de atualizacao: 26/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `6.3.2-A3`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
-- Proxima execucao recomendada (unica): `T6.3.2` (Codex apos lock visual `T6.2.1` no Antigravity).
+- Proxima execucao recomendada (unica): `T8.0.1` (discovery de financas pessoais e segregacao de escopo).
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -52,12 +52,16 @@ Referencia de atualizacao: 26/02/2026.
 ### Web Portal (Next.js - 3000)
 - Status: institucional em evolucao de template (`classic` + `letsfit-clean`).
 - Integracao: cardapio por API (`/today/` e `/by-date/`).
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A2`): consumo de `active_template` do CMS em runtime (server-side).
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A2-HF1`): fallback automatico de API no cardapio para host atual (`:8000`) quando variavel de ambiente nao estiver definida.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): template LetsFit passou a consumir secoes dinamicas do CMS (`hero`, `benefits`, `categories`, `kit`, `how_to_heat`, `faq`) incluindo fotos/links via `body_json`.
 - Risco de conflito: alto em paralelo com trilha Antigravity de template.
 
 ### Web Client (Next.js - 3001)
 - Status: auth real concluida (`register/token/refresh/me`).
 - Pedido/historico: escopo autenticado sem demo.
 - Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
+- Atualizacao concluida em 26/02/2026 (`T7.2.3-HF1`): fallback automatico de API para host atual (`:8000`) e mensagem de erro de rede padronizada.
 
 ### Admin Web (Next.js - 3002)
 - Status: `T9.1.2` concluida (relatorios/exportacoes + UX/IX modular).
@@ -68,8 +72,13 @@ Referencia de atualizacao: 26/02/2026.
 - Entrega atual: modulos de Pedidos/Financeiro/Estoque/Cardapio/Compras/Producao e Usuarios/RBAC estaveis, com hotpages, menus contextuais, graficos e relatorios/exportacoes CSV com filtros por periodo.
 - Atualizacao concluida em 25/02/2026 (`T9.1.2`): exportacoes por modulo (Pedidos/Compras/Producao/Financeiro), traducao pt-BR de status operacionais e consolidacao do modulo de Relatorios como ativo.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A1`): modulo `Portal CMS` no Admin Web para selecionar template ativo existente e publicar configuracao de portal.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A2`): Portal Web passou a consumir `active_template` do CMS em runtime (server-side), refletindo mudancas do Admin sem rebuild por variavel de ambiente.
+- Atualizacao concluida em 26/02/2026 (`T9.1.3-A1`): Cardapio ganhou secao de composicao (ingredientes + prato com receita) para viabilizar ciclo completo de operacao.
+- Atualizacao concluida em 26/02/2026 (`T9.1.3-A2`): Compras ganhou registro operacional de compra com itens (entrada em estoque), alem da geracao de requisicao por cardapio com seletor.
+- Atualizacao concluida em 26/02/2026 (`T9.1.3-A3`): Cardapio ganhou padrao de periodos (Manha/Cafe, Almoco, Jantar, Lanche) para organizacao de menus diarios.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): modulo Portal CMS ganhou editor de secoes dinamicas (template/pagina/body_json) e a composicao ganhou upload de fotos para insumos e pratos.
 - Workspace ativo: `workspaces/web/admin`.
-- Proximo alvo: aguardando lock visual `T6.2.1` para iniciar `T6.3.2` (integracao CMS no portal, trilha Codex).
+- Proximo alvo: iniciar `T8.0.1` (discovery de financas pessoais e segregacao LGPD).
 
 ## Portas e scripts oficiais
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
@@ -116,5 +125,5 @@ Referencia de atualizacao: 26/02/2026.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF3`): padronizacao visual global com cores de status (success/warning/danger/info) e aplicacao da logo oficial (PNG original) no Admin Web, Portal e Client.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF4`): rotas diretas `/modulos` e `/prioridades` no Admin Web agora redirecionam para `/#modulos` e `/#prioridades`, evitando erro 404 em acesso por URL/bookmark.
 - T9.1.2 concluida (relatorios/exportacoes no Admin Web com filtro por periodo e exportacao CSV funcional por modulo).
-- Proxima subetapa unica: executar `T6.3.2` apos lock visual `T6.2.1` no Antigravity.
-- Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T6.3.2` (Codex apos lock visual), `T8.0.1`.
+- Proxima subetapa unica: executar `T8.0.1` (descoberta de financas pessoais e segregacao).
+- Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity) e `T8.0.1`.

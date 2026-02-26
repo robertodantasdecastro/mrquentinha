@@ -1,45 +1,71 @@
 import Link from "next/link";
-import { Plus, Minus, ShoppingBag } from "lucide-react";
+import { Minus, Plus, ShoppingBag } from "lucide-react";
 
-export function KitSimulator() {
-    return (
-        <section className="my-16 flex flex-col items-center justify-between rounded-3xl bg-surface border border-border p-8 md:flex-row md:p-12 gap-8">
-            <div className="flex-1">
-                <span className="text-primary font-bold uppercase tracking-wider text-sm mb-2 block">
-                    Não sabe o que escolher?
-                </span>
-                <h2 className="text-3xl font-extrabold text-text mb-4">Monte seu kit para a semana!</h2>
-                <p className="text-muted leading-relaxed mb-6">
-                    Selecione a quantidade de dias e o tipo de dieta. Nós sugerimos as melhores opções do cardápio pra você não se preocupar mais com cozinhar no dia a dia.
-                </p>
-                <Link
-                    href="/cardapio"
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-soft shadow-md shadow-primary/20"
-                >
-                    <ShoppingBag className="w-5 h-5" />
-                    Simular kit personalizado
-                </Link>
-            </div>
+type KitSimulatorProps = {
+  kicker?: string;
+  headline?: string;
+  description?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+};
 
-            <div className="flex-1 w-full max-w-sm rounded-2xl bg-bg p-6 shadow-sm border border-border">
-                {/* Mockup de configurador */}
-                <div className="space-y-6 opacity-70 cursor-not-allowed">
-                    <div className="flex items-center justify-between pointer-events-none">
-                        <span className="font-semibold text-text">Quantidade de dias</span>
-                        <div className="flex items-center gap-3">
-                            <button className="rounded-full bg-surface p-2 text-muted border border-border"><Minus className="w-4 h-4" /></button>
-                            <span className="font-bold text-lg w-4 text-center">5</span>
-                            <button className="rounded-full bg-surface p-2 text-primary border border-primary/20"><Plus className="w-4 h-4" /></button>
-                        </div>
-                    </div>
-                    <div className="space-y-2 pointer-events-none">
-                        <span className="font-semibold text-text">Prefere alguma linha?</span>
-                        <select className="w-full rounded-lg bg-surface border border-border px-3 py-3 text-sm text-text focus:outline-none" disabled>
-                            <option>Mais pedidas da semana</option>
-                        </select>
-                    </div>
-                </div>
+const KIT_DEFAULTS: Required<KitSimulatorProps> = {
+  kicker: "Nao sabe o que escolher?",
+  headline: "Monte seu kit para a semana!",
+  description:
+    "Selecione a quantidade de dias e o tipo de dieta para receber as melhores sugestoes do cardapio.",
+  ctaLabel: "Simular kit personalizado",
+  ctaHref: "/cardapio",
+};
+
+export function KitSimulator(props: KitSimulatorProps) {
+  const data = {
+    ...KIT_DEFAULTS,
+    ...props,
+  };
+
+  return (
+    <section className="my-16 flex flex-col items-center justify-between gap-8 rounded-3xl border border-border bg-surface p-8 md:flex-row md:p-12">
+      <div className="flex-1">
+        <span className="mb-2 block text-sm font-bold uppercase tracking-wider text-primary">
+          {data.kicker}
+        </span>
+        <h2 className="mb-4 text-3xl font-extrabold text-text">{data.headline}</h2>
+        <p className="mb-6 leading-relaxed text-muted">{data.description}</p>
+        <Link
+          href={data.ctaHref}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary-soft"
+        >
+          <ShoppingBag className="h-5 w-5" />
+          {data.ctaLabel}
+        </Link>
+      </div>
+
+      <div className="w-full max-w-sm flex-1 rounded-2xl border border-border bg-bg p-6 shadow-sm">
+        <div className="cursor-not-allowed space-y-6 opacity-70">
+          <div className="pointer-events-none flex items-center justify-between">
+            <span className="font-semibold text-text">Quantidade de dias</span>
+            <div className="flex items-center gap-3">
+              <button className="rounded-full border border-border bg-surface p-2 text-muted">
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="w-4 text-center text-lg font-bold">5</span>
+              <button className="rounded-full border border-primary/20 bg-surface p-2 text-primary">
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
-        </section>
-    );
+          </div>
+          <div className="pointer-events-none space-y-2">
+            <span className="font-semibold text-text">Linha recomendada</span>
+            <select
+              className="w-full rounded-lg border border-border bg-surface px-3 py-3 text-sm text-text focus:outline-none"
+              disabled
+            >
+              <option>Mais pedidas da semana</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

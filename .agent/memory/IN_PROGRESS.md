@@ -3,24 +3,34 @@
 Atualize este arquivo no inicio de qualquer sessao em modo escrita.
 
 ## Registro atual
-- data_hora: 2026-02-26 00:55
+- data_hora: 2026-02-26 01:25
 - agente: codex
 - branch: main
-- etapa: T6.3.2-A1 Admin Web Portal CMS (concluida)
+- etapa: T6.3.2-A3 midias dinamicas multi-frontend (em fechamento)
 - areas_ou_arquivos_tocados:
-  - workspaces/web/admin/src/types/api.ts
-  - workspaces/web/admin/src/lib/api.ts
-  - workspaces/web/admin/src/lib/adminModules.ts
-  - workspaces/web/admin/src/app/modulos/portal/page.tsx
-  - workspaces/web/admin/src/app/modulos/portal/[service]/page.tsx
+  - workspaces/backend/src/apps/portal/services.py
+  - scripts/start_backend_dev.sh
   - workspaces/web/admin/src/app/modulos/portal/sections.tsx
+  - workspaces/web/admin/src/app/modulos/portal/[service]/page.tsx
+  - workspaces/web/admin/src/components/modules/DishCompositionPanel.tsx
+  - workspaces/web/admin/src/types/api.ts
+  - workspaces/web/portal/src/lib/portalTemplate.ts
+  - workspaces/web/portal/src/app/page.tsx
+  - workspaces/web/portal/src/components/letsfit/HeroLetsFit.tsx
+  - workspaces/web/portal/src/components/letsfit/BenefitsBar.tsx
+  - workspaces/web/portal/src/components/letsfit/Categories.tsx
+  - workspaces/web/portal/src/components/letsfit/KitSimulator.tsx
+  - workspaces/web/portal/src/components/letsfit/HowToHeat.tsx
+  - workspaces/web/portal/src/components/letsfit/Faq.tsx
+  - workspaces/mobile/brand/contentApi.ts
+  - workspaces/mobile/brand/README.md
   - docs/memory/CHANGELOG.md
   - docs/memory/PROJECT_STATE.md
   - .agent/memory/CONTEXT_PACK.md
   - .agent/memory/TODO_NEXT.md
   - .agent/memory/IN_PROGRESS.md
-- objetivo_imediato: consolidar trilha T6.3.2 no portal com consumo do CMS sem conflitar com ownership visual do Antigravity.
-- proximo_comando: implementar consumo de `GET /api/v1/portal/config/` no portal com fallback seguro por template/pagina.
+- objetivo_imediato: concluir registro de memoria, commit e push do pacote de midias dinamicas.
+- proximo_comando: atualizar CHANGELOG/CONTEXT_PACK e rodar sync_memory + commit.
 
 ## Registro anterior (manter historico curto)
 - data_hora: 2026-02-25 17:51

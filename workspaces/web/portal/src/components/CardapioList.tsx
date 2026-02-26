@@ -45,16 +45,36 @@ function formatCurrency(value: string): string {
   }).format(numberValue);
 }
 
+function resolveBrowserApiBaseUrl(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  if (!hostname) {
+    return "";
+  }
+
+  return `${protocol}//${hostname}:8000`;
+}
+
+function resolveApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") ?? "";
+  if (envUrl) {
+    return envUrl;
+  }
+
+  return resolveBrowserApiBaseUrl();
+}
+
 export function CardapioList() {
   const [selectedDate, setSelectedDate] = useState<string>(getDefaultDate());
   const [menu, setMenu] = useState<MenuDayData | null>(null);
   const [state, setState] = useState<CardapioState>("loading");
   const [message, setMessage] = useState<string>("Carregando cardapio...");
 
-  const apiBaseUrl = useMemo(
-    () => process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "",
-    [],
-  );
+  const apiBaseUrl = useMemo(resolveApiBaseUrl, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,7 +85,7 @@ export function CardapioList() {
           setMenu(null);
           setState("error");
           setMessage(
-            "Defina NEXT_PUBLIC_API_BASE_URL para carregar o cardapio em tempo real.",
+            "Nao foi possivel identificar a API do backend para carregar o cardapio.",
           );
         }
         return;

@@ -10,7 +10,7 @@ import {
   type PortalSectionKey,
 } from "@/app/modulos/portal/sections";
 
-const SECTION_KEYS: PortalSectionKey[] = ["all", "template", "publicacao"];
+const SECTION_KEYS: PortalSectionKey[] = ["all", "template", "conteudo", "publicacao"];
 
 function resolveSectionKey(value: string | string[] | undefined): PortalSectionKey {
   if (Array.isArray(value)) {

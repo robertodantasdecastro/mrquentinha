@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/workspaces/backend"
 VENV_ACTIVATE="$BACKEND_DIR/.venv/bin/activate"
+MEDIA_DIR="$BACKEND_DIR/media"
 
 if [[ ! -d "$BACKEND_DIR" ]]; then
   echo "[backend] Diretorio nao encontrado: $BACKEND_DIR" >&2
@@ -21,6 +22,19 @@ source "$VENV_ACTIVATE"
 cd "$BACKEND_DIR"
 
 export PYTHONUNBUFFERED=1
+
+mkdir -p "$MEDIA_DIR"
+if [[ ! -w "$MEDIA_DIR" ]]; then
+  echo "[backend] Diretorio de media sem permissao de escrita: $MEDIA_DIR" >&2
+  echo "[backend] Ajuste permissoes do diretorio antes de iniciar o servidor." >&2
+  exit 1
+fi
+
+touch "$MEDIA_DIR/.write_test" 2>/dev/null || {
+  echo "[backend] Falha ao validar escrita em $MEDIA_DIR" >&2
+  exit 1
+}
+rm -f "$MEDIA_DIR/.write_test"
 
 echo "[backend] Aplicando migracoes..."
 python manage.py migrate

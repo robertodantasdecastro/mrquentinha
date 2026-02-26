@@ -10,6 +10,9 @@ import type {
   AdminUserData,
   AssignUserRolesPayload,
   AssignUserRolesResultData,
+  CreateDishPayload,
+  CreateIngredientPayload,
+  CreatePurchasePayload,
   CreateStockMovementPayload,
   CreateProductionBatchPayload,
   DishData,
@@ -18,12 +21,15 @@ import type {
   FinanceKpisPayload,
   FinanceUnreconciledPayload,
   HealthPayload,
+  IngredientData,
   MenuDayData,
   OrderData,
   OrderStatus,
   ProductionBatchData,
   PortalConfigData,
   PortalConfigWritePayload,
+  PortalSectionData,
+  PortalSectionWritePayload,
   PurchaseData,
   PurchaseRequestData,
   PurchaseRequestFromMenuResultData,
@@ -53,6 +59,12 @@ type RequestJsonOptions = Omit<RequestInit, "body"> & {
 type RequestFileResult = {
   blob: Blob;
   filename: string;
+};
+
+type RequestFormDataOptions = Omit<RequestInit, "body"> & {
+  body: FormData;
+  auth?: boolean;
+  allowAuthRetry?: boolean;
 };
 
 type JsonObject = Record<string, unknown>;
@@ -319,6 +331,63 @@ async function requestFile(
     "relatorio.csv";
 
   return { blob, filename };
+}
+
+async function requestFormData<T>(
+  path: string,
+  options: RequestFormDataOptions,
+): Promise<T> {
+  const { auth = false, allowAuthRetry = true, body, headers, ...rest } = options;
+
+  const requestHeaders = new Headers(headers);
+  if (auth) {
+    const accessToken = getStoredAccessToken();
+    if (!accessToken) {
+      throw new ApiError("Sessão não autenticada. Faça login no Admin.", 401);
+    }
+    requestHeaders.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(resolveUrl(path), {
+      ...rest,
+      headers: requestHeaders,
+      body,
+    });
+  } catch {
+    throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
+  }
+
+  if (response.status === 401 && auth && allowAuthRetry) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return requestFormData<T>(path, {
+        ...options,
+        allowAuthRetry: false,
+      });
+    }
+
+    throw new ApiError("Sua sessao expirou. Faca login novamente.", 401);
+  }
+
+  if (!response.ok) {
+    let fallbackMessage = `Erro HTTP ${response.status} ao consultar a API.`;
+
+    try {
+      const payload = (await parseJsonBody<JsonObject>(response)) as unknown;
+      const parsed = parseErrorMessage(payload);
+      if (parsed) {
+        fallbackMessage = parsed;
+      }
+    } catch {
+      // Mantem mensagem padrao.
+    }
+
+    throw new ApiError(fallbackMessage, response.status);
+  }
+
+  return parseJsonBody<T>(response);
 }
 
 export async function loginAccount(username: string, password: string): Promise<AuthTokens> {
@@ -623,6 +692,51 @@ export async function listDishesAdmin(): Promise<DishData[]> {
   return normalizeListPayload(payload);
 }
 
+export async function createDishAdmin(payload: CreateDishPayload): Promise<DishData> {
+  return requestJson<DishData>("/api/v1/catalog/dishes/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listIngredientsAdmin(): Promise<IngredientData[]> {
+  const payload = await requestJson<IngredientData[] | { results?: IngredientData[] }>(
+    "/api/v1/catalog/ingredients/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+
+  return normalizeListPayload(payload);
+}
+
+export async function createIngredientAdmin(
+  payload: CreateIngredientPayload,
+): Promise<IngredientData> {
+  return requestJson<IngredientData>("/api/v1/catalog/ingredients/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadIngredientImageAdmin(
+  ingredientId: number,
+  file: File,
+): Promise<IngredientData> {
+  const body = new FormData();
+  body.append("image", file);
+
+  return requestFormData<IngredientData>(`/api/v1/catalog/ingredients/${ingredientId}/image/`, {
+    method: "POST",
+    auth: true,
+    body,
+  });
+}
+
 export async function listPurchaseRequestsAdmin(): Promise<PurchaseRequestData[]> {
   const payload = await requestJson<
     PurchaseRequestData[] | { results?: PurchaseRequestData[] }
@@ -667,6 +781,30 @@ export async function listPurchasesAdmin(): Promise<PurchaseData[]> {
   );
 
   return normalizeListPayload(payload);
+}
+
+export async function createPurchaseAdmin(
+  payload: CreatePurchasePayload,
+): Promise<PurchaseData> {
+  return requestJson<PurchaseData>("/api/v1/procurement/purchases/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadDishImageAdmin(
+  dishId: number,
+  file: File,
+): Promise<DishData> {
+  const body = new FormData();
+  body.append("image", file);
+
+  return requestFormData<DishData>(`/api/v1/catalog/dishes/${dishId}/image/`, {
+    method: "POST",
+    auth: true,
+    body,
+  });
 }
 
 export async function listProductionBatchesAdmin(): Promise<ProductionBatchData[]> {
@@ -749,6 +887,29 @@ export async function publishPortalConfigAdmin(): Promise<PortalConfigData> {
     method: "POST",
     auth: true,
     body: JSON.stringify({}),
+  });
+}
+
+export async function listPortalSectionsAdmin(): Promise<PortalSectionData[]> {
+  const payload = await requestJson<
+    PortalSectionData[] | { results?: PortalSectionData[] }
+  >("/api/v1/portal/admin/sections/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+
+  return normalizeListPayload(payload);
+}
+
+export async function updatePortalSectionAdmin(
+  sectionId: number,
+  payload: PortalSectionWritePayload,
+): Promise<PortalSectionData> {
+  return requestJson<PortalSectionData>(`/api/v1/portal/admin/sections/${sectionId}/`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
   });
 }
 

@@ -198,8 +198,45 @@ export type DishData = {
   description: string | null;
   yield_portions: number;
   image_url: string | null;
+  composition?: DishCompositionItemData[];
   created_at: string;
   updated_at: string;
+};
+
+export type DishCompositionItemData = {
+  id: number;
+  ingredient: ProcurementIngredientSummaryData;
+  quantity: string;
+  unit: string;
+};
+
+export type DishCompositionItemWritePayload = {
+  ingredient: number;
+  quantity: string;
+  unit?: string;
+};
+
+export type CreateDishPayload = {
+  name: string;
+  description?: string;
+  yield_portions: number;
+  ingredients: DishCompositionItemWritePayload[];
+};
+
+export type IngredientData = {
+  id: number;
+  name: string;
+  unit: IngredientUnit;
+  is_active: boolean;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateIngredientPayload = {
+  name: string;
+  unit: IngredientUnit;
+  is_active?: boolean;
 };
 
 export type MenuItemData = {
@@ -284,6 +321,8 @@ export type PurchaseItemData = {
   unit_price: string;
   tax_amount: string | null;
   expiry_date: string | null;
+  label_front_image_url?: string | null;
+  label_back_image_url?: string | null;
 };
 
 export type PurchaseData = {
@@ -297,6 +336,21 @@ export type PurchaseData = {
   created_at: string;
   updated_at: string;
   purchase_items: PurchaseItemData[];
+};
+
+export type CreatePurchaseItemPayload = {
+  ingredient: number;
+  qty: string;
+  unit: IngredientUnit;
+  unit_price: string;
+  tax_amount?: string;
+};
+
+export type CreatePurchasePayload = {
+  supplier_name: string;
+  invoice_number?: string;
+  purchase_date: string;
+  items: CreatePurchaseItemPayload[];
 };
 
 export type ProductionBatchStatus =
@@ -366,4 +420,24 @@ export type PortalConfigData = {
 
 export type PortalConfigWritePayload = Partial<
   Pick<PortalConfigData, "active_template" | "available_templates">
+>;
+
+export type PortalSectionData = {
+  id: number;
+  config: number;
+  template_id: string;
+  page: string;
+  key: string;
+  title: string;
+  body_json: unknown;
+  is_enabled: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PortalSectionWritePayload = Partial<
+  Pick<PortalSectionData, "title" | "is_enabled" | "sort_order"> & {
+    body_json: unknown;
+  }
 >;

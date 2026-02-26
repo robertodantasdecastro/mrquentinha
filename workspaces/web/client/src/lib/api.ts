@@ -33,15 +33,37 @@ type RequestJsonOptions = Omit<RequestInit, "body"> & {
 
 type JsonObject = Record<string, unknown>;
 
+const NETWORK_ERROR_MESSAGE =
+  "Falha de conexao com a API. Verifique backend (porta 8000) e CORS do Client (porta 3001).";
+
+function resolveBrowserBaseUrl(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  if (!hostname) {
+    return "";
+  }
+
+  return `${protocol}//${hostname}:8000`;
+}
+
 function getApiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
+  const fromEnv = process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") ?? "";
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  return resolveBrowserBaseUrl();
 }
 
 function resolveUrl(path: string): string {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     throw new ApiError(
-      "Defina NEXT_PUBLIC_API_BASE_URL para usar a API em tempo real.",
+      "Nao foi possivel identificar a URL da API do backend.",
       0,
     );
   }
@@ -95,15 +117,20 @@ async function tryRefreshAccessToken(): Promise<boolean> {
     return false;
   }
 
-  const response = await fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      refresh: tokens.refresh,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refresh: tokens.refresh,
+      }),
+    });
+  } catch {
+    return false;
+  }
 
   if (!response.ok) {
     clearAuthTokens();
@@ -150,11 +177,16 @@ async function requestJson<T>(
     requestHeaders.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(resolveUrl(path), {
-    ...rest,
-    headers: requestHeaders,
-    body,
-  });
+  let response: Response;
+  try {
+    response = await fetch(resolveUrl(path), {
+      ...rest,
+      headers: requestHeaders,
+      body,
+    });
+  } catch {
+    throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
+  }
 
   if (response.status === 401 && auth && allowAuthRetry) {
     const refreshed = await tryRefreshAccessToken();
