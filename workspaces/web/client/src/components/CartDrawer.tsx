@@ -1,6 +1,7 @@
 "use client";
 
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
+
 import { formatCurrency } from "@/lib/format";
 import type { CartItem } from "@/types/cart";
 import type { OnlinePaymentMethod } from "@/types/api";
@@ -31,6 +32,8 @@ type CartDrawerProps = {
   onIncrement: (menuItemId: number) => void;
   onDecrement: (menuItemId: number) => void;
   onRemove: (menuItemId: number) => void;
+  isAuthenticated: boolean;
+  onRequireAuth: () => void;
   onCheckout: () => void;
   isCheckoutDisabled: boolean;
 };
@@ -117,9 +120,13 @@ export function CartDrawer({
   onIncrement,
   onDecrement,
   onRemove,
+  isAuthenticated,
+  onRequireAuth,
   onCheckout,
   isCheckoutDisabled,
 }: CartDrawerProps) {
+  const checkoutDisabled = isCheckoutDisabled || !isAuthenticated;
+
   return (
     <aside className="rounded-2xl border border-border bg-surface/85 p-5 shadow-sm lg:sticky lg:top-24 lg:h-fit">
       <div className="flex items-center justify-between gap-2">
@@ -262,13 +269,30 @@ export function CartDrawer({
         </div>
       )}
 
+      {!isAuthenticated && (
+        <div className="mt-4 rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/20 dark:text-amber-300">
+          <p>Faca login na Conta para concluir o pedido com seu perfil.</p>
+          <button
+            type="button"
+            onClick={onRequireAuth}
+            className="mt-2 rounded-full border border-amber-500/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition hover:border-amber-600"
+          >
+            Ir para conta
+          </button>
+        </div>
+      )}
+
       <button
         type="button"
-        onClick={onCheckout}
-        disabled={isCheckoutDisabled}
+        onClick={isAuthenticated ? onCheckout : onRequireAuth}
+        disabled={checkoutDisabled}
         className="mt-4 w-full rounded-full bg-primary px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:bg-border disabled:text-muted"
       >
-        {checkoutState === "submitting" ? "Enviando..." : "Finalizar pedido"}
+        {checkoutState === "submitting"
+          ? "Enviando..."
+          : isAuthenticated
+            ? "Finalizar pedido"
+            : "Entre para finalizar"}
       </button>
     </aside>
   );

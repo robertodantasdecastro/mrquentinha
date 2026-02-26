@@ -44,10 +44,14 @@ O portal define `allowedDevOrigins` em `next.config.ts` para evitar warning de o
 
 ## Variaveis de ambiente
 - `NEXT_PUBLIC_API_BASE_URL`: base da API backend.
+- `NEXT_PUBLIC_CLIENT_AREA_URL`: URL publica da area do cliente (opcional).
+- `NEXT_PUBLIC_ADMIN_URL`: URL publica do admin (opcional).
 
 Exemplo para VM:
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://10.211.55.21:8000
+NEXT_PUBLIC_CLIENT_AREA_URL=http://10.211.55.21:3001
+NEXT_PUBLIC_ADMIN_URL=http://10.211.55.21:3002
 ```
 
 ## Build de producao

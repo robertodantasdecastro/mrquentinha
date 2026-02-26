@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import { ApiError, confirmOrderReceipt, listOrders } from "@/lib/api";
@@ -99,48 +100,52 @@ export function OrderHistoryList() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  const loadOrders = useCallback(async () => {
+    setIsRefreshing(true);
+
+    try {
+      const payload = await listOrders();
+      setOrders(payload);
+      setHistoryState("ready");
+      setErrorMessage("");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setOrders([]);
+        setHistoryState("unauthorized");
+        setErrorMessage(
+          "Sessao nao autenticada. Acesse a aba Conta para entrar e ver seu historico.",
+        );
+        return;
+      }
+
+      setOrders([]);
+      setHistoryState("error");
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
+    setHistoryState("loading");
+    void loadOrders();
+  }, [loadOrders]);
 
-    async function loadOrders() {
-      setHistoryState("loading");
-      setErrorMessage("");
-
-      try {
-        const payload = await listOrders();
-        if (!mounted) {
-          return;
-        }
-
-        setOrders(payload);
-        setHistoryState("ready");
-      } catch (error) {
-        if (!mounted) {
-          return;
-        }
-
-        if (error instanceof ApiError && error.status === 401) {
-          setOrders([]);
-          setHistoryState("unauthorized");
-          setErrorMessage(
-            "Sessao nao autenticada. Acesse a aba Conta para entrar e ver seu historico.",
-          );
-          return;
-        }
-
-        setOrders([]);
-        setHistoryState("error");
-        setErrorMessage(resolveErrorMessage(error));
-      }
+  useEffect(() => {
+    if (historyState !== "ready") {
+      return;
     }
 
-    loadOrders();
+    const intervalId = window.setInterval(() => {
+      void loadOrders();
+    }, 30000);
 
     return () => {
-      mounted = false;
+      window.clearInterval(intervalId);
     };
-  }, []);
+  }, [historyState, loadOrders]);
 
   const sortedOrders = useMemo(
     () =>
@@ -169,11 +174,22 @@ export function OrderHistoryList() {
 
   return (
     <section className="rounded-2xl border border-border bg-surface/80 p-5 shadow-sm">
-      <div className="mb-4 flex flex-col gap-2">
-        <h2 className="text-xl font-bold text-text">Historico de pedidos</h2>
-        <p className="text-sm text-muted">
-          Esta lista utiliza o escopo da sua conta autenticada no backend.
-        </p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-text">Historico de pedidos</h2>
+          <p className="text-sm text-muted">
+            Esta lista utiliza o escopo da sua conta autenticada no backend.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void loadOrders()}
+          disabled={isRefreshing || historyState === "loading"}
+          className="rounded-full border border-border bg-bg px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isRefreshing ? "Atualizando..." : "Atualizar lista"}
+        </button>
       </div>
 
       {historyState === "loading" && (
@@ -184,7 +200,13 @@ export function OrderHistoryList() {
 
       {historyState === "unauthorized" && (
         <div className="rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-4 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
-          {errorMessage}
+          <p>{errorMessage}</p>
+          <Link
+            href="/conta"
+            className="mt-2 inline-flex rounded-full border border-amber-500/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em]"
+          >
+            Ir para conta
+          </Link>
         </div>
       )}
 
@@ -260,7 +282,9 @@ export function OrderHistoryList() {
                         <p>
                           #{payment.id} · {payment.method} · {formatCurrency(payment.amount)}
                         </p>
-                        <StatusPill tone={resolvePaymentTone(payment.status)}>{payment.status}</StatusPill>
+                        <StatusPill tone={resolvePaymentTone(payment.status)}>
+                          {payment.status}
+                        </StatusPill>
                       </div>
                     ))}
                   </div>

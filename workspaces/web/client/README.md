@@ -12,6 +12,7 @@ Stack:
 - Carrinho local com quantidade e total
 - Criacao de pedido autenticada (`POST /api/v1/orders/orders/`)
 - Historico de pedidos autenticado (`GET /api/v1/orders/orders/`)
+- Confirmacao de recebimento pelo cliente (`POST /api/v1/orders/orders/{id}/confirm-receipt/`)
 - Conta do cliente com:
   - cadastro (`POST /api/v1/accounts/register/`)
   - login JWT (`POST /api/v1/accounts/token/`)
@@ -62,6 +63,12 @@ Comportamento do script:
   - `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000`
 - sobe o client em `http://0.0.0.0:3001`.
 
+Se voce quiser validar especificamente em `localhost:3000` (sem portal na mesma porta):
+
+```bash
+CLIENT_PORT=3000 ./scripts/start_client_dev.sh
+```
+
 Smoke test automatizado:
 
 ```bash
@@ -77,6 +84,11 @@ Acesse:
 - `http://localhost:3001/`
 - `http://localhost:3001/pedidos`
 - `http://localhost:3001/conta`
+
+Fluxo recomendado:
+1. `http://localhost:3001/conta` -> login/cadastro.
+2. `http://localhost:3001/cardapio` -> selecionar pratos e finalizar pedido.
+3. `http://localhost:3001/pedidos` -> acompanhar entrega e confirmar recebimento.
 
 ## Qualidade
 ```bash

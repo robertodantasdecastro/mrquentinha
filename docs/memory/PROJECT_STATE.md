@@ -55,6 +55,7 @@ Referencia de atualizacao: 26/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A2`): consumo de `active_template` do CMS em runtime (server-side).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A2-HF1`): fallback automatico de API no cardapio para host atual (`:8000`) quando variavel de ambiente nao estiver definida.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): template LetsFit passou a consumir secoes dinamicas do CMS (`hero`, `benefits`, `categories`, `kit`, `how_to_heat`, `faq`) incluindo fotos/links via `body_json`.
+- Atualizacao concluida em 26/02/2026 (`T7.2.3-HF2`): links de Area do Cliente/Admin parametrizados por env e fallback local em desenvolvimento (`3001/3002`) para facilitar fluxo iniciado em `localhost:3000`.
 - Risco de conflito: alto em paralelo com trilha Antigravity de template.
 
 ### Web Client (Next.js - 3001)
@@ -62,6 +63,7 @@ Referencia de atualizacao: 26/02/2026.
 - Pedido/historico: escopo autenticado sem demo.
 - Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
 - Atualizacao concluida em 26/02/2026 (`T7.2.3-HF1`): fallback automatico de API para host atual (`:8000`) e mensagem de erro de rede padronizada.
+- Atualizacao concluida em 26/02/2026 (`T7.2.3-HF2`): jornada UX de ponta a ponta (login -> cardapio -> checkout -> pedidos -> confirmacao de recebimento), com indicador de conectividade API, guard de autenticacao no checkout e suporte validado para execucao em `localhost:3000` (`CLIENT_PORT=3000`).
 
 ### Admin Web (Next.js - 3002)
 - Status: `T9.1.2` concluida (relatorios/exportacoes + UX/IX modular).

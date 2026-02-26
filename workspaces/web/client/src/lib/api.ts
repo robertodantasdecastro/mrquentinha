@@ -33,8 +33,14 @@ type RequestJsonOptions = Omit<RequestInit, "body"> & {
 
 type JsonObject = Record<string, unknown>;
 
-const NETWORK_ERROR_MESSAGE =
-  "Falha de conexao com a API. Verifique backend (porta 8000) e CORS do Client (porta 3001).";
+function buildNetworkErrorMessage(): string {
+  const origin =
+    typeof window !== "undefined" && window.location.origin
+      ? window.location.origin
+      : "origem atual";
+
+  return `Falha de conexao com a API. Verifique backend (porta 8000) e CORS para ${origin}.`;
+}
 
 function resolveBrowserBaseUrl(): string {
   if (typeof window === "undefined") {
@@ -57,6 +63,10 @@ function getApiBaseUrl(): string {
   }
 
   return resolveBrowserBaseUrl();
+}
+
+export function getResolvedApiBaseUrl(): string {
+  return getApiBaseUrl();
 }
 
 function resolveUrl(path: string): string {
@@ -185,7 +195,7 @@ async function requestJson<T>(
       body,
     });
   } catch {
-    throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
+    throw new ApiError(buildNetworkErrorMessage(), 0);
   }
 
   if (response.status === 401 && auth && allowAuthRetry) {

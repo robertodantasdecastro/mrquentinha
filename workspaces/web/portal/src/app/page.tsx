@@ -16,8 +16,16 @@ import {
   type PortalConfigPayload,
 } from "@/lib/portalTemplate";
 
-const ADMIN_URL = "https://admin.mrquentinha.com.br";
-const CLIENT_AREA_URL = "https://app.mrquentinha.com.br";
+const ADMIN_URL =
+  process.env.NEXT_PUBLIC_ADMIN_URL?.trim() ||
+  (process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:3002"
+    : "https://admin.mrquentinha.com.br");
+const CLIENT_AREA_URL =
+  process.env.NEXT_PUBLIC_CLIENT_AREA_URL?.trim() ||
+  (process.env.NODE_ENV === "development"
+    ? "http://127.0.0.1:3001"
+    : "https://app.mrquentinha.com.br");
 
 type JsonObject = Record<string, unknown>;
 

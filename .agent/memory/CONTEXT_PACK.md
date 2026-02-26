@@ -25,6 +25,7 @@
 - Entrega complementar de `T9.1.3` concluida em 26/02/2026 (`A6`): fluxo de compras no Admin com captura/upload por camera para comprovante e produto, OCR aplicado automaticamente e persistencia das fotos no destino final (`purchase`/`purchase_item`).
 - Entrega complementar de `T9.1.3` concluida em 26/02/2026 (`A7`): painel operacional em linha de producao (dashboard realtime), auto-geracao de requisicao de compras a partir do cardapio e ciclo de entrega com confirmacao de recebimento no frontend cliente.
 - Entrega concluida em 26/02/2026 (`T6.3.2-A3`): midias LetsFit dinamicas no CMS/Portal, editor de secoes no Admin e upload de fotos para insumos/pratos com contrato compartilhado para mobile.
+- Entrega concluida em 26/02/2026 (`T7.2.3-HF2`): fluxo do cliente web revisado ponta a ponta (login -> pedido -> recebimento), com guia UX de jornada, diagnostico de API em tela, guard de autenticacao no checkout e compatibilidade validada para execucao do client em `localhost:3000`.
 - Hotfix mais recente: rotas diretas do Admin (`/modulos` e `/prioridades`) corrigidas com redirect para as ancoras da home, eliminando 404 em acesso por URL direta.
 - Fechamento T9.1.2: relatorios ativos no Admin com exportacao CSV por modulo (Pedidos/Compras/Producao/Financeiro/Relatorios), filtro por periodo e rotulos pt-BR de status operacionais.
 - Ajuste UX: menus dos modulos filtram blocos por servico (modo completo ou foco) e dashboard do Admin indica etapa 9.1 concluida.

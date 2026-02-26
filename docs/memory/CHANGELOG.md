@@ -793,3 +793,22 @@
     - `orders.0004_alter_order_status` criada/aplicada para refletir novos status.
   - validacao executada:
     - `bash scripts/quality_gate_all.sh` -> `OK` (`127 passed`, builds e smokes OK).
+
+- T7.2.3-HF2 (26/02/2026): fluxo cliente web revisado (login -> pedido -> recebimento) e hardening localhost
+  - client web:
+    - nova secao `Jornada do cliente` no cardapio com passos de login, composicao, checkout, entrega e confirmacao de recebimento;
+    - novo indicador de conectividade com a API (`ApiConnectionStatus`) para diagnostico rapido de endpoint/base URL;
+    - checkout protegido por autenticacao com redirecionamento para `/conta?next=...`;
+    - tela de Conta refatorada com guia operacional e redirecionamento seguro apos login/cadastro;
+    - historico de pedidos com atualizacao manual/automatica (polling), CTA para login quando nao autenticado e confirmacao de recebimento mantida;
+    - mensagens de erro de rede padronizadas com origem atual (sem dependencia fixa de porta 3001).
+  - compatibilidade local:
+    - `workspaces/web/client/next.config.ts` atualizado para `allowedDevOrigins` por hostname (suporte a execucao em `localhost:3000` e `localhost:3001`);
+    - `README` do client atualizado com roteiro de execucao em `CLIENT_PORT=3000`.
+  - portal:
+    - links de Area do Cliente/Admin parametrizados por env com fallback local em desenvolvimento (`3001/3002`) para facilitar fluxo partindo de `localhost:3000`.
+  - validacao executada:
+    - `cd workspaces/web/client && npm run lint && npm run build`
+    - `cd workspaces/web/portal && npm run lint && npm run build`
+    - `bash scripts/quality_gate_all.sh`
+    - `CLIENT_PORT=3000 bash scripts/smoke_client_dev.sh`

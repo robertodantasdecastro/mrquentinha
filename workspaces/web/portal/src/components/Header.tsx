@@ -5,8 +5,33 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTemplate } from "./TemplateProvider";
 
-const ADMIN_URL = "https://admin.mrquentinha.com.br";
-const CLIENT_AREA_URL = "https://app.mrquentinha.com.br";
+const ADMIN_URL =
+  process.env.NEXT_PUBLIC_ADMIN_URL?.trim() || "https://admin.mrquentinha.com.br";
+const CLIENT_AREA_FALLBACK =
+  process.env.NEXT_PUBLIC_CLIENT_AREA_URL?.trim() || "https://app.mrquentinha.com.br";
+
+function resolveClientAreaUrl(): string {
+  if (typeof window === "undefined") {
+    return CLIENT_AREA_FALLBACK;
+  }
+
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  if (!hostname) {
+    return CLIENT_AREA_FALLBACK;
+  }
+
+  const isLocalHost =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.startsWith("10.");
+
+  if (!isLocalHost) {
+    return CLIENT_AREA_FALLBACK;
+  }
+
+  return `${protocol}//${hostname}:3001`;
+}
 
 const NAV_LINKS_CLASSIC = [
   { href: "/", label: "Home" },
@@ -25,6 +50,7 @@ export function Header() {
   const { template } = useTemplate();
   const isLetsFit = template === "letsfit-clean";
   const NAV_LINKS = isLetsFit ? NAV_LINKS_LETSFIT : NAV_LINKS_CLASSIC;
+  const clientAreaUrl = resolveClientAreaUrl();
 
   return (
     <Navbar>
@@ -55,7 +81,7 @@ export function Header() {
             )}
             <a
               className="hidden rounded-md bg-primary px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-primary-soft sm:inline-flex"
-              href={CLIENT_AREA_URL}
+              href={clientAreaUrl}
               target="_blank"
               rel="noreferrer"
             >

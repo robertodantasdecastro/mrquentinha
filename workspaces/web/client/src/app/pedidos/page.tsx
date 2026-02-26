@@ -9,7 +9,7 @@ export default function PedidosPage() {
         </p>
         <h1 className="mt-1 text-2xl font-bold text-text">Acompanhe seu historico</h1>
         <p className="mt-2 text-sm text-muted">
-          O historico e exibido conforme o usuario autenticado no backend.
+          Do login ao recebimento: acompanhe status de preparo, entrega e confirme o recebimento aqui.
         </p>
       </header>
 

@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { StatusPill, type StatusTone } from "@mrquentinha/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ApiError,
@@ -8,7 +11,9 @@ import {
   createPaymentIntent,
   fetchMenuByDate,
   getLatestPaymentIntent,
+  listOrders,
 } from "@/lib/api";
+import { ApiConnectionStatus } from "@/components/ApiConnectionStatus";
 import { getTodayIsoDate } from "@/lib/format";
 import { hasStoredAuthSession, rememberOrderId } from "@/lib/storage";
 import {
@@ -22,12 +27,15 @@ import type {
   MenuDayData,
   MenuItemData,
   OnlinePaymentMethod,
+  OrderData,
+  OrderStatus,
   PaymentIntentData,
   PaymentSummary,
 } from "@/types/api";
 import type { CartItem } from "@/types/cart";
 
 type CartState = Record<number, CartItem>;
+type JourneyStepState = "pending" | "active" | "done";
 
 const ONLINE_PAYMENT_LABELS: Record<OnlinePaymentMethod, string> = {
   PIX: "PIX",
@@ -140,7 +148,69 @@ function resolvePrimaryPayment(
   return createdOrder.payments[0];
 }
 
+function resolveOrderStatusLabel(status: OrderStatus): string {
+  switch (status) {
+    case "CREATED":
+      return "Criado";
+    case "CONFIRMED":
+      return "Confirmado";
+    case "IN_PROGRESS":
+      return "Em preparo";
+    case "OUT_FOR_DELIVERY":
+      return "Saiu para entrega";
+    case "DELIVERED":
+      return "Entregue";
+    case "RECEIVED":
+      return "Recebido";
+    case "CANCELED":
+      return "Cancelado";
+    default:
+      return status;
+  }
+}
+
+function resolveOrderStatusTone(status: OrderStatus): StatusTone {
+  if (status === "CANCELED") {
+    return "danger";
+  }
+
+  if (status === "DELIVERED" || status === "RECEIVED") {
+    return "success";
+  }
+
+  if (status === "IN_PROGRESS" || status === "OUT_FOR_DELIVERY") {
+    return "info";
+  }
+
+  return "warning";
+}
+
+function getJourneyStepTone(state: JourneyStepState): StatusTone {
+  if (state === "done") {
+    return "success";
+  }
+
+  if (state === "active") {
+    return "info";
+  }
+
+  return "neutral";
+}
+
+function getJourneyStepLabel(state: JourneyStepState): string {
+  if (state === "done") {
+    return "ok";
+  }
+
+  if (state === "active") {
+    return "ativo";
+  }
+
+  return "pendente";
+}
+
 export function MenuPage() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<string>(getTodayIsoDate());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     hasStoredAuthSession(),
@@ -157,6 +227,8 @@ export function MenuPage() {
   const [checkoutMessage, setCheckoutMessage] = useState<string>("");
   const [intentPanel, setIntentPanel] = useState<IntentPanelData | null>(null);
   const [isRefreshingIntent, setIsRefreshingIntent] = useState<boolean>(false);
+  const [latestOrder, setLatestOrder] = useState<OrderData | null>(null);
+  const [latestOrderMessage, setLatestOrderMessage] = useState<string>("");
 
   useEffect(() => {
     const syncAuthState = () => {
@@ -213,12 +285,38 @@ export function MenuPage() {
       }
     }
 
-    loadMenu();
+    void loadMenu();
 
     return () => {
       mounted = false;
     };
   }, [selectedDate]);
+
+  const loadLatestOrder = useCallback(async () => {
+    if (!isAuthenticated) {
+      setLatestOrder(null);
+      setLatestOrderMessage("");
+      return;
+    }
+
+    try {
+      const orders = await listOrders();
+      const sorted = [...orders].sort(
+        (first, second) =>
+          new Date(second.created_at).getTime() - new Date(first.created_at).getTime(),
+      );
+
+      setLatestOrder(sorted[0] ?? null);
+      setLatestOrderMessage("");
+    } catch (error) {
+      setLatestOrder(null);
+      setLatestOrderMessage(parseErrorMessage(error));
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    void loadLatestOrder();
+  }, [loadLatestOrder]);
 
   const cartItems = useMemo(
     () =>
@@ -249,6 +347,55 @@ export function MenuPage() {
 
   const isCheckoutDisabled =
     cartItems.length === 0 || checkoutState === "submitting" || !selectedDate;
+
+  const journeyStates = useMemo(() => {
+    const account: JourneyStepState = isAuthenticated ? "done" : "active";
+    const compose: JourneyStepState =
+      cartItems.length > 0 ? "done" : isAuthenticated ? "active" : "pending";
+    const checkout: JourneyStepState =
+      latestOrder !== null
+        ? "done"
+        : isAuthenticated && cartItems.length > 0
+          ? "active"
+          : "pending";
+
+    let delivery: JourneyStepState = "pending";
+    let receipt: JourneyStepState = "pending";
+
+    if (latestOrder) {
+      if (
+        latestOrder.status === "CONFIRMED" ||
+        latestOrder.status === "IN_PROGRESS" ||
+        latestOrder.status === "OUT_FOR_DELIVERY"
+      ) {
+        delivery = "active";
+      }
+
+      if (
+        latestOrder.status === "DELIVERED" ||
+        latestOrder.status === "RECEIVED" ||
+        latestOrder.status === "CANCELED"
+      ) {
+        delivery = "done";
+      }
+
+      if (latestOrder.status === "DELIVERED") {
+        receipt = "active";
+      }
+
+      if (latestOrder.status === "RECEIVED") {
+        receipt = "done";
+      }
+    }
+
+    return {
+      account,
+      compose,
+      checkout,
+      delivery,
+      receipt,
+    };
+  }, [cartItems.length, isAuthenticated, latestOrder]);
 
   const addToCart = (menuItem: MenuItemData) => {
     let reachedLimit = false;
@@ -357,6 +504,7 @@ export function MenuPage() {
       setIntentPanel(nextPanel);
       setCheckoutState(resolveCheckoutStateByIntentStatus(latestIntent.status));
       setCheckoutMessage(`Intent atualizado: ${latestIntent.status}.`);
+      void loadLatestOrder();
     } catch (error) {
       setCheckoutState("error");
       setCheckoutMessage(parseErrorMessage(error));
@@ -366,6 +514,15 @@ export function MenuPage() {
   };
 
   const checkout = async () => {
+    if (!isAuthenticated) {
+      setCheckoutState("error");
+      setCheckoutMessage(
+        "Sessao nao autenticada. Entre na Conta para finalizar seu pedido.",
+      );
+      router.push("/conta?next=/pedidos");
+      return;
+    }
+
     if (cartItems.length === 0) {
       setCheckoutState("error");
       setCheckoutMessage("Selecione ao menos um item antes de finalizar.");
@@ -395,6 +552,7 @@ export function MenuPage() {
         setCheckoutMessage(
           `Pedido #${createdOrder.id} criado com sucesso. Pagamento sera configurado em seguida.`,
         );
+        void loadLatestOrder();
         return;
       }
 
@@ -422,6 +580,7 @@ export function MenuPage() {
       setCheckoutMessage(
         `Pedido #${createdOrder.id} criado. Fluxo ${ONLINE_PAYMENT_LABELS[method]} em status ${intent.status}.`,
       );
+      void loadLatestOrder();
     } catch (error) {
       setCheckoutState("error");
       if (error instanceof ApiError && error.status === 401) {
@@ -429,6 +588,14 @@ export function MenuPage() {
       }
       setCheckoutMessage(parseErrorMessage(error));
     }
+  };
+
+  const handleRequireAuth = () => {
+    setCheckoutState("error");
+    setCheckoutMessage(
+      "Para finalizar pedidos, faca login na Conta e retorne ao cardapio.",
+    );
+    router.push("/conta?next=/cardapio");
   };
 
   return (
@@ -445,6 +612,106 @@ export function MenuPage() {
             ? "Sessao autenticada. Seus pedidos e pagamentos seguem o escopo da conta ativa."
             : "Faca login na aba Conta para finalizar pedidos com sua conta real."}
         </p>
+        <div className="mt-3">
+          <ApiConnectionStatus />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-bg/80 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            Jornada do cliente
+          </p>
+          {latestOrder && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+              <span>Ultimo pedido #{latestOrder.id}</span>
+              <StatusPill tone={resolveOrderStatusTone(latestOrder.status)}>
+                {resolveOrderStatusLabel(latestOrder.status)}
+              </StatusPill>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <article className="rounded-xl border border-border bg-surface/80 px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+              1. Conta
+            </p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-text">Login</p>
+              <StatusPill tone={getJourneyStepTone(journeyStates.account)}>
+                {getJourneyStepLabel(journeyStates.account)}
+              </StatusPill>
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-border bg-surface/80 px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+              2. Cardapio
+            </p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-text">Escolha os pratos</p>
+              <StatusPill tone={getJourneyStepTone(journeyStates.compose)}>
+                {getJourneyStepLabel(journeyStates.compose)}
+              </StatusPill>
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-border bg-surface/80 px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+              3. Checkout
+            </p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-text">Criar pedido</p>
+              <StatusPill tone={getJourneyStepTone(journeyStates.checkout)}>
+                {getJourneyStepLabel(journeyStates.checkout)}
+              </StatusPill>
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-border bg-surface/80 px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+              4. Entrega
+            </p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-text">Acompanhar status</p>
+              <StatusPill tone={getJourneyStepTone(journeyStates.delivery)}>
+                {getJourneyStepLabel(journeyStates.delivery)}
+              </StatusPill>
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-border bg-surface/80 px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+              5. Recebimento
+            </p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-text">Confirmar entrega</p>
+              <StatusPill tone={getJourneyStepTone(journeyStates.receipt)}>
+                {getJourneyStepLabel(journeyStates.receipt)}
+              </StatusPill>
+            </div>
+          </article>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.08em]">
+          <Link
+            href="/conta"
+            className="rounded-full border border-border bg-surface px-3 py-1.5 text-muted transition hover:border-primary hover:text-primary"
+          >
+            Conta
+          </Link>
+          <Link
+            href="/pedidos"
+            className="rounded-full border border-border bg-surface px-3 py-1.5 text-muted transition hover:border-primary hover:text-primary"
+          >
+            Meus pedidos
+          </Link>
+        </div>
+
+        {latestOrderMessage && (
+          <p className="mt-3 text-xs text-red-600 dark:text-red-300">{latestOrderMessage}</p>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
@@ -471,6 +738,8 @@ export function MenuPage() {
           onIncrement={incrementCartItem}
           onDecrement={decrementCartItem}
           onRemove={removeCartItem}
+          isAuthenticated={isAuthenticated}
+          onRequireAuth={handleRequireAuth}
           onCheckout={checkout}
           isCheckoutDisabled={isCheckoutDisabled}
         />

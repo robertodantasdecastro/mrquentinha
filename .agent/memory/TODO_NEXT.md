@@ -31,4 +31,5 @@ Fila atual:
 26. [x] T9.1.3-A5 Fotos dinamicas de pratos + insumos no banco/API para todos os frontends - concluida em 26/02/2026.
 27. [x] T9.1.3-A6 Captura/upload de imagens de compra + OCR com persistencia no destino final - concluida em 26/02/2026.
 28. [x] T9.1.3-A7 Ciclo operacional completo (linha de producao + dashboard realtime + entrega/confirmacao) - concluida em 26/02/2026.
-29. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
+29. [x] T7.2.3-HF2 Fluxo cliente web ponta a ponta + hardening localhost:3000 - concluida em 26/02/2026.
+30. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
