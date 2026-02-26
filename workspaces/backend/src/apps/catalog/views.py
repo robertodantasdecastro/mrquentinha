@@ -159,7 +159,10 @@ class MenuDayViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        return MenuDay.objects.prefetch_related("items__dish").order_by("-menu_date")
+        return MenuDay.objects.prefetch_related(
+            "items__dish",
+            "items__dish__dish_ingredients__ingredient",
+        ).order_by("-menu_date")
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

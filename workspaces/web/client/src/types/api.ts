@@ -3,6 +3,19 @@ export type DishSummary = {
   name: string;
   yield_portions: number;
   image_url?: string | null;
+  composition?: DishCompositionItem[];
+};
+
+export type DishCompositionItem = {
+  id: number;
+  quantity: string;
+  unit: string;
+  ingredient: {
+    id: number;
+    name: string;
+    unit: string;
+    image_url?: string | null;
+  };
 };
 
 export type MenuItemData = {

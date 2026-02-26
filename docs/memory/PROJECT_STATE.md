@@ -3,7 +3,7 @@
 Referencia de atualizacao: 26/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `6.3.2-A3`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A5`, `6.3.2-A3`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T8.0.1` (discovery de financas pessoais e segregacao de escopo).
 
@@ -77,6 +77,7 @@ Referencia de atualizacao: 26/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A2`): Compras ganhou registro operacional de compra com itens (entrada em estoque), alem da geracao de requisicao por cardapio com seletor.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A3`): Cardapio ganhou padrao de periodos (Manha/Cafe, Almoco, Jantar, Lanche) para organizacao de menus diarios.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A4`): modulo Cardapio finalizado com edicao de insumos/pratos e composicao completa no Admin.
+- Atualizacao concluida em 26/02/2026 (`T9.1.3-A5`): fotos dinamicas de pratos e insumos sincronizadas no banco e expostas no endpoint de cardapio (incluindo composicao com `image_url` por insumo).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): modulo Portal CMS ganhou editor de secoes dinamicas (template/pagina/body_json) e a composicao ganhou upload de fotos para insumos e pratos.
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo: iniciar `T8.0.1` (discovery de financas pessoais e segregacao LGPD).

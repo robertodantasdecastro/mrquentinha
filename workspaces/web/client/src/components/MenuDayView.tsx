@@ -146,6 +146,31 @@ export function MenuDayView({
                       />
                     )}
 
+                    {item.dish.composition && item.dish.composition.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {item.dish.composition.map((component) => (
+                          <div
+                            key={component.id}
+                            className="flex items-center gap-2 rounded-full border border-border bg-surface px-2 py-1"
+                          >
+                            {component.ingredient.image_url && (
+                              <Image
+                                src={component.ingredient.image_url}
+                                alt={component.ingredient.name}
+                                width={24}
+                                height={24}
+                                className="h-6 w-6 rounded-full object-cover"
+                                unoptimized
+                              />
+                            )}
+                            <span className="text-xs text-muted">
+                              {component.ingredient.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="mt-4 flex items-center justify-between gap-2">
                       <StatusPill tone={availabilityTone}>{availabilityLabel}</StatusPill>
 

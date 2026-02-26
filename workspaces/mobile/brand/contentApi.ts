@@ -20,6 +20,19 @@ export type MobileMenuDish = {
   name: string;
   yield_portions: number;
   image_url?: string | null;
+  composition?: MobileDishCompositionItem[];
+};
+
+export type MobileDishCompositionItem = {
+  id: number;
+  quantity: string;
+  unit: string;
+  ingredient: {
+    id: number;
+    name: string;
+    unit: string;
+    image_url?: string | null;
+  };
 };
 
 export type MobileMenuItem = {

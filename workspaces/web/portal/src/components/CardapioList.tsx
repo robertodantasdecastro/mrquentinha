@@ -9,6 +9,16 @@ type DishData = {
   name: string;
   description?: string | null;
   image_url?: string | null;
+  composition?: {
+    id: number;
+    ingredient: {
+      id: number;
+      name: string;
+      image_url?: string | null;
+    };
+    quantity: string;
+    unit: string;
+  }[];
 };
 
 type MenuItemData = {
@@ -240,6 +250,29 @@ export function CardapioList() {
                       className="mt-3 h-36 w-full rounded-md border border-border object-cover"
                       unoptimized
                     />
+                  )}
+
+                  {item.dish.composition && item.dish.composition.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {item.dish.composition.map((component) => (
+                        <span
+                          key={component.id}
+                          className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-2 py-1 text-xs text-muted"
+                        >
+                          {component.ingredient.image_url && (
+                            <Image
+                              src={component.ingredient.image_url}
+                              alt={component.ingredient.name}
+                              width={20}
+                              height={20}
+                              className="h-5 w-5 rounded-full object-cover"
+                              unoptimized
+                            />
+                          )}
+                          {component.ingredient.name}
+                        </span>
+                      ))}
+                    </div>
                   )}
 
                   {item.available_qty !== undefined && item.available_qty !== null && (

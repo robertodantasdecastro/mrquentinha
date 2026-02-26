@@ -707,3 +707,23 @@
     - `cd workspaces/web/admin && npm run lint`
     - `cd workspaces/web/admin && npm run build`
     - `bash scripts/quality_gate_all.sh` -> `OK`.
+
+- T9.1.3-A5 (26/02/2026): fotos dinamicas completas no ciclo de cardapio
+  - backend/catalog:
+    - novo comando `sync_catalog_photos` em `src/apps/catalog/management/commands/sync_catalog_photos.py` para preencher fotos de pratos e insumos via Wikimedia Commons + fallback web;
+    - fallback local em SVG implementado para garantir foto mesmo em falha de download externo, zerando falhas operacionais da sincronizacao;
+    - cobertura automatizada adicionada em `tests/test_catalog_photo_sync_command.py`.
+  - API catalogo:
+    - `DishSummarySerializer` passou a incluir `composition` com insumos e `image_url` por ingrediente no endpoint de cardapio por data;
+    - prefetch atualizado em selectors/views para evitar N+1 no carregamento da composicao.
+  - frontends:
+    - portal (`CardapioList`) e client (`MenuDayView`) agora exibem chips dinamicos dos insumos que compoem cada prato, incluindo foto do insumo quando disponivel;
+    - contrato mobile (`workspaces/mobile/brand/contentApi.ts`) atualizado para receber `composition` com fotos dos insumos.
+  - operacao executada:
+    - `python manage.py sync_catalog_photos --force` aplicado no banco local com resultado final:
+      - ingredientes: `19 atualizados / 0 falhas`;
+      - pratos: `11 atualizados / 0 falhas`.
+  - validacao executada:
+    - backend: `ruff`, `black --check`, `pytest tests/test_catalog_photo_sync_command.py tests/test_catalog_api.py`;
+    - frontend: `npm run lint && npm run build` em `web/portal` e `web/client`;
+    - fluxo completo: `bash scripts/quality_gate_all.sh` -> `OK`.

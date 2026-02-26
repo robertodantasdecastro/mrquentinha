@@ -13,7 +13,11 @@ def get_menu_by_date(menu_date: date | str) -> MenuDay | None:
     parsed_date = (
         date.fromisoformat(menu_date) if isinstance(menu_date, str) else menu_date
     )
-    active_items_qs = MenuItem.objects.filter(is_active=True).select_related("dish")
+    active_items_qs = (
+        MenuItem.objects.filter(is_active=True)
+        .select_related("dish")
+        .prefetch_related("dish__dish_ingredients__ingredient")
+    )
     return (
         MenuDay.objects.filter(menu_date=parsed_date)
         .select_related("created_by")

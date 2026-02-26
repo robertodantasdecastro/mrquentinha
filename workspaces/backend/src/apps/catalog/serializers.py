@@ -162,10 +162,15 @@ class DishSerializer(serializers.ModelSerializer):
 
 class DishSummarySerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+    composition = DishIngredientReadSerializer(
+        source="dish_ingredients",
+        many=True,
+        read_only=True,
+    )
 
     class Meta:
         model = Dish
-        fields = ["id", "name", "yield_portions", "image_url"]
+        fields = ["id", "name", "yield_portions", "image_url", "composition"]
 
     def get_image_url(self, obj: Dish) -> str | None:
         return build_media_url(

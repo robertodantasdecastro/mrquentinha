@@ -96,6 +96,10 @@ def test_cria_menu_e_consulta_por_data_endpoint(client):
     assert body["title"] == "Cardapio de Terca"
     assert len(body["menu_items"]) == 1
     assert body["menu_items"][0]["dish"]["name"] == "Frango Grelhado"
+    assert len(body["menu_items"][0]["dish"]["composition"]) == 1
+    ingredient_payload = body["menu_items"][0]["dish"]["composition"][0]["ingredient"]
+    assert ingredient_payload["name"] == "frango"
+    assert "image_url" in body["menu_items"][0]["dish"]["composition"][0]["ingredient"]
 
 
 @pytest.mark.django_db
