@@ -372,6 +372,88 @@ export type OrdersOpsDashboardData = {
   }>;
 };
 
+export type EcosystemServiceMonitorData = {
+  key: string;
+  name: string;
+  port: number;
+  status: "online" | "running" | "offline";
+  pid: number | null;
+  uptime_seconds: number | null;
+  rss_mb: number | null;
+  listener_ok: boolean;
+};
+
+export type PaymentProviderRealtimeData = {
+  provider: string;
+  enabled: boolean;
+  configured: boolean;
+  sync_status: "ok" | "warning" | "danger" | "neutral";
+  intents_24h: number;
+  webhooks_24h: number;
+  webhooks_failed_24h: number;
+  success_rate_24h: number;
+  last_event_at: string | null;
+};
+
+export type EcosystemOpsRealtimeData = {
+  generated_at: string;
+  server_health: {
+    uptime_seconds: number;
+    cpu_count: number;
+    load_avg_1m: number;
+    load_avg_5m: number;
+    load_avg_15m: number;
+    memory: {
+      total_mb: number;
+      available_mb: number;
+      used_mb: number;
+      used_percent: number;
+    };
+    disk: {
+      total_gb: number;
+      used_gb: number;
+      free_gb: number;
+      used_percent: number;
+    };
+  };
+  services: EcosystemServiceMonitorData[];
+  payment_monitor: {
+    communication_channel: {
+      transport: string;
+      auth: string;
+      encryption: string;
+    };
+    frontend_provider: {
+      web: string;
+      mobile: string;
+    };
+    summary: {
+      payments_pending: number;
+      payments_paid: number;
+      payments_failed: number;
+      intents_active: number;
+      intents_processing: number;
+      webhooks_last_15m: number;
+    };
+    providers: PaymentProviderRealtimeData[];
+    order_lifecycle: {
+      created: number;
+      confirmed: number;
+      in_progress: number;
+      out_for_delivery: number;
+      delivered: number;
+      received: number;
+      canceled: number;
+    };
+    series_last_15_minutes: Array<{
+      minute: string;
+      orders_created: number;
+      payments_paid: number;
+      webhooks_received: number;
+    }>;
+  };
+};
+
 export type PurchaseItemData = {
   id: number;
   ingredient: ProcurementIngredientSummaryData;
@@ -489,6 +571,95 @@ export type PortalTemplateData = {
   label?: string;
 };
 
+export type PortalGoogleAuthConfig = {
+  enabled: boolean;
+  web_client_id: string;
+  ios_client_id: string;
+  android_client_id: string;
+  client_secret: string;
+  auth_uri: string;
+  token_uri: string;
+  redirect_uri_web: string;
+  redirect_uri_mobile: string;
+  scope: string;
+};
+
+export type PortalAppleAuthConfig = {
+  enabled: boolean;
+  service_id: string;
+  team_id: string;
+  key_id: string;
+  private_key: string;
+  auth_uri: string;
+  token_uri: string;
+  redirect_uri_web: string;
+  redirect_uri_mobile: string;
+  scope: string;
+};
+
+export type PortalAuthProvidersConfig = {
+  google: PortalGoogleAuthConfig;
+  apple: PortalAppleAuthConfig;
+};
+
+export type PortalPaymentReceiverConfig = {
+  person_type: "CPF" | "CNPJ";
+  document: string;
+  name: string;
+  email: string;
+};
+
+export type PortalPaymentProviderRouting = {
+  PIX: string[];
+  CARD: string[];
+  VR: string[];
+};
+
+export type PortalMercadoPagoConfig = {
+  enabled: boolean;
+  api_base_url: string;
+  access_token: string;
+  webhook_secret: string;
+  sandbox: boolean;
+};
+
+export type PortalEfiConfig = {
+  enabled: boolean;
+  api_base_url: string;
+  client_id: string;
+  client_secret: string;
+  webhook_secret: string;
+  sandbox: boolean;
+};
+
+export type PortalAsaasConfig = {
+  enabled: boolean;
+  api_base_url: string;
+  api_key: string;
+  webhook_secret: string;
+  sandbox: boolean;
+};
+
+export type PortalPaymentProvidersConfig = {
+  default_provider: string;
+  enabled_providers: string[];
+  frontend_provider: {
+    web: string;
+    mobile: string;
+  };
+  method_provider_order: PortalPaymentProviderRouting;
+  receiver: PortalPaymentReceiverConfig;
+  mercadopago: PortalMercadoPagoConfig;
+  efi: PortalEfiConfig;
+  asaas: PortalAsaasConfig;
+};
+
+export type PortalPaymentProviderTestResult = {
+  provider: string;
+  ok: boolean;
+  detail: string;
+};
+
 export type PortalConfigData = {
   id: number;
   active_template: string;
@@ -504,6 +675,7 @@ export type PortalConfigData = {
   android_download_url: string;
   ios_download_url: string;
   qr_target_url: string;
+  api_base_url: string;
   local_hostname: string;
   local_network_ip: string;
   root_domain: string;
@@ -517,6 +689,8 @@ export type PortalConfigData = {
   backend_base_url: string;
   proxy_base_url: string;
   cors_allowed_origins: string[];
+  auth_providers: PortalAuthProvidersConfig;
+  payment_providers: PortalPaymentProvidersConfig;
   is_published: boolean;
   published_at: string | null;
   created_at: string;
@@ -543,8 +717,59 @@ export type PortalConfigWritePayload = Partial<
     | "backend_base_url"
     | "proxy_base_url"
     | "cors_allowed_origins"
+    | "api_base_url"
+    | "auth_providers"
+    | "payment_providers"
   >
 >;
+
+export type MobileReleaseStatus =
+  | "QUEUED"
+  | "BUILDING"
+  | "TESTING"
+  | "SIGNED"
+  | "PUBLISHED"
+  | "FAILED";
+
+export type MobileReleaseUpdatePolicy = "OPTIONAL" | "FORCE";
+
+export type MobileReleaseData = {
+  id: number;
+  config: number;
+  release_version: string;
+  build_number: number;
+  status: MobileReleaseStatus;
+  update_policy: MobileReleaseUpdatePolicy;
+  is_critical_update: boolean;
+  min_supported_version: string;
+  recommended_version: string;
+  api_base_url_snapshot: string;
+  host_publico_snapshot: string;
+  android_relative_path: string;
+  ios_relative_path: string;
+  android_download_url: string;
+  ios_download_url: string;
+  android_checksum_sha256: string;
+  ios_checksum_sha256: string;
+  release_notes: string;
+  build_log: string;
+  metadata: Record<string, unknown>;
+  published_at: string | null;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateMobileReleasePayload = {
+  config: number;
+  release_version: string;
+  build_number: number;
+  update_policy?: MobileReleaseUpdatePolicy;
+  is_critical_update?: boolean;
+  min_supported_version?: string;
+  recommended_version?: string;
+  release_notes?: string;
+};
 
 export type PortalSectionData = {
   id: number;

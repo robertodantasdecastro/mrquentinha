@@ -7,11 +7,14 @@ import {
 import type {
   AuthTokens,
   AuthUserProfile,
+  ClientPortalPublicConfig,
   CreatedOrderResponse,
   MenuDayData,
   OnlinePaymentMethod,
   OrderData,
   PaymentIntentData,
+  PublicAuthProvidersConfig,
+  PublicPaymentProvidersConfig,
   RegisterPayload,
 } from "@/types/api";
 
@@ -270,6 +273,71 @@ function normalizeListPayload<T>(payload: T[] | { results?: T[] }): T[] {
   return [];
 }
 
+const DEFAULT_AUTH_PROVIDERS_CONFIG: PublicAuthProvidersConfig = {
+  google: {
+    enabled: false,
+    configured: false,
+    web_client_id: "",
+    ios_client_id: "",
+    android_client_id: "",
+    auth_uri: "",
+    token_uri: "",
+    redirect_uri_web: "",
+    redirect_uri_mobile: "",
+    scope: "openid email profile",
+  },
+  apple: {
+    enabled: false,
+    configured: false,
+    service_id: "",
+    team_id: "",
+    key_id: "",
+    auth_uri: "",
+    token_uri: "",
+    redirect_uri_web: "",
+    redirect_uri_mobile: "",
+    scope: "name email",
+  },
+};
+
+const DEFAULT_PAYMENT_PROVIDERS_CONFIG: PublicPaymentProvidersConfig = {
+  default_provider: "mock",
+  enabled_providers: ["mock"],
+  frontend_provider: {
+    web: "mock",
+    mobile: "mock",
+  },
+  method_provider_order: {
+    PIX: ["mock"],
+    CARD: ["mock"],
+    VR: ["mock"],
+  },
+  receiver: {
+    person_type: "CNPJ",
+    document: "",
+    name: "",
+    email: "",
+  },
+  mercadopago: {
+    enabled: false,
+    configured: false,
+    api_base_url: "",
+    sandbox: true,
+  },
+  efi: {
+    enabled: false,
+    configured: false,
+    api_base_url: "",
+    sandbox: true,
+  },
+  asaas: {
+    enabled: false,
+    configured: false,
+    api_base_url: "",
+    sandbox: true,
+  },
+};
+
 export async function fetchMenuByDate(menuDate: string): Promise<MenuDayData> {
   return requestJson<MenuDayData>(`/api/v1/catalog/menus/by-date/${menuDate}/`, {
     method: "GET",
@@ -305,6 +373,7 @@ export async function createPaymentIntent(
     auth: true,
     headers: {
       "Idempotency-Key": idempotencyKey,
+      "X-Client-Channel": "WEB",
     },
     body: JSON.stringify({}),
   });
@@ -378,6 +447,78 @@ export async function fetchMe(): Promise<AuthUserProfile> {
     auth: true,
     cache: "no-store",
   });
+}
+
+export async function fetchAuthProvidersConfig(): Promise<PublicAuthProvidersConfig> {
+  try {
+    const payload = await requestJson<ClientPortalPublicConfig>(
+      "/api/v1/portal/config/?channel=client&page=home",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+    if (!payload.auth_providers) {
+      return DEFAULT_AUTH_PROVIDERS_CONFIG;
+    }
+
+    return {
+      google: {
+        ...DEFAULT_AUTH_PROVIDERS_CONFIG.google,
+        ...(payload.auth_providers.google ?? {}),
+      },
+      apple: {
+        ...DEFAULT_AUTH_PROVIDERS_CONFIG.apple,
+        ...(payload.auth_providers.apple ?? {}),
+      },
+    };
+  } catch {
+    return DEFAULT_AUTH_PROVIDERS_CONFIG;
+  }
+}
+
+export async function fetchPaymentProvidersConfig(): Promise<PublicPaymentProvidersConfig> {
+  try {
+    const payload = await requestJson<ClientPortalPublicConfig>(
+      "/api/v1/portal/config/?channel=client&page=home",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+    if (!payload.payment_providers) {
+      return DEFAULT_PAYMENT_PROVIDERS_CONFIG;
+    }
+
+    return {
+      ...DEFAULT_PAYMENT_PROVIDERS_CONFIG,
+      ...payload.payment_providers,
+      method_provider_order: {
+        ...DEFAULT_PAYMENT_PROVIDERS_CONFIG.method_provider_order,
+        ...(payload.payment_providers.method_provider_order ?? {}),
+      },
+      receiver: {
+        ...DEFAULT_PAYMENT_PROVIDERS_CONFIG.receiver,
+        ...(payload.payment_providers.receiver ?? {}),
+      },
+      mercadopago: {
+        ...DEFAULT_PAYMENT_PROVIDERS_CONFIG.mercadopago,
+        ...(payload.payment_providers.mercadopago ?? {}),
+      },
+      efi: {
+        ...DEFAULT_PAYMENT_PROVIDERS_CONFIG.efi,
+        ...(payload.payment_providers.efi ?? {}),
+      },
+      asaas: {
+        ...DEFAULT_PAYMENT_PROVIDERS_CONFIG.asaas,
+        ...(payload.payment_providers.asaas ?? {}),
+      },
+    };
+  } catch {
+    return DEFAULT_PAYMENT_PROVIDERS_CONFIG;
+  }
 }
 
 export function logoutAccount(): void {

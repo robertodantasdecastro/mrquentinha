@@ -1,6 +1,6 @@
 # Roadmap Master
 
-Referencia: 25/02/2026.
+Referencia: 26/02/2026.
 Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) com foco em execucao controlada entre Codex e Antigravity.
 
 ## 1) Implementado
@@ -29,10 +29,20 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 - `T7.2.2` concluida: webhook idempotente + reconciliacao financeira (`AR/Cash/Ledger`).
   - Evidencia: modelo `PaymentWebhookEvent`, endpoint `/api/v1/orders/payments/webhook/`, testes API de replay e reconciliacao.
 - `T7.2.3` concluida: checkout online no client com selecao de metodo (PIX/CARD/VR), criacao de intent e polling de status.
+- `T7.2.4-A1` concluida: configuracao multigateway no Portal CMS (Mercado Pago, Efi, Asaas), roteamento por metodo, recebedor CPF/CNPJ, botao de teste no Admin e webhooks dedicados por provider.
+  - Evidencia: `workspaces/backend/src/apps/orders/payment_providers.py`, `workspaces/backend/src/apps/orders/views.py`, `workspaces/backend/src/apps/orders/provider_config.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/backend/tests/test_orders_api.py`.
+- `T7.2.4-A2` concluida: roteamento de provider por canal de frontend (`web`/`mobile`) com selecao unica por canal no Portal CMS e propagacao por header para criacao de intent.
+  - Evidencia: `workspaces/backend/src/apps/orders/provider_config.py`, `workspaces/backend/src/apps/orders/services.py`, `workspaces/backend/src/apps/orders/views.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/web/client/src/lib/api.ts`.
+- `T7.2.4-A3` concluida: monitoramento realtime do ecossistema e de pagamentos por provider no backend/admin.
+  - Evidencia: `workspaces/backend/src/apps/orders/views.py`, `workspaces/backend/src/apps/orders/urls.py`, `workspaces/web/admin/src/app/modulos/monitoramento/sections.tsx`, `workspaces/web/admin/src/components/AdminFoundation.tsx`.
 
 ### Etapas 6.3 e 9.0
 - `T6.3.1` concluida: Portal CMS backend-only com Config/Sections, API publica read-only e endpoints admin.
   - Evidencia: `workspaces/backend/src/apps/portal/`, `workspaces/backend/tests/test_portal_api.py`, `workspaces/backend/tests/test_portal_services.py`.
+- `T6.3.2-A6` concluida: trilha de release mobile no Portal CMS (backend/admin/portal) com endpoint publico `latest`.
+  - Evidencia: `workspaces/backend/src/apps/portal/models.py`, `workspaces/backend/src/apps/portal/views.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/web/portal/src/lib/mobileRelease.ts`.
+- `T6.3.2-A7` concluida: novo template web cliente `client-vitrine-fit` (foco em fotos) e governanca de parametros OAuth Google/Apple no Portal CMS.
+  - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/backend/src/apps/portal/models.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/web/client/src/components/MenuPage.tsx`, `workspaces/web/client/src/app/conta/page.tsx`.
 - `T9.0.1` concluida: Admin Web foundation com novo workspace `workspaces/web/admin`.
   - Evidencia: shell inicial, login JWT (`token/refresh/me`) e dashboard base com status operacional.
 - `T9.0.2` concluida: Admin Web operacional com modulos de Pedidos, Financeiro e Estoque conectados ao backend.
@@ -40,13 +50,29 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 - `T9.0.3` concluida: Admin Web expansion com baseline de Cardapio, Compras e Producao conectados ao backend.
   - Evidencia: `MenuOpsPanel`, `ProcurementOpsPanel`, `ProductionOpsPanel`, camada API expandida e quality gate completo em `OK`.
 
+### Etapa 8 (Financas pessoais)
+- `T8.0.1` concluida: discovery de segregacao de dominio, ownership e requisitos LGPD para trilha pessoal.
+  - Evidencia: `docs/memory/T8_0_1_FINANCAS_PESSOAIS_DISCOVERY.md`, `docs/adr/0003-segregacao-financas-pessoais.md`.
+- `T8.1.1` concluida: MVP tecnico backend com app `personal_finance`, API autenticada e isolamento por usuario.
+  - Evidencia: `workspaces/backend/src/apps/personal_finance/`, `workspaces/backend/tests/test_personal_finance_api.py`.
+- `T8.1.2` concluida: LGPD operacional no backend (exportacao, auditoria de acesso e retencao de logs).
+  - Evidencia: `workspaces/backend/src/apps/personal_finance/management/commands/purge_personal_audit_logs.py`, `workspaces/backend/tests/test_personal_finance_lgpd.py`.
+- `T8.2.1` concluida: discovery da evolucao funcional da trilha pessoal (recorrencia, resumo mensal e importacao CSV MVP).
+  - Evidencia: `docs/memory/T8_2_1_FINANCAS_PESSOAIS_EVOLUCAO_DISCOVERY.md`, `docs/adr/0005-evolucao-financas-pessoais-fase-8-2.md`.
+- `T8.2.2` concluida: implementacao da evolucao MVP da trilha pessoal (recorrencia idempotente, resumo mensal e importacao CSV preview/confirm).
+  - Evidencia: `workspaces/backend/src/apps/personal_finance/`, `workspaces/backend/tests/test_personal_finance_api.py`, `bash scripts/quality_gate_all.sh` em `OK`.
+
 ## 2) Em progresso
 
-- Etapa ativa de negocio: `9.0` (Admin Web MVP).
-- Proxima subetapa cronologica: `T9.1.1` (fluxo completo dos modulos de gestao e trilha de usuarios/RBAC).
+- Etapa ativa de negocio: `6.2.1` (consolidacao visual do portal no fluxo Antigravity).
+- Proxima subetapa cronologica: `T8.2.3` (hardening/operacionalizacao da trilha pessoal apos MVP de evolucao).
+- Meta de qualidade ativa: `T9.2.1` (plano e execucao recorrente de testes manuais E2E de todos os modulos).
+- Meta de pagamentos ativa: `T7.2.4-A4` (homologacao externa dos tres gateways com credenciais reais, assinatura de webhook por provider e validacao externa).
 - Planejamento tecnico ativo (docs-first):
-  - `9.1` Admin Web completo.
-  - `6.3.2` Integracao CMS no portal.
+  - `7.2.4-A4` homologacao e hardening de pagamentos multigateway.
+  - `8.2.3` hardening da fase de evolucao pessoal.
+  - `6.2.1` consolidacao visual do portal (trilha Antigravity).
+  - `9.2.1` execucao ciclica do checklist manual com evidencia operacional.
 - Observacao de paralelo:
   - Trilha visual do portal `6.2` pode estar em progresso no Antigravity; Codex deve evitar alteracoes concorrentes de layout enquanto houver lock ativo.
 
@@ -136,15 +162,78 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 - Objetivo: finalizar template institucional e consolidar no fluxo oficial.
 
 #### T6.3.2 - Integracao CMS no portal
-- Objetivo: portal consumir CMS via API (template/page sections) com fallback seguro.
+- Objetivo: portal/client consumir CMS via API (template/page sections + parametros de autenticacao) com fallback seguro.
+- Status parcial: `A1..A7` concluidas (restante tecnico: troca de `code` OAuth no backend para login social completo).
+
+#### T7.2.4 - Pagamentos multigateway em tempo real
+- Objetivo: suportar Mercado Pago, Efi e Asaas com configuracao central no Portal CMS, fallback por metodo (PIX/CARD/VR) e retorno de status em tempo real para cliente/admin/mobile.
+- Status:
+  - `A1` concluida em 26/02/2026 (camada de configuracao e rotas de webhook por provider + painel admin).
+  - `A2` concluida em 26/02/2026 (provider unico por frontend, roteamento por canal no backend e campos adaptativos no Admin).
+  - `A3` concluida em 26/02/2026 (observabilidade operacional por provider com endpoint realtime e modulo de monitoramento no Admin).
+  - `A4` pendente (homologacao externa de credenciais, assinatura de webhook real por provider e runbook de producao).
+- Evidencias atuais:
+  - backend: `apps/orders/payment_providers.py`, `apps/orders/provider_config.py`, `apps/orders/views.py`
+  - admin: secao `pagamentos` em `/modulos/portal`
+  - client: habilitacao dinamica de metodos por configuracao publica (`payment_providers`)
 
 #### T9.1.2 - Admin Web relatorios e exportacoes
 - Objetivo: expandir Admin com relatorios graficos e exportacoes CSV/Excel.
+
+#### T9.2.1 - Campanha de testes manuais E2E
+- Objetivo: executar checklist manual completo (portal, client, admin, backend e mobile release), com evidencias e plano de correcao.
+- Escopo: QA manual orientado a fluxo de negocio + atualizacao de memoria operacional.
+- Evidencia de planejamento: `docs/memory/PLANO_T9_2_1_TESTES_MANUAIS_E2E.md`.
 
 ### P2 (roadmap)
 
 #### T6.1.1 - Nginx local e dominios dev
 - Objetivo: consolidar proxy local (`www/admin/api/app`) e reduzir friccao de testes integrados.
 
-#### T8.0.1 - Financas pessoais (discovery + desenho)
+#### T8.0.1 - Financas pessoais (discovery + desenho) [CONCLUIDA]
 - Objetivo: definir segregacao de dados e limites de produto para trilha pessoal.
+- Status: concluida em 26/02/2026 (docs-first).
+- Evidencia:
+  - `docs/memory/T8_0_1_FINANCAS_PESSOAIS_DISCOVERY.md`
+  - `docs/adr/0003-segregacao-financas-pessoais.md`
+
+#### T8.1.1 - Financas pessoais (MVP tecnico de segregacao) [CONCLUIDA]
+- Objetivo: implementar dominio `personal_finance` com ownership estrito por usuario.
+- Escopo: backend + auth + privacidade + testes.
+- Status: concluida em 26/02/2026.
+- Evidencia:
+  - `workspaces/backend/src/apps/personal_finance/`
+  - `workspaces/backend/tests/test_personal_finance_api.py`
+  - `bash scripts/quality_gate_all.sh` em `OK`.
+
+#### T8.1.2 - Financas pessoais (LGPD operacional) [CONCLUIDA]
+- Objetivo: fechar camada operacional de LGPD (retencao, exportacao e trilha de acesso) para dados pessoais.
+- Escopo: backend + docs + runbooks.
+- Status: concluida em 26/02/2026.
+- Evidencia:
+  - `workspaces/backend/src/apps/personal_finance/management/commands/purge_personal_audit_logs.py`
+  - `workspaces/backend/tests/test_personal_finance_lgpd.py`
+  - `bash scripts/quality_gate_all.sh` em `OK`.
+
+#### T8.2.1 - Financas pessoais (discovery de evolucao) [CONCLUIDA]
+- Objetivo: definir proxima fase funcional da trilha pessoal (integracoes, UX e escopo de produto).
+- Escopo: docs + arquitetura + backlog.
+- Status: concluida em 26/02/2026.
+- Evidencia:
+  - `docs/memory/T8_2_1_FINANCAS_PESSOAIS_EVOLUCAO_DISCOVERY.md`
+  - `docs/adr/0005-evolucao-financas-pessoais-fase-8-2.md`
+
+#### T8.2.2 - Financas pessoais (implementacao da evolucao MVP) [CONCLUIDA]
+- Objetivo: entregar recorrencia de lancamentos, resumo mensal e importacao CSV com preview/confirmacao.
+- Escopo: backend + API + testes + docs.
+- Status: concluida em 26/02/2026.
+- Evidencia:
+  - `workspaces/backend/src/apps/personal_finance/models.py`
+  - `workspaces/backend/src/apps/personal_finance/services.py`
+  - `workspaces/backend/src/apps/personal_finance/views.py`
+  - `workspaces/backend/tests/test_personal_finance_api.py`
+  - `bash scripts/quality_gate_all.sh` em `OK`.
+
+#### T8.2.3 - Financas pessoais (hardening pos-MVP)
+- Objetivo: consolidar UX/operacao da fase 8.2 com observabilidade, jobs agendados e ajustes de contratos.
+- Escopo: backend + operacao + docs.

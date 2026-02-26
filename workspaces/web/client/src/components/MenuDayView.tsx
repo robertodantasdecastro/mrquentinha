@@ -3,6 +3,7 @@
 import { Badge, Button, Card, Input, StatusPill, type StatusTone } from "@mrquentinha/ui";
 import Image from "next/image";
 
+import { useClientTemplate } from "@/components/ClientTemplateProvider";
 import { formatCurrency } from "@/lib/format";
 import type { MenuDayData, MenuItemData } from "@/types/api";
 
@@ -55,12 +56,23 @@ export function MenuDayView({
   cartQtyByItem,
   onAddItem,
 }: MenuDayViewProps) {
+  const { template } = useClientTemplate();
+  const isVitrineTemplate = template === "client-vitrine-fit";
+
   return (
-    <Card tone="surface" className="rounded-2xl p-5 shadow-sm">
+    <Card
+      tone="surface"
+      className={[
+        "rounded-2xl p-5 shadow-sm",
+        isVitrineTemplate ? "bg-white/80 dark:bg-bg/80" : "",
+      ].join(" ")}
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Badge>Pedido por data</Badge>
-          <h1 className="mt-2 text-2xl font-bold text-text">Cardapio do dia</h1>
+          <Badge>{isVitrineTemplate ? "Vitrine do dia" : "Pedido por data"}</Badge>
+          <h1 className="mt-2 text-2xl font-bold text-text">
+            {isVitrineTemplate ? "Selecione suas marmitas" : "Cardapio do dia"}
+          </h1>
         </div>
 
         <label className="flex flex-col gap-1 text-sm font-medium text-muted">
@@ -108,7 +120,12 @@ export function MenuDayView({
               </div>
             )}
 
-            <div className="grid gap-3">
+            <div
+              className={[
+                "grid gap-3",
+                isVitrineTemplate ? "md:grid-cols-2" : "",
+              ].join(" ")}
+            >
               {menu.menu_items.map((item) => {
                 const currentQty = cartQtyByItem[item.id] ?? 0;
                 const reachedLimit =
@@ -120,7 +137,12 @@ export function MenuDayView({
                 return (
                   <article
                     key={item.id}
-                    className="rounded-xl border border-border bg-bg p-4 transition hover:border-primary/60"
+                    className={[
+                      "rounded-xl border border-border bg-bg p-4 transition hover:border-primary/60",
+                      isVitrineTemplate
+                        ? "overflow-hidden shadow-sm hover:-translate-y-0.5 hover:shadow-md"
+                        : "",
+                    ].join(" ")}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -141,7 +163,10 @@ export function MenuDayView({
                         alt={item.dish.name}
                         width={640}
                         height={320}
-                        className="mt-3 h-32 w-full rounded-md border border-border object-cover"
+                        className={[
+                          "mt-3 w-full rounded-md border border-border object-cover",
+                          isVitrineTemplate ? "h-44" : "h-32",
+                        ].join(" ")}
                         unoptimized
                       />
                     )}

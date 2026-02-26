@@ -13,7 +13,10 @@ import {
 const SECTION_KEYS: PortalSectionKey[] = [
   "all",
   "template",
+  "autenticacao",
+  "pagamentos",
   "conectividade",
+  "mobile-build",
   "conteudo",
   "publicacao",
 ];

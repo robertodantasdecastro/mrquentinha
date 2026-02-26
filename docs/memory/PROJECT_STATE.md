@@ -3,9 +3,9 @@
 Referencia de atualizacao: 26/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
-- Proxima execucao recomendada (unica): `T8.0.1` (discovery de financas pessoais e segregacao de escopo).
+- Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -41,13 +41,50 @@ Referencia de atualizacao: 26/02/2026.
 ### Backend (Django)
 - Status: operacional (Auth JWT, Finance MVP completo, OCR mock, nutricao, producao, relatorios).
 - Banco: PostgreSQL (`mrquentinhabd`).
-- Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `production`, `ocr_ai`, `portal`.
+- Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `personal_finance`, `production`, `ocr_ai`, `portal`.
 - Pagamentos online (`7.2.1` + `7.2.2` + `7.2.3`):
   - `PaymentIntent` persistido com idempotencia por pagamento/chave.
   - provider abstraction inicial (`mock`) com payload de intent para PIX/CARD/VR.
   - webhook idempotente com reconciliacao para `AR/Cash/Ledger`.
   - criacao de pedido com `payment_method` (PIX/CARD/VR) para acionar checkout online por intent.
   - eventos de webhook persistidos em `PaymentWebhookEvent` para replay seguro por `provider + event_id`.
+- Pagamentos multigateway (`T7.2.4-A1`):
+  - `PortalConfig.payment_providers` passou a centralizar configuracao de Mercado Pago, Efi e Asaas (roteamento por metodo, providers habilitados e recebedor CPF/CNPJ).
+  - selecao de provider por metodo (`PIX/CARD/VR`) em runtime via `apps/orders/provider_config.py`.
+  - webhooks dedicados adicionados:
+    - `POST /api/v1/orders/payments/webhook/mercadopago/`
+    - `POST /api/v1/orders/payments/webhook/asaas/`
+    - `POST /api/v1/orders/payments/webhook/efi/`
+  - endpoint admin de teste de conectividade por provider:
+    - `POST /api/v1/portal/admin/config/test-payment-provider/`
+- Pagamentos multigateway (`T7.2.4-A2`):
+  - configuracao `payment_providers.frontend_provider` aplicada por canal (`web`/`mobile`) com provider unico por frontend.
+  - criacao de intent passou a receber `source_channel` (header `X-Client-Channel`) e resolver provider por canal antes da ordem por metodo.
+- Observabilidade operacional (`T7.2.4-A3`):
+  - endpoint `GET /api/v1/orders/ops/realtime/` publicado com saude de servidor, status dos servicos (`backend/admin/portal/client`), comunicacao com gateways e lifecycle de pedidos.
+  - payload realtime inclui `frontend_provider` ativo por canal, metricas de webhooks/intents por provider e serie de 15 minutos para dashboard.
+- Portal CMS mobile release (`T6.3.2-A6`):
+  - `MobileRelease` persistido com status de pipeline, snapshot de `api_base_url` e host publico.
+  - endpoint publico `GET /api/v1/portal/mobile/releases/latest/` para distribuir links de download.
+  - endpoints admin para criar/compilar/publicar release em `/api/v1/portal/admin/mobile/releases/`.
+- Portal CMS autenticacao social (`T6.3.2-A7`):
+  - `PortalConfig` passou a expor `auth_providers` (Google/Apple) com parametros web/mobile gerenciados no Admin Web.
+  - payload publico do CMS expoe apenas dados seguros e `configured`, sem `client_secret`/`private_key`.
+  - template adicional `client-vitrine-fit` incluido no cadastro oficial de templates do canal cliente.
+- Financas pessoais (`T8.1.1`):
+  - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
+  - ownership estrito por usuario em querysets e validacoes.
+  - API dedicada em `/api/v1/personal-finance/...`.
+- Financas pessoais (`T8.1.2`):
+  - endpoint de exportacao de dados pessoais em `/api/v1/personal-finance/export/`.
+  - trilha de auditoria por evento em `PersonalAuditLog`.
+  - retencao operacional via comando `purge_personal_audit_logs`.
+- Financas pessoais (`T8.2.1`):
+  - discovery de evolucao concluido com priorizacao de recorrencia, resumo mensal e importacao CSV MVP.
+- Financas pessoais (`T8.2.2`):
+  - recorrencia com materializacao idempotente (`/recurring-rules/materialize/`).
+  - resumo mensal por competencia com totais e status de budgets (`/summary/monthly/`).
+  - importacao CSV com preview/confirmacao e deduplicacao por hash (`/imports/preview/` e `/imports/<id>/confirm/`).
 
 ### Web Portal (Next.js - 3000)
 - Status: institucional em evolucao de template (`classic` + `letsfit-clean`).
@@ -56,15 +93,18 @@ Referencia de atualizacao: 26/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A2-HF1`): fallback automatico de API no cardapio para host atual (`:8000`) quando variavel de ambiente nao estiver definida.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): template LetsFit passou a consumir secoes dinamicas do CMS (`hero`, `benefits`, `categories`, `kit`, `how_to_heat`, `faq`) incluindo fotos/links via `body_json`.
 - Atualizacao concluida em 26/02/2026 (`T7.2.3-HF2`): links de Area do Cliente/Admin parametrizados por env e fallback local em desenvolvimento (`3001/3002`) para facilitar fluxo iniciado em `localhost:3000`.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A6`): pagina `/app` passou a consumir release mobile publicada via CMS e rota dinamica `/app/downloads/[target]` foi adicionada para redirecionar Android/iOS.
 - Risco de conflito: alto em paralelo com trilha Antigravity de template.
 
 ### Web Client (Next.js - 3001)
 - Status: auth real concluida (`register/token/refresh/me`).
 - Pedido/historico: escopo autenticado sem demo.
 - Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
+- Metodos de pagamento agora habilitados dinamicamente pelo payload publico `payment_providers` do Portal CMS.
 - Atualizacao concluida em 26/02/2026 (`T7.2.3-HF1`): fallback automatico de API para host atual (`:8000`) e mensagem de erro de rede padronizada.
 - Atualizacao concluida em 26/02/2026 (`T7.2.3-HF2`): jornada UX de ponta a ponta (login -> cardapio -> checkout -> pedidos -> confirmacao de recebimento), com indicador de conectividade API, guard de autenticacao no checkout e suporte validado para execucao em `localhost:3000` (`CLIENT_PORT=3000`).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A4`): modo de template dinamico integrado ao CMS (`channel=client`) com dois temas (`client-classic` e `client-quentinhas`) no layout, header, footer e jornada do cardapio.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A7`): novo template `client-vitrine-fit` (grid mais densa e foco em fotos de pratos), bloco de login social Google/Apple na Conta e callbacks web para recebimento do `code`.
 
 ### Admin Web (Next.js - 3002)
 - Status: `T9.1.2` concluida (relatorios/exportacoes + UX/IX modular).
@@ -77,7 +117,12 @@ Referencia de atualizacao: 26/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A1`): modulo `Portal CMS` no Admin Web para selecionar template ativo existente e publicar configuracao de portal.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A4`): `Portal CMS` passou a configurar template ativo do Web Cliente (`client_active_template`) e disponibilizar edicao de conteudo para templates de portal e cliente.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A5`): `Portal CMS` passou a ter area de conectividade para configurar dominio/subdominios e URLs de Portal/Client/Admin/API/Proxy em ambiente dev local (`host mrquentinha`) com lista de origens CORS.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A6`): `Portal CMS` ganhou secao `Build mobile` com criacao/compilacao/publicacao de releases e acompanhamento de status.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A2`): Portal Web passou a consumir `active_template` do CMS em runtime (server-side), refletindo mudancas do Admin sem rebuild por variavel de ambiente.
+- Atualizacao concluida em 26/02/2026 (`T6.3.2-A7`): `Portal CMS` ganhou secao `Autenticacao social` para configurar Google/Apple (web + iOS + Android) com persistencia centralizada em `auth_providers`.
+- Atualizacao concluida em 26/02/2026 (`T7.2.4-A1`): `Portal CMS` ganhou secao `Pagamentos` para configurar Mercado Pago/Efi/Asaas, ordem por metodo (PIX/CARD/VR), recebedor CPF/CNPJ e teste de conexao por provider.
+- Atualizacao concluida em 26/02/2026 (`T7.2.4-A2`): `Portal CMS` passou a selecionar provider unico por canal (`Web Cliente` e `App Mobile`) com campos adaptativos por provider.
+- Atualizacao concluida em 26/02/2026 (`T7.2.4-A3`): dashboard recebeu monitoramento realtime de servicos/pagamentos e novo modulo `/modulos/monitoramento` com visao de saude e lifecycle.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A1`): Cardapio ganhou secao de composicao (ingredientes + prato com receita) para viabilizar ciclo completo de operacao.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A2`): Compras ganhou registro operacional de compra com itens (entrada em estoque), alem da geracao de requisicao por cardapio com seletor.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A3`): Cardapio ganhou padrao de periodos (Manha/Cafe, Almoco, Jantar, Lanche) para organizacao de menus diarios.
@@ -87,7 +132,8 @@ Referencia de atualizacao: 26/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A7`): ciclo operacional completo no Admin com linha de producao (dashboard realtime, auto-checagem de estoque no cardapio, alertas de compras, entrega e confirmacao de recebimento pelo cliente).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): modulo Portal CMS ganhou editor de secoes dinamicas (template/pagina/body_json) e a composicao ganhou upload de fotos para insumos e pratos.
 - Workspace ativo: `workspaces/web/admin`.
-- Proximo alvo: iniciar `T8.0.1` (discovery de financas pessoais e segregacao LGPD).
+- Proximo alvo tecnico: executar `T8.2.3` (hardening pos-MVP da trilha pessoal).
+- Proximo alvo operacional: executar `T9.2.1-A2` (rodada manual E2E completa) e manter `T8.2.3` como trilha tecnica de backend.
 
 ## Portas e scripts oficiais
 - Backend: `8000` -> `scripts/start_backend_dev.sh`
@@ -119,9 +165,35 @@ Referencia de atualizacao: 26/02/2026.
   - `GET /api/v1/orders/payments/<id>/intent/latest/`
 - Webhook pagamentos:
   - `POST /api/v1/orders/payments/webhook/` (`X-Webhook-Token`)
+  - `POST /api/v1/orders/payments/webhook/mercadopago/` (`X-Webhook-Token`)
+  - `POST /api/v1/orders/payments/webhook/asaas/` (`X-Webhook-Token`)
+  - `POST /api/v1/orders/payments/webhook/efi/` (`X-Webhook-Token`)
 - Portal CMS publico:
   - `GET /api/v1/portal/config/`
   - `GET /api/v1/portal/config/version`
+  - `GET /api/v1/portal/mobile/releases/latest/`
+- Portal CMS admin (config):
+  - `GET/POST /api/v1/portal/admin/config/`
+  - `PATCH /api/v1/portal/admin/config/<id>/`
+  - `POST /api/v1/portal/admin/config/<id>/publish/`
+  - `POST /api/v1/portal/admin/config/test-payment-provider/`
+- Financas pessoais:
+  - `GET/POST /api/v1/personal-finance/accounts/`
+  - `GET/POST /api/v1/personal-finance/categories/`
+  - `GET/POST /api/v1/personal-finance/entries/`
+  - `GET/POST /api/v1/personal-finance/recurring-rules/`
+  - `POST /api/v1/personal-finance/recurring-rules/materialize/`
+  - `GET/POST /api/v1/personal-finance/budgets/`
+  - `GET /api/v1/personal-finance/summary/monthly/?month=YYYY-MM`
+  - `POST /api/v1/personal-finance/imports/preview/`
+  - `POST /api/v1/personal-finance/imports/<id>/confirm/`
+  - `GET /api/v1/personal-finance/imports/`
+  - `GET /api/v1/personal-finance/export/`
+  - `GET /api/v1/personal-finance/audit-logs/`
+- Portal CMS admin (release mobile):
+  - `GET/POST /api/v1/portal/admin/mobile/releases/`
+  - `POST /api/v1/portal/admin/mobile/releases/<id>/compile/`
+  - `POST /api/v1/portal/admin/mobile/releases/<id>/publish/`
 
 ## Plano da etapa ativa
 - Trilha principal: `9.1 Admin Web completo` (concluida).
@@ -134,5 +206,13 @@ Referencia de atualizacao: 26/02/2026.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF3`): padronizacao visual global com cores de status (success/warning/danger/info) e aplicacao da logo oficial (PNG original) no Admin Web, Portal e Client.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF4`): rotas diretas `/modulos` e `/prioridades` no Admin Web agora redirecionam para `/#modulos` e `/#prioridades`, evitando erro 404 em acesso por URL/bookmark.
 - T9.1.2 concluida (relatorios/exportacoes no Admin Web com filtro por periodo e exportacao CSV funcional por modulo).
-- Proxima subetapa unica: executar `T8.0.1` (descoberta de financas pessoais e segregacao).
-- Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity) e `T8.0.1`.
+- T6.3.2-A6 concluida (release mobile no Portal CMS com publicacao de links para QR/download no Portal).
+- T6.3.2-A7 concluida (template cliente `client-vitrine-fit` + parametros OAuth Google/Apple gerenciados no Portal CMS).
+- T7.2.4-A1 concluida (multigateway no Portal CMS + webhooks dedicados por provider + habilitacao dinamica de metodos no web client).
+- T8.0.1 concluida (discovery de financas pessoais + ADR de segregacao entre dominio operacional e pessoal).
+- T8.1.1 concluida (backend `personal_finance` com isolamento por ownership + testes API).
+- T8.1.2 concluida (LGPD operacional com exportacao, auditoria e retencao de logs).
+- T8.2.1 concluida (discovery da evolucao funcional da trilha pessoal).
+- T8.2.2 concluida (recorrencia, resumo mensal e importacao CSV MVP em producao de desenvolvimento).
+- Proxima subetapa unica: executar `T7.2.4-A4` (homologacao externa dos tres gateways com credenciais reais, assinatura de webhook por provider e validacao fim a fim de webhook/status).
+- Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T8.2.3` (hardening backend) e `T9.2.1` (qualidade operacional manual).

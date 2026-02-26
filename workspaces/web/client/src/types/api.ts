@@ -91,6 +91,8 @@ export type PaymentIntentPayload = {
   pix?: {
     copy_paste_code?: string;
     qr_code?: string;
+    qr_code_base64?: string;
+    expiration_date?: string;
   };
   card?: {
     checkout_token?: string;
@@ -100,6 +102,7 @@ export type PaymentIntentPayload = {
     authorization_token?: string;
     network?: string;
   };
+  checkout_url?: string;
 };
 
 export type PaymentIntentStatus =
@@ -144,4 +147,71 @@ export type RegisterPayload = {
   email?: string;
   first_name?: string;
   last_name?: string;
+};
+
+export type PublicGoogleAuthProvider = {
+  enabled: boolean;
+  configured: boolean;
+  web_client_id: string;
+  ios_client_id: string;
+  android_client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  redirect_uri_web: string;
+  redirect_uri_mobile: string;
+  scope: string;
+};
+
+export type PublicAppleAuthProvider = {
+  enabled: boolean;
+  configured: boolean;
+  service_id: string;
+  team_id: string;
+  key_id: string;
+  auth_uri: string;
+  token_uri: string;
+  redirect_uri_web: string;
+  redirect_uri_mobile: string;
+  scope: string;
+};
+
+export type PublicAuthProvidersConfig = {
+  google: PublicGoogleAuthProvider;
+  apple: PublicAppleAuthProvider;
+};
+
+export type PublicPaymentProviderStatus = {
+  enabled: boolean;
+  configured: boolean;
+  api_base_url: string;
+  sandbox: boolean;
+};
+
+export type PublicPaymentProvidersConfig = {
+  default_provider: string;
+  enabled_providers: string[];
+  frontend_provider: {
+    web: string;
+    mobile: string;
+  };
+  method_provider_order: {
+    PIX: string[];
+    CARD: string[];
+    VR: string[];
+  };
+  receiver: {
+    person_type: "CPF" | "CNPJ";
+    document: string;
+    name: string;
+    email: string;
+  };
+  mercadopago: PublicPaymentProviderStatus;
+  efi: PublicPaymentProviderStatus;
+  asaas: PublicPaymentProviderStatus;
+};
+
+export type ClientPortalPublicConfig = {
+  active_template: string;
+  auth_providers: PublicAuthProvidersConfig;
+  payment_providers: PublicPaymentProvidersConfig;
 };

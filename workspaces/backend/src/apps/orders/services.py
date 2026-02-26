@@ -338,6 +338,7 @@ def create_or_get_payment_intent(
     *,
     payment_id: int,
     idempotency_key: str,
+    source_channel: str | None = None,
     actor_user=None,
 ) -> tuple[PaymentIntent, bool]:
     normalized_key = normalize_idempotency_key(idempotency_key)
@@ -380,7 +381,10 @@ def create_or_get_payment_intent(
             "Ja existe um intent ativo para este pagamento."
         )
 
-    provider = get_payment_provider()
+    provider = get_payment_provider(
+        payment_method=payment.method,
+        channel=source_channel,
+    )
     provider_result = provider.create_intent(
         payment=payment,
         idempotency_key=normalized_key,

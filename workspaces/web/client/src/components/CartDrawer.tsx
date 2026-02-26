@@ -25,6 +25,7 @@ type CartDrawerProps = {
   checkoutState: CheckoutState;
   checkoutMessage: string;
   selectedPaymentMethod: OnlinePaymentMethod;
+  availablePaymentMethods: OnlinePaymentMethod[];
   onPaymentMethodChange: (method: OnlinePaymentMethod) => void;
   intentPanel: IntentPanelData | null;
   onRefreshIntent: () => void;
@@ -113,6 +114,7 @@ export function CartDrawer({
   checkoutState,
   checkoutMessage,
   selectedPaymentMethod,
+  availablePaymentMethods,
   onPaymentMethodChange,
   intentPanel,
   onRefreshIntent,
@@ -141,7 +143,9 @@ export function CartDrawer({
           Metodo de pagamento
         </p>
         <div className="mt-2 grid gap-2">
-          {PAYMENT_METHOD_OPTIONS.map((option) => {
+          {PAYMENT_METHOD_OPTIONS.filter((option) =>
+            availablePaymentMethods.includes(option.value),
+          ).map((option) => {
             const isActive = selectedPaymentMethod === option.value;
             return (
               <button

@@ -25,9 +25,18 @@ export function Header() {
   const pathname = usePathname();
   const { template } = useClientTemplate();
   const isQuentinhasTemplate = template === "client-quentinhas";
+  const isVitrineTemplate = template === "client-vitrine-fit";
 
   return (
-    <Navbar className={isQuentinhasTemplate ? "border-b-2 border-primary/40 bg-bg/90" : ""}>
+    <Navbar
+      className={
+        isVitrineTemplate
+          ? "border-b border-primary/30 bg-gradient-to-r from-bg via-surface to-bg"
+          : isQuentinhasTemplate
+            ? "border-b-2 border-primary/40 bg-bg/90"
+            : ""
+      }
+    >
       <Container className="flex items-center justify-between gap-3 py-3">
         <Link href="/" aria-label="Mr Quentinha" className="shrink-0">
           <span className="inline-flex rounded-lg bg-white/95 px-2 py-1 ring-1 ring-border/70 shadow-sm dark:bg-white">
@@ -44,6 +53,9 @@ export function Header() {
         <nav
           className={[
             "flex items-center gap-1 p-1 text-xs font-semibold uppercase tracking-[0.08em] md:text-sm",
+            isVitrineTemplate
+              ? "rounded-xl border border-border/80 bg-white/70 shadow-sm dark:bg-bg/60"
+              : "",
             isQuentinhasTemplate
               ? "rounded-md border border-border bg-bg"
               : "rounded-full border border-border bg-surface",
@@ -57,7 +69,9 @@ export function Header() {
                 key={item.href}
                 href={item.href}
                 className={[
-                  isQuentinhasTemplate ? "rounded-md px-3 py-2 transition" : "rounded-full px-3 py-2 transition",
+                  isQuentinhasTemplate || isVitrineTemplate
+                    ? "rounded-md px-3 py-2 transition"
+                    : "rounded-full px-3 py-2 transition",
                   active
                     ? "bg-primary text-white"
                     : "text-muted hover:bg-bg hover:text-text",

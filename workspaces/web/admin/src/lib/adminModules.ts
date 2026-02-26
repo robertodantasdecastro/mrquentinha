@@ -80,6 +80,14 @@ export const ADMIN_MODULES: AdminModule[] = [
     status: "ativo",
     path: "/modulos/portal",
   },
+  {
+    slug: "monitoramento",
+    title: "Monitoramento",
+    description: "Saude do ecossistema, pagamentos em tempo real e ciclo do pedido.",
+    stage: "T7.2.4",
+    status: "ativo",
+    path: "/modulos/monitoramento",
+  },
 ];
 
 export function resolveModuleStatusTone(status: string):

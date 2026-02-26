@@ -17,6 +17,13 @@ def test_portal_public_config_get_sem_auth_retorna_200(anonymous_client):
     assert payload["client_active_template"]
     assert payload["local_hostname"] == "mrquentinha"
     assert payload["backend_base_url"].endswith(":8000")
+    assert payload["app_download_android_url"].endswith("/app/downloads/android.apk")
+    assert payload["app_download_ios_url"].endswith("/app/downloads/ios")
+    assert "auth_providers" in payload
+    assert payload["auth_providers"]["google"]["enabled"] is False
+    assert "client_secret" not in payload["auth_providers"]["google"]
+    assert "payment_providers" in payload
+    assert payload["payment_providers"]["default_provider"] == "mock"
     assert "sections" in payload
 
 
@@ -78,3 +85,163 @@ def test_portal_admin_cria_e_edita_section(client):
     )
     assert update_response.status_code == 200
     assert update_response.json()["title"] == "CTA Atualizado"
+
+
+@pytest.mark.django_db
+def test_mobile_release_latest_publico_retorna_payload_base(anonymous_client):
+    ensure_portal_config()
+
+    response = anonymous_client.get("/api/v1/portal/mobile/releases/latest/")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["api_base_url"].endswith(":8000")
+    assert payload["android_download_url"].endswith("/app/downloads/android.apk")
+    assert payload["ios_download_url"].endswith("/app/downloads/ios")
+
+
+@pytest.mark.django_db
+def test_mobile_release_admin_cria_compila_e_publica(client):
+    config = ensure_portal_config()
+    create_response = client.post(
+        "/api/v1/portal/admin/mobile/releases/",
+        data={
+            "config": config.id,
+            "release_version": "1.0.0",
+            "build_number": 1,
+            "update_policy": "OPTIONAL",
+            "is_critical_update": False,
+            "min_supported_version": "1.0.0",
+            "recommended_version": "1.0.0",
+            "release_notes": "Release inicial",
+        },
+        format="json",
+    )
+    assert create_response.status_code == 201
+    created_payload = create_response.json()
+    assert created_payload["status"] == "SIGNED"
+
+    release_id = created_payload["id"]
+    publish_response = client.post(
+        f"/api/v1/portal/admin/mobile/releases/{release_id}/publish/",
+        data={},
+        format="json",
+    )
+    assert publish_response.status_code == 200
+    assert publish_response.json()["status"] == "PUBLISHED"
+
+
+@pytest.mark.django_db
+def test_portal_admin_atualiza_auth_providers_google_apple(client):
+    config = ensure_portal_config()
+
+    response = client.patch(
+        f"/api/v1/portal/admin/config/{config.id}/",
+        data={
+            "auth_providers": {
+                "google": {
+                    "enabled": True,
+                    "web_client_id": "google-web-client-id",
+                    "client_secret": "google-client-secret",
+                },
+                "apple": {
+                    "enabled": True,
+                    "service_id": "com.mrquentinha.web",
+                    "team_id": "TEAM123",
+                    "key_id": "KEY123",
+                    "private_key": "PRIVATE_KEY",
+                },
+            }
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["auth_providers"]["google"]["enabled"] is True
+    assert payload["auth_providers"]["apple"]["enabled"] is True
+
+    public_response = client.get("/api/v1/portal/config/?channel=client&page=home")
+    assert public_response.status_code == 200
+    public_payload = public_response.json()
+    assert public_payload["auth_providers"]["google"]["configured"] is True
+    assert public_payload["auth_providers"]["apple"]["configured"] is True
+    assert "client_secret" not in public_payload["auth_providers"]["google"]
+    assert "private_key" not in public_payload["auth_providers"]["apple"]
+
+
+@pytest.mark.django_db
+def test_portal_admin_atualiza_payment_providers(client):
+    config = ensure_portal_config()
+
+    response = client.patch(
+        f"/api/v1/portal/admin/config/{config.id}/",
+        data={
+            "payment_providers": {
+                "default_provider": "asaas",
+                "enabled_providers": ["asaas", "mercadopago"],
+                "frontend_provider": {
+                    "web": "mercadopago",
+                    "mobile": "asaas",
+                },
+                "method_provider_order": {
+                    "PIX": ["asaas", "mercadopago"],
+                    "CARD": ["mercadopago"],
+                    "VR": ["mock"],
+                },
+                "receiver": {
+                    "person_type": "CNPJ",
+                    "document": "12345678000190",
+                    "name": "Mr Quentinha LTDA",
+                    "email": "financeiro@mrquentinha.com.br",
+                },
+                "asaas": {
+                    "enabled": True,
+                    "api_key": "asaas-secret",
+                },
+                "mercadopago": {
+                    "enabled": True,
+                    "access_token": "mp-secret",
+                },
+            }
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["payment_providers"]["default_provider"] == "asaas"
+    assert "asaas" in payload["payment_providers"]["enabled_providers"]
+    assert payload["payment_providers"]["frontend_provider"]["web"] == "mercadopago"
+    assert payload["payment_providers"]["frontend_provider"]["mobile"] == "asaas"
+
+    public_response = client.get("/api/v1/portal/config/?channel=client&page=home")
+    assert public_response.status_code == 200
+    public_payload = public_response.json()
+    assert public_payload["payment_providers"]["asaas"]["configured"] is True
+    assert public_payload["payment_providers"]["mercadopago"]["configured"] is True
+    assert "api_key" not in public_payload["payment_providers"]["asaas"]
+    assert "access_token" not in public_payload["payment_providers"]["mercadopago"]
+
+
+@pytest.mark.django_db
+def test_portal_admin_test_payment_provider_action(client, monkeypatch):
+    captured_provider: dict[str, str] = {}
+
+    def fake_test_payment_provider_connection(provider_name: str):
+        captured_provider["name"] = provider_name
+        return {"provider": provider_name, "ok": True, "detail": "ok"}
+
+    monkeypatch.setattr(
+        "apps.portal.views.test_payment_provider_connection",
+        fake_test_payment_provider_connection,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/test-payment-provider/",
+        data={"provider": "asaas"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert captured_provider["name"] == "asaas"

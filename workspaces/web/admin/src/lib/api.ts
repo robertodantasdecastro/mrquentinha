@@ -27,14 +27,18 @@ import type {
   HealthPayload,
   IngredientData,
   MenuDayData,
+  MobileReleaseData,
   OrdersOpsDashboardData,
   OrderData,
   OrderStatus,
   ProductionBatchData,
   PortalConfigData,
   PortalConfigWritePayload,
+  PortalPaymentProviderTestResult,
   PortalSectionData,
   PortalSectionWritePayload,
+  CreateMobileReleasePayload,
+  EcosystemOpsRealtimeData,
   PurchaseData,
   PurchaseItemData,
   PurchaseRequestData,
@@ -478,6 +482,14 @@ export async function listOrdersAdmin(): Promise<OrderData[]> {
 
 export async function fetchOrdersOpsDashboardAdmin(): Promise<OrdersOpsDashboardData> {
   return requestJson<OrdersOpsDashboardData>("/api/v1/orders/ops/dashboard/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+}
+
+export async function fetchEcosystemOpsRealtimeAdmin(): Promise<EcosystemOpsRealtimeData> {
+  return requestJson<EcosystemOpsRealtimeData>("/api/v1/orders/ops/realtime/", {
     method: "GET",
     auth: true,
     cache: "no-store",
@@ -995,6 +1007,19 @@ export async function publishPortalConfigAdmin(): Promise<PortalConfigData> {
   });
 }
 
+export async function testPortalPaymentProviderAdmin(
+  provider: string,
+): Promise<PortalPaymentProviderTestResult> {
+  return requestJson<PortalPaymentProviderTestResult>(
+    "/api/v1/portal/admin/config/test-payment-provider/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ provider }),
+    },
+  );
+}
+
 export async function listPortalSectionsAdmin(): Promise<PortalSectionData[]> {
   const payload = await requestJson<
     PortalSectionData[] | { results?: PortalSectionData[] }
@@ -1016,6 +1041,41 @@ export async function updatePortalSectionAdmin(
     auth: true,
     body: JSON.stringify(payload),
   });
+}
+
+export async function listMobileReleasesAdmin(): Promise<MobileReleaseData[]> {
+  const payload = await requestJson<
+    MobileReleaseData[] | { results?: MobileReleaseData[] }
+  >("/api/v1/portal/admin/mobile/releases/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+
+  return normalizeListPayload(payload);
+}
+
+export async function createMobileReleaseAdmin(
+  payload: CreateMobileReleasePayload,
+): Promise<MobileReleaseData> {
+  return requestJson<MobileReleaseData>("/api/v1/portal/admin/mobile/releases/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function publishMobileReleaseAdmin(
+  releaseId: number,
+): Promise<MobileReleaseData> {
+  return requestJson<MobileReleaseData>(
+    `/api/v1/portal/admin/mobile/releases/${releaseId}/publish/`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({}),
+    },
+  );
 }
 
 export function logoutAccount(): void {

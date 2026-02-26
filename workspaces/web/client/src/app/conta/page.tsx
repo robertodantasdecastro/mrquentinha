@@ -6,13 +6,14 @@ import { type FormEvent, useEffect, useState } from "react";
 
 import {
   ApiError,
+  fetchAuthProvidersConfig,
   fetchMe,
   loginAccount,
   logoutAccount,
   registerAccount,
 } from "@/lib/api";
 import { hasStoredAuthSession } from "@/lib/storage";
-import type { AuthUserProfile } from "@/types/api";
+import type { AuthUserProfile, PublicAuthProvidersConfig } from "@/types/api";
 
 type AuthMode = "login" | "register";
 type ViewState = "loading" | "anonymous" | "authenticated";
@@ -69,6 +70,93 @@ function sanitizeNextPath(value: string | null): string | null {
 const INPUT_CLASS =
   "w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-primary";
 
+const DEFAULT_AUTH_PROVIDERS: PublicAuthProvidersConfig = {
+  google: {
+    enabled: false,
+    configured: false,
+    web_client_id: "",
+    ios_client_id: "",
+    android_client_id: "",
+    auth_uri: "",
+    token_uri: "",
+    redirect_uri_web: "",
+    redirect_uri_mobile: "",
+    scope: "openid email profile",
+  },
+  apple: {
+    enabled: false,
+    configured: false,
+    service_id: "",
+    team_id: "",
+    key_id: "",
+    auth_uri: "",
+    token_uri: "",
+    redirect_uri_web: "",
+    redirect_uri_mobile: "",
+    scope: "name email",
+  },
+};
+
+function buildOAuthState(provider: "google" | "apple"): string {
+  const randomPart =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `mrq-${provider}-${randomPart}`;
+}
+
+function buildGoogleAuthorizeUrl(
+  authConfig: PublicAuthProvidersConfig["google"],
+): string | null {
+  if (
+    !authConfig.enabled ||
+    !authConfig.configured ||
+    !authConfig.auth_uri ||
+    !authConfig.web_client_id ||
+    !authConfig.redirect_uri_web
+  ) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    client_id: authConfig.web_client_id,
+    redirect_uri: authConfig.redirect_uri_web,
+    response_type: "code",
+    scope: authConfig.scope || "openid email profile",
+    access_type: "offline",
+    include_granted_scopes: "true",
+    prompt: "consent",
+    state: buildOAuthState("google"),
+  });
+
+  return `${authConfig.auth_uri}?${params.toString()}`;
+}
+
+function buildAppleAuthorizeUrl(
+  authConfig: PublicAuthProvidersConfig["apple"],
+): string | null {
+  if (
+    !authConfig.enabled ||
+    !authConfig.configured ||
+    !authConfig.auth_uri ||
+    !authConfig.service_id ||
+    !authConfig.redirect_uri_web
+  ) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    client_id: authConfig.service_id,
+    redirect_uri: authConfig.redirect_uri_web,
+    response_type: "code",
+    response_mode: "query",
+    scope: authConfig.scope || "name email",
+    state: buildOAuthState("apple"),
+  });
+
+  return `${authConfig.auth_uri}?${params.toString()}`;
+}
+
 export default function ContaPage() {
   const router = useRouter();
   const [nextPath, setNextPath] = useState<string | null>(null);
@@ -78,6 +166,9 @@ export default function ContaPage() {
   const [busy, setBusy] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [authProviders, setAuthProviders] = useState<PublicAuthProvidersConfig>(
+    DEFAULT_AUTH_PROVIDERS,
+  );
   const [user, setUser] = useState<AuthUserProfile | null>(null);
 
   const [loginForm, setLoginForm] = useState<LoginFormState>({
@@ -129,6 +220,24 @@ export default function ContaPage() {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
+    async function loadAuthProviders() {
+      const payload = await fetchAuthProvidersConfig();
+      if (!mounted) {
+        return;
+      }
+      setAuthProviders(payload);
+    }
+
+    void loadAuthProviders();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
@@ -146,6 +255,22 @@ export default function ContaPage() {
     }
 
     router.push("/cardapio");
+  }
+
+  function handleSocialLogin(provider: "google" | "apple") {
+    const url =
+      provider === "google"
+        ? buildGoogleAuthorizeUrl(authProviders.google)
+        : buildAppleAuthorizeUrl(authProviders.apple);
+
+    if (!url) {
+      setErrorMessage(
+        `Login com ${provider === "google" ? "Google" : "Apple"} ainda nao esta configurado no Portal CMS.`,
+      );
+      return;
+    }
+
+    window.location.href = url;
   }
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -298,6 +423,33 @@ export default function ContaPage() {
             <p className="text-sm text-muted">
               Entre com sua conta para visualizar apenas seus pedidos e finalizar novas compras.
             </p>
+
+            <div className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+                Login social
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                Parametros de Google e Apple sao administrados no Portal CMS.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin("google")}
+                  disabled={!authProviders.google.enabled}
+                  className="rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60 dark:bg-bg"
+                >
+                  Continuar com Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin("apple")}
+                  disabled={!authProviders.apple.enabled}
+                  className="rounded-md border border-border bg-text px-4 py-2 text-sm font-semibold text-bg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Continuar com Apple
+                </button>
+              </div>
+            </div>
 
             <div className="inline-flex rounded-full border border-border bg-bg p-1 text-xs font-semibold uppercase tracking-[0.08em]">
               <button

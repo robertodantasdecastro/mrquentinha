@@ -11,7 +11,7 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Web Gestao: React/Next
 
 ## Itens para decidir (aberto)
-- Gateway de pagamento (Pix/Cartao/VR)
+- Homologacao final dos gateways de pagamento (Mercado Pago, Efi e Asaas) com credenciais reais e assinatura de webhook por provider
 - OCR (servico externo vs interno)
 - Distribuicao iOS (TestFlight/Enterprise)
 
@@ -28,6 +28,60 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 ## Pendencias tecnicas (inventory/procurement)
 - RBAC de `inventory` e `procurement` ainda esta temporario com `AllowAny` no MVP.
 - Proxima etapa deve substituir por permissoes por perfil (Admin/Compras/Estoque CRUD, Cozinha criacao de solicitacao e leitura, Financeiro leitura).
+
+## 26/02/2026 - Governanca de OAuth via Portal CMS (Google + Apple)
+- Decisao:
+  - centralizar parametros OAuth de client web e mobile em `PortalConfig.auth_providers`.
+  - expor no payload publico somente campos seguros + flag `configured`, sem segredos.
+  - manter configuracao sensivel editavel apenas no Admin Web (`/modulos/portal/autenticacao`).
+- Consequencia:
+  - habilitacao/desabilitacao de social login por ambiente sem rebuild do frontend.
+  - reducao de risco de vazamento de credenciais no canal publico.
+- Pendente tecnico:
+  - implementar endpoint backend para troca de `code` Google/Apple por JWT local e validacao de `state`/nonce.
+
+## 26/02/2026 - Template cliente `client-vitrine-fit` como opcao oficial do CMS
+- Decisao:
+  - adicionar template `client-vitrine-fit` na lista oficial do canal cliente com foco em merchandising visual (fotos grandes e grid densa).
+  - manter convivencia com `client-classic` e `client-quentinhas` via seletor no Portal CMS.
+- Consequencia:
+  - operacao pode alternar layout do web client sem deploy e sem alterar o portal institucional em ownership Antigravity.
+
+## 26/02/2026 - Configuracao multigateway de pagamentos via Portal CMS
+- Decisao:
+  - centralizar no `PortalConfig.payment_providers` as credenciais e roteamento de Mercado Pago, Efi e Asaas.
+  - permitir no Admin Web selecao de um ou varios providers ativos, ordem por metodo (`PIX`, `CARD`, `VR`) e dados do recebedor (`CPF/CNPJ`).
+  - manter segredos apenas no canal admin; payload publico entrega somente campos seguros + `configured`.
+  - padronizar callbacks com endpoints dedicados por provider (`/webhook/mercadopago`, `/webhook/asaas`, `/webhook/efi`) reaproveitando reconciliacao idempotente existente.
+- Consequencia:
+  - operacao consegue trocar gateway sem rebuild do client/mobile.
+  - checkout no web client passa a habilitar metodos dinamicamente por configuracao publicada.
+- Pendente tecnico:
+  - homologacao externa com credenciais reais dos tres providers.
+  - endurecimento de assinatura/validacao de webhook especifica por provider.
+
+## 26/02/2026 - Roteamento de gateway por canal e monitoramento realtime
+- Decisao:
+  - restringir selecao de gateway para **um provider por frontend** (`web` e `mobile`) em `payment_providers.frontend_provider`.
+  - propagar canal de origem via header (`X-Client-Channel`) para resolver provider em runtime no backend.
+  - publicar endpoint operacional unico `GET /api/v1/orders/ops/realtime/` para monitorar saude de servicos, comunicacao com gateways e lifecycle de pedidos.
+- Consequencia:
+  - roteamento previsivel por canal sem depender apenas de ordem por metodo.
+  - dashboard e modulo de monitoramento no Admin com visao central de operacao/pagamentos em tempo real.
+  - base pronta para homologacao externa (`A4`) com observabilidade minima ja ativa.
+
+## 26/02/2026 - T8.2.2 implementado (financas pessoais evolucao MVP)
+- Recorrencia:
+  - adotado modelo `PersonalRecurringRule` com `frequency` (`WEEKLY`/`MONTHLY`) e `next_run_date`.
+  - idempotencia garantida por `PersonalEntry.recurring_event_key` + unique (`owner`, `recurring_event_key`).
+  - materializacao publicada em `POST /api/v1/personal-finance/recurring-rules/materialize/`.
+- Resumo mensal:
+  - consolidacao por competencia (`month=YYYY-MM`) com totais `IN/OUT`, saldo, top categorias e status de budget.
+  - endpoint publicado em `GET /api/v1/personal-finance/summary/monthly/`.
+- Importacao CSV:
+  - fluxo em duas etapas (`preview` -> `confirm`) com `PersonalImportJob`.
+  - deduplicacao por hash canonico (`PersonalEntry.import_hash`) com unique (`owner`, `import_hash`).
+  - endpoints publicados em `POST /api/v1/personal-finance/imports/preview/` e `POST /api/v1/personal-finance/imports/<id>/confirm/`.
 
 ## Etapa 3.1 - Geracao de requisicao por cardapio
 - Multiplicador de consumo no MVP:
@@ -313,3 +367,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Consequencia:
   - desacopla conteudo do portal institucional do frontend.
   - prepara terreno para a etapa `T6.3.2` (portal consumindo CMS) sem bloquear trilha visual do Antigravity.
+
+## 26/02/2026 - Evolucao faseada de Financas Pessoais (T8.2.1)
+- Status: aceito.
+- Decisao:
+  - manter evolucao da trilha `personal_finance` por fases incrementais, sem acoplar ao modulo `finance`.
+  - priorizar na proxima fase tecnica (`T8.2.2`):
+    - recorrencia de lancamentos;
+    - resumo mensal por categoria/totais;
+    - importacao CSV com preview e confirmacao.
+  - manter contratos da API no namespace `/api/v1/personal-finance/...`.
+- Consequencia:
+  - ganho funcional orientado ao usuario final com risco tecnico controlado.
+  - preserva segregacao de dados e fronteira arquitetural definida nos ADRs `0003` e `0005`.

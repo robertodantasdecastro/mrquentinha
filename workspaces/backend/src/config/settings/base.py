@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "apps.finance.apps.FinanceConfig",
     "apps.ocr_ai.apps.OcrAiConfig",
     "apps.portal.apps.PortalConfig",
+    "apps.personal_finance.apps.PersonalFinanceConfig",
 ]
 
 MIDDLEWARE = [

@@ -9,6 +9,7 @@ import {
   ApiError,
   createOrder,
   createPaymentIntent,
+  fetchPaymentProvidersConfig,
   fetchMenuByDate,
   getLatestPaymentIntent,
   listOrders,
@@ -32,6 +33,7 @@ import type {
   OrderStatus,
   PaymentIntentData,
   PaymentSummary,
+  PublicPaymentProvidersConfig,
 } from "@/types/api";
 import type { CartItem } from "@/types/cart";
 
@@ -82,10 +84,15 @@ function resolveOnlinePaymentMethod(
 function buildIntentInstructions(intent: PaymentIntentData): string[] {
   const payload = intent.client_payload;
 
+  if (typeof payload.checkout_url === "string" && payload.checkout_url.trim()) {
+    return [`Checkout: ${payload.checkout_url.trim()}`];
+  }
+
   if (payload.method === "PIX" && payload.pix?.copy_paste_code) {
     return [
       `Pix copia e cola: ${payload.pix.copy_paste_code}`,
-      payload.pix.qr_code ? `QR mock: ${payload.pix.qr_code}` : "",
+      payload.pix.qr_code ? `QR: ${payload.pix.qr_code}` : "",
+      payload.pix.qr_code_base64 ? "QR em base64 disponivel no payload." : "",
     ].filter((item) => item.length > 0);
   }
 
@@ -137,6 +144,44 @@ function buildIdempotencyKey(orderId: number, paymentId: number): string {
       : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   return `client-checkout-${orderId}-${paymentId}-${randomPart}`;
+}
+
+function resolveAvailablePaymentMethods(
+  paymentProviders: PublicPaymentProvidersConfig,
+): OnlinePaymentMethod[] {
+  const methodToProviders: Record<OnlinePaymentMethod, string[]> = {
+    PIX: paymentProviders.method_provider_order.PIX ?? [],
+    CARD: paymentProviders.method_provider_order.CARD ?? [],
+    VR: paymentProviders.method_provider_order.VR ?? [],
+  };
+
+  const methods: OnlinePaymentMethod[] = [];
+  for (const method of ["PIX", "CARD", "VR"] as const) {
+    const hasValidProvider = methodToProviders[method].some((provider) => {
+      const normalized = provider.trim().toLowerCase();
+      if (normalized === "mock") {
+        return true;
+      }
+      if (normalized === "mercadopago") {
+        return (
+          paymentProviders.mercadopago.enabled &&
+          paymentProviders.mercadopago.configured
+        );
+      }
+      if (normalized === "efi") {
+        return paymentProviders.efi.enabled && paymentProviders.efi.configured;
+      }
+      if (normalized === "asaas") {
+        return paymentProviders.asaas.enabled && paymentProviders.asaas.configured;
+      }
+      return false;
+    });
+    if (hasValidProvider) {
+      methods.push(method);
+    }
+  }
+
+  return methods.length > 0 ? methods : ["PIX"];
 }
 
 function resolvePrimaryPayment(
@@ -214,6 +259,7 @@ export function MenuPage() {
   const router = useRouter();
   const { template } = useClientTemplate();
   const isQuentinhasTemplate = template === "client-quentinhas";
+  const isVitrineTemplate = template === "client-vitrine-fit";
   const [selectedDate, setSelectedDate] = useState<string>(getTodayIsoDate());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     hasStoredAuthSession(),
@@ -226,6 +272,9 @@ export function MenuPage() {
   const [cart, setCart] = useState<CartState>({});
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<OnlinePaymentMethod>("PIX");
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<
+    OnlinePaymentMethod[]
+  >(["PIX", "CARD", "VR"]);
   const [checkoutState, setCheckoutState] = useState<CheckoutState>("idle");
   const [checkoutMessage, setCheckoutMessage] = useState<string>("");
   const [intentPanel, setIntentPanel] = useState<IntentPanelData | null>(null);
@@ -295,6 +344,29 @@ export function MenuPage() {
     };
   }, [selectedDate]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPaymentProviders() {
+      const paymentProviders = await fetchPaymentProvidersConfig();
+      if (!mounted) {
+        return;
+      }
+
+      const methods = resolveAvailablePaymentMethods(paymentProviders);
+      setAvailablePaymentMethods(methods);
+      setSelectedPaymentMethod((previous) =>
+        methods.includes(previous) ? previous : methods[0],
+      );
+    }
+
+    void loadPaymentProviders();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const loadLatestOrder = useCallback(async () => {
     if (!isAuthenticated) {
       setLatestOrder(null);
@@ -350,6 +422,16 @@ export function MenuPage() {
 
   const isCheckoutDisabled =
     cartItems.length === 0 || checkoutState === "submitting" || !selectedDate;
+
+  const vitrineHighlights = useMemo(() => {
+    const itemsCount = menu?.menu_items.length ?? 0;
+    const withPhotosCount =
+      menu?.menu_items.filter((item) => Boolean(item.dish.image_url)).length ?? 0;
+    return {
+      itemsCount,
+      withPhotosCount,
+    };
+  }, [menu]);
 
   const journeyStates = useMemo(() => {
     const account: JourneyStepState = isAuthenticated ? "done" : "active";
@@ -603,31 +685,88 @@ export function MenuPage() {
 
   return (
     <section className="space-y-4">
+      {isVitrineTemplate ? (
+        <div className="overflow-hidden rounded-2xl border border-primary/25 bg-bg">
+          <div className="bg-gradient-to-r from-primary/15 via-primary/8 to-transparent p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  Web Cliente · Vitrine Fit
+                </p>
+                <h1 className="mt-1 text-2xl font-bold text-text">
+                  Loja visual de marmitas com fotos em destaque
+                </h1>
+                <p className="mt-2 text-sm text-muted">
+                  Inspirado em vitrines de marcas digitais de marmitas, com foco em imagem,
+                  decisao rapida e checkout continuo.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-white/70 px-3 py-2 text-xs text-muted shadow-sm dark:bg-bg/70">
+                <p>
+                  Itens no dia:{" "}
+                  <strong className="text-text">{vitrineHighlights.itemsCount}</strong>
+                </p>
+                <p className="mt-1">
+                  Com foto:{" "}
+                  <strong className="text-text">{vitrineHighlights.withPhotosCount}</strong>
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-border bg-white/70 px-3 py-1 text-xs font-semibold text-muted dark:bg-bg/70">
+                Mais vendidas
+              </span>
+              <span className="rounded-full border border-border bg-white/70 px-3 py-1 text-xs font-semibold text-muted dark:bg-bg/70">
+                Alto teor proteico
+              </span>
+              <span className="rounded-full border border-border bg-white/70 px-3 py-1 text-xs font-semibold text-muted dark:bg-bg/70">
+                Kits da semana
+              </span>
+            </div>
+          </div>
+          <div className="border-t border-border/70 bg-surface/60 p-4">
+            <p className="text-sm text-muted">
+              {isAuthenticated
+                ? "Sessao autenticada. Seus pedidos e pagamentos seguem o escopo da conta ativa."
+                : "Faca login na aba Conta para finalizar pedidos com sua conta real."}
+            </p>
+            <div className="mt-3">
+              <ApiConnectionStatus />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div
+          className={[
+            "rounded-2xl border border-border p-5",
+            isQuentinhasTemplate ? "bg-bg" : "bg-surface/70",
+          ].join(" ")}
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            {isQuentinhasTemplate ? "Web Cliente · Quentinhas" : "Web Cliente"}
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-text">
+            {isQuentinhasTemplate
+              ? "Escolha sua quentinha e acompanhe cada etapa"
+              : "Monte seu pedido e acompanhe seus status"}
+          </h1>
+          <p className="mt-2 text-sm text-muted">
+            {isAuthenticated
+              ? "Sessao autenticada. Seus pedidos e pagamentos seguem o escopo da conta ativa."
+              : "Faca login na aba Conta para finalizar pedidos com sua conta real."}
+          </p>
+          <div className="mt-3">
+            <ApiConnectionStatus />
+          </div>
+        </div>
+      )}
+
       <div
         className={[
-          "rounded-2xl border border-border p-5",
-          isQuentinhasTemplate ? "bg-bg" : "bg-surface/70",
+          "rounded-2xl border border-border p-4",
+          isVitrineTemplate ? "bg-white/65 shadow-sm dark:bg-bg/75" : "bg-bg/80",
         ].join(" ")}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          {isQuentinhasTemplate ? "Web Cliente · Quentinhas" : "Web Cliente"}
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-text">
-          {isQuentinhasTemplate
-            ? "Escolha sua quentinha e acompanhe cada etapa"
-            : "Monte seu pedido e acompanhe seus status"}
-        </h1>
-        <p className="mt-2 text-sm text-muted">
-          {isAuthenticated
-            ? "Sessao autenticada. Seus pedidos e pagamentos seguem o escopo da conta ativa."
-            : "Faca login na aba Conta para finalizar pedidos com sua conta real."}
-        </p>
-        <div className="mt-3">
-          <ApiConnectionStatus />
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-bg/80 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Jornada do cliente
@@ -741,6 +880,7 @@ export function MenuPage() {
           checkoutState={checkoutState}
           checkoutMessage={checkoutMessage}
           selectedPaymentMethod={selectedPaymentMethod}
+          availablePaymentMethods={availablePaymentMethods}
           onPaymentMethodChange={setSelectedPaymentMethod}
           intentPanel={intentPanel}
           onRefreshIntent={refreshLatestIntent}

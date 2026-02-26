@@ -19,7 +19,15 @@ function resolveApiBaseUrl(): string {
 }
 
 function normalizeTemplate(value: unknown): ClientTemplateType {
-  return value === "client-quentinhas" ? "client-quentinhas" : "client-classic";
+  if (value === "client-quentinhas") {
+    return "client-quentinhas";
+  }
+
+  if (value === "client-vitrine-fit") {
+    return "client-vitrine-fit";
+  }
+
+  return "client-classic";
 }
 
 const fetchClientActiveTemplateCached = cache(

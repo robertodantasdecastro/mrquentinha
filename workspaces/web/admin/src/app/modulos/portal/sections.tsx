@@ -5,14 +5,28 @@ import { StatusPill } from "@mrquentinha/ui";
 
 import {
   ApiError,
+  createMobileReleaseAdmin,
   ensurePortalConfigAdmin,
+  listMobileReleasesAdmin,
   listPortalSectionsAdmin,
+  publishMobileReleaseAdmin,
   publishPortalConfigAdmin,
+  testPortalPaymentProviderAdmin,
   updatePortalConfigAdmin,
   updatePortalSectionAdmin,
 } from "@/lib/api";
 import type {
+  MobileReleaseData,
+  PortalAsaasConfig,
+  PortalAppleAuthConfig,
+  PortalAuthProvidersConfig,
   PortalConfigData,
+  PortalEfiConfig,
+  PortalGoogleAuthConfig,
+  PortalMercadoPagoConfig,
+  PortalPaymentProviderRouting,
+  PortalPaymentProvidersConfig,
+  PortalPaymentReceiverConfig,
   PortalSectionData,
   PortalTemplateData,
 } from "@/types/api";
@@ -22,12 +36,31 @@ export const PORTAL_BASE_PATH = "/modulos/portal";
 export const PORTAL_MENU_ITEMS = [
   { key: "all", label: "Todos", href: PORTAL_BASE_PATH },
   { key: "template", label: "Template ativo", href: `${PORTAL_BASE_PATH}/template#template` },
+  {
+    key: "autenticacao",
+    label: "Autenticacao social",
+    href: `${PORTAL_BASE_PATH}/autenticacao#autenticacao`,
+  },
+  {
+    key: "pagamentos",
+    label: "Pagamentos",
+    href: `${PORTAL_BASE_PATH}/pagamentos#pagamentos`,
+  },
   { key: "conectividade", label: "Conectividade", href: `${PORTAL_BASE_PATH}/conectividade#conectividade` },
+  { key: "mobile-build", label: "Build mobile", href: `${PORTAL_BASE_PATH}/mobile-build#mobile-build` },
   { key: "conteudo", label: "Conteudo dinamico", href: `${PORTAL_BASE_PATH}/conteudo#conteudo` },
   { key: "publicacao", label: "Publicacao", href: `${PORTAL_BASE_PATH}/publicacao#publicacao` },
 ];
 
-export type PortalSectionKey = "all" | "template" | "conectividade" | "conteudo" | "publicacao";
+export type PortalSectionKey =
+  | "all"
+  | "template"
+  | "autenticacao"
+  | "pagamentos"
+  | "conectividade"
+  | "mobile-build"
+  | "conteudo"
+  | "publicacao";
 
 type PortalSectionsProps = {
   activeSection?: PortalSectionKey;
@@ -48,6 +81,7 @@ const TEMPLATE_LABEL_FALLBACK: Record<string, string> = {
   "letsfit-clean": "LetsFit Clean",
   "client-classic": "Cliente Classico",
   "client-quentinhas": "Cliente Quentinhas",
+  "client-vitrine-fit": "Cliente Vitrine Fit",
 };
 
 const PORTAL_PAGE_LABELS: Record<string, string> = {
@@ -57,6 +91,13 @@ const PORTAL_PAGE_LABELS: Record<string, string> = {
   "como-funciona": "Como funciona",
   contato: "Contato",
 };
+
+const PAYMENT_PROVIDER_OPTIONS = [
+  { value: "mock", label: "Mock (desenvolvimento)" },
+  { value: "mercadopago", label: "Mercado Pago" },
+  { value: "efi", label: "Efi" },
+  { value: "asaas", label: "Asaas" },
+];
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -120,6 +161,34 @@ function formatPortalPageLabel(page: string): string {
   return PORTAL_PAGE_LABELS[page] ?? page;
 }
 
+function formatReleaseStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    QUEUED: "Na fila",
+    BUILDING: "Compilando",
+    TESTING: "Testando",
+    SIGNED: "Assinado",
+    PUBLISHED: "Publicado",
+    FAILED: "Falhou",
+  };
+  return labels[status] ?? status;
+}
+
+function resolveReleaseStatusTone(status: string): "success" | "warning" | "danger" | "info" | "neutral" {
+  if (status === "PUBLISHED") {
+    return "success";
+  }
+  if (status === "SIGNED" || status === "BUILDING" || status === "TESTING") {
+    return "info";
+  }
+  if (status === "FAILED") {
+    return "danger";
+  }
+  if (status === "QUEUED") {
+    return "warning";
+  }
+  return "neutral";
+}
+
 function stringifyBodyJson(value: unknown): string {
   try {
     return JSON.stringify(value ?? {}, null, 2);
@@ -152,6 +221,173 @@ function parseOrigins(value: string): string[] {
     .filter((item) => item.length > 0);
 }
 
+function parseProviderOrder(value: string): string[] {
+  const allowed = new Set(PAYMENT_PROVIDER_OPTIONS.map((option) => option.value));
+  const providers = value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => item.length > 0 && allowed.has(item));
+
+  if (providers.length === 0) {
+    return ["mock"];
+  }
+
+  return Array.from(new Set(providers));
+}
+
+function resolveHostFromApiBaseUrl(value: string): string {
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.hostname || "10.211.55.21";
+  } catch {
+    return "10.211.55.21";
+  }
+}
+
+function getDefaultGoogleAuthConfig(): PortalGoogleAuthConfig {
+  return {
+    enabled: false,
+    web_client_id: "",
+    ios_client_id: "",
+    android_client_id: "",
+    client_secret: "",
+    auth_uri: "https://accounts.google.com/o/oauth2/v2/auth",
+    token_uri: "https://oauth2.googleapis.com/token",
+    redirect_uri_web: "https://www.mrquentinha.com.br/conta/oauth/google/callback",
+    redirect_uri_mobile: "mrquentinha://oauth/google/callback",
+    scope: "openid email profile",
+  };
+}
+
+function getDefaultAppleAuthConfig(): PortalAppleAuthConfig {
+  return {
+    enabled: false,
+    service_id: "",
+    team_id: "",
+    key_id: "",
+    private_key: "",
+    auth_uri: "https://appleid.apple.com/auth/authorize",
+    token_uri: "https://appleid.apple.com/auth/token",
+    redirect_uri_web: "https://www.mrquentinha.com.br/conta/oauth/apple/callback",
+    redirect_uri_mobile: "mrquentinha://oauth/apple/callback",
+    scope: "name email",
+  };
+}
+
+function normalizeAuthProviders(
+  value: PortalAuthProvidersConfig | null | undefined,
+): PortalAuthProvidersConfig {
+  return {
+    google: {
+      ...getDefaultGoogleAuthConfig(),
+      ...(value?.google ?? {}),
+    },
+    apple: {
+      ...getDefaultAppleAuthConfig(),
+      ...(value?.apple ?? {}),
+    },
+  };
+}
+
+function getDefaultPaymentReceiver(): PortalPaymentReceiverConfig {
+  return {
+    person_type: "CNPJ",
+    document: "",
+    name: "",
+    email: "",
+  };
+}
+
+function getDefaultPaymentRouting(): PortalPaymentProviderRouting {
+  return {
+    PIX: ["mock"],
+    CARD: ["mock"],
+    VR: ["mock"],
+  };
+}
+
+function getDefaultPaymentFrontendProvider(): { web: string; mobile: string } {
+  return {
+    web: "mock",
+    mobile: "mock",
+  };
+}
+
+function getDefaultMercadoPagoConfig(): PortalMercadoPagoConfig {
+  return {
+    enabled: false,
+    api_base_url: "https://api.mercadopago.com",
+    access_token: "",
+    webhook_secret: "",
+    sandbox: true,
+  };
+}
+
+function getDefaultEfiConfig(): PortalEfiConfig {
+  return {
+    enabled: false,
+    api_base_url: "https://cobrancas-h.api.efipay.com.br",
+    client_id: "",
+    client_secret: "",
+    webhook_secret: "",
+    sandbox: true,
+  };
+}
+
+function getDefaultAsaasConfig(): PortalAsaasConfig {
+  return {
+    enabled: false,
+    api_base_url: "https://sandbox.asaas.com/api/v3",
+    api_key: "",
+    webhook_secret: "",
+    sandbox: true,
+  };
+}
+
+function normalizePaymentProviders(
+  value: PortalPaymentProvidersConfig | null | undefined,
+): PortalPaymentProvidersConfig {
+  const defaultRouting = getDefaultPaymentRouting();
+  return {
+    default_provider: value?.default_provider?.trim() || "mock",
+    enabled_providers:
+      value?.enabled_providers
+        ?.map((item) => item.trim().toLowerCase())
+        .filter((item) => item.length > 0) ?? ["mock"],
+    frontend_provider: {
+      ...getDefaultPaymentFrontendProvider(),
+      ...(value?.frontend_provider ?? {}),
+    },
+    method_provider_order: {
+      PIX:
+        value?.method_provider_order?.PIX?.map((item) => item.trim().toLowerCase()).filter(Boolean) ??
+        defaultRouting.PIX,
+      CARD:
+        value?.method_provider_order?.CARD?.map((item) => item.trim().toLowerCase()).filter(Boolean) ??
+        defaultRouting.CARD,
+      VR:
+        value?.method_provider_order?.VR?.map((item) => item.trim().toLowerCase()).filter(Boolean) ??
+        defaultRouting.VR,
+    },
+    receiver: {
+      ...getDefaultPaymentReceiver(),
+      ...(value?.receiver ?? {}),
+    },
+    mercadopago: {
+      ...getDefaultMercadoPagoConfig(),
+      ...(value?.mercadopago ?? {}),
+    },
+    efi: {
+      ...getDefaultEfiConfig(),
+      ...(value?.efi ?? {}),
+    },
+    asaas: {
+      ...getDefaultAsaasConfig(),
+      ...(value?.asaas ?? {}),
+    },
+  };
+}
+
 export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   const [config, setConfig] = useState<PortalConfigData | null>(null);
   const [sections, setSections] = useState<PortalSectionData[]>([]);
@@ -171,15 +407,102 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   const [clientDomainDraft, setClientDomainDraft] = useState("app.mrquentinha.local");
   const [adminDomainDraft, setAdminDomainDraft] = useState("admin.mrquentinha.local");
   const [apiDomainDraft, setApiDomainDraft] = useState("api.mrquentinha.local");
-  const [portalBaseUrlDraft, setPortalBaseUrlDraft] = useState("http://mrquentinha:3000");
-  const [clientBaseUrlDraft, setClientBaseUrlDraft] = useState("http://mrquentinha:3001");
-  const [adminBaseUrlDraft, setAdminBaseUrlDraft] = useState("http://mrquentinha:3002");
-  const [backendBaseUrlDraft, setBackendBaseUrlDraft] = useState("http://mrquentinha:8000");
-  const [proxyBaseUrlDraft, setProxyBaseUrlDraft] = useState("http://mrquentinha:8088");
+  const [apiBaseUrlDraft, setApiBaseUrlDraft] = useState("https://10.211.55.21:8000");
+  const [portalBaseUrlDraft, setPortalBaseUrlDraft] = useState("https://10.211.55.21:3000");
+  const [clientBaseUrlDraft, setClientBaseUrlDraft] = useState("https://10.211.55.21:3001");
+  const [adminBaseUrlDraft, setAdminBaseUrlDraft] = useState("https://10.211.55.21:3002");
+  const [backendBaseUrlDraft, setBackendBaseUrlDraft] = useState("https://10.211.55.21:8000");
+  const [proxyBaseUrlDraft, setProxyBaseUrlDraft] = useState("https://10.211.55.21:8088");
   const [corsAllowedOriginsDraft, setCorsAllowedOriginsDraft] = useState("");
+  const [googleEnabledDraft, setGoogleEnabledDraft] = useState(false);
+  const [googleWebClientIdDraft, setGoogleWebClientIdDraft] = useState("");
+  const [googleIosClientIdDraft, setGoogleIosClientIdDraft] = useState("");
+  const [googleAndroidClientIdDraft, setGoogleAndroidClientIdDraft] = useState("");
+  const [googleClientSecretDraft, setGoogleClientSecretDraft] = useState("");
+  const [googleAuthUriDraft, setGoogleAuthUriDraft] = useState(
+    "https://accounts.google.com/o/oauth2/v2/auth",
+  );
+  const [googleTokenUriDraft, setGoogleTokenUriDraft] = useState(
+    "https://oauth2.googleapis.com/token",
+  );
+  const [googleRedirectWebDraft, setGoogleRedirectWebDraft] = useState(
+    "https://www.mrquentinha.com.br/conta/oauth/google/callback",
+  );
+  const [googleRedirectMobileDraft, setGoogleRedirectMobileDraft] = useState(
+    "mrquentinha://oauth/google/callback",
+  );
+  const [googleScopeDraft, setGoogleScopeDraft] = useState("openid email profile");
+  const [appleEnabledDraft, setAppleEnabledDraft] = useState(false);
+  const [appleServiceIdDraft, setAppleServiceIdDraft] = useState("");
+  const [appleTeamIdDraft, setAppleTeamIdDraft] = useState("");
+  const [appleKeyIdDraft, setAppleKeyIdDraft] = useState("");
+  const [applePrivateKeyDraft, setApplePrivateKeyDraft] = useState("");
+  const [appleAuthUriDraft, setAppleAuthUriDraft] = useState(
+    "https://appleid.apple.com/auth/authorize",
+  );
+  const [appleTokenUriDraft, setAppleTokenUriDraft] = useState(
+    "https://appleid.apple.com/auth/token",
+  );
+  const [appleRedirectWebDraft, setAppleRedirectWebDraft] = useState(
+    "https://www.mrquentinha.com.br/conta/oauth/apple/callback",
+  );
+  const [appleRedirectMobileDraft, setAppleRedirectMobileDraft] = useState(
+    "mrquentinha://oauth/apple/callback",
+  );
+  const [appleScopeDraft, setAppleScopeDraft] = useState("name email");
+  const [paymentDefaultProviderDraft, setPaymentDefaultProviderDraft] = useState("mock");
+  const [paymentEnabledProvidersDraft, setPaymentEnabledProvidersDraft] = useState<string[]>([
+    "mock",
+  ]);
+  const [paymentWebProviderDraft, setPaymentWebProviderDraft] = useState("mock");
+  const [paymentMobileProviderDraft, setPaymentMobileProviderDraft] = useState("mock");
+  const [paymentPixOrderDraft, setPaymentPixOrderDraft] = useState("mock");
+  const [paymentCardOrderDraft, setPaymentCardOrderDraft] = useState("mock");
+  const [paymentVrOrderDraft, setPaymentVrOrderDraft] = useState("mock");
+  const [receiverPersonTypeDraft, setReceiverPersonTypeDraft] = useState<"CPF" | "CNPJ">(
+    "CNPJ",
+  );
+  const [receiverDocumentDraft, setReceiverDocumentDraft] = useState("");
+  const [receiverNameDraft, setReceiverNameDraft] = useState("");
+  const [receiverEmailDraft, setReceiverEmailDraft] = useState("");
+  const [mercadoPagoEnabledDraft, setMercadoPagoEnabledDraft] = useState(false);
+  const [mercadoPagoApiBaseUrlDraft, setMercadoPagoApiBaseUrlDraft] = useState(
+    "https://api.mercadopago.com",
+  );
+  const [mercadoPagoAccessTokenDraft, setMercadoPagoAccessTokenDraft] = useState("");
+  const [mercadoPagoWebhookSecretDraft, setMercadoPagoWebhookSecretDraft] = useState("");
+  const [mercadoPagoSandboxDraft, setMercadoPagoSandboxDraft] = useState(true);
+  const [efiEnabledDraft, setEfiEnabledDraft] = useState(false);
+  const [efiApiBaseUrlDraft, setEfiApiBaseUrlDraft] = useState(
+    "https://cobrancas-h.api.efipay.com.br",
+  );
+  const [efiClientIdDraft, setEfiClientIdDraft] = useState("");
+  const [efiClientSecretDraft, setEfiClientSecretDraft] = useState("");
+  const [efiWebhookSecretDraft, setEfiWebhookSecretDraft] = useState("");
+  const [efiSandboxDraft, setEfiSandboxDraft] = useState(true);
+  const [asaasEnabledDraft, setAsaasEnabledDraft] = useState(false);
+  const [asaasApiBaseUrlDraft, setAsaasApiBaseUrlDraft] = useState(
+    "https://sandbox.asaas.com/api/v3",
+  );
+  const [asaasApiKeyDraft, setAsaasApiKeyDraft] = useState("");
+  const [asaasWebhookSecretDraft, setAsaasWebhookSecretDraft] = useState("");
+  const [asaasSandboxDraft, setAsaasSandboxDraft] = useState(true);
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [mobileReleases, setMobileReleases] = useState<MobileReleaseData[]>([]);
+  const [releaseVersionDraft, setReleaseVersionDraft] = useState("");
+  const [releaseBuildNumberDraft, setReleaseBuildNumberDraft] = useState("1");
+  const [releaseMinVersionDraft, setReleaseMinVersionDraft] = useState("");
+  const [releaseRecommendedVersionDraft, setReleaseRecommendedVersionDraft] = useState("");
+  const [releaseNotesDraft, setReleaseNotesDraft] = useState("");
+  const [releaseCriticalDraft, setReleaseCriticalDraft] = useState(false);
+  const [releasePolicyDraft, setReleasePolicyDraft] = useState<"OPTIONAL" | "FORCE">(
+    "OPTIONAL",
+  );
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [compilingRelease, setCompilingRelease] = useState(false);
+  const [publishingReleaseId, setPublishingReleaseId] = useState<number | null>(null);
   const [savingSection, setSavingSection] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [refreshingSections, setRefreshingSections] = useState(false);
@@ -281,14 +604,31 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     );
   }, [clientTemplateOptions, config]);
 
+  const derivedPublicHost = useMemo(
+    () => resolveHostFromApiBaseUrl(apiBaseUrlDraft),
+    [apiBaseUrlDraft],
+  );
+  const selectedFrontendProviders = useMemo(
+    () =>
+      new Set(
+        [paymentWebProviderDraft, paymentMobileProviderDraft]
+          .map((item) => item.trim().toLowerCase())
+          .filter((item) => item.length > 0),
+      ),
+    [paymentMobileProviderDraft, paymentWebProviderDraft],
+  );
+  const derivedAndroidDownloadUrl = `https://${derivedPublicHost}:3000/app/downloads/android.apk`;
+  const derivedIosDownloadUrl = `https://${derivedPublicHost}:3000/app/downloads/ios`;
+
   useEffect(() => {
     let mounted = true;
 
     async function loadPortalData() {
       try {
-        const [configPayload, sectionsPayload] = await Promise.all([
+        const [configPayload, sectionsPayload, releasesPayload] = await Promise.all([
           ensurePortalConfigAdmin(),
           listPortalSectionsAdmin(),
+          listMobileReleasesAdmin(),
         ]);
         if (!mounted) {
           return;
@@ -310,6 +650,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
 
         setConfig(configPayload);
         setSections(sectionsPayload);
+        setMobileReleases(releasesPayload);
         setSelectedTemplateId(configPayload.active_template);
         setSelectedClientTemplateId(configPayload.client_active_template);
         setContentTemplateId(defaultTemplateId);
@@ -321,12 +662,73 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         setClientDomainDraft(configPayload.client_domain || "app.mrquentinha.local");
         setAdminDomainDraft(configPayload.admin_domain || "admin.mrquentinha.local");
         setApiDomainDraft(configPayload.api_domain || "api.mrquentinha.local");
-        setPortalBaseUrlDraft(configPayload.portal_base_url || "http://mrquentinha:3000");
-        setClientBaseUrlDraft(configPayload.client_base_url || "http://mrquentinha:3001");
-        setAdminBaseUrlDraft(configPayload.admin_base_url || "http://mrquentinha:3002");
-        setBackendBaseUrlDraft(configPayload.backend_base_url || "http://mrquentinha:8000");
-        setProxyBaseUrlDraft(configPayload.proxy_base_url || "http://mrquentinha:8088");
+        setApiBaseUrlDraft(configPayload.api_base_url || "https://10.211.55.21:8000");
+        setPortalBaseUrlDraft(configPayload.portal_base_url || "https://10.211.55.21:3000");
+        setClientBaseUrlDraft(configPayload.client_base_url || "https://10.211.55.21:3001");
+        setAdminBaseUrlDraft(configPayload.admin_base_url || "https://10.211.55.21:3002");
+        setBackendBaseUrlDraft(configPayload.backend_base_url || "https://10.211.55.21:8000");
+        setProxyBaseUrlDraft(configPayload.proxy_base_url || "https://10.211.55.21:8088");
         setCorsAllowedOriginsDraft(stringifyOrigins(configPayload.cors_allowed_origins));
+        const authProviders = normalizeAuthProviders(configPayload.auth_providers);
+        setGoogleEnabledDraft(authProviders.google.enabled);
+        setGoogleWebClientIdDraft(authProviders.google.web_client_id);
+        setGoogleIosClientIdDraft(authProviders.google.ios_client_id);
+        setGoogleAndroidClientIdDraft(authProviders.google.android_client_id);
+        setGoogleClientSecretDraft(authProviders.google.client_secret);
+        setGoogleAuthUriDraft(authProviders.google.auth_uri);
+        setGoogleTokenUriDraft(authProviders.google.token_uri);
+        setGoogleRedirectWebDraft(authProviders.google.redirect_uri_web);
+        setGoogleRedirectMobileDraft(authProviders.google.redirect_uri_mobile);
+        setGoogleScopeDraft(authProviders.google.scope);
+        setAppleEnabledDraft(authProviders.apple.enabled);
+        setAppleServiceIdDraft(authProviders.apple.service_id);
+        setAppleTeamIdDraft(authProviders.apple.team_id);
+        setAppleKeyIdDraft(authProviders.apple.key_id);
+        setApplePrivateKeyDraft(authProviders.apple.private_key);
+        setAppleAuthUriDraft(authProviders.apple.auth_uri);
+        setAppleTokenUriDraft(authProviders.apple.token_uri);
+        setAppleRedirectWebDraft(authProviders.apple.redirect_uri_web);
+        setAppleRedirectMobileDraft(authProviders.apple.redirect_uri_mobile);
+        setAppleScopeDraft(authProviders.apple.scope);
+
+        const paymentProviders = normalizePaymentProviders(
+          configPayload.payment_providers,
+        );
+        setPaymentDefaultProviderDraft(paymentProviders.default_provider);
+        setPaymentEnabledProvidersDraft(paymentProviders.enabled_providers);
+        setPaymentWebProviderDraft(paymentProviders.frontend_provider.web);
+        setPaymentMobileProviderDraft(paymentProviders.frontend_provider.mobile);
+        setPaymentPixOrderDraft(
+          paymentProviders.method_provider_order.PIX.join(", "),
+        );
+        setPaymentCardOrderDraft(
+          paymentProviders.method_provider_order.CARD.join(", "),
+        );
+        setPaymentVrOrderDraft(
+          paymentProviders.method_provider_order.VR.join(", "),
+        );
+        setReceiverPersonTypeDraft(paymentProviders.receiver.person_type);
+        setReceiverDocumentDraft(paymentProviders.receiver.document);
+        setReceiverNameDraft(paymentProviders.receiver.name);
+        setReceiverEmailDraft(paymentProviders.receiver.email);
+        setMercadoPagoEnabledDraft(paymentProviders.mercadopago.enabled);
+        setMercadoPagoApiBaseUrlDraft(paymentProviders.mercadopago.api_base_url);
+        setMercadoPagoAccessTokenDraft(paymentProviders.mercadopago.access_token);
+        setMercadoPagoWebhookSecretDraft(
+          paymentProviders.mercadopago.webhook_secret,
+        );
+        setMercadoPagoSandboxDraft(paymentProviders.mercadopago.sandbox);
+        setEfiEnabledDraft(paymentProviders.efi.enabled);
+        setEfiApiBaseUrlDraft(paymentProviders.efi.api_base_url);
+        setEfiClientIdDraft(paymentProviders.efi.client_id);
+        setEfiClientSecretDraft(paymentProviders.efi.client_secret);
+        setEfiWebhookSecretDraft(paymentProviders.efi.webhook_secret);
+        setEfiSandboxDraft(paymentProviders.efi.sandbox);
+        setAsaasEnabledDraft(paymentProviders.asaas.enabled);
+        setAsaasApiBaseUrlDraft(paymentProviders.asaas.api_base_url);
+        setAsaasApiKeyDraft(paymentProviders.asaas.api_key);
+        setAsaasWebhookSecretDraft(paymentProviders.asaas.webhook_secret);
+        setAsaasSandboxDraft(paymentProviders.asaas.sandbox);
         setErrorMessage("");
       } catch (error) {
         if (mounted) {
@@ -444,25 +846,190 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     }
   }
 
+  async function handleSaveAuthProviders() {
+    if (!config) {
+      return;
+    }
+
+    setSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedConfig = await updatePortalConfigAdmin(config.id, {
+        auth_providers: {
+          google: {
+            enabled: googleEnabledDraft,
+            web_client_id: googleWebClientIdDraft.trim(),
+            ios_client_id: googleIosClientIdDraft.trim(),
+            android_client_id: googleAndroidClientIdDraft.trim(),
+            client_secret: googleClientSecretDraft.trim(),
+            auth_uri: googleAuthUriDraft.trim(),
+            token_uri: googleTokenUriDraft.trim(),
+            redirect_uri_web: googleRedirectWebDraft.trim(),
+            redirect_uri_mobile: googleRedirectMobileDraft.trim(),
+            scope: googleScopeDraft.trim(),
+          },
+          apple: {
+            enabled: appleEnabledDraft,
+            service_id: appleServiceIdDraft.trim(),
+            team_id: appleTeamIdDraft.trim(),
+            key_id: appleKeyIdDraft.trim(),
+            private_key: applePrivateKeyDraft.trim(),
+            auth_uri: appleAuthUriDraft.trim(),
+            token_uri: appleTokenUriDraft.trim(),
+            redirect_uri_web: appleRedirectWebDraft.trim(),
+            redirect_uri_mobile: appleRedirectMobileDraft.trim(),
+            scope: appleScopeDraft.trim(),
+          },
+        },
+      });
+
+      setConfig(updatedConfig);
+      setSuccessMessage(
+        "Parametros de autenticacao social (Google/Apple) atualizados com sucesso.",
+      );
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleToggleEnabledPaymentProvider(provider: string) {
+    setPaymentEnabledProvidersDraft((previous) => {
+      const alreadyEnabled = previous.includes(provider);
+      if (alreadyEnabled) {
+        const next = previous.filter((item) => item !== provider);
+        return next.length > 0 ? next : ["mock"];
+      }
+      return [...previous, provider];
+    });
+  }
+
+  async function handleSavePaymentProviders() {
+    if (!config) {
+      return;
+    }
+
+    setSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const enabledProviders = Array.from(
+        new Set(
+          paymentEnabledProvidersDraft
+            .map((item) => item.trim().toLowerCase())
+            .filter((item) => item.length > 0),
+        ),
+      );
+      if (enabledProviders.length === 0) {
+        enabledProviders.push("mock");
+      }
+
+      const defaultProvider = paymentDefaultProviderDraft.trim().toLowerCase() || "mock";
+      if (!enabledProviders.includes(defaultProvider)) {
+        enabledProviders.push(defaultProvider);
+      }
+      const webProvider = paymentWebProviderDraft.trim().toLowerCase() || "mock";
+      const mobileProvider = paymentMobileProviderDraft.trim().toLowerCase() || "mock";
+      if (!enabledProviders.includes(webProvider)) {
+        enabledProviders.push(webProvider);
+      }
+      if (!enabledProviders.includes(mobileProvider)) {
+        enabledProviders.push(mobileProvider);
+      }
+
+      const updatedConfig = await updatePortalConfigAdmin(config.id, {
+        payment_providers: {
+          default_provider: defaultProvider,
+          enabled_providers: enabledProviders,
+          frontend_provider: {
+            web: webProvider,
+            mobile: mobileProvider,
+          },
+          method_provider_order: {
+            PIX: parseProviderOrder(paymentPixOrderDraft),
+            CARD: parseProviderOrder(paymentCardOrderDraft),
+            VR: parseProviderOrder(paymentVrOrderDraft),
+          },
+          receiver: {
+            person_type: receiverPersonTypeDraft,
+            document: receiverDocumentDraft.trim(),
+            name: receiverNameDraft.trim(),
+            email: receiverEmailDraft.trim(),
+          },
+          mercadopago: {
+            enabled: mercadoPagoEnabledDraft,
+            api_base_url: mercadoPagoApiBaseUrlDraft.trim(),
+            access_token: mercadoPagoAccessTokenDraft.trim(),
+            webhook_secret: mercadoPagoWebhookSecretDraft.trim(),
+            sandbox: mercadoPagoSandboxDraft,
+          },
+          efi: {
+            enabled: efiEnabledDraft,
+            api_base_url: efiApiBaseUrlDraft.trim(),
+            client_id: efiClientIdDraft.trim(),
+            client_secret: efiClientSecretDraft.trim(),
+            webhook_secret: efiWebhookSecretDraft.trim(),
+            sandbox: efiSandboxDraft,
+          },
+          asaas: {
+            enabled: asaasEnabledDraft,
+            api_base_url: asaasApiBaseUrlDraft.trim(),
+            api_key: asaasApiKeyDraft.trim(),
+            webhook_secret: asaasWebhookSecretDraft.trim(),
+            sandbox: asaasSandboxDraft,
+          },
+        },
+      });
+
+      setConfig(updatedConfig);
+      setSuccessMessage("Configuracoes de pagamentos atualizadas com sucesso.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTestPaymentProvider(provider: string) {
+    setTestingProvider(provider);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const payload = await testPortalPaymentProviderAdmin(provider);
+      setSuccessMessage(payload.detail);
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setTestingProvider(null);
+    }
+  }
+
   function handleApplyLocalPreset() {
     const normalizedHost = (localHostnameDraft || "mrquentinha").trim() || "mrquentinha";
+    const hostFromApi = resolveHostFromApiBaseUrl(apiBaseUrlDraft);
 
     setLocalHostnameDraft(normalizedHost);
+    setLocalNetworkIpDraft(hostFromApi);
     setRootDomainDraft(`${normalizedHost}.local`);
     setPortalDomainDraft(`www.${normalizedHost}.local`);
     setClientDomainDraft(`app.${normalizedHost}.local`);
     setAdminDomainDraft(`admin.${normalizedHost}.local`);
     setApiDomainDraft(`api.${normalizedHost}.local`);
-    setPortalBaseUrlDraft(`http://${normalizedHost}:3000`);
-    setClientBaseUrlDraft(`http://${normalizedHost}:3001`);
-    setAdminBaseUrlDraft(`http://${normalizedHost}:3002`);
-    setBackendBaseUrlDraft(`http://${normalizedHost}:8000`);
-    setProxyBaseUrlDraft(`http://${normalizedHost}:8088`);
+    setPortalBaseUrlDraft(`https://${hostFromApi}:3000`);
+    setClientBaseUrlDraft(`https://${hostFromApi}:3001`);
+    setAdminBaseUrlDraft(`https://${hostFromApi}:3002`);
+    setBackendBaseUrlDraft(`https://${hostFromApi}:8000`);
+    setProxyBaseUrlDraft(`https://${hostFromApi}:8088`);
     setCorsAllowedOriginsDraft(
       [
-        `http://${normalizedHost}:3000`,
-        `http://${normalizedHost}:3001`,
-        `http://${normalizedHost}:3002`,
+        `https://${hostFromApi}:3000`,
+        `https://${hostFromApi}:3001`,
+        `https://${hostFromApi}:3002`,
       ].join("\n"),
     );
     setSuccessMessage("Preset local aplicado. Revise os campos e salve.");
@@ -480,6 +1047,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
 
     try {
       const updatedConfig = await updatePortalConfigAdmin(config.id, {
+        api_base_url: apiBaseUrlDraft.trim(),
         local_hostname: localHostnameDraft.trim() || "mrquentinha",
         local_network_ip: localNetworkIpDraft.trim(),
         root_domain: rootDomainDraft.trim(),
@@ -498,6 +1066,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
       setConfig(updatedConfig);
       setLocalHostnameDraft(updatedConfig.local_hostname);
       setLocalNetworkIpDraft(updatedConfig.local_network_ip);
+      setApiBaseUrlDraft(updatedConfig.api_base_url);
       setRootDomainDraft(updatedConfig.root_domain);
       setPortalDomainDraft(updatedConfig.portal_domain);
       setClientDomainDraft(updatedConfig.client_domain);
@@ -514,6 +1083,71 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleCompileRelease() {
+    if (!config) {
+      return;
+    }
+
+    setCompilingRelease(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const buildNumber = Number.parseInt(releaseBuildNumberDraft, 10);
+      if (Number.isNaN(buildNumber) || buildNumber <= 0) {
+        throw new Error("Informe um build_number valido (maior que zero).");
+      }
+
+      const version = releaseVersionDraft.trim();
+      if (!version) {
+        throw new Error("Informe a versao da release.");
+      }
+
+      const createdRelease = await createMobileReleaseAdmin({
+        config: config.id,
+        release_version: version,
+        build_number: buildNumber,
+        update_policy: releasePolicyDraft,
+        is_critical_update: releaseCriticalDraft,
+        min_supported_version: releaseMinVersionDraft.trim() || version,
+        recommended_version: releaseRecommendedVersionDraft.trim() || version,
+        release_notes: releaseNotesDraft.trim(),
+      });
+
+      const refreshedReleases = await listMobileReleasesAdmin();
+      setMobileReleases(refreshedReleases);
+      setReleaseMinVersionDraft(createdRelease.min_supported_version);
+      setReleaseRecommendedVersionDraft(createdRelease.recommended_version);
+      setSuccessMessage(
+        `Release ${createdRelease.release_version}+${createdRelease.build_number} compilada e assinada.`,
+      );
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setCompilingRelease(false);
+    }
+  }
+
+  async function handlePublishRelease(releaseId: number) {
+    setPublishingReleaseId(releaseId);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedRelease = await publishMobileReleaseAdmin(releaseId);
+      setMobileReleases((previous) =>
+        previous.map((item) => (item.id === updatedRelease.id ? updatedRelease : item)),
+      );
+      setSuccessMessage(
+        `Release ${updatedRelease.release_version}+${updatedRelease.build_number} publicada.`,
+      );
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setPublishingReleaseId(null);
     }
   }
 
@@ -709,6 +1343,555 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </section>
       )}
 
+      {(showAll || activeSection === "autenticacao") && (
+        <section
+          id="autenticacao"
+          className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm"
+        >
+          <h2 className="text-lg font-semibold text-text">Autenticacao social</h2>
+          <p className="mt-1 text-sm text-muted">
+            Centralize no Admin os parametros de OAuth para Web Cliente e App Mobile.
+            Campos de cada box pertencem ao respectivo provider.
+          </p>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-base font-semibold text-text">Google</p>
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={googleEnabledDraft}
+                    onChange={(event) => setGoogleEnabledDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Habilitado
+                </label>
+              </div>
+              <div className="mt-3 grid gap-3">
+                <label className="grid gap-1 text-sm text-muted">
+                  Client ID (Web)
+                  <input
+                    value={googleWebClientIdDraft}
+                    onChange={(event) => setGoogleWebClientIdDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Client ID (iOS - Google Sign-In do app)
+                  <input
+                    value={googleIosClientIdDraft}
+                    onChange={(event) => setGoogleIosClientIdDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Client ID (Android)
+                  <input
+                    value={googleAndroidClientIdDraft}
+                    onChange={(event) => setGoogleAndroidClientIdDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Client Secret
+                  <input
+                    value={googleClientSecretDraft}
+                    onChange={(event) => setGoogleClientSecretDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  URL de autorizacao
+                  <input
+                    value={googleAuthUriDraft}
+                    onChange={(event) => setGoogleAuthUriDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  URL de token
+                  <input
+                    value={googleTokenUriDraft}
+                    onChange={(event) => setGoogleTokenUriDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Redirect URI (web)
+                  <input
+                    value={googleRedirectWebDraft}
+                    onChange={(event) => setGoogleRedirectWebDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Redirect URI (mobile)
+                  <input
+                    value={googleRedirectMobileDraft}
+                    onChange={(event) => setGoogleRedirectMobileDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Escopos
+                  <input
+                    value={googleScopeDraft}
+                    onChange={(event) => setGoogleScopeDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+              </div>
+            </article>
+
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-base font-semibold text-text">Apple</p>
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={appleEnabledDraft}
+                    onChange={(event) => setAppleEnabledDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Habilitado
+                </label>
+              </div>
+              <div className="mt-3 grid gap-3">
+                <label className="grid gap-1 text-sm text-muted">
+                  Service ID (Client ID Apple)
+                  <input
+                    value={appleServiceIdDraft}
+                    onChange={(event) => setAppleServiceIdDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Team ID
+                  <input
+                    value={appleTeamIdDraft}
+                    onChange={(event) => setAppleTeamIdDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Key ID
+                  <input
+                    value={appleKeyIdDraft}
+                    onChange={(event) => setAppleKeyIdDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Private Key
+                  <textarea
+                    rows={5}
+                    value={applePrivateKeyDraft}
+                    onChange={(event) => setApplePrivateKeyDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  URL de autorizacao
+                  <input
+                    value={appleAuthUriDraft}
+                    onChange={(event) => setAppleAuthUriDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  URL de token
+                  <input
+                    value={appleTokenUriDraft}
+                    onChange={(event) => setAppleTokenUriDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Redirect URI (web)
+                  <input
+                    value={appleRedirectWebDraft}
+                    onChange={(event) => setAppleRedirectWebDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Redirect URI (mobile)
+                  <input
+                    value={appleRedirectMobileDraft}
+                    onChange={(event) => setAppleRedirectMobileDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Escopos
+                  <input
+                    value={appleScopeDraft}
+                    onChange={(event) => setAppleScopeDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+              </div>
+            </article>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => void handleSaveAuthProviders()}
+              disabled={loading || saving || !config}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {saving ? "Salvando..." : "Salvar parametros de autenticacao"}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {(showAll || activeSection === "pagamentos") && (
+        <section
+          id="pagamentos"
+          className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm"
+        >
+          <h2 className="text-lg font-semibold text-text">Pagamentos e gateways</h2>
+          <p className="mt-1 text-sm text-muted">
+            Configure Mercado Pago, Efi e Asaas, defina roteamento por metodo e valide
+            conexao com botao de teste.
+          </p>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <h3 className="text-base font-semibold text-text">Roteamento geral</h3>
+              <div className="mt-3 grid gap-3">
+                <label className="grid gap-1 text-sm text-muted">
+                  Provider padrao
+                  <select
+                    value={paymentDefaultProviderDraft}
+                    onChange={(event) => setPaymentDefaultProviderDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  >
+                    {PAYMENT_PROVIDER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Provider do frontend Web Cliente (um unico)
+                  <select
+                    value={paymentWebProviderDraft}
+                    onChange={(event) => setPaymentWebProviderDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  >
+                    {PAYMENT_PROVIDER_OPTIONS.map((option) => (
+                      <option key={`web-${option.value}`} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Provider do App Mobile (um unico)
+                  <select
+                    value={paymentMobileProviderDraft}
+                    onChange={(event) => setPaymentMobileProviderDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  >
+                    {PAYMENT_PROVIDER_OPTIONS.map((option) => (
+                      <option key={`mobile-${option.value}`} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="rounded-md border border-border bg-surface/60 px-3 py-2 text-xs text-muted">
+                  Os frontends usam canal autenticado e criptografado ja padronizado. Ao ativar um
+                  provider por canal, o backend passa a resolver intents por `WEB` ou `MOBILE`
+                  automaticamente.
+                </p>
+
+                <fieldset className="grid gap-2">
+                  <legend className="text-sm text-muted">Providers habilitados</legend>
+                  {PAYMENT_PROVIDER_OPTIONS.map((option) => (
+                    <label key={option.value} className="inline-flex items-center gap-2 text-sm text-text">
+                      <input
+                        type="checkbox"
+                        checked={paymentEnabledProvidersDraft.includes(option.value)}
+                        onChange={() => handleToggleEnabledPaymentProvider(option.value)}
+                        className="h-4 w-4 rounded border-border text-primary"
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </fieldset>
+
+                <label className="grid gap-1 text-sm text-muted">
+                  Ordem de provider para PIX (separar por virgula)
+                  <input
+                    value={paymentPixOrderDraft}
+                    onChange={(event) => setPaymentPixOrderDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="asaas, mercadopago, efi, mock"
+                  />
+                </label>
+
+                <label className="grid gap-1 text-sm text-muted">
+                  Ordem de provider para CARTAO (separar por virgula)
+                  <input
+                    value={paymentCardOrderDraft}
+                    onChange={(event) => setPaymentCardOrderDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="mercadopago, asaas, efi, mock"
+                  />
+                </label>
+
+                <label className="grid gap-1 text-sm text-muted">
+                  Ordem de provider para VR (separar por virgula)
+                  <input
+                    value={paymentVrOrderDraft}
+                    onChange={(event) => setPaymentVrOrderDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="mock"
+                  />
+                </label>
+              </div>
+            </article>
+
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <h3 className="text-base font-semibold text-text">Recebedor</h3>
+              <div className="mt-3 grid gap-3">
+                <label className="grid gap-1 text-sm text-muted">
+                  Tipo de pessoa
+                  <select
+                    value={receiverPersonTypeDraft}
+                    onChange={(event) =>
+                      setReceiverPersonTypeDraft(event.currentTarget.value as "CPF" | "CNPJ")
+                    }
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  >
+                    <option value="CPF">CPF</option>
+                    <option value="CNPJ">CNPJ</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Documento
+                  <input
+                    value={receiverDocumentDraft}
+                    onChange={(event) => setReceiverDocumentDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Nome/razao social
+                  <input
+                    value={receiverNameDraft}
+                    onChange={(event) => setReceiverNameDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Email financeiro
+                  <input
+                    value={receiverEmailDraft}
+                    onChange={(event) => setReceiverEmailDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  />
+                </label>
+              </div>
+            </article>
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-3">
+            {selectedFrontendProviders.has("mercadopago") && (
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-base font-semibold text-text">Mercado Pago</h3>
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={mercadoPagoEnabledDraft}
+                    onChange={(event) => setMercadoPagoEnabledDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Habilitado
+                </label>
+              </div>
+              <div className="mt-3 grid gap-2">
+                <input
+                  value={mercadoPagoApiBaseUrlDraft}
+                  onChange={(event) => setMercadoPagoApiBaseUrlDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="API Base URL"
+                />
+                <input
+                  value={mercadoPagoAccessTokenDraft}
+                  onChange={(event) => setMercadoPagoAccessTokenDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="Access Token"
+                />
+                <input
+                  value={mercadoPagoWebhookSecretDraft}
+                  onChange={(event) => setMercadoPagoWebhookSecretDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="Webhook Secret (opcional)"
+                />
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={mercadoPagoSandboxDraft}
+                    onChange={(event) => setMercadoPagoSandboxDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Sandbox
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleTestPaymentProvider("mercadopago")}
+                disabled={testingProvider !== null}
+                className="mt-3 rounded-md border border-border px-3 py-2 text-xs font-semibold text-text transition hover:border-primary disabled:opacity-70"
+              >
+                {testingProvider === "mercadopago" ? "Testando..." : "Testar conexao"}
+              </button>
+            </article>
+            )}
+
+            {selectedFrontendProviders.has("efi") && (
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-base font-semibold text-text">Efi</h3>
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={efiEnabledDraft}
+                    onChange={(event) => setEfiEnabledDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Habilitado
+                </label>
+              </div>
+              <div className="mt-3 grid gap-2">
+                <input
+                  value={efiApiBaseUrlDraft}
+                  onChange={(event) => setEfiApiBaseUrlDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="API Base URL"
+                />
+                <input
+                  value={efiClientIdDraft}
+                  onChange={(event) => setEfiClientIdDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="Client ID"
+                />
+                <input
+                  value={efiClientSecretDraft}
+                  onChange={(event) => setEfiClientSecretDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="Client Secret"
+                />
+                <input
+                  value={efiWebhookSecretDraft}
+                  onChange={(event) => setEfiWebhookSecretDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="Webhook Secret (opcional)"
+                />
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={efiSandboxDraft}
+                    onChange={(event) => setEfiSandboxDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Sandbox
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleTestPaymentProvider("efi")}
+                disabled={testingProvider !== null}
+                className="mt-3 rounded-md border border-border px-3 py-2 text-xs font-semibold text-text transition hover:border-primary disabled:opacity-70"
+              >
+                {testingProvider === "efi" ? "Testando..." : "Testar conexao"}
+              </button>
+            </article>
+            )}
+
+            {selectedFrontendProviders.has("asaas") && (
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-base font-semibold text-text">Asaas</h3>
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={asaasEnabledDraft}
+                    onChange={(event) => setAsaasEnabledDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Habilitado
+                </label>
+              </div>
+              <div className="mt-3 grid gap-2">
+                <input
+                  value={asaasApiBaseUrlDraft}
+                  onChange={(event) => setAsaasApiBaseUrlDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="API Base URL"
+                />
+                <input
+                  value={asaasApiKeyDraft}
+                  onChange={(event) => setAsaasApiKeyDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="API Key"
+                />
+                <input
+                  value={asaasWebhookSecretDraft}
+                  onChange={(event) => setAsaasWebhookSecretDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="Webhook Secret (opcional)"
+                />
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={asaasSandboxDraft}
+                    onChange={(event) => setAsaasSandboxDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Sandbox
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleTestPaymentProvider("asaas")}
+                disabled={testingProvider !== null}
+                className="mt-3 rounded-md border border-border px-3 py-2 text-xs font-semibold text-text transition hover:border-primary disabled:opacity-70"
+              >
+                {testingProvider === "asaas" ? "Testando..." : "Testar conexao"}
+              </button>
+            </article>
+            )}
+          </div>
+          {!selectedFrontendProviders.has("mercadopago") &&
+            !selectedFrontendProviders.has("efi") &&
+            !selectedFrontendProviders.has("asaas") && (
+              <p className="mt-3 rounded-md border border-border bg-bg px-3 py-2 text-xs text-muted">
+                Nenhum provider externo selecionado para WEB/MOBILE. O canal ficara em `mock`.
+              </p>
+            )}
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => void handleSavePaymentProviders()}
+              disabled={loading || saving || !config}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {saving ? "Salvando..." : "Salvar configuracoes de pagamento"}
+            </button>
+          </div>
+        </section>
+      )}
+
       {(showAll || activeSection === "conectividade") && (
         <section
           id="conectividade"
@@ -720,7 +1903,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
             desenvolvimento em rede local.
           </p>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <label className="grid gap-1 text-sm text-muted">
               Host local da maquina
               <input
@@ -737,6 +1920,15 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
                 onChange={(event) => setLocalNetworkIpDraft(event.currentTarget.value)}
                 className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                 placeholder="10.211.55.21"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              Endereco da API (unico)
+              <input
+                value={apiBaseUrlDraft}
+                onChange={(event) => setApiBaseUrlDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                placeholder="https://10.211.55.21:8000"
               />
             </label>
             <div className="flex items-end">
@@ -793,6 +1985,18 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
             </label>
           </div>
 
+          <div className="mt-4 rounded-xl border border-border bg-bg p-3 text-xs text-muted">
+            <p>
+              Host publico derivado: <strong className="text-text">{derivedPublicHost}</strong>
+            </p>
+            <p className="mt-1">
+              Android: <code>{derivedAndroidDownloadUrl}</code>
+            </p>
+            <p className="mt-1">
+              iOS: <code>{derivedIosDownloadUrl}</code>
+            </p>
+          </div>
+
           <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             <label className="grid gap-1 text-sm text-muted">
               URL Portal
@@ -843,7 +2047,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
               value={corsAllowedOriginsDraft}
               onChange={(event) => setCorsAllowedOriginsDraft(event.currentTarget.value)}
               className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-              placeholder={"http://mrquentinha:3000\nhttp://mrquentinha:3001\nhttp://mrquentinha:3002"}
+              placeholder={"https://10.211.55.21:3000\nhttps://10.211.55.21:3001\nhttps://10.211.55.21:3002"}
             />
           </label>
 
@@ -856,6 +2060,151 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
             >
               {saving ? "Salvando..." : "Salvar conectividade"}
             </button>
+          </div>
+        </section>
+      )}
+
+      {(showAll || activeSection === "mobile-build") && (
+        <section
+          id="mobile-build"
+          className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm"
+        >
+          <h2 className="text-lg font-semibold text-text">Build e release mobile</h2>
+          <p className="mt-1 text-sm text-muted">
+            Compile Android/iOS com a mesma configuracao, gere links de download e publique no portal.
+          </p>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <label className="grid gap-1 text-sm text-muted">
+              Versao
+              <input
+                value={releaseVersionDraft}
+                onChange={(event) => setReleaseVersionDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                placeholder="1.0.0"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              Build
+              <input
+                type="number"
+                min={1}
+                value={releaseBuildNumberDraft}
+                onChange={(event) => setReleaseBuildNumberDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              Versao minima
+              <input
+                value={releaseMinVersionDraft}
+                onChange={(event) => setReleaseMinVersionDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                placeholder="1.0.0"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-muted">
+              Versao recomendada
+              <input
+                value={releaseRecommendedVersionDraft}
+                onChange={(event) => setReleaseRecommendedVersionDraft(event.currentTarget.value)}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                placeholder="1.0.0"
+              />
+            </label>
+          </div>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <label className="grid gap-1 text-sm text-muted">
+              Politica de atualizacao
+              <select
+                value={releasePolicyDraft}
+                onChange={(event) =>
+                  setReleasePolicyDraft(event.currentTarget.value as "OPTIONAL" | "FORCE")
+                }
+                className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+              >
+                <option value="OPTIONAL">Opcional</option>
+                <option value="FORCE">Obrigatoria</option>
+              </select>
+            </label>
+            <label className="mt-6 inline-flex items-center gap-2 text-sm text-text">
+              <input
+                type="checkbox"
+                checked={releaseCriticalDraft}
+                onChange={(event) => setReleaseCriticalDraft(event.currentTarget.checked)}
+                className="h-4 w-4 rounded border-border text-primary"
+              />
+              Atualizacao critica
+            </label>
+          </div>
+
+          <label className="mt-3 grid gap-1 text-sm text-muted">
+            Notas da release
+            <textarea
+              rows={4}
+              value={releaseNotesDraft}
+              onChange={(event) => setReleaseNotesDraft(event.currentTarget.value)}
+              className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+            />
+          </label>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => void handleCompileRelease()}
+              disabled={compilingRelease || !config}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {compilingRelease ? "Compilando..." : "Compilar release"}
+            </button>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {mobileReleases.length === 0 && (
+              <p className="text-sm text-muted">Nenhuma release mobile criada.</p>
+            )}
+            {mobileReleases.map((release) => (
+              <article
+                key={release.id}
+                className="rounded-xl border border-border bg-bg p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-text">
+                    {release.release_version}+{release.build_number}
+                  </p>
+                  <StatusPill tone={resolveReleaseStatusTone(release.status)}>
+                    {formatReleaseStatusLabel(release.status)}
+                  </StatusPill>
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  Android: {release.android_download_url || "-"}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  iOS: {release.ios_download_url || "-"}
+                </p>
+                {release.release_notes && (
+                  <p className="mt-2 text-xs text-muted">{release.release_notes}</p>
+                )}
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => void handlePublishRelease(release.id)}
+                    disabled={
+                      publishingReleaseId === release.id ||
+                      release.status === "PUBLISHED"
+                    }
+                    className="rounded-md border border-primary bg-bg px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {publishingReleaseId === release.id
+                      ? "Publicando..."
+                      : release.status === "PUBLISHED"
+                        ? "Publicado"
+                        : "Publicar"}
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       )}

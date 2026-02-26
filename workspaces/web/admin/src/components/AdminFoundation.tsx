@@ -5,9 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import { AdminSessionGate, useAdminSession } from "@/components/AdminSessionGate";
-import { ApiError, fetchOrdersOpsDashboardAdmin } from "@/lib/api";
+import { ApiError, fetchEcosystemOpsRealtimeAdmin, fetchOrdersOpsDashboardAdmin } from "@/lib/api";
 import { ADMIN_MODULES, resolveModuleCardBorder, resolveModuleStatusTone } from "@/lib/adminModules";
-import type { OpsAlertData, OpsPipelineStageData } from "@/types/api";
+import type { EcosystemOpsRealtimeData, OpsAlertData, OpsPipelineStageData } from "@/types/api";
+import { Sparkline } from "@/components/charts/Sparkline";
 
 function resolveHealthTone(status: string): StatusTone {
   const normalizedStatus = status.toLowerCase();
@@ -32,13 +33,19 @@ const Dashboard = () => {
     requisicoes_abertas: number;
     lotes_concluidos: number;
   } | null>(null);
+  const [realtimePayload, setRealtimePayload] = useState<EcosystemOpsRealtimeData | null>(
+    null,
+  );
 
   useEffect(() => {
     let mounted = true;
 
     async function loadOpsDashboard() {
       try {
-        const payload = await fetchOrdersOpsDashboardAdmin();
+        const [payload, realtime] = await Promise.all([
+          fetchOrdersOpsDashboardAdmin(),
+          fetchEcosystemOpsRealtimeAdmin(),
+        ]);
         if (!mounted) {
           return;
         }
@@ -52,6 +59,7 @@ const Dashboard = () => {
           requisicoes_abertas: payload.kpis.requisicoes_abertas,
           lotes_concluidos: payload.kpis.lotes_concluidos,
         });
+        setRealtimePayload(realtime);
         setOpsError("");
       } catch (error) {
         if (!mounted) {
@@ -148,6 +156,45 @@ const Dashboard = () => {
             </p>
           </article>
         </div>
+        {realtimePayload && (
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            <article className="rounded-xl border border-border bg-bg p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                Carga servidor (1m)
+              </p>
+              <p className="mt-1 text-xl font-semibold text-text">
+                {realtimePayload.server_health.load_avg_1m}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                CPU: {realtimePayload.server_health.cpu_count} cores
+              </p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                Memoria usada
+              </p>
+              <p className="mt-1 text-xl font-semibold text-text">
+                {realtimePayload.server_health.memory.used_percent}%
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {realtimePayload.server_health.memory.used_mb} MB de{" "}
+                {realtimePayload.server_health.memory.total_mb} MB
+              </p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                Canal seguro ativo
+              </p>
+              <p className="mt-1 text-xl font-semibold text-text">
+                {realtimePayload.payment_monitor.communication_channel.transport}/
+                {realtimePayload.payment_monitor.communication_channel.encryption}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                auth: {realtimePayload.payment_monitor.communication_channel.auth}
+              </p>
+            </article>
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
@@ -192,6 +239,75 @@ const Dashboard = () => {
           </div>
         )}
       </section>
+
+      {realtimePayload && (
+        <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-text">
+                Monitoramento realtime do ecossistema
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                Saude de servicos e sincronizacao dos provedores de pagamento (refresh automatico).
+              </p>
+            </div>
+            <Link
+              href="/modulos/monitoramento"
+              className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+            >
+              Abrir modulo de monitoramento
+            </Link>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {realtimePayload.services.map((service) => (
+              <article key={service.key} className="rounded-xl border border-border bg-bg p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  {service.name}
+                </p>
+                <p className="mt-1 text-base font-semibold text-text">
+                  {service.status.toUpperCase()} :{service.port}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  PID: {service.pid ?? "-"} | RSS: {service.rss_mb ?? 0} MB
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                Eventos em 15 minutos
+              </p>
+              <Sparkline
+                values={realtimePayload.payment_monitor.series_last_15_minutes.map(
+                  (item) => item.webhooks_received,
+                )}
+                className="mt-3"
+              />
+            </article>
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                Provedores de pagamento
+              </p>
+              <div className="mt-3 space-y-2">
+                {realtimePayload.payment_monitor.providers.map((provider) => (
+                  <div
+                    key={provider.provider}
+                    className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-xs"
+                  >
+                    <span className="font-semibold text-text">{provider.provider}</span>
+                    <span className="text-muted">
+                      sync: {provider.sync_status} | webhooks 24h: {provider.webhooks_24h}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-text">Módulos e status</h2>

@@ -26,6 +26,7 @@
 - `procurement`: requisicoes, compras, fornecedores
 - `orders`: pedidos, itens, pagamentos e transicoes de status
 - `finance`: contas, despesas, AP/AR, caixa, conciliacao
+- `personal_finance`: contas/categorias/lancamentos pessoais por usuario (escopo privado), com recorrencia, resumo mensal e importacao CSV assistida
 - `ocr_ai`: captura/extracao (fase 2)
 
 ## Modulo Orders (Etapa 4)
@@ -55,6 +56,15 @@ Crie interfaces estaveis (camada "ports") para:
 - envio de e-mail/WhatsApp (futuro)
 
 Isso permite trocar fornecedor sem refazer o dominio.
+
+### Estado atual de gateways (26/02/2026)
+- Configuracao centralizada em `PortalConfig.payment_providers` (Admin Web) para:
+  - providers habilitados (`mercadopago`, `efi`, `asaas`, `mock`);
+  - ordem/fallback por metodo (`PIX`, `CARD`, `VR`);
+  - dados de recebedor (`CPF/CNPJ`).
+- Adaptadores implementados em `apps/orders/payment_providers.py`.
+- Resolucao de provider por metodo em runtime em `apps/orders/provider_config.py`.
+- Webhooks dedicados publicados por provider em `apps/orders/views.py`.
 
 ## Ambientes
 - **Dev (offline)**: VM Linux, PostgreSQL local, servicos rodando via systemd opcional.

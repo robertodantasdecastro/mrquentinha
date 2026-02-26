@@ -2,20 +2,39 @@
 
 import { QRCodeSVG } from "qrcode.react";
 
-const PORTAL_APP_URL = "https://www.mrquentinha.com.br/app";
+type QRDownloadCardProps = {
+  appUrl: string;
+  androidDownloadUrl: string;
+  iosDownloadUrl: string;
+  releaseVersion?: string;
+  publishedAt?: string | null;
+};
 
-// TODO: atualizar para o link final do APK publicado.
-const ANDROID_DOWNLOAD_URL = "https://www.mrquentinha.com.br/downloads/android.apk";
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return "-";
+  }
 
-// TODO: atualizar para o link final da App Store/TestFlight.
-const IOS_DOWNLOAD_URL = "https://apps.apple.com/br";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
-export function QRDownloadCard() {
+  return date.toLocaleString("pt-BR");
+}
+
+export function QRDownloadCard({
+  appUrl,
+  androidDownloadUrl,
+  iosDownloadUrl,
+  releaseVersion = "",
+  publishedAt = null,
+}: QRDownloadCardProps) {
   return (
     <section className="rounded-lg border border-border bg-surface/80 p-6 md:p-8">
       <div className="grid gap-6 md:grid-cols-[220px_1fr] md:items-center">
         <div className="mx-auto rounded-lg border border-border bg-white p-4 shadow-sm">
-          <QRCodeSVG value={PORTAL_APP_URL} size={180} bgColor="#ffffff" fgColor="#1f1f1f" />
+          <QRCodeSVG value={appUrl} size={180} bgColor="#ffffff" fgColor="#1f1f1f" />
         </div>
 
         <div>
@@ -30,7 +49,7 @@ export function QRDownloadCard() {
 
           <div className="mt-5 flex flex-wrap gap-3">
             <a
-              href={ANDROID_DOWNLOAD_URL}
+              href={androidDownloadUrl}
               target="_blank"
               rel="noreferrer"
               className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-soft"
@@ -38,7 +57,7 @@ export function QRDownloadCard() {
               Baixar Android (APK)
             </a>
             <a
-              href={IOS_DOWNLOAD_URL}
+              href={iosDownloadUrl}
               target="_blank"
               rel="noreferrer"
               className="rounded-md border border-border bg-bg px-5 py-3 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
@@ -48,7 +67,8 @@ export function QRDownloadCard() {
           </div>
 
           <p className="mt-4 text-xs text-muted">
-            Links editaveis em: <code>src/components/QRDownloadCard.tsx</code>
+            Release: <strong>{releaseVersion || "-"}</strong> | Publicado em:{" "}
+            <strong>{formatDateTime(publishedAt)}</strong>
           </p>
         </div>
       </div>

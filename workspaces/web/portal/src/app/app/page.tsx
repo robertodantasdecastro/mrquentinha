@@ -1,11 +1,14 @@
 import { QRDownloadCard } from "@/components/QRDownloadCard";
+import { fetchPortalAppDownloads } from "@/lib/mobileRelease";
 
 export const metadata = {
   title: "App",
   description: "Pagina oficial para download do aplicativo Mr Quentinha.",
 };
 
-export default function AppPage() {
+export default async function AppPage() {
+  const downloads = await fetchPortalAppDownloads();
+
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-border bg-bg p-6">
@@ -18,7 +21,13 @@ export default function AppPage() {
         </p>
       </section>
 
-      <QRDownloadCard />
+      <QRDownloadCard
+        appUrl={downloads.appUrl}
+        androidDownloadUrl={downloads.androidDownloadUrl}
+        iosDownloadUrl={downloads.iosDownloadUrl}
+        releaseVersion={downloads.releaseVersion}
+        publishedAt={downloads.publishedAt}
+      />
     </div>
   );
 }

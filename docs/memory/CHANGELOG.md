@@ -1,6 +1,27 @@
 # Changelog (por sprint)
 
 ## 26/02/2026
+- T7.2.4-A2 (backend/orders): roteamento de provider por canal de frontend implementado com `frontend_provider.web/mobile`, resolucao por header (`X-Client-Channel`) e fallback seguro para `WEB`.
+- T7.2.4-A2 (web client): criacao de intent passou a enviar `X-Client-Channel: WEB`, garantindo selecao de gateway por canal no backend.
+- T7.2.4-A2 (admin web/Portal CMS): secao `Pagamentos` passou a selecionar provider unico por canal (`Web Cliente` e `App Mobile`) e a exibir campos dinamicos conforme provider selecionado.
+- T7.2.4-A3 (backend/orders): endpoint de monitoramento realtime do ecossistema publicado em `GET /api/v1/orders/ops/realtime/` com saude de servidor, status de servicos, monitor de comunicacao com gateways e lifecycle de pedidos.
+- T7.2.4-A3 (admin web): dashboard principal ganhou cards realtime de servicos/pagamentos e novo modulo dedicado `/modulos/monitoramento` com polling a cada 10s.
+- Qualidade: adicionados testes para `orders ops realtime` e propagacao de canal `MOBILE` no fluxo de intent; validado com `python manage.py check`, `ruff check`, `pytest` direcionado, `npm run lint` e `npm run build` (admin/client).
+- T7.2.4-A1 (backend/orders): `payment_providers.py` evoluido para Mercado Pago, Efi e Asaas com selecao dinamica por metodo (`PIX/CARD/VR`) via configuracao do Portal CMS.
+- T7.2.4-A1 (backend/orders): novos webhooks dedicados por provider publicados em `/api/v1/orders/payments/webhook/{mercadopago|asaas|efi}/`.
+- T7.2.4-A1 (backend/portal): `PortalConfig` ganhou `payment_providers` (JSON) com recebedor CPF/CNPJ, ordem por metodo e credenciais por provider; endpoint admin de teste `POST /api/v1/portal/admin/config/test-payment-provider/` adicionado.
+- T7.2.4-A1 (admin web): modulo `/modulos/portal` ganhou secao `Pagamentos` com configuracao completa de gateways, habilitacao por provider, roteamento por metodo e botao de teste de conexao.
+- T7.2.4-A1 (web client): checkout agora respeita `payment_providers` publico para habilitar metodos dinamicamente e exibir instrucoes de intent com `checkout_url`/PIX aprimorado.
+- T7.2.4-A1 (qualidade): testes adicionados para webhooks Mercado Pago/Asaas/Efi em `tests/test_orders_api.py` e regressao backend executada com sucesso.
+- ADR-0006 criada: decisao arquitetural de pagamentos multigateway com configuracao central no Portal CMS.
+- T6.3.2-A7 (backend Portal CMS): `PortalConfig` ganhou `auth_providers` (Google/Apple) com normalizacao de payload, defaults por canal e sanitizacao publica sem segredo.
+- T6.3.2-A7 (backend Portal CMS): novo template cliente `client-vitrine-fit` adicionado na configuracao oficial de templates do canal client.
+- T6.3.2-A7 (admin web): modulo `/modulos/portal` ganhou secao `Autenticacao social` para gerenciar parametros OAuth web/mobile de Google e Apple.
+- T6.3.2-A7 (web client): novo template `client-vitrine-fit` aplicado em layout/header/footer/jornada de cardapio com prioridade para fotos.
+- T6.3.2-A7 (web client): pagina `/conta` ganhou painel de login social Google/Apple orientado por configuracao do CMS, com callbacks em `/conta/oauth/google/callback` e `/conta/oauth/apple/callback`.
+- Mobile brand contract: `mobile/brand` atualizado para incluir leitura de `auth_providers` no payload publico do Portal CMS.
+- Planejamento global atualizado com meta `T9.2.1` para campanha recorrente de testes manuais E2E e checklist publicado em `docs/memory/PLANO_T9_2_1_TESTES_MANUAIS_E2E.md`.
+- Validacao de retomada: `bash scripts/sync_memory.sh --check` e `bash scripts/quality_gate_all.sh` executados com sucesso (`148 passed` no backend + builds/smokes em `OK`).
 - Admin Web: novo modulo `Portal CMS` em `/modulos/portal` para selecionar template ativo entre os templates cadastrados no backend.
 - Admin Web: adicionadas rotas de servico do modulo (`/modulos/portal/[service]`) para acesso direto em `template` e `publicacao`.
 - Admin Web: cliente de API ganhou suporte aos endpoints de administracao do portal (`list/create/patch/publish` em `/api/v1/portal/admin/config/`).
@@ -27,6 +48,31 @@
 - Admin Web (`/modulos/portal`): nova secao `Conectividade` para editar host local, dominios/subdominios, URLs de apps e allowlist de CORS (uma origem por linha), com botao de preset local.
 - Admin Web (`/modulos/portal`): menu/descricoes atualizados para refletir gerenciamento de templates + conectividade.
 - Validacao final: `bash scripts/quality_gate_all.sh` executado com sucesso (`130 passed`, builds Portal/Client/Admin e smokes `stack/client`).
+- Portal CMS (backend): `PortalConfig` passou a expor `api_base_url` e o dominio publico derivado para unificar links de download do app.
+- Portal CMS (backend): novo modelo `MobileRelease` com ciclo `create -> compile -> publish`, snapshot de API/host e endpoint publico de ultima release em `/api/v1/portal/mobile/releases/latest/`.
+- Admin Web (`/modulos/portal/mobile-build`): nova secao de build/release mobile com criacao, compilacao inicial e publicacao de releases.
+- Portal Web (`/app`): QR e botoes de download agora consomem a release publicada via API; rota `/app/downloads/[target]` adicionada para redirecionamento controlado.
+- Hotfix portal (Next 16): ajuste de tipagem da route dinamica de downloads para `params` assincrono.
+- Validacao final: `bash scripts/quality_gate_all.sh` executado com sucesso (`133 passed`, builds Portal/Client/Admin e smokes `stack/client`).
+- T8.0.1 (docs-first): discovery de Financas Pessoais concluido com definicao de escopo MVP tecnico (`personal_finance`), ownership estrito por usuario e requisitos LGPD minimos.
+- ADR-0003 criada: segregacao entre financeiro operacional (`finance`) e trilha pessoal (`personal_finance`) com API dedicada e isolamento de dados.
+- Planejamento atualizado: `ROADMAP_MASTER`, `BACKLOG`, `PROJECT_STATE` e `10-plano-mvp-cronograma` sincronizados para apontar `T8.1.1` como proxima execucao.
+- T8.1.1 (backend): novo app `personal_finance` com modelos `PersonalAccount`, `PersonalCategory`, `PersonalEntry` e `PersonalBudget`, incluindo migration inicial.
+- T8.1.1 (backend): API autenticada publicada em `/api/v1/personal-finance/` com CRUD de contas/categorias/lancamentos/orcamentos e isolamento por ownership.
+- T8.1.1 (qualidade): testes adicionados em `tests/test_personal_finance_api.py` e endpoint raiz atualizado com `personal_finance`.
+- Validacao final: `bash scripts/quality_gate_all.sh` executado com sucesso (`138 passed`, builds Portal/Client/Admin e smokes `stack/client`).
+- T8.1.2 (backend/LGPD): adicionados endpoint de exportacao de dados pessoais (`/api/v1/personal-finance/export/`) e endpoint de consulta de trilha de auditoria (`/api/v1/personal-finance/audit-logs/`).
+- T8.1.2 (backend/LGPD): criada entidade `PersonalAuditLog` para registrar eventos de leitura/escrita/exportacao no dominio pessoal.
+- T8.1.2 (operacao): novo comando `python manage.py purge_personal_audit_logs --days 730` para aplicar retencao de logs de auditoria pessoal.
+- T8.1.2 (qualidade): testes adicionados em `tests/test_personal_finance_lgpd.py` cobrindo exportacao, auditoria e retencao.
+- Validacao final: `bash scripts/quality_gate_all.sh` executado com sucesso (`142 passed`, builds Portal/Client/Admin e smokes `stack/client`).
+- T8.2.1 (docs-first): discovery da evolucao da trilha pessoal concluido com priorizacao de recorrencia de lancamentos, resumo mensal e importacao CSV MVP.
+- ADR-0005 criada: estrategia de evolucao em fases da trilha pessoal preservando segregacao de dominio e idempotencia.
+- Planejamento atualizado: `ROADMAP_MASTER`, `BACKLOG`, `PROJECT_STATE`, `REQUIREMENTS_BACKLOG` e `10-plano-mvp-cronograma` sincronizados para apontar `T8.2.2` como proxima execucao tecnica.
+- T8.2.2 (backend/API): adicionados `PersonalRecurringRule` e `PersonalImportJob`, com novos endpoints para recorrencia, resumo mensal e importacao CSV (preview/confirmacao).
+- T8.2.2 (idempotencia): `PersonalEntry` passou a suportar `recurring_event_key` e `import_hash` com constraints de unicidade por owner para evitar duplicidade em reprocessamentos.
+- T8.2.2 (qualidade): testes de financas pessoais ampliados para cobrir recorrencia idempotente, resumo mensal e deduplicacao de importacao CSV.
+- Validacao final: `bash scripts/quality_gate_all.sh` executado com sucesso (`146 passed`, builds Portal/Client/Admin e smokes `stack/client`).
 
 ## 25/02/2026
 - Backend: adicionadas exportacoes CSV (pedidos, compras, producao, fluxo de caixa e DRE) com headers em pt-BR.

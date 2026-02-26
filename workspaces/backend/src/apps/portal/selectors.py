@@ -1,6 +1,6 @@
 from django.db.models import QuerySet
 
-from .models import PortalConfig, PortalSection
+from .models import MobileRelease, MobileReleaseStatus, PortalConfig, PortalSection
 
 
 def list_portal_configs() -> QuerySet[PortalConfig]:
@@ -32,3 +32,23 @@ def list_sections_by_template_page(
         queryset = queryset.filter(is_enabled=True)
 
     return queryset.order_by("sort_order", "id")
+
+
+def list_mobile_releases(
+    *,
+    config: PortalConfig | None = None,
+) -> QuerySet[MobileRelease]:
+    queryset = MobileRelease.objects.select_related("config", "created_by")
+    if config is not None:
+        queryset = queryset.filter(config=config)
+    return queryset.order_by("-created_at", "-id")
+
+
+def get_latest_published_mobile_release(
+    *,
+    config: PortalConfig | None = None,
+) -> MobileRelease | None:
+    queryset = MobileRelease.objects.filter(status=MobileReleaseStatus.PUBLISHED)
+    if config is not None:
+        queryset = queryset.filter(config=config)
+    return queryset.order_by("-published_at", "-created_at", "-id").first()

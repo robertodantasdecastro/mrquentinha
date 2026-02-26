@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import PortalConfig, PortalPage, PortalSection
+from .models import MobileRelease, PortalConfig, PortalPage, PortalSection
 
 
 class PortalConfigAdminSerializer(serializers.ModelSerializer):
@@ -21,6 +21,7 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
             "android_download_url",
             "ios_download_url",
             "qr_target_url",
+            "api_base_url",
             "local_hostname",
             "local_network_ip",
             "root_domain",
@@ -34,6 +35,8 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
             "backend_base_url",
             "proxy_base_url",
             "cors_allowed_origins",
+            "auth_providers",
+            "payment_providers",
             "is_published",
             "published_at",
             "created_at",
@@ -140,6 +143,7 @@ class PortalPublicConfigSerializer(serializers.Serializer):
     android_download_url = serializers.CharField()
     ios_download_url = serializers.CharField()
     qr_target_url = serializers.CharField()
+    api_base_url = serializers.CharField()
     local_hostname = serializers.CharField()
     local_network_ip = serializers.CharField()
     root_domain = serializers.CharField()
@@ -153,6 +157,11 @@ class PortalPublicConfigSerializer(serializers.Serializer):
     backend_base_url = serializers.CharField()
     proxy_base_url = serializers.CharField()
     cors_allowed_origins = serializers.JSONField()
+    auth_providers = serializers.JSONField()
+    payment_providers = serializers.JSONField()
+    host_publico = serializers.CharField()
+    app_download_android_url = serializers.CharField()
+    app_download_ios_url = serializers.CharField()
     is_published = serializers.BooleanField()
     updated_at = serializers.DateTimeField()
     page = serializers.CharField()
@@ -163,3 +172,64 @@ class PortalVersionSerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField(allow_null=True)
     hash = serializers.CharField()
     etag = serializers.CharField()
+
+
+class MobileReleaseAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MobileRelease
+        fields = [
+            "id",
+            "config",
+            "release_version",
+            "build_number",
+            "status",
+            "update_policy",
+            "is_critical_update",
+            "min_supported_version",
+            "recommended_version",
+            "api_base_url_snapshot",
+            "host_publico_snapshot",
+            "android_relative_path",
+            "ios_relative_path",
+            "android_download_url",
+            "ios_download_url",
+            "android_checksum_sha256",
+            "ios_checksum_sha256",
+            "release_notes",
+            "build_log",
+            "metadata",
+            "published_at",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "api_base_url_snapshot",
+            "host_publico_snapshot",
+            "android_download_url",
+            "ios_download_url",
+            "android_checksum_sha256",
+            "ios_checksum_sha256",
+            "build_log",
+            "published_at",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class MobileReleaseLatestSerializer(serializers.Serializer):
+    release_version = serializers.CharField()
+    build_number = serializers.IntegerField()
+    status = serializers.CharField()
+    update_policy = serializers.CharField()
+    is_critical_update = serializers.BooleanField()
+    min_supported_version = serializers.CharField()
+    recommended_version = serializers.CharField()
+    api_base_url = serializers.CharField()
+    host_publico = serializers.CharField()
+    android_download_url = serializers.CharField()
+    ios_download_url = serializers.CharField()
+    published_at = serializers.DateTimeField(allow_null=True)
+    release_notes = serializers.CharField()

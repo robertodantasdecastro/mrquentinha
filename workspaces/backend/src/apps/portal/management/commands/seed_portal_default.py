@@ -4,7 +4,10 @@ from apps.portal.services import seed_portal_defaults
 
 
 class Command(BaseCommand):
-    help = "Cria/atualiza configuracao default do Portal CMS (classic + letsfit-clean)."
+    help = (
+        "Cria/atualiza configuracao default do Portal CMS "
+        "(portal + templates web cliente)."
+    )
 
     def handle(self, *args, **options):
         result = seed_portal_defaults()

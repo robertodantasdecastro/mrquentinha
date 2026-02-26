@@ -16,6 +16,7 @@ from apps.catalog.models import (
 )
 from apps.finance.models import AccountType, CashDirection, CashMovement
 from apps.orders.models import OrderStatus, PaymentWebhookEvent
+from apps.orders.payment_providers import ProviderIntentResult
 from apps.orders.services import create_order, update_order_status
 
 
@@ -366,6 +367,69 @@ def test_payment_intent_post_cria_e_retry_idempotente(create_user_with_roles):
 
 
 @pytest.mark.django_db
+def test_payment_intent_post_propaga_canal_mobile_para_resolucao_provider(
+    create_user_with_roles,
+    monkeypatch,
+):
+    delivery_date = date(2026, 3, 22)
+    menu_item = _create_menu_item_for_api(delivery_date)
+
+    customer = create_user_with_roles(
+        username="cliente_intent_channel_mobile",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    captured: dict[str, str | None] = {"channel": None}
+
+    class FakeProvider:
+        provider_name = "mock"
+
+        def create_intent(self, *, payment, idempotency_key):
+            return ProviderIntentResult(
+                provider="mock",
+                status="REQUIRES_ACTION",
+                provider_intent_ref=f"mock-channel-{payment.id}",
+                client_payload={
+                    "provider": "mock",
+                    "method": payment.method,
+                    "idempotency_key": idempotency_key,
+                },
+                expires_at=None,
+            )
+
+    def fake_get_payment_provider(
+        *, provider_name=None, payment_method=None, channel=None
+    ):
+        captured["channel"] = channel
+        return FakeProvider()
+
+    monkeypatch.setattr(
+        "apps.orders.services.get_payment_provider",
+        fake_get_payment_provider,
+    )
+
+    customer_client = _auth_client(customer)
+    response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-channel-mobile-001",
+        HTTP_X_CLIENT_CHANNEL="MOBILE",
+    )
+
+    assert response.status_code == 201
+    assert captured["channel"] == "MOBILE"
+    assert response.json()["provider"] == "mock"
+
+
+@pytest.mark.django_db
 def test_payment_intent_post_retorna_400_sem_header_idempotency_key(
     create_user_with_roles,
 ):
@@ -470,6 +534,26 @@ def test_orders_ops_dashboard_retorna_pipeline_e_kpis(admin_user):
     assert "kpis" in body
     assert "pipeline" in body
     assert "series_last_7_days" in body
+
+
+@pytest.mark.django_db
+def test_orders_ops_realtime_retorna_monitoramento_ecossistema(admin_user):
+    admin_client = _auth_client(admin_user)
+
+    response = admin_client.get("/api/v1/orders/ops/realtime/")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "generated_at" in body
+    assert "server_health" in body
+    assert "services" in body
+    assert "payment_monitor" in body
+    assert "summary" in body["payment_monitor"]
+    assert "providers" in body["payment_monitor"]
+    providers = {
+        item["provider"] for item in body["payment_monitor"]["providers"]
+    }
+    assert {"mock", "mercadopago", "efi", "asaas"}.issubset(providers)
 
 
 @pytest.mark.django_db
@@ -835,3 +919,187 @@ def test_orders_create_com_payment_method_card_permite_intent_card(
     intent_body = intent_response.json()
     assert intent_body["client_payload"]["method"] == "CARD"
     assert "card" in intent_body["client_payload"]
+
+
+@pytest.mark.django_db
+def test_mercadopago_webhook_atualiza_pagamento_com_status_em_tempo_real(
+    create_user_with_roles,
+    settings,
+    monkeypatch,
+):
+    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-mp"
+
+    delivery_date = date(2026, 4, 3)
+    menu_item = _create_menu_item_for_api(delivery_date)
+    customer = create_user_with_roles(
+        username="cliente_webhook_mp",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+    intent_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-webhook-mp-001",
+    )
+    assert intent_response.status_code == 201
+
+    intent = payment.intents.get()
+    intent.provider = "mercadopago"
+    intent.provider_intent_ref = "mp-payment-001"
+    intent.save(update_fields=["provider", "provider_intent_ref", "updated_at"])
+
+    def _fake_fetch_mercadopago_payment_details(_payment_id: str) -> dict:
+        return {
+            "id": "mp-payment-001",
+            "status": "approved",
+            "date_approved": "2026-04-03T13:40:00-03:00",
+        }
+
+    monkeypatch.setattr(
+        "apps.orders.views.fetch_mercadopago_payment_details",
+        _fake_fetch_mercadopago_payment_details,
+    )
+
+    webhook_client = APIClient()
+    response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/mercadopago/",
+        data=json.dumps({"id": "evt-mp-001", "data": {"id": "mp-payment-001"}}),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["intent_status"] == "SUCCEEDED"
+    assert response.json()["payment_status"] == "PAID"
+
+    payment.refresh_from_db()
+    assert payment.status == "PAID"
+
+
+@pytest.mark.django_db
+def test_asaas_webhook_atualiza_pagamento_com_status_recebido(
+    create_user_with_roles,
+    settings,
+):
+    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-asaas"
+
+    delivery_date = date(2026, 4, 4)
+    menu_item = _create_menu_item_for_api(delivery_date)
+    customer = create_user_with_roles(
+        username="cliente_webhook_asaas",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+    intent_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-webhook-asaas-001",
+    )
+    assert intent_response.status_code == 201
+
+    intent = payment.intents.get()
+    intent.provider = "asaas"
+    intent.provider_intent_ref = "asaas-payment-001"
+    intent.save(update_fields=["provider", "provider_intent_ref", "updated_at"])
+
+    webhook_client = APIClient()
+    response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/asaas/",
+        data=json.dumps(
+            {
+                "id": "evt-asaas-001",
+                "event": "PAYMENT_RECEIVED",
+                "payment": {
+                    "id": "asaas-payment-001",
+                    "status": "RECEIVED",
+                    "externalReference": "order-ref-001",
+                    "paymentDate": "2026-04-04",
+                },
+            }
+        ),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["intent_status"] == "SUCCEEDED"
+    assert response.json()["payment_status"] == "PAID"
+
+    payment.refresh_from_db()
+    assert payment.status == "PAID"
+
+
+@pytest.mark.django_db
+def test_efi_webhook_atualiza_pagamento_com_payload_generico(
+    create_user_with_roles,
+    settings,
+):
+    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-efi"
+
+    delivery_date = date(2026, 4, 5)
+    menu_item = _create_menu_item_for_api(delivery_date)
+    customer = create_user_with_roles(
+        username="cliente_webhook_efi",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    order = create_order(
+        customer=customer,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    customer_client = _auth_client(customer)
+    intent_response = customer_client.post(
+        f"/api/v1/orders/payments/{payment.id}/intent/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_IDEMPOTENCY_KEY="intent-webhook-efi-001",
+    )
+    assert intent_response.status_code == 201
+
+    intent = payment.intents.get()
+    intent.provider = "efi"
+    intent.provider_intent_ref = "efi-charge-001"
+    intent.save(update_fields=["provider", "provider_intent_ref", "updated_at"])
+
+    webhook_client = APIClient()
+    response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/efi/",
+        data=json.dumps(
+            {
+                "event_id": "evt-efi-001",
+                "provider_intent_ref": "efi-charge-001",
+                "status": "SUCCEEDED",
+                "provider_ref": "efi-provider-ref-001",
+            }
+        ),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["intent_status"] == "SUCCEEDED"
+    assert response.json()["payment_status"] == "PAID"
+
+    payment.refresh_from_db()
+    assert payment.status == "PAID"

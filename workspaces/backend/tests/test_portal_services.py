@@ -2,8 +2,12 @@ import pytest
 
 from apps.portal.models import PortalConfig, PortalSection
 from apps.portal.services import (
+    build_latest_mobile_release_payload,
     build_public_portal_payload,
+    compile_mobile_release,
+    create_mobile_release,
     ensure_portal_config,
+    publish_mobile_release,
     save_portal_config,
 )
 
@@ -16,7 +20,17 @@ def test_portal_config_singleton():
     assert first.id == second.id
     assert first.singleton_key == "default"
     assert first.local_hostname == "mrquentinha"
-    assert first.portal_base_url == "http://mrquentinha:3000"
+    assert first.portal_base_url == "https://10.211.55.21:3000"
+    assert first.api_base_url == "https://10.211.55.21:8000"
+    assert any(
+        item["id"] == "client-vitrine-fit" for item in first.client_available_templates
+    )
+    assert "google" in first.auth_providers
+    assert "apple" in first.auth_providers
+    assert first.payment_providers["default_provider"] == "mock"
+    assert "mock" in first.payment_providers["enabled_providers"]
+    assert first.payment_providers["frontend_provider"]["web"] == "mock"
+    assert first.payment_providers["frontend_provider"]["mobile"] == "mock"
 
 
 @pytest.mark.django_db
@@ -29,6 +43,9 @@ def test_ensure_portal_config_preenche_cors_padrao_quando_vazio():
     config = ensure_portal_config()
 
     assert config.cors_allowed_origins == [
+        "https://10.211.55.21:3000",
+        "https://10.211.55.21:3001",
+        "https://10.211.55.21:3002",
         "http://mrquentinha:3000",
         "http://mrquentinha:3001",
         "http://mrquentinha:3002",
@@ -147,3 +164,105 @@ def test_build_public_payload_client_retorna_template_do_web_cliente():
     assert payload["active_template"] == "client-quentinhas"
     assert payload["client_active_template"] == "client-quentinhas"
     assert payload["sections"][0]["key"] == "hero"
+
+
+@pytest.mark.django_db
+def test_build_public_payload_auth_providers_nao_expoe_segredos():
+    config, _ = save_portal_config(
+        payload={
+            "auth_providers": {
+                "google": {
+                    "enabled": True,
+                    "web_client_id": "google-web-id",
+                    "client_secret": "google-secret",
+                },
+                "apple": {
+                    "enabled": True,
+                    "service_id": "apple-service-id",
+                    "private_key": "apple-private-key",
+                    "team_id": "apple-team-id",
+                    "key_id": "apple-key-id",
+                },
+            }
+        }
+    )
+
+    payload = build_public_portal_payload(page="home", channel="client")
+    auth_providers = payload["auth_providers"]
+
+    assert auth_providers["google"]["enabled"] is True
+    assert auth_providers["google"]["configured"] is True
+    assert auth_providers["apple"]["enabled"] is True
+    assert auth_providers["apple"]["configured"] is True
+
+    assert "client_secret" not in auth_providers["google"]
+    assert "private_key" not in auth_providers["apple"]
+    assert config.auth_providers["google"]["client_secret"] == "google-secret"
+
+
+@pytest.mark.django_db
+def test_build_public_payload_payment_providers_nao_expoe_segredos():
+    config, _ = save_portal_config(
+        payload={
+            "payment_providers": {
+                "default_provider": "asaas",
+                "enabled_providers": ["asaas", "mercadopago"],
+                "frontend_provider": {
+                    "web": "mercadopago",
+                    "mobile": "asaas",
+                },
+                "method_provider_order": {
+                    "PIX": ["asaas"],
+                    "CARD": ["mercadopago"],
+                    "VR": ["mock"],
+                },
+                "asaas": {
+                    "enabled": True,
+                    "api_base_url": "https://sandbox.asaas.com/api/v3",
+                    "api_key": "asaas-secret",
+                },
+                "mercadopago": {
+                    "enabled": True,
+                    "api_base_url": "https://api.mercadopago.com",
+                    "access_token": "mp-secret",
+                },
+            }
+        }
+    )
+
+    payload = build_public_portal_payload(page="home", channel="client")
+    payment_providers = payload["payment_providers"]
+
+    assert payment_providers["default_provider"] == "asaas"
+    assert payment_providers["frontend_provider"]["web"] == "mercadopago"
+    assert payment_providers["frontend_provider"]["mobile"] == "asaas"
+    assert payment_providers["asaas"]["configured"] is True
+    assert payment_providers["mercadopago"]["configured"] is True
+    assert "api_key" not in payment_providers["asaas"]
+    assert "access_token" not in payment_providers["mercadopago"]
+    assert config.payment_providers["asaas"]["api_key"] == "asaas-secret"
+
+
+@pytest.mark.django_db
+def test_build_latest_mobile_release_payload_retorna_release_publicada():
+    release = create_mobile_release(
+        payload={
+            "release_version": "1.2.3",
+            "build_number": 4,
+            "update_policy": "FORCE",
+            "is_critical_update": True,
+            "min_supported_version": "1.2.0",
+            "recommended_version": "1.2.3",
+            "release_notes": "Atualizacao de seguranca.",
+        }
+    )
+    compile_mobile_release(release)
+    publish_mobile_release(release)
+
+    payload = build_latest_mobile_release_payload()
+
+    assert payload["release_version"] == "1.2.3"
+    assert payload["build_number"] == 4
+    assert payload["status"] == "PUBLISHED"
+    assert payload["update_policy"] == "FORCE"
+    assert payload["android_download_url"].endswith("/app/downloads/android.apk")

@@ -1,6 +1,6 @@
 # Plano do MVP e cronograma
 
-Data de referencia: 25/02/2026.
+Data de referencia: 26/02/2026.
 
 ## Status atual do roadmap
 - Etapa 0: concluida
@@ -9,9 +9,22 @@ Data de referencia: 25/02/2026.
 - Etapa 3 e 3.1: concluida
 - Etapa 4: concluida
 - Etapa 5.0 a 5.6.3: concluida
-- Etapa 6.0 e 6.0.1: concluida
+- Etapa 6.0, 6.0.1 e 6.1.1: concluida
+- Etapa 6.3.1: concluida
+- Etapa 6.3.2 (A1 ate A7): concluida
 - Etapa 7.0: concluida
 - Etapa 7.1 (7.1.1 a 7.1.3): concluida em 25/02/2026
+- Etapa 7.2 (T7.2.1 a T7.2.3): concluida em 26/02/2026
+- Etapa 7.2.4-A1 (multigateway em tempo real): concluida em 26/02/2026
+- Etapa 7.2.4-A2 (roteamento por canal frontend + campos adaptativos): concluida em 26/02/2026
+- Etapa 7.2.4-A3 (monitoramento realtime de gateways/ecossistema): concluida em 26/02/2026
+- Etapa 8.0.1 (discovery): concluida em 26/02/2026
+- Etapa 8.1.1 (MVP tecnico backend): concluida em 26/02/2026
+- Etapa 8.1.2 (LGPD operacional backend): concluida em 26/02/2026
+- Etapa 8.2.1 (discovery de evolucao): concluida em 26/02/2026
+- Etapa 8.2.2 (implementacao evolucao MVP): concluida em 26/02/2026
+- Etapa 9.0 e 9.1 (ate T9.1.3-A7): concluida em 26/02/2026
+- Etapa 9.2.1 (plano de testes manuais E2E): planejamento concluido em 26/02/2026
 
 ## Fechamento do MVP operacional
 O MVP operacional foi fechado com o backend cobrindo:
@@ -25,27 +38,47 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase base: Etapas 0 a 2
 - Fase operacao: Etapas 3, 3.1 e 4
 - Fase financeira: Etapa 5 (5.0 a 5.6.3)
-- Fase canais web iniciais: Etapa 6.0/6.0.1 e 7.0
+- Fase canais web iniciais: Etapa 6.0/6.0.1/6.1.1, 6.3.1 e 7.0
 - Fase auth/rbac cliente real: Etapa 7.1
+- Fase pagamentos online: Etapa 7.2
+- Fase pagamentos online avancados: `T7.2.4-A1` (configuracao centralizada de gateways no Portal CMS + webhooks por provider)
+- Fase pagamentos online avancados (continuidade): `T7.2.4-A2` e `T7.2.4-A3` (provider por canal frontend + monitoramento realtime no backend/admin)
+- Fase financas pessoais (fundacao): Etapas 8.0.1, 8.1.1 e 8.1.2
+- Fase financas pessoais (evolucao): Etapas 8.2.1 (discovery) e 8.2.2 (implementacao MVP)
+- Fase operacao interna web: Etapas 9.0 e 9.1
+- Fechamento da trilha CMS em canais web: `T6.3.2-A1` ate `T6.3.2-A7`
+- Fase de qualidade operacional: `T9.2.1` (plano e campanha recorrente de testes manuais E2E)
 
 ## Proximas fases (planejado)
-### 7.2 Pagamentos online
+### 6.2 Consolidacao visual do portal (ownership Antigravity)
 Dependencias:
-- auth e identificacao de cliente final (7.1)
-- escolha de gateway (PIX/cartao/VR)
-- politica de reconciliacao financeira com provider (`provider_ref`)
-
-### 6.1 Nginx local e consolidacao de dominios dev
-Dependencias:
-- stack dev estavel (backend + portal + client)
-- definicao de hosts locais e proxy reverso por subdominio
-- checklist de CORS/CSRF por ambiente
+- estabilizacao de lock de trilha visual no fluxo paralelo
+- validacao final de UX/responsividade dos templates publicados
+- smoke completo com CMS ativo no template final
 
 ### 8 Financas pessoais (expansao de produto)
 Dependencias:
 - operacao B2C estabilizada
 - governanca de dados pessoais e segregacao de escopos
 - definicao de produto e limites entre financeiro operacional e pessoal
+
+### 9.2 Qualidade operacional por testes manuais E2E
+Dependencias:
+- ambiente local padronizado com backend/portal/client/admin estaveis
+- seed idempotente executada para garantir massa de dados representativa
+- checklist unificado publicado em `docs/memory/PLANO_T9_2_1_TESTES_MANUAIS_E2E.md`
+
+### 7.2.4 Pagamentos multigateway (Mercado Pago, Efi e Asaas)
+Dependencias:
+- credenciais de homologacao/producao de cada provider cadastradas no Portal CMS
+- webhook publico com token valido e conectividade externa para callback
+- validacao fim a fim no client web e no app mobile com polling/status em tempo real
+
+## Passo atual do cronograma
+- Etapa ativa recomendada: `T7.2.4-A4` (homologacao real dos gateways Mercado Pago/Efi/Asaas com credenciais oficiais, assinatura de webhook por provider e validacao externa).
+- Trilha de qualidade paralela: `T9.2.1-A2` (rodada manual E2E completa do ecossistema, incluindo matrix de pagamentos por provider).
+- Trilha tecnica paralela: `T8.2.3` (hardening pos-MVP de financas pessoais).
+- Resultado do passo anterior: `T7.2.4-A2` e `T7.2.4-A3` concluidas em 26/02/2026 com provider unico por canal (`web/mobile`), campos adaptativos por provider no Admin e monitoramento realtime em `/api/v1/orders/ops/realtime/` + modulo `/modulos/monitoramento`.
 
 ## Regra de execucao continua
 Cada nova fase deve manter:

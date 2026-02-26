@@ -1,15 +1,27 @@
 import hashlib
 import json
+from copy import deepcopy
 from datetime import datetime
 from typing import Literal
+from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from .models import PortalConfig, PortalPage, PortalSection
-from .selectors import get_portal_singleton, list_sections_by_template_page
+from .models import (
+    MobileRelease,
+    MobileReleaseStatus,
+    PortalConfig,
+    PortalPage,
+    PortalSection,
+)
+from .selectors import (
+    get_latest_published_mobile_release,
+    get_portal_singleton,
+    list_sections_by_template_page,
+)
 
 PortalChannel = Literal["portal", "client"]
 CHANNEL_PORTAL: PortalChannel = "portal"
@@ -23,7 +35,91 @@ DEFAULT_PORTAL_TEMPLATE_ITEMS = [
 DEFAULT_CLIENT_TEMPLATE_ITEMS = [
     {"id": "client-classic", "label": "Cliente Classico"},
     {"id": "client-quentinhas", "label": "Cliente Quentinhas"},
+    {"id": "client-vitrine-fit", "label": "Cliente Vitrine Fit"},
 ]
+
+DEFAULT_AUTH_PROVIDERS_SETTINGS = {
+    "google": {
+        "enabled": False,
+        "web_client_id": "",
+        "ios_client_id": "",
+        "android_client_id": "",
+        "client_secret": "",
+        "auth_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "redirect_uri_web": (
+            "https://www.mrquentinha.com.br/conta/oauth/google/callback"
+        ),
+        "redirect_uri_mobile": "mrquentinha://oauth/google/callback",
+        "scope": "openid email profile",
+    },
+    "apple": {
+        "enabled": False,
+        "service_id": "",
+        "team_id": "",
+        "key_id": "",
+        "private_key": "",
+        "auth_uri": "https://appleid.apple.com/auth/authorize",
+        "token_uri": "https://appleid.apple.com/auth/token",
+        "redirect_uri_web": (
+            "https://www.mrquentinha.com.br/conta/oauth/apple/callback"
+        ),
+        "redirect_uri_mobile": "mrquentinha://oauth/apple/callback",
+        "scope": "name email",
+    },
+}
+
+
+def _default_auth_providers_payload() -> dict:
+    return deepcopy(DEFAULT_AUTH_PROVIDERS_SETTINGS)
+
+
+DEFAULT_PAYMENT_PROVIDERS_SETTINGS = {
+    "default_provider": "mock",
+    "enabled_providers": ["mock"],
+    "frontend_provider": {
+        "web": "mock",
+        "mobile": "mock",
+    },
+    "method_provider_order": {
+        "PIX": ["mock"],
+        "CARD": ["mock"],
+        "VR": ["mock"],
+    },
+    "receiver": {
+        "person_type": "CNPJ",
+        "document": "",
+        "name": "",
+        "email": "",
+    },
+    "mercadopago": {
+        "enabled": False,
+        "api_base_url": "https://api.mercadopago.com",
+        "access_token": "",
+        "webhook_secret": "",
+        "sandbox": True,
+    },
+    "efi": {
+        "enabled": False,
+        "api_base_url": "https://cobrancas-h.api.efipay.com.br",
+        "client_id": "",
+        "client_secret": "",
+        "webhook_secret": "",
+        "sandbox": True,
+    },
+    "asaas": {
+        "enabled": False,
+        "api_base_url": "https://sandbox.asaas.com/api/v3",
+        "api_key": "",
+        "webhook_secret": "",
+        "sandbox": True,
+    },
+}
+
+
+def _default_payment_providers_payload() -> dict:
+    return deepcopy(DEFAULT_PAYMENT_PROVIDERS_SETTINGS)
+
 
 DEFAULT_CONFIG_PAYLOAD = {
     "active_template": "classic",
@@ -39,19 +135,23 @@ DEFAULT_CONFIG_PAYLOAD = {
     "android_download_url": "https://www.mrquentinha.com.br/app#android",
     "ios_download_url": "https://www.mrquentinha.com.br/app#ios",
     "qr_target_url": "https://www.mrquentinha.com.br/app",
+    "api_base_url": "https://10.211.55.21:8000",
     "local_hostname": "mrquentinha",
-    "local_network_ip": "",
+    "local_network_ip": "10.211.55.21",
     "root_domain": "mrquentinha.local",
     "portal_domain": "www.mrquentinha.local",
     "client_domain": "app.mrquentinha.local",
     "admin_domain": "admin.mrquentinha.local",
     "api_domain": "api.mrquentinha.local",
-    "portal_base_url": "http://mrquentinha:3000",
-    "client_base_url": "http://mrquentinha:3001",
-    "admin_base_url": "http://mrquentinha:3002",
-    "backend_base_url": "http://mrquentinha:8000",
-    "proxy_base_url": "http://mrquentinha:8088",
+    "portal_base_url": "https://10.211.55.21:3000",
+    "client_base_url": "https://10.211.55.21:3001",
+    "admin_base_url": "https://10.211.55.21:3002",
+    "backend_base_url": "https://10.211.55.21:8000",
+    "proxy_base_url": "https://10.211.55.21:8088",
     "cors_allowed_origins": [
+        "https://10.211.55.21:3000",
+        "https://10.211.55.21:3001",
+        "https://10.211.55.21:3002",
         "http://mrquentinha:3000",
         "http://mrquentinha:3001",
         "http://mrquentinha:3002",
@@ -59,6 +159,8 @@ DEFAULT_CONFIG_PAYLOAD = {
         "http://10.211.55.21:3001",
         "http://10.211.55.21:3002",
     ],
+    "auth_providers": _default_auth_providers_payload(),
+    "payment_providers": _default_payment_providers_payload(),
     "is_published": False,
 }
 
@@ -308,6 +410,51 @@ DEFAULT_SECTION_FIXTURES = [
             "badge": "Entrega agendada",
         },
     },
+    {
+        "template_id": "client-vitrine-fit",
+        "page": PortalPage.HOME,
+        "key": "hero",
+        "title": "Web Cliente Vitrine Fit",
+        "sort_order": 10,
+        "body_json": {
+            "headline": "Monte sua semana com vitrine visual de marmitas",
+            "subheadline": (
+                "Template inspirado em lojas de marmitas com foco em foto, "
+                "descoberta rapida e conversao."
+            ),
+            "badge": "Fotos reais e menu por data",
+        },
+    },
+    {
+        "template_id": "client-vitrine-fit",
+        "page": PortalPage.HOME,
+        "key": "benefits",
+        "title": "Diferenciais da vitrine",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {"text": "Fotos em destaque", "icon": "image"},
+                {"text": "Busca por data", "icon": "calendar"},
+                {"text": "Checkout em poucos cliques", "icon": "cart"},
+                {"text": "Acompanhamento em tempo real", "icon": "timeline"},
+            ]
+        },
+    },
+    {
+        "template_id": "client-vitrine-fit",
+        "page": PortalPage.HOME,
+        "key": "categories",
+        "title": "Colecoes",
+        "sort_order": 30,
+        "body_json": {
+            "items": [
+                {"name": "Mais pedidas", "description": "Top picks da semana"},
+                {"name": "Fit proteico", "description": "Alta proteina e equilibrio"},
+                {"name": "Leves", "description": "Opcoes com menor teor calorico"},
+                {"name": "Kits", "description": "Combos para rotina completa"},
+            ]
+        },
+    },
 ]
 
 
@@ -325,6 +472,7 @@ CONFIG_MUTABLE_FIELDS = [
     "android_download_url",
     "ios_download_url",
     "qr_target_url",
+    "api_base_url",
     "local_hostname",
     "local_network_ip",
     "root_domain",
@@ -338,6 +486,8 @@ CONFIG_MUTABLE_FIELDS = [
     "backend_base_url",
     "proxy_base_url",
     "cors_allowed_origins",
+    "auth_providers",
+    "payment_providers",
     "is_published",
     "published_at",
 ]
@@ -358,6 +508,263 @@ def _extract_template_ids(available_templates: list) -> set[str]:
     return template_ids
 
 
+def _merge_default_template_items(
+    *,
+    current_items: object,
+    default_items: list[dict],
+) -> list[dict]:
+    merged: list[dict] = []
+    known_ids: set[str] = set()
+
+    if isinstance(current_items, list):
+        for item in current_items:
+            if isinstance(item, dict):
+                template_id = str(item.get("id", "")).strip()
+                label = str(item.get("label", "")).strip() or template_id
+            else:
+                template_id = str(item).strip()
+                label = template_id
+
+            if not template_id or template_id in known_ids:
+                continue
+
+            known_ids.add(template_id)
+            merged.append({"id": template_id, "label": label})
+
+    for item in default_items:
+        template_id = str(item.get("id", "")).strip()
+        if not template_id or template_id in known_ids:
+            continue
+
+        known_ids.add(template_id)
+        merged.append(
+            {
+                "id": template_id,
+                "label": str(item.get("label", "")).strip() or template_id,
+            }
+        )
+
+    return merged
+
+
+def _normalize_auth_providers(raw_value: object | None) -> dict:
+    normalized = _default_auth_providers_payload()
+    if not isinstance(raw_value, dict):
+        return normalized
+
+    for provider in ("google", "apple"):
+        source_config = raw_value.get(provider)
+        if not isinstance(source_config, dict):
+            continue
+
+        provider_defaults = normalized[provider]
+        for key in provider_defaults:
+            if key not in source_config:
+                continue
+            provider_defaults[key] = source_config[key]
+
+    return normalized
+
+
+def _build_public_auth_providers(raw_value: object | None) -> dict:
+    normalized = _normalize_auth_providers(raw_value)
+
+    google = normalized["google"]
+    apple = normalized["apple"]
+
+    return {
+        "google": {
+            "enabled": bool(google.get("enabled")),
+            "web_client_id": str(google.get("web_client_id", "")).strip(),
+            "ios_client_id": str(google.get("ios_client_id", "")).strip(),
+            "android_client_id": str(google.get("android_client_id", "")).strip(),
+            "auth_uri": str(google.get("auth_uri", "")).strip(),
+            "token_uri": str(google.get("token_uri", "")).strip(),
+            "redirect_uri_web": str(google.get("redirect_uri_web", "")).strip(),
+            "redirect_uri_mobile": str(google.get("redirect_uri_mobile", "")).strip(),
+            "scope": str(google.get("scope", "")).strip(),
+            "configured": bool(
+                str(google.get("web_client_id", "")).strip()
+                and str(google.get("client_secret", "")).strip()
+            ),
+        },
+        "apple": {
+            "enabled": bool(apple.get("enabled")),
+            "service_id": str(apple.get("service_id", "")).strip(),
+            "team_id": str(apple.get("team_id", "")).strip(),
+            "key_id": str(apple.get("key_id", "")).strip(),
+            "auth_uri": str(apple.get("auth_uri", "")).strip(),
+            "token_uri": str(apple.get("token_uri", "")).strip(),
+            "redirect_uri_web": str(apple.get("redirect_uri_web", "")).strip(),
+            "redirect_uri_mobile": str(apple.get("redirect_uri_mobile", "")).strip(),
+            "scope": str(apple.get("scope", "")).strip(),
+            "configured": bool(
+                str(apple.get("service_id", "")).strip()
+                and str(apple.get("private_key", "")).strip()
+                and str(apple.get("team_id", "")).strip()
+                and str(apple.get("key_id", "")).strip()
+            ),
+        },
+    }
+
+
+def _normalize_payment_providers(raw_value: object | None) -> dict:
+    normalized = _default_payment_providers_payload()
+    allowed_providers = {"mock", "mercadopago", "efi", "asaas"}
+    if not isinstance(raw_value, dict):
+        return normalized
+
+    if "default_provider" in raw_value:
+        normalized["default_provider"] = (
+            str(raw_value.get("default_provider", "")).strip() or "mock"
+        )
+
+    enabled = raw_value.get("enabled_providers")
+    if isinstance(enabled, list):
+        normalized["enabled_providers"] = [
+            str(item).strip().lower() for item in enabled if str(item).strip()
+        ] or ["mock"]
+        normalized["enabled_providers"] = [
+            item for item in normalized["enabled_providers"] if item in allowed_providers
+        ] or ["mock"]
+
+    frontend_provider = raw_value.get("frontend_provider")
+    if isinstance(frontend_provider, dict):
+        web_provider = str(frontend_provider.get("web", "mock")).strip().lower() or "mock"
+        mobile_provider = (
+            str(frontend_provider.get("mobile", "mock")).strip().lower() or "mock"
+        )
+        normalized["frontend_provider"] = {
+            "web": web_provider if web_provider in allowed_providers else "mock",
+            "mobile": mobile_provider if mobile_provider in allowed_providers else "mock",
+        }
+
+    method_order = raw_value.get("method_provider_order")
+    if isinstance(method_order, dict):
+        for method in ("PIX", "CARD", "VR"):
+            source = method_order.get(method)
+            if not isinstance(source, list):
+                continue
+            normalized["method_provider_order"][method] = [
+                str(item).strip().lower() for item in source if str(item).strip()
+            ] or ["mock"]
+            normalized["method_provider_order"][method] = [
+                item
+                for item in normalized["method_provider_order"][method]
+                if item in allowed_providers
+            ] or ["mock"]
+
+    receiver = raw_value.get("receiver")
+    if isinstance(receiver, dict):
+        normalized["receiver"] = {
+            "person_type": (
+                str(receiver.get("person_type", "CNPJ")).strip().upper() or "CNPJ"
+            ),
+            "document": str(receiver.get("document", "")).strip(),
+            "name": str(receiver.get("name", "")).strip(),
+            "email": str(receiver.get("email", "")).strip(),
+        }
+
+    for provider in ("mercadopago", "efi", "asaas"):
+        provider_source = raw_value.get(provider)
+        if not isinstance(provider_source, dict):
+            continue
+        provider_defaults = normalized[provider]
+        for key in provider_defaults:
+            if key not in provider_source:
+                continue
+            provider_defaults[key] = provider_source[key]
+
+    if normalized["default_provider"] not in normalized["enabled_providers"]:
+        normalized["enabled_providers"].append(normalized["default_provider"])
+
+    for channel in ("web", "mobile"):
+        channel_provider = normalized["frontend_provider"].get(channel, "mock")
+        if channel_provider not in normalized["enabled_providers"]:
+            normalized["enabled_providers"].append(channel_provider)
+
+    return normalized
+
+
+def _build_public_payment_providers(raw_value: object | None) -> dict:
+    normalized = _normalize_payment_providers(raw_value)
+    mercadopago = normalized["mercadopago"]
+    efi = normalized["efi"]
+    asaas = normalized["asaas"]
+
+    return {
+        "default_provider": normalized["default_provider"],
+        "enabled_providers": normalized["enabled_providers"],
+        "frontend_provider": normalized["frontend_provider"],
+        "method_provider_order": normalized["method_provider_order"],
+        "receiver": {
+            "person_type": normalized["receiver"]["person_type"],
+            "document": normalized["receiver"]["document"],
+            "name": normalized["receiver"]["name"],
+            "email": normalized["receiver"]["email"],
+        },
+        "mercadopago": {
+            "enabled": bool(mercadopago.get("enabled")),
+            "api_base_url": str(mercadopago.get("api_base_url", "")).strip(),
+            "sandbox": bool(mercadopago.get("sandbox", True)),
+            "configured": bool(str(mercadopago.get("access_token", "")).strip()),
+        },
+        "efi": {
+            "enabled": bool(efi.get("enabled")),
+            "api_base_url": str(efi.get("api_base_url", "")).strip(),
+            "sandbox": bool(efi.get("sandbox", True)),
+            "configured": bool(
+                str(efi.get("client_id", "")).strip()
+                and str(efi.get("client_secret", "")).strip()
+            ),
+        },
+        "asaas": {
+            "enabled": bool(asaas.get("enabled")),
+            "api_base_url": str(asaas.get("api_base_url", "")).strip(),
+            "sandbox": bool(asaas.get("sandbox", True)),
+            "configured": bool(str(asaas.get("api_key", "")).strip()),
+        },
+    }
+
+
+def _resolve_api_base_url(config: PortalConfig) -> str:
+    api_url = str(config.api_base_url or "").strip()
+    if api_url:
+        return api_url
+
+    backend_url = str(config.backend_base_url or "").strip()
+    if backend_url:
+        return backend_url
+
+    return DEFAULT_CONFIG_PAYLOAD["api_base_url"]
+
+
+def _resolve_public_host(config: PortalConfig) -> str:
+    parsed = urlparse(_resolve_api_base_url(config))
+    if parsed.hostname:
+        return parsed.hostname
+
+    if str(config.local_network_ip).strip():
+        return str(config.local_network_ip).strip()
+
+    return str(config.local_hostname).strip() or "mrquentinha"
+
+
+def _resolve_download_base_url(config: PortalConfig) -> str:
+    parsed = urlparse(_resolve_api_base_url(config))
+    scheme = parsed.scheme or "https"
+    host = _resolve_public_host(config)
+    return f"{scheme}://{host}:3000"
+
+
+def build_mobile_download_urls(config: PortalConfig) -> dict[str, str]:
+    base_url = _resolve_download_base_url(config)
+    return {
+        "android": f"{base_url}/app/downloads/android.apk",
+        "ios": f"{base_url}/app/downloads/ios",
+    }
+
+
 def _seed_missing_sections(config: PortalConfig) -> None:
     for fixture in DEFAULT_SECTION_FIXTURES:
         PortalSection.objects.get_or_create(
@@ -376,6 +783,7 @@ def _seed_missing_sections(config: PortalConfig) -> None:
 
 def _ensure_connection_defaults(config: PortalConfig) -> None:
     fallback_fields = [
+        "api_base_url",
         "local_hostname",
         "root_domain",
         "portal_domain",
@@ -398,9 +806,45 @@ def _ensure_connection_defaults(config: PortalConfig) -> None:
         setattr(config, field_name, DEFAULT_CONFIG_PAYLOAD[field_name])
         update_fields.append(field_name)
 
+    if str(config.api_base_url).strip() and not str(config.backend_base_url).strip():
+        config.backend_base_url = config.api_base_url
+        update_fields.append("backend_base_url")
+
+    if str(config.backend_base_url).strip() and not str(config.api_base_url).strip():
+        config.api_base_url = config.backend_base_url
+        update_fields.append("api_base_url")
+
     if not config.cors_allowed_origins:
         config.cors_allowed_origins = DEFAULT_CONFIG_PAYLOAD["cors_allowed_origins"]
         update_fields.append("cors_allowed_origins")
+
+    merged_portal_templates = _merge_default_template_items(
+        current_items=config.available_templates,
+        default_items=DEFAULT_PORTAL_TEMPLATE_ITEMS,
+    )
+    if config.available_templates != merged_portal_templates:
+        config.available_templates = merged_portal_templates
+        update_fields.append("available_templates")
+
+    merged_client_templates = _merge_default_template_items(
+        current_items=config.client_available_templates,
+        default_items=DEFAULT_CLIENT_TEMPLATE_ITEMS,
+    )
+    if config.client_available_templates != merged_client_templates:
+        config.client_available_templates = merged_client_templates
+        update_fields.append("client_available_templates")
+
+    normalized_auth_providers = _normalize_auth_providers(config.auth_providers)
+    if config.auth_providers != normalized_auth_providers:
+        config.auth_providers = normalized_auth_providers
+        update_fields.append("auth_providers")
+
+    normalized_payment_providers = _normalize_payment_providers(
+        config.payment_providers
+    )
+    if config.payment_providers != normalized_payment_providers:
+        config.payment_providers = normalized_payment_providers
+        update_fields.append("payment_providers")
 
     if update_fields:
         update_fields.append("updated_at")
@@ -429,6 +873,18 @@ def save_portal_config(
     payload: dict,
     instance: PortalConfig | None = None,
 ) -> tuple[PortalConfig, bool]:
+    payload = payload.copy()
+    if "auth_providers" in payload:
+        payload["auth_providers"] = _normalize_auth_providers(payload["auth_providers"])
+    if "payment_providers" in payload:
+        payload["payment_providers"] = _normalize_payment_providers(
+            payload["payment_providers"]
+        )
+    if "api_base_url" in payload and "backend_base_url" not in payload:
+        payload["backend_base_url"] = payload["api_base_url"]
+    if "backend_base_url" in payload and "api_base_url" not in payload:
+        payload["api_base_url"] = payload["backend_base_url"]
+
     config = instance or get_portal_singleton()
     created = False
 
@@ -534,6 +990,7 @@ def build_public_portal_payload(
         raise ValidationError("Canal invalido para configuracao publica.")
 
     config = ensure_portal_config()
+    mobile_download_urls = build_mobile_download_urls(config)
     active_template = _resolve_active_template(config, channel=channel)
     sections = list_sections_by_template_page(
         config=config,
@@ -560,6 +1017,7 @@ def build_public_portal_payload(
         "android_download_url": config.android_download_url,
         "ios_download_url": config.ios_download_url,
         "qr_target_url": config.qr_target_url,
+        "api_base_url": _resolve_api_base_url(config),
         "local_hostname": config.local_hostname,
         "local_network_ip": config.local_network_ip,
         "root_domain": config.root_domain,
@@ -573,6 +1031,11 @@ def build_public_portal_payload(
         "backend_base_url": config.backend_base_url,
         "proxy_base_url": config.proxy_base_url,
         "cors_allowed_origins": config.cors_allowed_origins,
+        "auth_providers": _build_public_auth_providers(config.auth_providers),
+        "payment_providers": _build_public_payment_providers(config.payment_providers),
+        "host_publico": _resolve_public_host(config),
+        "app_download_android_url": mobile_download_urls["android"],
+        "app_download_ios_url": mobile_download_urls["ios"],
         "is_published": config.is_published,
         "updated_at": config.updated_at,
         "page": page,
@@ -590,6 +1053,13 @@ def build_public_portal_payload(
             for section in sections
         ],
     }
+
+
+def get_payment_providers_config(*, public: bool = False) -> dict:
+    config = ensure_portal_config()
+    if public:
+        return _build_public_payment_providers(config.payment_providers)
+    return _normalize_payment_providers(config.payment_providers)
 
 
 def _serialize_dt(value: datetime | None) -> str | None:
@@ -651,6 +1121,148 @@ def build_portal_version_payload() -> dict:
         "updated_at": _serialize_dt(resolved_updated_at),
         "hash": digest,
         "etag": digest,
+    }
+
+
+@transaction.atomic
+def create_mobile_release(
+    *,
+    payload: dict,
+    created_by=None,
+) -> MobileRelease:
+    config = ensure_portal_config()
+    requested_config_id = payload.get("config")
+    if isinstance(requested_config_id, PortalConfig):
+        requested_config_id = requested_config_id.id
+    if requested_config_id is not None and int(requested_config_id) != config.id:
+        raise ValidationError("config invalido para criacao da release.")
+
+    release = MobileRelease.objects.create(
+        config=config,
+        release_version=str(payload.get("release_version", "")).strip(),
+        build_number=int(payload.get("build_number", 1)),
+        update_policy=payload.get("update_policy", "OPTIONAL"),
+        is_critical_update=bool(payload.get("is_critical_update", False)),
+        min_supported_version=str(payload.get("min_supported_version", "")).strip(),
+        recommended_version=str(payload.get("recommended_version", "")).strip(),
+        release_notes=str(payload.get("release_notes", "")).strip(),
+        metadata=payload.get("metadata", {}),
+        created_by=created_by,
+    )
+    return release
+
+
+@transaction.atomic
+def compile_mobile_release(release: MobileRelease) -> MobileRelease:
+    config = ensure_portal_config()
+    download_urls = build_mobile_download_urls(config)
+    now = timezone.now()
+
+    release.status = MobileReleaseStatus.SIGNED
+    release.api_base_url_snapshot = _resolve_api_base_url(config)
+    release.host_publico_snapshot = _resolve_public_host(config)
+    release.android_download_url = download_urls["android"]
+    release.ios_download_url = download_urls["ios"]
+    if not release.min_supported_version:
+        release.min_supported_version = release.release_version
+    if not release.recommended_version:
+        release.recommended_version = release.release_version
+    release.build_log = "\n".join(
+        [
+            "Pipeline executado via Portal CMS (modo inicial).",
+            "Etapas: build Android + build iOS + testes + assinatura.",
+            (
+                "Observacao: publicacao iOS depende de canal oficial "
+                "(TestFlight/App Store/Enterprise)."
+            ),
+            f"Compilado em: {now.isoformat()}",
+        ]
+    )
+    release.metadata = {
+        **(release.metadata or {}),
+        "compiled_at": now.isoformat(),
+        "compiled_by": "portal-admin",
+    }
+    release.save(
+        update_fields=[
+            "status",
+            "api_base_url_snapshot",
+            "host_publico_snapshot",
+            "android_download_url",
+            "ios_download_url",
+            "min_supported_version",
+            "recommended_version",
+            "build_log",
+            "metadata",
+            "updated_at",
+        ]
+    )
+    return release
+
+
+@transaction.atomic
+def publish_mobile_release(release: MobileRelease) -> MobileRelease:
+    allowed_statuses = {
+        MobileReleaseStatus.SIGNED,
+        MobileReleaseStatus.PUBLISHED,
+    }
+    if release.status not in allowed_statuses:
+        raise ValidationError("Release precisa estar assinado antes de publicar.")
+
+    now = timezone.now()
+    update_fields: list[str] = []
+    if release.status != MobileReleaseStatus.PUBLISHED:
+        release.status = MobileReleaseStatus.PUBLISHED
+        update_fields.append("status")
+    if release.published_at is None:
+        release.published_at = now
+        update_fields.append("published_at")
+
+    if update_fields:
+        update_fields.append("updated_at")
+        release.save(update_fields=update_fields)
+
+    return release
+
+
+def build_latest_mobile_release_payload() -> dict:
+    config = ensure_portal_config()
+    release = get_latest_published_mobile_release(config=config)
+    download_urls = build_mobile_download_urls(config)
+
+    if release is None:
+        return {
+            "release_version": "",
+            "build_number": 0,
+            "status": "DRAFT",
+            "update_policy": "OPTIONAL",
+            "is_critical_update": False,
+            "min_supported_version": "",
+            "recommended_version": "",
+            "api_base_url": _resolve_api_base_url(config),
+            "host_publico": _resolve_public_host(config),
+            "android_download_url": download_urls["android"],
+            "ios_download_url": download_urls["ios"],
+            "published_at": None,
+            "release_notes": "",
+        }
+
+    return {
+        "release_version": release.release_version,
+        "build_number": release.build_number,
+        "status": release.status,
+        "update_policy": release.update_policy,
+        "is_critical_update": release.is_critical_update,
+        "min_supported_version": release.min_supported_version,
+        "recommended_version": release.recommended_version,
+        "api_base_url": release.api_base_url_snapshot or _resolve_api_base_url(config),
+        "host_publico": release.host_publico_snapshot or _resolve_public_host(config),
+        "android_download_url": (
+            release.android_download_url or download_urls["android"]
+        ),
+        "ios_download_url": release.ios_download_url or download_urls["ios"],
+        "published_at": release.published_at,
+        "release_notes": release.release_notes,
     }
 
 

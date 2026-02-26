@@ -6,10 +6,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.services import SystemRole, user_has_any_role
+from apps.orders.payment_providers import test_payment_provider_connection
 
 from .models import PortalPage
-from .selectors import list_portal_configs, list_portal_sections
+from .selectors import list_mobile_releases, list_portal_configs, list_portal_sections
 from .serializers import (
+    MobileReleaseAdminSerializer,
+    MobileReleaseLatestSerializer,
     PortalConfigAdminSerializer,
     PortalPublicConfigSerializer,
     PortalSectionAdminSerializer,
@@ -17,8 +20,13 @@ from .serializers import (
 )
 from .services import (
     CHANNEL_PORTAL,
+    build_latest_mobile_release_payload,
     build_portal_version_payload,
     build_public_portal_payload,
+    compile_mobile_release,
+    create_mobile_release,
+    ensure_portal_config,
+    publish_mobile_release,
     publish_portal_config,
     save_portal_config,
 )
@@ -63,11 +71,21 @@ class PortalConfigVersionAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class MobileReleaseLatestAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, _request):
+        payload = build_latest_mobile_release_payload()
+        serializer = MobileReleaseLatestSerializer(payload)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class PortalConfigAdminViewSet(viewsets.ModelViewSet):
     serializer_class = PortalConfigAdminSerializer
     permission_classes = [permissions.IsAuthenticated, PortalAdminPermission]
 
     def get_queryset(self):
+        ensure_portal_config()
         return list_portal_configs()
 
     def create(self, request, *args, **kwargs):
@@ -106,6 +124,15 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
         output = self.get_serializer(config)
         return Response(output.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["post"], url_path="test-payment-provider")
+    def test_payment_provider(self, request):
+        provider_name = str(request.data.get("provider", "")).strip().lower()
+        try:
+            payload = test_payment_provider_connection(provider_name)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        return Response(payload, status=status.HTTP_200_OK)
+
 
 class PortalSectionAdminViewSet(viewsets.ModelViewSet):
     serializer_class = PortalSectionAdminSerializer
@@ -113,3 +140,43 @@ class PortalSectionAdminViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return list_portal_sections()
+
+
+class MobileReleaseAdminViewSet(viewsets.ModelViewSet):
+    serializer_class = MobileReleaseAdminSerializer
+    permission_classes = [permissions.IsAuthenticated, PortalAdminPermission]
+
+    def get_queryset(self):
+        return list_mobile_releases()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            release = create_mobile_release(
+                payload=serializer.validated_data,
+                created_by=request.user,
+            )
+            compiled_release = compile_mobile_release(release)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        output = self.get_serializer(compiled_release)
+        return Response(output.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="compile")
+    def compile(self, request, pk=None):
+        release = self.get_object()
+        compiled_release = compile_mobile_release(release)
+        output = self.get_serializer(compiled_release)
+        return Response(output.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="publish")
+    def publish(self, request, pk=None):
+        release = self.get_object()
+        try:
+            published_release = publish_mobile_release(release)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        output = self.get_serializer(published_release)
+        return Response(output.data, status=status.HTTP_200_OK)
