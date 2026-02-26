@@ -1,5 +1,9 @@
 # Mr Quentinha - Resumo Executivo
 
+<p align="center">
+  <img src="assets/brand/png/logo_wordmark_2000x.png" alt="Logo Mr Quentinha" width="420" />
+</p>
+
 ## O que e
 O **Mr Quentinha** e um ecossistema digital completo para operacao de marmitas, cobrindo ponta a ponta:
 - venda ao cliente (web e mobile)

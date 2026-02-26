@@ -1,5 +1,9 @@
 # Mr Quentinha
 
+<p align="center">
+  <img src="assets/brand/png/logo_wordmark_2000x.png" alt="Logo Mr Quentinha" width="420" />
+</p>
+
 Ecossistema completo para operacao de marmitas com foco em escala, rastreabilidade e qualidade operacional.
 
 Resumo executivo:
