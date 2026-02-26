@@ -38,6 +38,8 @@ import type {
   StockItemData,
   StockMovementData,
   UpsertMenuDayPayload,
+  UpdateDishPayload,
+  UpdateIngredientPayload,
 } from "@/types/api";
 
 export class ApiError extends Error {
@@ -700,6 +702,17 @@ export async function createDishAdmin(payload: CreateDishPayload): Promise<DishD
   });
 }
 
+export async function updateDishAdmin(
+  dishId: number,
+  payload: UpdateDishPayload,
+): Promise<DishData> {
+  return requestJson<DishData>(`/api/v1/catalog/dishes/${dishId}/`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function listIngredientsAdmin(): Promise<IngredientData[]> {
   const payload = await requestJson<IngredientData[] | { results?: IngredientData[] }>(
     "/api/v1/catalog/ingredients/",
@@ -718,6 +731,17 @@ export async function createIngredientAdmin(
 ): Promise<IngredientData> {
   return requestJson<IngredientData>("/api/v1/catalog/ingredients/", {
     method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateIngredientAdmin(
+  ingredientId: number,
+  payload: UpdateIngredientPayload,
+): Promise<IngredientData> {
+  return requestJson<IngredientData>(`/api/v1/catalog/ingredients/${ingredientId}/`, {
+    method: "PATCH",
     auth: true,
     body: JSON.stringify(payload),
   });

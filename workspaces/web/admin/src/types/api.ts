@@ -223,6 +223,8 @@ export type CreateDishPayload = {
   ingredients: DishCompositionItemWritePayload[];
 };
 
+export type UpdateDishPayload = Partial<CreateDishPayload>;
+
 export type IngredientData = {
   id: number;
   name: string;
@@ -238,6 +240,8 @@ export type CreateIngredientPayload = {
   unit: IngredientUnit;
   is_active?: boolean;
 };
+
+export type UpdateIngredientPayload = Partial<CreateIngredientPayload>;
 
 export type MenuItemData = {
   id: number;

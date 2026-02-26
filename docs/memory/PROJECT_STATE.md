@@ -76,6 +76,7 @@ Referencia de atualizacao: 26/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A1`): Cardapio ganhou secao de composicao (ingredientes + prato com receita) para viabilizar ciclo completo de operacao.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A2`): Compras ganhou registro operacional de compra com itens (entrada em estoque), alem da geracao de requisicao por cardapio com seletor.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A3`): Cardapio ganhou padrao de periodos (Manha/Cafe, Almoco, Jantar, Lanche) para organizacao de menus diarios.
+- Atualizacao concluida em 26/02/2026 (`T9.1.3-A4`): modulo Cardapio finalizado com edicao de insumos/pratos e composicao completa no Admin.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): modulo Portal CMS ganhou editor de secoes dinamicas (template/pagina/body_json) e a composicao ganhou upload de fotos para insumos e pratos.
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo: iniciar `T8.0.1` (discovery de financas pessoais e segregacao LGPD).

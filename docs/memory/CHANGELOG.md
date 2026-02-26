@@ -695,3 +695,15 @@
     - adicionado contrato compartilhado `workspaces/mobile/brand/contentApi.ts` para consumo dinamico de conteudo/fotos do portal e cardapio.
   - validacao executada:
     - `bash scripts/quality_gate_all.sh` (backend lint/test; build portal/client/admin; smoke stack/client) -> `OK`.
+
+- T9.1.3-A4 (26/02/2026): fechamento do modulo Cardapio no Admin
+  - `DishCompositionPanel` evoluido para fluxo completo:
+    - cadastro e edicao de ingrediente (nome/unidade/status ativo);
+    - cadastro e edicao de prato com composicao completa (ingredientes/quantidade/unidade);
+    - upload de foto para insumo e prato mantendo o mesmo fluxo operacional.
+  - `lib/api.ts` expandido com `updateIngredientAdmin` e `updateDishAdmin`.
+  - `types/api.ts` expandido com `UpdateIngredientPayload` e `UpdateDishPayload`.
+  - validacao executada:
+    - `cd workspaces/web/admin && npm run lint`
+    - `cd workspaces/web/admin && npm run build`
+    - `bash scripts/quality_gate_all.sh` -> `OK`.
