@@ -42,6 +42,7 @@ import type {
 } from "@/types/api";
 
 export const PORTAL_BASE_PATH = "/modulos/portal";
+export const SERVER_ADMIN_BASE_PATH = "/modulos/administracao-servidor";
 
 export const PORTAL_MENU_ITEMS = [
   { key: "all", label: "Todos", href: PORTAL_BASE_PATH },
@@ -56,11 +57,23 @@ export const PORTAL_MENU_ITEMS = [
     label: "Pagamentos",
     href: `${PORTAL_BASE_PATH}/pagamentos#pagamentos`,
   },
-  { key: "email", label: "E-mail", href: `${PORTAL_BASE_PATH}/email#email` },
-  { key: "conectividade", label: "Conectividade", href: `${PORTAL_BASE_PATH}/conectividade#conectividade` },
-  { key: "mobile-build", label: "Build mobile", href: `${PORTAL_BASE_PATH}/mobile-build#mobile-build` },
   { key: "conteudo", label: "Conteudo dinamico", href: `${PORTAL_BASE_PATH}/conteudo#conteudo` },
   { key: "publicacao", label: "Publicacao", href: `${PORTAL_BASE_PATH}/publicacao#publicacao` },
+];
+
+export const SERVER_ADMIN_MENU_ITEMS = [
+  { key: "all", label: "Todos", href: SERVER_ADMIN_BASE_PATH },
+  { key: "email", label: "Gestao de e-mail", href: `${SERVER_ADMIN_BASE_PATH}/email#email` },
+  {
+    key: "conectividade",
+    label: "Conectividade e dominio",
+    href: `${SERVER_ADMIN_BASE_PATH}/conectividade#conectividade`,
+  },
+  {
+    key: "mobile-build",
+    label: "Build e release",
+    href: `${SERVER_ADMIN_BASE_PATH}/mobile-build#mobile-build`,
+  },
 ];
 
 export type PortalSectionKey =
@@ -68,14 +81,20 @@ export type PortalSectionKey =
   | "template"
   | "autenticacao"
   | "pagamentos"
-  | "email"
-  | "conectividade"
-  | "mobile-build"
   | "conteudo"
   | "publicacao";
 
+export type ServerAdminSectionKey =
+  | "all"
+  | "email"
+  | "conectividade"
+  | "mobile-build";
+
+type PortalSectionsMode = "portal" | "server-admin";
+
 type PortalSectionsProps = {
-  activeSection?: PortalSectionKey;
+  activeSection?: PortalSectionKey | ServerAdminSectionKey;
+  mode?: PortalSectionsMode;
 };
 
 type TemplateOption = {
@@ -538,7 +557,10 @@ function normalizeCloudflareSettings(
   };
 }
 
-export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
+export function PortalSections({
+  activeSection = "all",
+  mode = "portal",
+}: PortalSectionsProps) {
   const [config, setConfig] = useState<PortalConfigData | null>(null);
   const [sections, setSections] = useState<PortalSectionData[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -1131,7 +1153,15 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     setSectionBodyJsonDraft(stringifyBodyJson(selectedSection.body_json));
   }, [selectedSection]);
 
-  const showAll = activeSection === "all";
+  function shouldRenderSection(
+    key: string,
+    sectionMode: PortalSectionsMode,
+  ): boolean {
+    return (
+      activeSection === key ||
+      (activeSection === "all" && mode === sectionMode)
+    );
+  }
 
   async function handleRefreshSections() {
     setRefreshingSections(true);
@@ -1881,7 +1911,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         )}
       </section>
 
-      {(showAll || activeSection === "template") && (
+      {shouldRenderSection("template", "portal") && (
         <section id="template" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-text">Templates ativos por canal</h2>
           <p className="mt-1 text-sm text-muted">
@@ -2005,7 +2035,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </section>
       )}
 
-      {(showAll || activeSection === "autenticacao") && (
+      {shouldRenderSection("autenticacao", "portal") && (
         <section
           id="autenticacao"
           className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm"
@@ -2210,7 +2240,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </section>
       )}
 
-      {(showAll || activeSection === "pagamentos") && (
+      {shouldRenderSection("pagamentos", "portal") && (
         <section
           id="pagamentos"
           className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm"
@@ -2556,7 +2586,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </section>
       )}
 
-      {(showAll || activeSection === "email") && (
+      {shouldRenderSection("email", "server-admin") && (
         <section id="email" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-text">Gestao de e-mail</h2>
           <p className="mt-1 text-sm text-muted">
@@ -2723,7 +2753,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </section>
       )}
 
-      {(showAll || activeSection === "conectividade") && (
+      {shouldRenderSection("conectividade", "server-admin") && (
         <section
           id="conectividade"
           className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm"
@@ -3253,7 +3283,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </section>
       )}
 
-      {(showAll || activeSection === "mobile-build") && (
+      {shouldRenderSection("mobile-build", "server-admin") && (
         <section
           id="mobile-build"
           className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm"
@@ -3398,7 +3428,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </section>
       )}
 
-      {(showAll || activeSection === "conteudo") && (
+      {shouldRenderSection("conteudo", "portal") && (
         <section id="conteudo" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -3556,7 +3586,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         </section>
       )}
 
-      {(showAll || activeSection === "publicacao") && (
+      {shouldRenderSection("publicacao", "portal") && (
         <section id="publicacao" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-text">Publicacao</h2>
           <p className="mt-1 text-sm text-muted">

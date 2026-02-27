@@ -40,6 +40,7 @@ const ADMINKIT_OPERATIONS_ITEMS: NavItem[] = [
 
 const ADMINKIT_PLATFORM_ITEMS: NavItem[] = [
   { href: "/modulos/portal", label: "Portal CMS" },
+  { href: "/modulos/administracao-servidor", label: "Admin. servidor" },
   { href: "/modulos/monitoramento", label: "Monitoramento" },
   { href: "/modulos/usuarios-rbac", label: "Usuários e RBAC" },
   { href: "/perfil", label: "Meu perfil" },
@@ -66,6 +67,7 @@ const ADMINDEK_PLATFORM_ITEMS: NavItem[] = [
   { href: "/modulos/estoque", label: "Estoque" },
   { href: "/modulos/monitoramento", label: "Monitoramento" },
   { href: "/modulos/portal", label: "Portal CMS" },
+  { href: "/modulos/administracao-servidor", label: "Admin. servidor" },
   { href: "/modulos/usuarios-rbac", label: "Usuários e RBAC" },
   { href: "/perfil", label: "Meu perfil" },
   { href: "/prioridades", label: "Prioridades" },

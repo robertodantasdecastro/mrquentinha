@@ -92,7 +92,7 @@ export function ClientesSections({ activeSection = "all" }: ClientesSectionsProp
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <Link
-              href="/modulos/portal/email#email"
+              href="/modulos/administracao-servidor/email#email"
               className="rounded-xl border border-border bg-bg p-4 transition hover:border-primary"
             >
               <p className="text-sm font-semibold text-text">Gestao de e-mail transacional</p>

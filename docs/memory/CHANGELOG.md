@@ -997,3 +997,28 @@
   - documentacao:
     - novo ADR `docs/adr/0010-governanca-clientes-lgpd-ecommerce.md`;
     - atualizacao dos documentos de dados/auth/roadmap/estado para refletir a trilha `T9.2.7`.
+
+- T9.2.7-A2 (27/02/2026): modulo `Administracao do servidor` no Web Admin
+  - web admin:
+    - criado novo modulo `/modulos/administracao-servidor`;
+    - paineis movidos do `Portal CMS` para o novo modulo:
+      - `Gestao de e-mail`,
+      - `Conectividade e dominio` (incluindo assistente de instalacao e recursos operacionais),
+      - `Build e release mobile`;
+    - `Portal CMS` ficou focado em:
+      - `Template ativo`,
+      - `Autenticacao social`,
+      - `Pagamentos`,
+      - `Conteudo dinamico`,
+      - `Publicacao`;
+    - refatoracao sem duplicidade:
+      - `PortalSections` passou a operar em dois modos (`portal` e `server-admin`) com o mesmo estado/handlers;
+      - novas hotpages apenas orquestram menu e filtro de secoes por modo.
+  - navegacao:
+    - menu lateral dos templates (`AdminKit` e `AdminDek`) atualizado com o novo modulo;
+    - catalogo de modulos (`/modulos`) atualizado com card de `Administracao do servidor`.
+  - validacao executada:
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK;
+    - `python manage.py check` (backend) -> OK;
+    - `pytest tests/test_customers_admin_api.py` -> OK (`8 passed`).

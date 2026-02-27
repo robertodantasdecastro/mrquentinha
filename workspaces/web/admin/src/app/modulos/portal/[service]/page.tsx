@@ -15,9 +15,6 @@ const SECTION_KEYS: PortalSectionKey[] = [
   "template",
   "autenticacao",
   "pagamentos",
-  "email",
-  "conectividade",
-  "mobile-build",
   "conteudo",
   "publicacao",
 ];
@@ -38,7 +35,7 @@ export default function PortalServicePage() {
     <AdminSessionGate>
       <ModulePageShell
         title="Portal CMS"
-        description="Gerencie templates, dominios e conectividade do Portal e Web Cliente."
+        description="Gerencie templates, autenticacao social, pagamentos, conteudo dinamico e publicacao do Portal e Web Cliente."
         statusLabel="Ativo"
         statusTone="success"
         menuItems={PORTAL_MENU_ITEMS}

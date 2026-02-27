@@ -212,6 +212,15 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `workspaces/web/admin/src/components/modules/CustomersManagementPanel.tsx`
   - `workspaces/web/admin/src/app/modulos/clientes/`
 
+#### T9.2.7-A2 - Administracao do servidor no Web Admin [CONCLUIDA]
+- Objetivo: separar a operacao de infraestrutura do `Portal CMS`, centralizando e-mail, conectividade/dominio, assistente de instalacao e build/release em modulo proprio.
+- Escopo: web admin (rotas/modulos/navegacao) + documentacao.
+- Status: concluida em 27/02/2026.
+- Evidencia:
+  - `workspaces/web/admin/src/app/modulos/administracao-servidor/`
+  - `workspaces/web/admin/src/app/modulos/portal/sections.tsx` (refatorado por modo `portal`/`server-admin`)
+  - `workspaces/web/admin/src/lib/adminModules.ts`
+
 ### P2 (roadmap)
 
 #### T6.1.1 - Nginx local e dominios dev
