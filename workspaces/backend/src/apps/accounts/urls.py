@@ -3,6 +3,8 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .views import (
+    EmailVerificationConfirmAPIView,
+    EmailVerificationResendAPIView,
     MeAPIView,
     MeProfileAPIView,
     RegisterAPIView,
@@ -17,6 +19,16 @@ router.register(r"users", UserAdminViewSet, basename="accounts-users")
 
 urlpatterns = [
     path("register/", RegisterAPIView.as_view(), name="accounts-register"),
+    path(
+        "email-verification/confirm/",
+        EmailVerificationConfirmAPIView.as_view(),
+        name="accounts-email-verification-confirm",
+    ),
+    path(
+        "email-verification/resend/",
+        EmailVerificationResendAPIView.as_view(),
+        name="accounts-email-verification-resend",
+    ),
     path("token/", TokenObtainPairView.as_view(), name="accounts-token"),
     path("token/refresh/", TokenRefreshView.as_view(), name="accounts-token-refresh"),
     path("me/", MeAPIView.as_view(), name="accounts-me"),

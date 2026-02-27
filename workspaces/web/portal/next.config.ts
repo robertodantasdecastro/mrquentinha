@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     "10.211.55.2",
     "localhost",
     "127.0.0.1",
+    "*.trycloudflare.com",
   ],
   transpilePackages: ["@mrquentinha/ui"],
   experimental: { externalDir: true },

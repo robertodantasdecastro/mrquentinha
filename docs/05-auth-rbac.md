@@ -7,6 +7,7 @@
 
 ## Estado atual (27/02/2026)
 - Login JWT nativo (usuario/senha) em producao de desenvolvimento: **concluido**.
+- Confirmacao de e-mail no cadastro com link dinamico por ambiente (DEV Cloudflare/PROD DNS oficial): **concluido**.
 - Parametros OAuth Google/Apple no Portal CMS (`PortalConfig.auth_providers`): **concluido**.
 - Painel do Admin Web revisado com mapeamento correto de campos por provider (Google x Apple): **concluido**.
 - UI do web client para iniciar OAuth + callbacks de retorno (`/conta/oauth/google/callback`, `/conta/oauth/apple/callback`): **concluido**.
@@ -92,3 +93,21 @@
   - ao menos 1 letra minuscula;
   - ao menos 1 numero.
 - Frontends web aplicam validacao de senha no cliente antes do submit para reduzir erros de preenchimento.
+
+## Confirmacao de e-mail (cadastro web cliente)
+- Cadastro (`POST /api/v1/accounts/register/`) exige e-mail e dispara envio de confirmacao.
+- Link de confirmacao sempre aponta para o **frontend web client** (`/conta/confirmar-email?token=...`), resolvido em runtime:
+  - modo DEV: prioriza origem atual do frontend (IP local ou dominio dinamico `trycloudflare`);
+  - modo producao: usa DNS oficial configurado no `PortalConfig.client_base_url`.
+- Endpoints:
+  - `GET /api/v1/accounts/email-verification/confirm/?token=<token>`
+  - `POST /api/v1/accounts/email-verification/resend/` (autenticado)
+- Campos de controle em `accounts_user_profile`:
+  - `email_verified_at`
+  - `email_verification_token_hash`
+  - `email_verification_token_created_at`
+  - `email_verification_last_sent_at`
+  - `email_verification_last_client_base_url`
+- Governanca no Admin (`/modulos/usuarios-rbac`):
+  - status de e-mail validado por usuario;
+  - lista de pendencias de dados essenciais para fluxo autenticado/pagamentos.

@@ -341,10 +341,48 @@ function configureInput(input: HTMLInputElement): void {
   validateInputValue(input, resolvedKind);
 }
 
+function configureInputSafely(input: HTMLInputElement): FieldKind | null {
+  try {
+    configureInput(input);
+    return readFieldKind(input);
+  } catch (error) {
+    console.warn("[mrq] FormFieldGuard falhou ao configurar input", {
+      name: input.name,
+      id: input.id,
+      type: input.type,
+      error,
+    });
+    return null;
+  }
+}
+
+function applyFormattingAndValidationSafely(
+  input: HTMLInputElement,
+  fieldKind: FieldKind,
+): void {
+  try {
+    formatInputValue(input, fieldKind);
+    validateInputValue(input, fieldKind);
+  } catch (error) {
+    input.setCustomValidity("");
+    console.warn("[mrq] FormFieldGuard falhou ao validar input", {
+      name: input.name,
+      id: input.id,
+      type: input.type,
+      fieldKind,
+      error,
+    });
+  }
+}
+
 function configureInputsInsideNode(node: ParentNode): void {
   const inputs = node.querySelectorAll("input");
   for (const input of inputs) {
-    configureInput(input);
+    const fieldKind = configureInputSafely(input);
+    if (!fieldKind) {
+      continue;
+    }
+    applyFormattingAndValidationSafely(input, fieldKind);
   }
 }
 
@@ -380,14 +418,12 @@ export function FormFieldGuard() {
         return;
       }
 
-      configureInput(target);
-      const fieldKind = readFieldKind(target);
+      const fieldKind = configureInputSafely(target);
       if (!fieldKind) {
         return;
       }
 
-      formatInputValue(target, fieldKind);
-      validateInputValue(target, fieldKind);
+      applyFormattingAndValidationSafely(target, fieldKind);
     };
 
     const onBlur = (event: Event) => {
@@ -396,15 +432,13 @@ export function FormFieldGuard() {
         return;
       }
 
-      configureInput(target);
-      const fieldKind = readFieldKind(target);
+      const fieldKind = configureInputSafely(target);
       if (!fieldKind) {
         return;
       }
 
       target.setAttribute(DATA_TOUCHED_ATTR, "true");
-      formatInputValue(target, fieldKind);
-      validateInputValue(target, fieldKind);
+      applyFormattingAndValidationSafely(target, fieldKind);
     };
 
     const onSubmit = (event: Event) => {
@@ -415,15 +449,13 @@ export function FormFieldGuard() {
 
       const inputs = target.querySelectorAll("input");
       for (const input of inputs) {
-        configureInput(input);
-        const fieldKind = readFieldKind(input);
+        const fieldKind = configureInputSafely(input);
         if (!fieldKind) {
           continue;
         }
 
         input.setAttribute(DATA_TOUCHED_ATTR, "true");
-        formatInputValue(input, fieldKind);
-        validateInputValue(input, fieldKind);
+        applyFormattingAndValidationSafely(input, fieldKind);
       }
 
       if (!target.checkValidity()) {

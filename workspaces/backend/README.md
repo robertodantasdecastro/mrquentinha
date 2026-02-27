@@ -97,6 +97,21 @@ Com Makefile:
   { "status": "ok", "app": "mrquentinha", "version": "v1" }
   ```
 
+## Accounts (auth + confirmacao de e-mail)
+Endpoints principais:
+- `POST /api/v1/accounts/register/`
+- `POST /api/v1/accounts/token/`
+- `POST /api/v1/accounts/token/refresh/`
+- `GET /api/v1/accounts/me/`
+- `GET/PATCH /api/v1/accounts/me/profile/`
+- `GET /api/v1/accounts/email-verification/confirm/?token=<token>`
+- `POST /api/v1/accounts/email-verification/resend/` (autenticado)
+
+Regras atuais:
+- cadastro exige e-mail valido;
+- e-mail de confirmacao usa URL do web client dinamica (origem atual em DEV e DNS oficial em producao);
+- status de conformidade do perfil (dados essenciais) e validacao de e-mail sao expostos no payload admin de usuarios.
+
 ## Catalogo (Etapa 2 - MVP)
 ### Decisao de API
 - Os itens de cardapio foram modelados como recurso embutido no `MenuDay`:

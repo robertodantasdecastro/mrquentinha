@@ -7,6 +7,7 @@ from .models import Role, UserProfile
 from .services import (
     SystemRole,
     assign_roles_to_user,
+    build_user_account_compliance,
     get_user_role_codes,
     register_user_with_default_role,
 )
@@ -34,9 +35,33 @@ class MeSerializer(serializers.Serializer):
     first_name = serializers.CharField(read_only=True)
     last_name = serializers.CharField(read_only=True)
     roles = serializers.SerializerMethodField()
+    email_verified = serializers.SerializerMethodField()
+    email_verified_at = serializers.SerializerMethodField()
+    essential_profile_complete = serializers.SerializerMethodField()
+    missing_essential_profile_fields = serializers.SerializerMethodField()
 
     def get_roles(self, obj):
         return sorted(get_user_role_codes(obj))
+
+    def _compliance_payload(self, obj) -> dict:
+        cached = getattr(obj, "_accounts_compliance_payload", None)
+        if isinstance(cached, dict):
+            return cached
+        payload = build_user_account_compliance(obj)
+        obj._accounts_compliance_payload = payload
+        return payload
+
+    def get_email_verified(self, obj):
+        return self._compliance_payload(obj)["email_verified"]
+
+    def get_email_verified_at(self, obj):
+        return self._compliance_payload(obj)["email_verified_at"]
+
+    def get_essential_profile_complete(self, obj):
+        return self._compliance_payload(obj)["essential_profile_complete"]
+
+    def get_missing_essential_profile_fields(self, obj):
+        return self._compliance_payload(obj)["missing_essential_profile_fields"]
 
 
 class UserAdminSerializer(serializers.Serializer):
@@ -49,15 +74,43 @@ class UserAdminSerializer(serializers.Serializer):
     is_staff = serializers.BooleanField(read_only=True)
     date_joined = serializers.DateTimeField(read_only=True)
     roles = serializers.SerializerMethodField()
+    email_verified = serializers.SerializerMethodField()
+    email_verified_at = serializers.SerializerMethodField()
+    email_verification_last_sent_at = serializers.SerializerMethodField()
+    essential_profile_complete = serializers.SerializerMethodField()
+    missing_essential_profile_fields = serializers.SerializerMethodField()
 
     def get_roles(self, obj):
         return sorted(get_user_role_codes(obj))
+
+    def _compliance_payload(self, obj) -> dict:
+        cached = getattr(obj, "_accounts_compliance_payload", None)
+        if isinstance(cached, dict):
+            return cached
+        payload = build_user_account_compliance(obj)
+        obj._accounts_compliance_payload = payload
+        return payload
+
+    def get_email_verified(self, obj):
+        return self._compliance_payload(obj)["email_verified"]
+
+    def get_email_verified_at(self, obj):
+        return self._compliance_payload(obj)["email_verified_at"]
+
+    def get_email_verification_last_sent_at(self, obj):
+        return self._compliance_payload(obj)["email_verification_last_sent_at"]
+
+    def get_essential_profile_complete(self, obj):
+        return self._compliance_payload(obj)["essential_profile_complete"]
+
+    def get_missing_essential_profile_fields(self, obj):
+        return self._compliance_payload(obj)["missing_essential_profile_fields"]
 
 
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(min_length=8, write_only=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=True, allow_blank=False)
     first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
     last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
 
@@ -177,6 +230,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "biometric_status",
             "biometric_captured_at",
             "biometric_verified_at",
+            "email_verified_at",
+            "email_verification_last_sent_at",
+            "email_verification_last_client_base_url",
             "notes",
             "extra_data",
             "created_at",
@@ -193,6 +249,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "biometric_status",
             "biometric_captured_at",
             "biometric_verified_at",
+            "email_verified_at",
+            "email_verification_last_sent_at",
+            "email_verification_last_client_base_url",
             "created_at",
             "updated_at",
         ]
@@ -261,3 +320,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 instance.biometric_verified_at = None
 
         return super().update(instance, validated_data)
+
+
+class EmailVerificationConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField(required=True, allow_blank=False)
+
+
+class EmailVerificationResendSerializer(serializers.Serializer):
+    preferred_client_base_url = serializers.URLField(required=False, allow_blank=True)

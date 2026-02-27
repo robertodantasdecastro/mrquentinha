@@ -10,6 +10,10 @@ export type AuthUserProfile = {
   first_name: string;
   last_name: string;
   roles: string[];
+  email_verified?: boolean;
+  email_verified_at?: string | null;
+  essential_profile_complete?: boolean;
+  missing_essential_profile_fields?: string[];
 };
 
 export type UserDocumentType =
@@ -112,6 +116,11 @@ export type AdminUserData = {
   is_staff: boolean;
   date_joined: string;
   roles: string[];
+  email_verified: boolean;
+  email_verified_at: string | null;
+  email_verification_last_sent_at: string | null;
+  essential_profile_complete: boolean;
+  missing_essential_profile_fields: string[];
 };
 
 export type AssignUserRolesPayload = {

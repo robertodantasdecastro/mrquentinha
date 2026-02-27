@@ -1,6 +1,17 @@
 # Changelog (por sprint)
 
 ## 27/02/2026
+- T9.2.1-A2-HF4 (accounts/email verification): cadastro web cliente passou a exigir e-mail e enviar confirmacao com token; links agora apontam para `/conta/confirmar-email` no frontend cliente com URL dinamica por ambiente (origem ativa no DEV Cloudflare/IP e fallback para `PortalConfig.client_base_url`).
+- T9.2.1-A2-HF4 (accounts/backend): adicionados campos de verificacao em `UserProfile` (`email_verified_at`, token hash, timestamps e ultima base URL), endpoints `GET /api/v1/accounts/email-verification/confirm/` e `POST /api/v1/accounts/email-verification/resend/`.
+- T9.2.1-A2-HF4 (users admin): payload de `GET /api/v1/accounts/users/` evoluiu com status de e-mail confirmado e conformidade de dados essenciais para autenticacao/pagamentos (`essential_profile_complete`, `missing_essential_profile_fields`), refletido no painel `/modulos/usuarios-rbac`.
+- T9.2.1-A2-HF4 (web client): nova rota `/conta/confirmar-email` para validar token via API, status visual de e-mail confirmado na area autenticada e botao de reenvio de confirmacao quando pendente.
+- T9.2.1-A2-HF4 (qa backend): testes ampliados em `tests/test_accounts_api.py` cobrindo envio de e-mail no cadastro, confirmacao de token e reenvio com origem dinamica.
+- T9.2.1-A2-HF3 (web client/conta): corrigido erro `Cannot read properties of null (reading 'value')` em `onChange` de login/cadastro, trocando leitura tardia de `event.currentTarget.value` dentro de updater por captura imediata em variavel local.
+- T9.2.1-A2-HF2 (dev cloudflare/frontends): `allowedDevOrigins` dos tres frontends (`client`, `admin`, `portal`) atualizado para incluir `*.trycloudflare.com`, removendo bloqueio de recursos internos `/_next/*` em modo DEV com tunel Cloudflare.
+- T9.2.6-A2-HF1 (web/ui): `FormFieldGuard` endurecido com `try/catch` em `input/blur/submit` para evitar crash client-side ao digitar em formularios controlados no Web Client/Admin/Portal.
+- T9.2.6-A2-HF1 (qualidade web): validado com `npm run lint` e `npm run build` em `web/client`, `web/admin` e `web/portal`.
+- T9.2.1-A2 (qa manual): rodada manual E2E iniciada com relatorio formal de execucao em `docs/memory/T9_2_1_A2_RELATORIO_EXECUCAO_2026-02-27.md` e checklist completo por blocos A..E.
+- T9.2.1-A2 (pre-check): smoke baseline executado (`smoke_stack_dev` e `smoke_client_dev`) + checks de API/CORS no Cloudflare DEV para iniciar a campanha manual.
 - T6.3.2-A14-HF3 (cloudflare dev/parser): leitura dos logs `cloudflare-dev-*.log` endurecida para aceitar apenas URLs publicas validas `*.trycloudflare.com` e ignorar o endpoint interno `api.trycloudflare.com`.
 - T6.3.2-A14-HF3 (cloudflare dev/runtime): start dos tunnels por servico passou a recriar o log no inicio (`write/truncate`) para evitar reaproveitamento de URLs antigas em ciclos de refresh.
 - T6.3.2-A14-HF3 (cloudflare dev/auto-apply): sincronizacao de `portal/client/admin/api` no `PortalConfig` passou a aceitar atualizacao parcial dos canais disponiveis, preservando modo hibrido local+cloudflare e CORS consistente.

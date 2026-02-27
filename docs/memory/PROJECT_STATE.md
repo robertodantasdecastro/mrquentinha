@@ -6,6 +6,7 @@ Referencia de atualizacao: 27/02/2026.
 - Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
+- Status atual de execucao manual: `T9.2.1-A2` iniciado em 27/02/2026, com relatorio operacional aberto em `docs/memory/T9_2_1_A2_RELATORIO_EXECUCAO_2026-02-27.md`.
 
 ## Planejamento oficial (docs-first)
 - Requisitos consolidados: `docs/memory/REQUIREMENTS_BACKLOG.md`
@@ -42,6 +43,7 @@ Referencia de atualizacao: 27/02/2026.
 - Status: operacional (Auth JWT, Finance MVP completo, OCR mock, nutricao, producao, relatorios).
 - Banco: PostgreSQL (`mrquentinhabd`).
 - Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `personal_finance`, `production`, `ocr_ai`, `portal`.
+- Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): cadastro do cliente exige e-mail e envia confirmacao com link dinamico por ambiente; novos endpoints de confirmacao/reenvio e novos campos de compliance de usuario no payload admin.
 - Pagamentos online (`7.2.1` + `7.2.2` + `7.2.3`):
   - `PaymentIntent` persistido com idempotencia por pagamento/chave.
   - provider abstraction inicial (`mock`) com payload de intent para PIX/CARD/VR.
@@ -132,6 +134,7 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T7.2.3-HF2`): jornada UX de ponta a ponta (login -> cardapio -> checkout -> pedidos -> confirmacao de recebimento), com indicador de conectividade API, guard de autenticacao no checkout e suporte validado para execucao em `localhost:3000` (`CLIENT_PORT=3000`).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A4`): modo de template dinamico integrado ao CMS (`channel=client`) com dois temas (`client-classic` e `client-quentinhas`) no layout, header, footer e jornada do cardapio.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A7`): novo template `client-vitrine-fit` (grid mais densa e foco em fotos de pratos), bloco de login social Google/Apple na Conta e callbacks web para recebimento do `code`.
+- Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): rota `/conta/confirmar-email` adicionada para validar token de confirmacao, com status de e-mail verificado e reenvio de confirmacao na area autenticada.
 
 ### Admin Web (Next.js - 3002)
 - Status: `T9.1.2` concluida (relatorios/exportacoes + UX/IX modular).
@@ -165,6 +168,7 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): modulo Portal CMS ganhou editor de secoes dinamicas (template/pagina/body_json) e a composicao ganhou upload de fotos para insumos e pratos.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A1`): nova area `/perfil` no Web Admin (todos os templates) para administracao completa do usuario logado com dados adicionais, endereco, documentos, foto de perfil, digitalizacao por camera, biometria por foto e logoff.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A2`): camada global de validacao/formatacao de formularios aplicada no Admin/Client/Portal (CPF/CNPJ/CEP/email/senha/datas) com reforco de validacao backend para senha de cadastro e recebedor de pagamentos.
+- Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): modulo `/modulos/usuarios-rbac` passou a exibir status de validacao de e-mail e pendencias de dados essenciais para habilitacao de pagamento/autenticacao por usuario.
 - Workspace ativo: `workspaces/web/admin`.
 - Hotfix `T6.3.2-A14-HF1` implementado: resolucao automatica de `api_base_url` em runtime aplicada nos frontends `admin/client/portal` para acessos via dominios dinamicos `trycloudflare`.
 - Status de validacao externa do fluxo Cloudflare DEV: concluido em `27/02/2026 15:04` (Portal/Client/Admin/API online, health 200, comunicacao frontend <-> API validada no teste funcional).
@@ -193,6 +197,8 @@ Referencia de atualizacao: 27/02/2026.
 - `GET /api/v1/accounts/me/`
 - `GET /api/v1/accounts/me/profile/`
 - `PATCH /api/v1/accounts/me/profile/`
+- `GET /api/v1/accounts/email-verification/confirm/?token=<token>`
+- `POST /api/v1/accounts/email-verification/resend/`
 - `GET /api/v1/accounts/roles/`
 - `GET /api/v1/accounts/users/`
 - `GET /api/v1/accounts/users/<id>/`

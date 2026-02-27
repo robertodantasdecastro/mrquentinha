@@ -83,6 +83,17 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - elimina drift entre dominio atual do tunnel e configuracao consumida pelos frontends.
   - evita erro `DisallowedHost` no backend durante homologacao online em modo DEV.
 
+## 27/02/2026 - Confirmacao de e-mail com URL dinamica por ambiente
+- Decisao:
+  - tornar e-mail obrigatorio no cadastro do cliente (`/api/v1/accounts/register/`) e disparar confirmacao por token.
+  - gerar link de confirmacao sempre para o frontend web cliente (`/conta/confirmar-email`), priorizando origem atual da requisicao em DEV (IP/local ou `trycloudflare`) e fallback para `PortalConfig.client_base_url`.
+  - persistir rastreabilidade em `UserProfile` (token hash, timestamps e ultima base URL usada no envio).
+  - expor no Admin Web indicadores de conformidade por usuario (`email_verified` + pendencias de dados essenciais para autenticacao/pagamento).
+- Consequencia:
+  - rotacao de dominios dinamicos no DEV nao quebra o fluxo de confirmacao, desde que seja reenviado e-mail.
+  - modo producao permanece aderente ao DNS oficial configurado no CMS.
+  - operacao passa a identificar no painel de usuarios quem ainda nao concluiu validacao e quais campos faltam para jornada de pagamento autenticado.
+
 ## 26/02/2026 - Configuracao multigateway de pagamentos via Portal CMS
 - Decisao:
   - centralizar no `PortalConfig.payment_providers` as credenciais e roteamento de Mercado Pago, Efi e Asaas.

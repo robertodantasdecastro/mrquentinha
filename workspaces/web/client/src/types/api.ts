@@ -139,14 +139,31 @@ export type AuthUserProfile = {
   first_name: string;
   last_name: string;
   roles: string[];
+  email_verified: boolean;
+  email_verified_at?: string | null;
+  essential_profile_complete?: boolean;
+  missing_essential_profile_fields?: string[];
 };
 
 export type RegisterPayload = {
   username: string;
   password: string;
-  email?: string;
+  email: string;
   first_name?: string;
   last_name?: string;
+};
+
+export type EmailVerificationConfirmResult = {
+  detail: string;
+  email_verified: boolean;
+  username?: string;
+};
+
+export type EmailVerificationResendResult = {
+  detail: string;
+  sent: boolean;
+  email: string;
+  client_base_url: string;
 };
 
 export type PublicGoogleAuthProvider = {

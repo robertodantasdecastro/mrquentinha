@@ -1,6 +1,10 @@
+import re
+
 import pytest
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 
 from apps.accounts.models import UserProfile, UserRole
 from apps.accounts.services import (
@@ -34,6 +38,104 @@ def test_accounts_register_cria_usuario_com_role_cliente(anonymous_client):
         UserRole.objects.filter(user=created_user).values_list("role__code", flat=True)
     )
     assert role_codes == {SystemRole.CLIENTE}
+
+
+@pytest.mark.django_db
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+def test_accounts_register_envia_email_confirmacao_com_url_do_frontend_origem(
+    anonymous_client,
+):
+    response = anonymous_client.post(
+        "/api/v1/accounts/register/",
+        {
+            "username": "cliente_confirmacao",
+            "password": "Senha_Forte_123",
+            "email": "cliente_confirmacao@example.com",
+            "first_name": "Cliente",
+            "last_name": "Confirmacao",
+        },
+        format="json",
+        HTTP_ORIGIN="https://anderson-cats-tri-consistently.trycloudflare.com",
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["email_verification_sent"] is True
+
+    User = get_user_model()
+    created_user = User.objects.get(username="cliente_confirmacao")
+    profile = UserProfile.objects.get(user=created_user)
+    assert profile.email_verification_token_hash
+    assert profile.email_verification_last_sent_at is not None
+    assert (
+        profile.email_verification_last_client_base_url
+        == "https://anderson-cats-tri-consistently.trycloudflare.com"
+    )
+
+    assert len(mail.outbox) == 1
+    assert (
+        "https://anderson-cats-tri-consistently.trycloudflare.com/"
+        "conta/confirmar-email?token="
+    ) in mail.outbox[0].body
+
+
+@pytest.mark.django_db
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+def test_accounts_email_verification_confirm_endpoint_valida_token(anonymous_client):
+    register_response = anonymous_client.post(
+        "/api/v1/accounts/register/",
+        {
+            "username": "cliente_confirm_token",
+            "password": "Senha_Forte_123",
+            "email": "cliente_confirm_token@example.com",
+            "first_name": "Cliente",
+            "last_name": "Token",
+        },
+        format="json",
+        HTTP_ORIGIN="https://webclient-dev.trycloudflare.com",
+    )
+    assert register_response.status_code == 201
+    assert len(mail.outbox) == 1
+
+    body = mail.outbox[0].body
+    match = re.search(r"token=([A-Za-z0-9_\-]+)", body)
+    assert match is not None
+    token = match.group(1)
+
+    confirm_response = anonymous_client.get(
+        "/api/v1/accounts/email-verification/confirm/",
+        {"token": token},
+    )
+    assert confirm_response.status_code == 200
+    assert confirm_response.json()["email_verified"] is True
+
+    User = get_user_model()
+    user = User.objects.get(username="cliente_confirm_token")
+    profile = UserProfile.objects.get(user=user)
+    assert profile.email_verified_at is not None
+    assert profile.email_verification_token_hash == ""
+    assert profile.email_verification_token_created_at is None
+
+
+@pytest.mark.django_db
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+def test_accounts_email_verification_resend_usa_origem_ativa(client, admin_user):
+    response = client.post(
+        "/api/v1/accounts/email-verification/resend/",
+        {},
+        format="json",
+        HTTP_ORIGIN="https://novo-endereco-dev.trycloudflare.com",
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["sent"] is True
+    assert payload["client_base_url"] == "https://novo-endereco-dev.trycloudflare.com"
+
+    profile = UserProfile.objects.get(user=admin_user)
+    assert (
+        profile.email_verification_last_client_base_url
+        == "https://novo-endereco-dev.trycloudflare.com"
+    )
 
 
 @pytest.mark.django_db
@@ -170,6 +272,9 @@ def test_accounts_users_list_requer_admin(client, anonymous_client):
     created_payload = next(item for item in payload if item["id"] == target_user.id)
     assert created_payload["username"] == "operador_financeiro"
     assert set(created_payload["roles"]) == {SystemRole.FINANCEIRO}
+    assert created_payload["email_verified"] is False
+    assert created_payload["essential_profile_complete"] is False
+    assert "email_verificado" in created_payload["missing_essential_profile_fields"]
 
     operador_cliente = User.objects.create_user(
         username="operador_cliente_list",

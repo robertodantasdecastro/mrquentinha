@@ -10,6 +10,8 @@ import type {
   AuthUserProfile,
   ClientPortalPublicConfig,
   CreatedOrderResponse,
+  EmailVerificationConfirmResult,
+  EmailVerificationResendResult,
   MenuDayData,
   OnlinePaymentMethod,
   OrderData,
@@ -497,6 +499,30 @@ export async function registerAccount(
 
   await loginAccount(registration.username, registration.password);
   return fetchMe();
+}
+
+export async function confirmEmailVerificationToken(
+  token: string,
+): Promise<EmailVerificationConfirmResult> {
+  const encodedToken = encodeURIComponent(token.trim());
+  return requestJson<EmailVerificationConfirmResult>(
+    `/api/v1/accounts/email-verification/confirm/?token=${encodedToken}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    },
+  );
+}
+
+export async function resendEmailVerificationToken(): Promise<EmailVerificationResendResult> {
+  return requestJson<EmailVerificationResendResult>(
+    "/api/v1/accounts/email-verification/resend/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({}),
+    },
+  );
 }
 
 export async function fetchMe(): Promise<AuthUserProfile> {

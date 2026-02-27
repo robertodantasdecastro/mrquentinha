@@ -37,6 +37,30 @@ function resolveActiveTone(isActive: boolean): StatusTone {
   return isActive ? "success" : "danger";
 }
 
+function resolveComplianceTone(isComplete: boolean): StatusTone {
+  return isComplete ? "success" : "warning";
+}
+
+const MISSING_FIELD_LABELS: Record<string, string> = {
+  email: "e-mail",
+  full_name: "nome completo",
+  phone: "telefone",
+  postal_code: "CEP",
+  street: "logradouro",
+  street_number: "numero",
+  neighborhood: "bairro",
+  city: "cidade",
+  state: "estado",
+  cpf_ou_cnpj: "CPF/CNPJ",
+  email_verificado: "e-mail confirmado",
+};
+
+function formatMissingFields(fields: string[]): string {
+  return fields
+    .map((field) => MISSING_FIELD_LABELS[field] ?? field)
+    .join(", ");
+}
+
 export function UsersRbacPanel() {
   const [users, setUsers] = useState<AdminUserData[]>([]);
   const [roles, setRoles] = useState<RoleData[]>([]);
@@ -102,6 +126,14 @@ export function UsersRbacPanel() {
 
   const adminUsersCount = useMemo(
     () => users.filter((user) => user.roles.includes("ADMIN")).length,
+    [users],
+  );
+  const verifiedEmailCount = useMemo(
+    () => users.filter((user) => user.email_verified).length,
+    [users],
+  );
+  const essentialCompleteCount = useMemo(
+    () => users.filter((user) => user.essential_profile_complete).length,
     [users],
   );
 
@@ -177,7 +209,7 @@ export function UsersRbacPanel() {
 
       {!loading && (
         <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Usuários</p>
               <p className="mt-1 text-2xl font-semibold text-text">{users.length}</p>
@@ -189,6 +221,14 @@ export function UsersRbacPanel() {
             <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Papéis ativos</p>
               <p className="mt-1 text-2xl font-semibold text-text">{roles.length}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">E-mails verificados</p>
+              <p className="mt-1 text-2xl font-semibold text-text">{verifiedEmailCount}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Perfil essencial ok</p>
+              <p className="mt-1 text-2xl font-semibold text-text">{essentialCompleteCount}</p>
             </article>
           </div>
 
@@ -220,10 +260,22 @@ export function UsersRbacPanel() {
                               <StatusPill tone={resolveActiveTone(user.is_active)}>
                                 {user.is_active ? "ativo" : "inativo"}
                               </StatusPill>
+                              <StatusPill tone={user.email_verified ? "success" : "warning"}>
+                                {user.email_verified ? "email ok" : "email pendente"}
+                              </StatusPill>
+                              <StatusPill tone={resolveComplianceTone(user.essential_profile_complete)}>
+                                {user.essential_profile_complete ? "perfil completo" : "perfil incompleto"}
+                              </StatusPill>
                             </div>
                             <p className="text-xs text-muted">
                               cadastro: {formatDateTime(user.date_joined)}
                             </p>
+                            {user.email_verification_last_sent_at && (
+                              <p className="text-xs text-muted">
+                                ultimo envio de confirmacao:{" "}
+                                {formatDateTime(user.email_verification_last_sent_at)}
+                              </p>
+                            )}
                           </div>
                           <button
                             type="button"
@@ -236,6 +288,11 @@ export function UsersRbacPanel() {
                         <p className="mt-2 text-xs text-muted">
                           Papéis: {user.roles.length > 0 ? user.roles.join(", ") : "sem papéis"}
                         </p>
+                        {!user.essential_profile_complete && (
+                          <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                            Pendencias: {formatMissingFields(user.missing_essential_profile_fields)}
+                          </p>
+                        )}
                       </article>
                     );
                   })}

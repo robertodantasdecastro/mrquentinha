@@ -12,6 +12,7 @@ import {
   loginAccount,
   logoutAccount,
   registerAccount,
+  resendEmailVerificationToken,
 } from "@/lib/api";
 import { hasStoredAuthSession } from "@/lib/storage";
 import type { AuthUserProfile, PublicAuthProvidersConfig } from "@/types/api";
@@ -165,6 +166,7 @@ export default function ContaPage() {
   const [viewState, setViewState] = useState<ViewState>("loading");
   const [mode, setMode] = useState<AuthMode>("login");
   const [busy, setBusy] = useState<boolean>(false);
+  const [resendingVerification, setResendingVerification] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [authProviders, setAuthProviders] = useState<PublicAuthProvidersConfig>(
@@ -315,7 +317,9 @@ export default function ContaPage() {
 
       setUser(profile);
       setViewState("authenticated");
-      setMessage("Cadastro realizado e sessao iniciada.");
+      setMessage(
+        "Cadastro realizado e sessao iniciada. Enviamos um e-mail para confirmacao da sua conta.",
+      );
       setRegisterForm({
         username: "",
         password: "",
@@ -328,6 +332,27 @@ export default function ContaPage() {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    setResendingVerification(true);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      const payload = await resendEmailVerificationToken();
+      const updatedUser = await fetchMe();
+      setUser(updatedUser);
+      setMessage(
+        payload.sent
+          ? "Novo e-mail de confirmacao enviado."
+          : payload.detail || "Nao foi possivel reenviar o e-mail agora.",
+      );
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setResendingVerification(false);
     }
   }
 
@@ -389,6 +414,10 @@ export default function ContaPage() {
                 {user.email || "nao informado"}
               </p>
               <p className="mt-1">
+                <strong className="text-text">Validacao do e-mail:</strong>{" "}
+                {user.email_verified ? "confirmado" : "pendente"}
+              </p>
+              <p className="mt-1">
                 <strong className="text-text">Nome:</strong>{" "}
                 {[user.first_name, user.last_name].filter(Boolean).join(" ") || "nao informado"}
               </p>
@@ -396,6 +425,20 @@ export default function ContaPage() {
                 <strong className="text-text">Papeis:</strong> {formatRoles(user)}
               </p>
             </div>
+
+            {!user.email_verified && (
+              <div className="rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
+                <p>Seu e-mail ainda nao foi confirmado.</p>
+                <button
+                  type="button"
+                  onClick={() => void handleResendVerification()}
+                  disabled={resendingVerification}
+                  className="mt-2 rounded-md border border-amber-400/70 bg-transparent px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] transition hover:bg-amber-100/70 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-amber-900/30"
+                >
+                  {resendingVerification ? "Reenviando..." : "Reenviar e-mail de confirmacao"}
+                </button>
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.08em]">
               <Link
@@ -488,12 +531,13 @@ export default function ContaPage() {
                     autoComplete="username"
                     className={INPUT_CLASS}
                     value={loginForm.username}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setLoginForm((current) => ({
                         ...current,
-                        username: event.currentTarget.value,
-                      }))
-                    }
+                        username: value,
+                      }));
+                    }}
                   />
                 </label>
 
@@ -507,12 +551,13 @@ export default function ContaPage() {
                     autoComplete="current-password"
                     className={INPUT_CLASS}
                     value={loginForm.password}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setLoginForm((current) => ({
                         ...current,
-                        password: event.currentTarget.value,
-                      }))
-                    }
+                        password: value,
+                      }));
+                    }}
                   />
                 </label>
 
@@ -536,12 +581,13 @@ export default function ContaPage() {
                     autoComplete="username"
                     className={INPUT_CLASS}
                     value={registerForm.username}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setRegisterForm((current) => ({
                         ...current,
-                        username: event.currentTarget.value,
-                      }))
-                    }
+                        username: value,
+                      }));
+                    }}
                   />
                 </label>
 
@@ -550,15 +596,17 @@ export default function ContaPage() {
                   <input
                     name="email"
                     type="email"
+                    required
                     autoComplete="email"
                     className={INPUT_CLASS}
                     value={registerForm.email}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setRegisterForm((current) => ({
                         ...current,
-                        email: event.currentTarget.value,
-                      }))
-                    }
+                        email: value,
+                      }));
+                    }}
                   />
                 </label>
 
@@ -570,12 +618,13 @@ export default function ContaPage() {
                       autoComplete="given-name"
                       className={INPUT_CLASS}
                       value={registerForm.firstName}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setRegisterForm((current) => ({
                           ...current,
-                          firstName: event.currentTarget.value,
-                        }))
-                      }
+                          firstName: value,
+                        }));
+                      }}
                     />
                   </label>
 
@@ -586,12 +635,13 @@ export default function ContaPage() {
                       autoComplete="family-name"
                       className={INPUT_CLASS}
                       value={registerForm.lastName}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setRegisterForm((current) => ({
                           ...current,
-                          lastName: event.currentTarget.value,
-                        }))
-                      }
+                          lastName: value,
+                        }));
+                      }}
                     />
                   </label>
                 </div>
@@ -606,12 +656,13 @@ export default function ContaPage() {
                     autoComplete="new-password"
                     className={INPUT_CLASS}
                     value={registerForm.password}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setRegisterForm((current) => ({
                         ...current,
-                        password: event.currentTarget.value,
-                      }))
-                    }
+                        password: value,
+                      }));
+                    }}
                   />
                 </label>
 

@@ -124,6 +124,11 @@ class UserProfile(TimeStampedModel):
     )
     biometric_captured_at = models.DateTimeField(null=True, blank=True)
     biometric_verified_at = models.DateTimeField(null=True, blank=True)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+    email_verification_token_hash = models.CharField(max_length=128, blank=True)
+    email_verification_token_created_at = models.DateTimeField(null=True, blank=True)
+    email_verification_last_sent_at = models.DateTimeField(null=True, blank=True)
+    email_verification_last_client_base_url = models.URLField(blank=True, default="")
     notes = models.TextField(blank=True)
     extra_data = models.JSONField(default=dict, blank=True)
 

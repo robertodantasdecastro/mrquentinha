@@ -33,7 +33,7 @@ O Mr Quentinha centraliza em uma unica API os fluxos de:
 - consulta de cardapio por data
 - checkout com `PIX`, `CARD` e `VR`
 - historico de pedidos e confirmacao de recebimento
-- login JWT
+- login JWT + confirmacao de e-mail no cadastro (link dinamico DEV/PROD)
 - base para login social Google/Apple via configuracao centralizada no CMS
 
 ### Operacao interna (admin)

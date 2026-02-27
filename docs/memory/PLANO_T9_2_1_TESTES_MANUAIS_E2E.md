@@ -89,5 +89,6 @@ Definir e institucionalizar uma campanha manual E2E para validar todos os fluxos
 - `T9.2.1-A4` (pendente): institucionalizar rotina semanal fixa no runbook operacional.
 
 ## Registro da rodada atual
-- Status da rodada manual completa: **pendente** (aguardando execucao de `T9.2.1-A2`).
+- Status da rodada manual completa: **em execucao** (rodada `T9.2.1-A2` iniciada em 27/02/2026).
 - Status da preparacao automatizada: usar `quality_gate_all` + smokes como porta de entrada da rodada manual.
+- Relatorio oficial da rodada atual: `docs/memory/T9_2_1_A2_RELATORIO_EXECUCAO_2026-02-27.md`.
