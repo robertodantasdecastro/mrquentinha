@@ -14,6 +14,7 @@ import {
   previewPortalCloudflareAdmin,
   publishMobileReleaseAdmin,
   publishPortalConfigAdmin,
+  testPortalEmailConfigAdmin,
   testPortalPaymentProviderAdmin,
   togglePortalCloudflareAdmin,
   updatePortalConfigAdmin,
@@ -29,6 +30,7 @@ import type {
   PortalAppleAuthConfig,
   PortalAuthProvidersConfig,
   PortalConfigData,
+  PortalEmailSettingsConfig,
   PortalEfiConfig,
   PortalGoogleAuthConfig,
   PortalMercadoPagoConfig,
@@ -54,6 +56,7 @@ export const PORTAL_MENU_ITEMS = [
     label: "Pagamentos",
     href: `${PORTAL_BASE_PATH}/pagamentos#pagamentos`,
   },
+  { key: "email", label: "E-mail", href: `${PORTAL_BASE_PATH}/email#email` },
   { key: "conectividade", label: "Conectividade", href: `${PORTAL_BASE_PATH}/conectividade#conectividade` },
   { key: "mobile-build", label: "Build mobile", href: `${PORTAL_BASE_PATH}/mobile-build#mobile-build` },
   { key: "conteudo", label: "Conteudo dinamico", href: `${PORTAL_BASE_PATH}/conteudo#conteudo` },
@@ -65,6 +68,7 @@ export type PortalSectionKey =
   | "template"
   | "autenticacao"
   | "pagamentos"
+  | "email"
   | "conectividade"
   | "mobile-build"
   | "conteudo"
@@ -421,6 +425,46 @@ function normalizePaymentProviders(
   };
 }
 
+function getDefaultEmailSettings(): PortalEmailSettingsConfig {
+  return {
+    enabled: false,
+    backend: "django.core.mail.backends.smtp.EmailBackend",
+    host: "",
+    port: 587,
+    username: "",
+    password: "",
+    use_tls: true,
+    use_ssl: false,
+    timeout_seconds: 15,
+    from_name: "Mr Quentinha",
+    from_email: "noreply@mrquentinha.local",
+    reply_to_email: "",
+    test_recipient: "",
+  };
+}
+
+function normalizeEmailSettings(
+  value: PortalEmailSettingsConfig | null | undefined,
+): PortalEmailSettingsConfig {
+  const defaults = getDefaultEmailSettings();
+  const merged = {
+    ...defaults,
+    ...(value ?? {}),
+  };
+  const port = Number.isFinite(Number(merged.port))
+    ? Number.parseInt(String(merged.port), 10)
+    : defaults.port;
+  const timeoutSeconds = Number.isFinite(Number(merged.timeout_seconds))
+    ? Number.parseInt(String(merged.timeout_seconds), 10)
+    : defaults.timeout_seconds;
+  return {
+    ...merged,
+    port: Math.min(65535, Math.max(1, port || defaults.port)),
+    timeout_seconds: Math.min(120, Math.max(1, timeoutSeconds || defaults.timeout_seconds)),
+    use_ssl: merged.use_tls && merged.use_ssl ? false : merged.use_ssl,
+  };
+}
+
 function getDefaultCloudflareSettings(): PortalCloudflareConfig {
   return {
     enabled: false,
@@ -617,6 +661,24 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   const [asaasApiKeyDraft, setAsaasApiKeyDraft] = useState("");
   const [asaasWebhookSecretDraft, setAsaasWebhookSecretDraft] = useState("");
   const [asaasSandboxDraft, setAsaasSandboxDraft] = useState(true);
+  const [emailEnabledDraft, setEmailEnabledDraft] = useState(false);
+  const [emailBackendDraft, setEmailBackendDraft] = useState(
+    "django.core.mail.backends.smtp.EmailBackend",
+  );
+  const [emailHostDraft, setEmailHostDraft] = useState("");
+  const [emailPortDraft, setEmailPortDraft] = useState("587");
+  const [emailUsernameDraft, setEmailUsernameDraft] = useState("");
+  const [emailPasswordDraft, setEmailPasswordDraft] = useState("");
+  const [emailUseTlsDraft, setEmailUseTlsDraft] = useState(true);
+  const [emailUseSslDraft, setEmailUseSslDraft] = useState(false);
+  const [emailTimeoutDraft, setEmailTimeoutDraft] = useState("15");
+  const [emailFromNameDraft, setEmailFromNameDraft] = useState("Mr Quentinha");
+  const [emailFromAddressDraft, setEmailFromAddressDraft] = useState(
+    "noreply@mrquentinha.local",
+  );
+  const [emailReplyToDraft, setEmailReplyToDraft] = useState("");
+  const [emailTestRecipientDraft, setEmailTestRecipientDraft] = useState("");
+  const [testingEmail, setTestingEmail] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [mobileReleases, setMobileReleases] = useState<MobileReleaseData[]>([]);
   const [releaseVersionDraft, setReleaseVersionDraft] = useState("");
@@ -800,6 +862,26 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     };
   }
 
+  function buildEmailSettingsDraftPayload(): PortalEmailSettingsConfig {
+    const base = normalizeEmailSettings(config?.email_settings);
+    return normalizeEmailSettings({
+      ...base,
+      enabled: emailEnabledDraft,
+      backend: emailBackendDraft.trim(),
+      host: emailHostDraft.trim(),
+      port: Number.parseInt(emailPortDraft, 10),
+      username: emailUsernameDraft.trim(),
+      password: emailPasswordDraft.trim(),
+      use_tls: emailUseTlsDraft,
+      use_ssl: emailUseSslDraft,
+      timeout_seconds: Number.parseInt(emailTimeoutDraft, 10),
+      from_name: emailFromNameDraft.trim(),
+      from_email: emailFromAddressDraft.trim(),
+      reply_to_email: emailReplyToDraft.trim(),
+      test_recipient: emailTestRecipientDraft.trim(),
+    });
+  }
+
   useEffect(() => {
     let mounted = true;
 
@@ -946,6 +1028,20 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         setAsaasApiKeyDraft(paymentProviders.asaas.api_key);
         setAsaasWebhookSecretDraft(paymentProviders.asaas.webhook_secret);
         setAsaasSandboxDraft(paymentProviders.asaas.sandbox);
+        const emailSettings = normalizeEmailSettings(configPayload.email_settings);
+        setEmailEnabledDraft(emailSettings.enabled);
+        setEmailBackendDraft(emailSettings.backend);
+        setEmailHostDraft(emailSettings.host);
+        setEmailPortDraft(String(emailSettings.port));
+        setEmailUsernameDraft(emailSettings.username);
+        setEmailPasswordDraft(emailSettings.password);
+        setEmailUseTlsDraft(emailSettings.use_tls);
+        setEmailUseSslDraft(emailSettings.use_ssl);
+        setEmailTimeoutDraft(String(emailSettings.timeout_seconds));
+        setEmailFromNameDraft(emailSettings.from_name);
+        setEmailFromAddressDraft(emailSettings.from_email);
+        setEmailReplyToDraft(emailSettings.reply_to_email);
+        setEmailTestRecipientDraft(emailSettings.test_recipient);
         setCloudflarePreview(null);
         try {
           const runtimePayload = await managePortalCloudflareRuntimeAdmin("status");
@@ -1269,6 +1365,56 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveEmailSettings() {
+    if (!config) {
+      return;
+    }
+
+    setSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedConfig = await updatePortalConfigAdmin(config.id, {
+        email_settings: buildEmailSettingsDraftPayload(),
+      });
+      const emailSettings = normalizeEmailSettings(updatedConfig.email_settings);
+      setConfig(updatedConfig);
+      setEmailEnabledDraft(emailSettings.enabled);
+      setEmailBackendDraft(emailSettings.backend);
+      setEmailHostDraft(emailSettings.host);
+      setEmailPortDraft(String(emailSettings.port));
+      setEmailUsernameDraft(emailSettings.username);
+      setEmailPasswordDraft(emailSettings.password);
+      setEmailUseTlsDraft(emailSettings.use_tls);
+      setEmailUseSslDraft(emailSettings.use_ssl);
+      setEmailTimeoutDraft(String(emailSettings.timeout_seconds));
+      setEmailFromNameDraft(emailSettings.from_name);
+      setEmailFromAddressDraft(emailSettings.from_email);
+      setEmailReplyToDraft(emailSettings.reply_to_email);
+      setEmailTestRecipientDraft(emailSettings.test_recipient);
+      setSuccessMessage("Gestao de e-mail atualizada com sucesso.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTestEmailSettings() {
+    setTestingEmail(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const payload = await testPortalEmailConfigAdmin(emailTestRecipientDraft.trim());
+      setSuccessMessage(payload.detail);
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setTestingEmail(false);
     }
   }
 
@@ -2406,6 +2552,173 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
             >
               {saving ? "Salvando..." : "Salvar configuracoes de pagamento"}
             </button>
+          </div>
+        </section>
+      )}
+
+      {(showAll || activeSection === "email") && (
+        <section id="email" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-text">Gestao de e-mail</h2>
+          <p className="mt-1 text-sm text-muted">
+            Configure SMTP para envio de confirmacoes e notificacoes, com teste imediato.
+          </p>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-base font-semibold text-text">Servidor SMTP</h3>
+                <label className="inline-flex items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    checked={emailEnabledDraft}
+                    onChange={(event) => setEmailEnabledDraft(event.currentTarget.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Habilitar SMTP customizado
+                </label>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="grid gap-1 text-sm text-muted md:col-span-2">
+                  Backend de e-mail
+                  <input
+                    value={emailBackendDraft}
+                    onChange={(event) => setEmailBackendDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="django.core.mail.backends.smtp.EmailBackend"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Host SMTP
+                  <input
+                    value={emailHostDraft}
+                    onChange={(event) => setEmailHostDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="smtp.seu-dominio.com"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Porta SMTP
+                  <input
+                    value={emailPortDraft}
+                    onChange={(event) => setEmailPortDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="587"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Usuario SMTP
+                  <input
+                    value={emailUsernameDraft}
+                    onChange={(event) => setEmailUsernameDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="usuario"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Senha SMTP
+                  <input
+                    type="password"
+                    value={emailPasswordDraft}
+                    onChange={(event) => setEmailPasswordDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="senha"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Timeout (s)
+                  <input
+                    value={emailTimeoutDraft}
+                    onChange={(event) => setEmailTimeoutDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="15"
+                  />
+                </label>
+                <div className="flex flex-wrap items-center gap-4 pt-6">
+                  <label className="inline-flex items-center gap-2 text-sm text-text">
+                    <input
+                      type="checkbox"
+                      checked={emailUseTlsDraft}
+                      onChange={(event) => setEmailUseTlsDraft(event.currentTarget.checked)}
+                      className="h-4 w-4 rounded border-border text-primary"
+                    />
+                    TLS
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-text">
+                    <input
+                      type="checkbox"
+                      checked={emailUseSslDraft}
+                      onChange={(event) => setEmailUseSslDraft(event.currentTarget.checked)}
+                      className="h-4 w-4 rounded border-border text-primary"
+                    />
+                    SSL
+                  </label>
+                </div>
+              </div>
+            </article>
+
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <h3 className="text-base font-semibold text-text">Identidade de envio</h3>
+              <div className="mt-3 grid gap-3">
+                <label className="grid gap-1 text-sm text-muted">
+                  Nome do remetente
+                  <input
+                    value={emailFromNameDraft}
+                    onChange={(event) => setEmailFromNameDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="Mr Quentinha"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  E-mail remetente
+                  <input
+                    value={emailFromAddressDraft}
+                    onChange={(event) => setEmailFromAddressDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="noreply@mrquentinha.com.br"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Reply-to
+                  <input
+                    value={emailReplyToDraft}
+                    onChange={(event) => setEmailReplyToDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="suporte@mrquentinha.com.br"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  Destinatario de teste
+                  <input
+                    value={emailTestRecipientDraft}
+                    onChange={(event) => setEmailTestRecipientDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="qa@mrquentinha.com.br"
+                  />
+                </label>
+                <p className="rounded-md border border-border bg-surface/60 px-3 py-2 text-xs text-muted">
+                  A validacao de e-mail obrigatoria permanece restrita a usuarios cliente. Perfis
+                  administrativos/gestao (incluindo root/superuser) continuam com acesso ao Web Admin.
+                </p>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleTestEmailSettings()}
+                    disabled={testingEmail || loading}
+                    className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {testingEmail ? "Testando..." : "Enviar e-mail de teste"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveEmailSettings()}
+                    disabled={loading || saving || !config}
+                    className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {saving ? "Salvando..." : "Salvar configuracao de e-mail"}
+                  </button>
+                </div>
+              </div>
+            </article>
           </div>
         </section>
       )}

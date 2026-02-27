@@ -157,8 +157,21 @@ class TokenObtainPairEmailVerifiedSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         user = self.user
+        if user.is_superuser or user.is_staff:
+            return data
+
         role_codes = get_user_role_codes(user)
         if SystemRole.CLIENTE not in role_codes:
+            return data
+
+        management_roles = {
+            SystemRole.ADMIN,
+            SystemRole.FINANCEIRO,
+            SystemRole.COZINHA,
+            SystemRole.COMPRAS,
+            SystemRole.ESTOQUE,
+        }
+        if role_codes.intersection(management_roles):
             return data
 
         profile, _created = UserProfile.objects.get_or_create(user=user)

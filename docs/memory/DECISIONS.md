@@ -438,3 +438,14 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Consequencia:
   - ganho funcional orientado ao usuario final com risco tecnico controlado.
   - preserva segregacao de dados e fronteira arquitetural definida nos ADRs `0003` e `0005`.
+
+## 27/02/2026 - Escopo de validacao de e-mail e gestao SMTP no Admin (T9.2.1-A2-HF6)
+- Status: aceito.
+- Decisao:
+  - validacao obrigatoria de e-mail passa a ser regra exclusiva do canal cliente.
+  - usuarios administrativos/gestao nao devem ser bloqueados no login por falta de `email_verified_at`.
+  - configuracao de e-mail operacional/smtp passa a ser centralizada no `PortalConfig.email_settings`, gerenciavel no Web Admin com endpoint de teste dedicado.
+- Consequencia:
+  - evita regressao de acesso no Web Admin.
+  - reduz dependencia de ajuste manual de `.env` para operacao de e-mail.
+  - mantem compliance no canal cliente sem impactar operacao interna.

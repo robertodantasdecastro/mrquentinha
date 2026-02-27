@@ -948,3 +948,21 @@
     - `cd workspaces/web/portal && npm run lint && npm run build`
     - `bash scripts/quality_gate_all.sh`
     - `CLIENT_PORT=3000 bash scripts/smoke_client_dev.sh`
+
+- T9.2.1-A2-HF6 (27/02/2026): gestao de e-mail no Web Admin + escopo correto da validacao de e-mail no login
+  - backend/accounts:
+    - regra de bloqueio de login por e-mail nao validado refinada para aplicar apenas ao fluxo cliente;
+    - perfis administrativos/gestao (`is_staff`, `is_superuser`, `ADMIN`, `FINANCEIRO`, `COZINHA`, `COMPRAS`, `ESTOQUE`) passam a autenticar sem bloqueio de validacao de e-mail;
+    - envio de e-mail de confirmacao passa a tentar usar configuracao de SMTP do Portal CMS com fallback seguro para backend padrao.
+  - backend/portal:
+    - novo campo `PortalConfig.email_settings` (migration `0009_portalconfig_email_settings`);
+    - normalizacao/validacao de `email_settings` no serializer/service;
+    - novo endpoint admin `POST /api/v1/portal/admin/config/test-email/` para validacao de configuracao SMTP.
+  - web admin:
+    - modulo `Portal CMS` ganhou secao `E-mail` com configuracao completa de SMTP, identidade de remetente e botao de envio de teste.
+  - testes e validacao:
+    - `python manage.py check` -> OK;
+    - `python manage.py makemigrations --check` -> OK (com aviso de conectividade DB no ambiente);
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK;
+    - `pytest` backend bloqueado por indisponibilidade de conexao PostgreSQL no ambiente atual.

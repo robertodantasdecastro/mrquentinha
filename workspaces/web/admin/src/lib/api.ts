@@ -41,6 +41,7 @@ import type {
   PortalCloudflarePreviewData,
   PortalCloudflareRuntimeResult,
   PortalCloudflareToggleResult,
+  PortalEmailTestResult,
   PortalPaymentProviderTestResult,
   PortalSectionData,
   PortalSectionWritePayload,
@@ -1110,6 +1111,16 @@ export async function testPortalPaymentProviderAdmin(
       body: JSON.stringify({ provider }),
     },
   );
+}
+
+export async function testPortalEmailConfigAdmin(
+  toEmail: string,
+): Promise<PortalEmailTestResult> {
+  return requestJson<PortalEmailTestResult>("/api/v1/portal/admin/config/test-email/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ to_email: toEmail }),
+  });
 }
 
 export async function previewPortalCloudflareAdmin(

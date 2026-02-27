@@ -1,5 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.core import mail
+from django.test import override_settings
 from rest_framework.test import APIClient
 
 from apps.portal.services import ensure_portal_config
@@ -238,6 +240,55 @@ def test_portal_admin_atualiza_payment_providers(client):
     assert public_payload["payment_providers"]["mercadopago"]["configured"] is True
     assert "api_key" not in public_payload["payment_providers"]["asaas"]
     assert "access_token" not in public_payload["payment_providers"]["mercadopago"]
+
+
+@pytest.mark.django_db
+def test_portal_admin_atualiza_email_settings(client):
+    config = ensure_portal_config()
+
+    response = client.patch(
+        f"/api/v1/portal/admin/config/{config.id}/",
+        data={
+            "email_settings": {
+                "enabled": False,
+                "backend": "django.core.mail.backends.smtp.EmailBackend",
+                "host": "smtp.example.com",
+                "port": 587,
+                "username": "smtp_user",
+                "password": "smtp_password",
+                "use_tls": True,
+                "use_ssl": False,
+                "timeout_seconds": 20,
+                "from_name": "Mr Quentinha",
+                "from_email": "noreply@mrquentinha.com.br",
+                "reply_to_email": "suporte@mrquentinha.com.br",
+                "test_recipient": "teste@mrquentinha.com.br",
+            }
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["email_settings"]["host"] == "smtp.example.com"
+    assert payload["email_settings"]["port"] == 587
+    assert payload["email_settings"]["from_email"] == "noreply@mrquentinha.com.br"
+
+
+@pytest.mark.django_db
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+def test_portal_admin_test_email_action(client):
+    response = client.post(
+        "/api/v1/portal/admin/config/test-email/",
+        data={"to_email": "qa@mrquentinha.com.br"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["to_email"] == "qa@mrquentinha.com.br"
+    assert len(mail.outbox) == 1
 
 
 @pytest.mark.django_db

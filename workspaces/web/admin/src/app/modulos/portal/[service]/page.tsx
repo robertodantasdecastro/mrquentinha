@@ -15,6 +15,7 @@ const SECTION_KEYS: PortalSectionKey[] = [
   "template",
   "autenticacao",
   "pagamentos",
+  "email",
   "conectividade",
   "mobile-build",
   "conteudo",

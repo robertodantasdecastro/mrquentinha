@@ -42,6 +42,7 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
             "cloudflare_settings",
             "auth_providers",
             "payment_providers",
+            "email_settings",
             "is_published",
             "published_at",
             "created_at",
@@ -160,6 +161,53 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
                 receiver["email"] = email
                 payment_providers["receiver"] = receiver
                 attrs["payment_providers"] = payment_providers
+
+        email_settings = attrs.get(
+            "email_settings",
+            getattr(instance, "email_settings", {}),
+        )
+        if isinstance(email_settings, dict):
+            use_tls = bool(email_settings.get("use_tls", True))
+            use_ssl = bool(email_settings.get("use_ssl", False))
+            if use_tls and use_ssl:
+                raise serializers.ValidationError(
+                    "Email: use apenas TLS ou SSL, nao ambos ao mesmo tempo."
+                )
+
+            for email_field in ("from_email", "reply_to_email", "test_recipient"):
+                raw_value = str(email_settings.get(email_field, "")).strip()
+                if not raw_value:
+                    continue
+                try:
+                    validate_email(raw_value)
+                except DjangoValidationError as exc:
+                    raise serializers.ValidationError(
+                        f"Email invalido em {email_field}."
+                    ) from exc
+
+            if "port" in email_settings:
+                try:
+                    port = int(email_settings.get("port"))
+                except (TypeError, ValueError) as exc:
+                    raise serializers.ValidationError(
+                        "Email: porta SMTP invalida."
+                    ) from exc
+                if port < 1 or port > 65535:
+                    raise serializers.ValidationError(
+                        "Email: porta SMTP deve estar entre 1 e 65535."
+                    )
+
+            if "timeout_seconds" in email_settings:
+                try:
+                    timeout_seconds = int(email_settings.get("timeout_seconds"))
+                except (TypeError, ValueError) as exc:
+                    raise serializers.ValidationError(
+                        "Email: timeout invalido."
+                    ) from exc
+                if timeout_seconds < 1 or timeout_seconds > 120:
+                    raise serializers.ValidationError(
+                        "Email: timeout deve estar entre 1 e 120 segundos."
+                    )
 
         return attrs
 

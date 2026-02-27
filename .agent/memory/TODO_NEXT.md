@@ -37,3 +37,4 @@ Fila atual:
 32. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
 33. [x] T9.2.1-A2-HF4 Confirmacao de e-mail no cadastro do web client com URL dinamica DEV/PROD + compliance no Admin - concluida em 27/02/2026.
 34. [x] T9.2.1-A2-HF5 Bloqueio de login sem validacao de e-mail + reenvio publico de token + TTL 3h + template HTML dinamico - concluida em 27/02/2026.
+35. [x] T9.2.1-A2-HF6 Gestao de e-mail no Web Admin (SMTP + teste) e correção da regra de login para bloquear validacao de e-mail apenas no fluxo cliente - concluida em 27/02/2026.

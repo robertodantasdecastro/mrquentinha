@@ -749,6 +749,29 @@ export type PortalPaymentProviderTestResult = {
   detail: string;
 };
 
+export type PortalEmailSettingsConfig = {
+  enabled: boolean;
+  backend: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  use_tls: boolean;
+  use_ssl: boolean;
+  timeout_seconds: number;
+  from_name: string;
+  from_email: string;
+  reply_to_email: string;
+  test_recipient: string;
+};
+
+export type PortalEmailTestResult = {
+  ok: boolean;
+  detail: string;
+  to_email: string;
+  custom_provider_enabled: boolean;
+};
+
 export type PortalCloudflareMode = "local_only" | "cloudflare_only" | "hybrid";
 
 export type PortalCloudflareSubdomains = {
@@ -898,6 +921,7 @@ export type PortalConfigData = {
   cloudflare_settings: PortalCloudflareConfig;
   auth_providers: PortalAuthProvidersConfig;
   payment_providers: PortalPaymentProvidersConfig;
+  email_settings: PortalEmailSettingsConfig;
   is_published: boolean;
   published_at: string | null;
   created_at: string;
@@ -930,6 +954,7 @@ export type PortalConfigWritePayload = Partial<
     | "api_base_url"
     | "auth_providers"
     | "payment_providers"
+    | "email_settings"
   >
 >;
 

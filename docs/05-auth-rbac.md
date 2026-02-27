@@ -107,6 +107,8 @@
   - `POST /api/v1/accounts/email-verification/resend/` (publico por `identifier` ou autenticado)
 - Regra de login:
   - contas com role `CLIENTE` sem `email_verified_at` nao recebem JWT em `/api/v1/accounts/token/`;
+  - contas com papel administrativo/gestao (`ADMIN`, `FINANCEIRO`, `COZINHA`, `COMPRAS`, `ESTOQUE`) ou `is_staff/is_superuser` **nunca** sao bloqueadas por validacao de e-mail;
+  - regra global: validacao obrigatoria de e-mail aplica-se somente a contas de uso cliente.
   - frontend deve orientar verificacao de caixa de spam e opcao de reenvio de token.
 - Campos de controle em `accounts_user_profile`:
   - `email_verified_at`
@@ -117,3 +119,16 @@
 - Governanca no Admin (`/modulos/usuarios-rbac`):
   - status de e-mail validado por usuario;
   - lista de pendencias de dados essenciais para fluxo autenticado/pagamentos.
+
+## Gestao de e-mail no Web Admin
+- Modulo: `Portal CMS > E-mail`.
+- Configuracoes disponiveis:
+  - ativar/desativar SMTP customizado;
+  - backend, host, porta, usuario, senha, TLS/SSL, timeout;
+  - identidade de envio (`from_name`, `from_email`, `reply_to_email`);
+  - destinatario de teste.
+- Endpoint de validacao:
+  - `POST /api/v1/portal/admin/config/test-email/`
+- Integracao:
+  - envio de confirmacao de e-mail em `accounts` tenta usar a configuracao SMTP do Portal;
+  - em caso de falha/inexistencia da configuracao, aplica fallback seguro para backend de e-mail padrao do Django.

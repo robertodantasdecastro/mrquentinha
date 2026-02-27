@@ -217,6 +217,36 @@ def test_accounts_token_bloqueia_cliente_sem_email_validado(anonymous_client):
 
 
 @pytest.mark.django_db
+def test_accounts_token_permite_admin_com_papel_cliente_sem_email_validado(
+    anonymous_client,
+):
+    User = get_user_model()
+    user = User.objects.create_user(
+        username="gestor_com_cliente",
+        password="senha_login_123",
+        email="gestor_com_cliente@example.com",
+    )
+    ensure_default_roles()
+    assign_roles_to_user(
+        user=user,
+        role_codes=[SystemRole.CLIENTE, SystemRole.ADMIN],
+        replace=True,
+    )
+
+    token_response = anonymous_client.post(
+        "/api/v1/accounts/token/",
+        {
+            "username": "gestor_com_cliente",
+            "password": "senha_login_123",
+        },
+        format="json",
+    )
+
+    assert token_response.status_code == 200
+    assert "access" in token_response.json()
+
+
+@pytest.mark.django_db
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 def test_accounts_email_verification_resend_publico_por_identifier(anonymous_client):
     User = get_user_model()

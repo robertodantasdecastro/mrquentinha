@@ -13,6 +13,7 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 27/02/2026 (`T9.2.1-A2-HF6`): Web Admin ganhou gestao de e-mail (SMTP + teste de envio) no modulo Portal CMS; regra de login foi refinada para exigir validacao de e-mail somente para contas cliente, sem bloquear perfis administrativos/gestao.
 - Atualizacao em 27/02/2026 (`T9.2.1-A2-HF4`): fluxo de confirmacao de e-mail implantado no cadastro do web client com link dinamico por ambiente (origem ativa DEV + fallback `PortalConfig.client_base_url`), endpoint de confirmacao/reenvio no backend e visibilidade de compliance no Admin (`usuarios-rbac`).
 - Atualizacao em 27/02/2026 (`T9.2.1-A2-HF5`): login de conta cliente sem e-mail validado bloqueado no endpoint JWT; reenvio de token liberado por `identifier` no login; token de confirmacao reduzido para 3h com template HTML de e-mail (logo + dados dinâmicos do CMS).
 - Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `T9.1.1-HF1`, `T9.1.1-HF2`, `T9.1.1-HF3`, `T9.1.1-HF4`.

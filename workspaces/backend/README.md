@@ -105,15 +105,25 @@ Endpoints principais:
 - `GET /api/v1/accounts/me/`
 - `GET/PATCH /api/v1/accounts/me/profile/`
 - `GET /api/v1/accounts/email-verification/confirm/?token=<token>`
-- `POST /api/v1/accounts/email-verification/resend/` (autenticado)
+- `POST /api/v1/accounts/email-verification/resend/` (autenticado ou publico por `identifier`)
 
 Regras atuais:
 - cadastro exige e-mail valido;
 - e-mail de confirmacao usa URL do web client dinamica (origem atual em DEV e DNS oficial em producao);
-- login de contas `CLIENTE` exige e-mail validado (`email_verified_at`);
+- login de contas `CLIENTE` exige e-mail validado (`email_verified_at`) apenas para perfis sem papel de gestao;
+- contas administrativas (`is_staff`, `is_superuser` ou com papel de gestao) nao sao bloqueadas por validacao de e-mail;
 - reenvio de token pode ser feito sem sessao via `identifier` (usuario/e-mail);
 - token de confirmacao tem validade padrao de 3 horas;
 - status de conformidade do perfil (dados essenciais) e validacao de e-mail sao expostos no payload admin de usuarios.
+
+## Portal CMS - gestao de e-mail
+- Configuracao SMTP central:
+  - `email_settings` em `PortalConfig`.
+- Endpoint de teste:
+  - `POST /api/v1/portal/admin/config/test-email/`.
+- Campos:
+  - `enabled`, `backend`, `host`, `port`, `username`, `password`, `use_tls`, `use_ssl`, `timeout_seconds`,
+  - `from_name`, `from_email`, `reply_to_email`, `test_recipient`.
 
 ## Catalogo (Etapa 2 - MVP)
 ### Decisao de API

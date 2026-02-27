@@ -13,7 +13,10 @@ from urllib import error as urllib_error
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.mail import EmailMultiAlternatives, get_connection
+from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
@@ -159,6 +162,27 @@ def _default_payment_providers_payload() -> dict:
     return deepcopy(DEFAULT_PAYMENT_PROVIDERS_SETTINGS)
 
 
+DEFAULT_EMAIL_SETTINGS = {
+    "enabled": False,
+    "backend": "django.core.mail.backends.smtp.EmailBackend",
+    "host": "",
+    "port": 587,
+    "username": "",
+    "password": "",
+    "use_tls": True,
+    "use_ssl": False,
+    "timeout_seconds": 15,
+    "from_name": "Mr Quentinha",
+    "from_email": "noreply@mrquentinha.local",
+    "reply_to_email": "",
+    "test_recipient": "",
+}
+
+
+def _default_email_settings_payload() -> dict:
+    return deepcopy(DEFAULT_EMAIL_SETTINGS)
+
+
 DEFAULT_CLOUDFLARE_SETTINGS = {
     "enabled": False,
     "mode": "hybrid",
@@ -244,6 +268,7 @@ DEFAULT_CONFIG_PAYLOAD = {
     "cloudflare_settings": _default_cloudflare_settings_payload(),
     "auth_providers": _default_auth_providers_payload(),
     "payment_providers": _default_payment_providers_payload(),
+    "email_settings": _default_email_settings_payload(),
     "is_published": False,
 }
 
@@ -574,6 +599,7 @@ CONFIG_MUTABLE_FIELDS = [
     "cloudflare_settings",
     "auth_providers",
     "payment_providers",
+    "email_settings",
     "is_published",
     "published_at",
 ]
@@ -816,6 +842,168 @@ def _build_public_payment_providers(raw_value: object | None) -> dict:
             "sandbox": bool(asaas.get("sandbox", True)),
             "configured": bool(str(asaas.get("api_key", "")).strip()),
         },
+    }
+
+
+def _safe_validate_email(value: str) -> str:
+    candidate = str(value or "").strip()
+    if not candidate:
+        return ""
+    try:
+        validate_email(candidate)
+    except ValidationError:
+        return ""
+    return candidate
+
+
+def _normalize_email_settings(raw_value: object | None) -> dict:
+    normalized = _default_email_settings_payload()
+    if not isinstance(raw_value, dict):
+        return normalized
+
+    normalized["enabled"] = bool(raw_value.get("enabled", False))
+    backend = str(
+        raw_value.get(
+            "backend",
+            "django.core.mail.backends.smtp.EmailBackend",
+        )
+    ).strip()
+    normalized["backend"] = backend or "django.core.mail.backends.smtp.EmailBackend"
+    normalized["host"] = str(raw_value.get("host", "")).strip()
+    normalized["username"] = str(raw_value.get("username", "")).strip()
+    normalized["password"] = str(raw_value.get("password", "")).strip()
+    normalized["use_tls"] = bool(raw_value.get("use_tls", True))
+    normalized["use_ssl"] = bool(raw_value.get("use_ssl", False))
+
+    try:
+        port = int(raw_value.get("port", normalized["port"]))
+    except (TypeError, ValueError):
+        port = int(normalized["port"])
+    normalized["port"] = max(1, min(port, 65535))
+
+    try:
+        timeout_seconds = int(
+            raw_value.get("timeout_seconds", normalized["timeout_seconds"])
+        )
+    except (TypeError, ValueError):
+        timeout_seconds = int(normalized["timeout_seconds"])
+    normalized["timeout_seconds"] = max(1, min(timeout_seconds, 120))
+
+    normalized["from_name"] = (
+        str(raw_value.get("from_name", normalized["from_name"])).strip()
+        or normalized["from_name"]
+    )
+    normalized["from_email"] = _safe_validate_email(
+        str(raw_value.get("from_email", normalized["from_email"])).strip()
+        or normalized["from_email"]
+    )
+    normalized["reply_to_email"] = _safe_validate_email(
+        str(raw_value.get("reply_to_email", "")).strip()
+    )
+    normalized["test_recipient"] = _safe_validate_email(
+        str(raw_value.get("test_recipient", "")).strip()
+    )
+
+    if normalized["use_tls"] and normalized["use_ssl"]:
+        normalized["use_ssl"] = False
+
+    return normalized
+
+
+def resolve_portal_email_delivery_options() -> dict:
+    config = ensure_portal_config()
+    email_settings = _normalize_email_settings(config.email_settings)
+
+    from_email_address = (
+        email_settings["from_email"] or str(settings.DEFAULT_FROM_EMAIL).strip()
+    )
+    from_name = str(email_settings.get("from_name", "")).strip()
+    from_email = from_email_address
+    if from_name:
+        from_email = f"{from_name} <{from_email_address}>"
+
+    reply_to_email = str(email_settings.get("reply_to_email", "")).strip()
+    reply_to = [reply_to_email] if reply_to_email else []
+    connection = None
+
+    if bool(email_settings.get("enabled", False)):
+        host = str(email_settings.get("host", "")).strip()
+        if not host:
+            raise ValidationError(
+                "SMTP habilitado sem host configurado em Email (Web Admin)."
+            )
+
+        connection = get_connection(
+            backend=str(email_settings.get("backend", "")).strip()
+            or "django.core.mail.backends.smtp.EmailBackend",
+            fail_silently=True,
+            host=host,
+            port=int(email_settings.get("port", 587)),
+            username=str(email_settings.get("username", "")).strip() or None,
+            password=str(email_settings.get("password", "")).strip() or None,
+            use_tls=bool(email_settings.get("use_tls", True)),
+            use_ssl=bool(email_settings.get("use_ssl", False)),
+            timeout=int(email_settings.get("timeout_seconds", 15)),
+        )
+
+    return {
+        "settings": email_settings,
+        "connection": connection,
+        "from_email": from_email,
+        "reply_to": reply_to,
+    }
+
+
+def send_portal_test_email(*, to_email: str, initiated_by: str = "") -> dict:
+    delivery = resolve_portal_email_delivery_options()
+    email_settings = delivery["settings"]
+
+    target_email = (
+        _safe_validate_email(to_email)
+        or _safe_validate_email(email_settings.get("test_recipient", ""))
+        or _safe_validate_email(email_settings.get("from_email", ""))
+    )
+    if not target_email:
+        raise ValidationError("Informe um destinatario valido para o teste de e-mail.")
+
+    initiated_by_label = str(initiated_by or "").strip() or "sistema"
+    subject = "[Mr Quentinha] Teste de configuracao de e-mail"
+    body = (
+        "Este e um e-mail de teste enviado pelo Web Admin do Mr Quentinha.\n\n"
+        f"Iniciado por: {initiated_by_label}\n"
+        f"Data: {timezone.now().isoformat()}\n"
+        f"SMTP customizado ativo: {'sim' if email_settings.get('enabled') else 'nao'}\n"
+    )
+    html_body = (
+        "<p>Este e um e-mail de teste enviado pelo <strong>Web Admin</strong> do "
+        "Mr Quentinha.</p>"
+        f"<p><strong>Iniciado por:</strong> {initiated_by_label}<br/>"
+        f"<strong>Data:</strong> {timezone.now().isoformat()}<br/>"
+        f"<strong>SMTP customizado ativo:</strong> "
+        f"{'sim' if email_settings.get('enabled') else 'nao'}</p>"
+    )
+
+    message = EmailMultiAlternatives(
+        subject=subject,
+        body=body,
+        from_email=str(delivery["from_email"]),
+        to=[target_email],
+        reply_to=delivery["reply_to"] or None,
+        connection=delivery["connection"],
+    )
+    message.attach_alternative(html_body, "text/html")
+    sent_count = int(message.send(fail_silently=True) or 0)
+
+    if sent_count <= 0:
+        raise ValidationError(
+            "Falha ao enviar e-mail de teste. Revise as credenciais SMTP."
+        )
+
+    return {
+        "ok": True,
+        "detail": "E-mail de teste enviado com sucesso.",
+        "to_email": target_email,
+        "custom_provider_enabled": bool(email_settings.get("enabled", False)),
     }
 
 
@@ -1507,6 +1695,11 @@ def _ensure_connection_defaults(config: PortalConfig) -> None:
         config.payment_providers = normalized_payment_providers
         update_fields.append("payment_providers")
 
+    normalized_email_settings = _normalize_email_settings(config.email_settings)
+    if config.email_settings != normalized_email_settings:
+        config.email_settings = normalized_email_settings
+        update_fields.append("email_settings")
+
     normalized_cloudflare_settings = _normalize_cloudflare_settings(
         config.cloudflare_settings
     )
@@ -1548,6 +1741,8 @@ def save_portal_config(
         payload["payment_providers"] = _normalize_payment_providers(
             payload["payment_providers"]
         )
+    if "email_settings" in payload:
+        payload["email_settings"] = _normalize_email_settings(payload["email_settings"])
     if "cloudflare_settings" in payload:
         payload["cloudflare_settings"] = _normalize_cloudflare_settings(
             payload["cloudflare_settings"]

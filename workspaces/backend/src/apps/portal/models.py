@@ -57,6 +57,7 @@ class PortalConfig(models.Model):
     cloudflare_settings = models.JSONField(default=dict, blank=True)
     auth_providers = models.JSONField(default=dict, blank=True)
     payment_providers = models.JSONField(default=dict, blank=True)
+    email_settings = models.JSONField(default=dict, blank=True)
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

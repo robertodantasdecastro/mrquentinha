@@ -223,6 +223,7 @@ Referencia de atualizacao: 27/02/2026.
   - `GET/POST /api/v1/portal/admin/config/`
   - `PATCH /api/v1/portal/admin/config/<id>/`
   - `POST /api/v1/portal/admin/config/<id>/publish/`
+  - `POST /api/v1/portal/admin/config/test-email/`
   - `POST /api/v1/portal/admin/config/test-payment-provider/`
   - `POST /api/v1/portal/admin/config/cloudflare-preview/`
   - `POST /api/v1/portal/admin/config/cloudflare-toggle/`
@@ -271,5 +272,6 @@ Referencia de atualizacao: 27/02/2026.
 - T8.2.2 concluida (recorrencia, resumo mensal e importacao CSV MVP em producao de desenvolvimento).
 - T9.2.6-A1 concluida (area de perfil completo do usuario logado no Admin Web + endpoint autenticado `me/profile` com suporte a upload de arquivos).
 - T9.2.6-A2 concluida (validadores/formatadores globais de formularios no ecossistema web + hardening de validacao de senha/email/documento).
+- T9.2.1-A2-HF6 concluida (gestao de e-mail SMTP no Web Admin + refinamento da regra de login: validacao de e-mail obrigatoria apenas para contas cliente, sem bloquear perfis administrativos/gestao).
 - Proxima subetapa unica: executar `T7.2.4-A4` (homologacao externa dos tres gateways com credenciais reais, assinatura de webhook por provider e validacao fim a fim de webhook/status).
 - Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T8.2.3` (hardening backend) e `T9.2.1` (qualidade operacional manual).

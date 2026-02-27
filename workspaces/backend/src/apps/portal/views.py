@@ -31,6 +31,7 @@ from .services import (
     publish_mobile_release,
     publish_portal_config,
     save_portal_config,
+    send_portal_test_email,
     toggle_cloudflare_mode,
 )
 
@@ -132,6 +133,19 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
         provider_name = str(request.data.get("provider", "")).strip().lower()
         try:
             payload = test_payment_provider_connection(provider_name)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="test-email")
+    def test_email(self, request):
+        to_email = str(request.data.get("to_email", "")).strip()
+        initiated_by = str(getattr(request.user, "username", "")).strip()
+        try:
+            payload = send_portal_test_email(
+                to_email=to_email,
+                initiated_by=initiated_by,
+            )
         except DjangoValidationError as exc:
             raise DRFValidationError(exc.messages) from exc
         return Response(payload, status=status.HTTP_200_OK)

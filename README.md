@@ -35,6 +35,7 @@ O Mr Quentinha centraliza em uma unica API os fluxos de:
 - historico de pedidos e confirmacao de recebimento
 - login JWT + confirmacao de e-mail no cadastro (link dinamico DEV/PROD)
 - bloqueio de login para conta cliente sem e-mail validado (com reenvio de token)
+  - contas administrativas/gestao nao sofrem esse bloqueio
 - base para login social Google/Apple via configuracao centralizada no CMS
 
 ### Operacao interna (admin)
@@ -42,6 +43,7 @@ O Mr Quentinha centraliza em uma unica API os fluxos de:
 - Usuarios/RBAC
 - Relatorios e exportacoes CSV
 - Portal CMS (template, conteudo dinamico, conectividade, auth social, pagamentos e release mobile)
+- Portal CMS com gestao de e-mail (SMTP + teste de envio)
 - Monitoramento em tempo real de servicos, gateways e lifecycle de pedidos
 
 ### Pagamentos multigateway

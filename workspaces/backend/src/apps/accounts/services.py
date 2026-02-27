@@ -418,11 +418,27 @@ def issue_email_verification_for_user(
         str(getattr(settings, "DEFAULT_FROM_EMAIL", "")).strip()
         or "noreply@mrquentinha.local"
     )
+    reply_to: list[str] = []
+    connection = None
+    try:
+        from apps.portal.services import resolve_portal_email_delivery_options
+
+        delivery_options = resolve_portal_email_delivery_options()
+        from_email = str(delivery_options.get("from_email", "")).strip() or from_email
+        reply_to = list(delivery_options.get("reply_to", []))
+        connection = delivery_options.get("connection")
+    except Exception:
+        # Fallback silencioso para backend padrão quando a configuração SMTP do portal
+        # estiver ausente ou inválida.
+        connection = None
+
     email_message = EmailMultiAlternatives(
         subject=subject,
         body=text_body,
         from_email=from_email,
         to=[email_value],
+        reply_to=reply_to or None,
+        connection=connection,
     )
     email_message.attach_alternative(html_body, "text/html")
     sent_count = email_message.send(fail_silently=True)
