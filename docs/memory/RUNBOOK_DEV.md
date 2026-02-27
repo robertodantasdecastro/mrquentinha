@@ -218,6 +218,15 @@ Objetivo: publicar em internet para teste sem dominio oficial, usando URLs `tryc
    - clicar `Ativar Cloudflare`.
 2. Iniciar runtime:
    - clicar `Iniciar tunnel`.
+3. Validar conectividade por servico no card de runtime:
+   - `Portal`, `Client`, `Admin` com `HTTP 200` em `/`;
+   - `API` com `HTTP 200` em `/api/v1/health`.
+4. Validar comunicacao frontend -> API pelos dominios Cloudflare.
+
+Observacoes importantes:
+- `GET /api/v1/` retornar `404` e esperado neste projeto.
+- O endpoint correto para check da API no modo DEV e `GET /api/v1/health`.
+- O acesso local por IP continua funcional em paralelo ao modo Cloudflare DEV (modo `hybrid`).
 3. Validar URLs geradas:
    - no card de runtime, conferir `Portal`, `Client`, `Admin` e `API`.
    - validar monitoramento por servico (status de conectividade, HTTP e latencia).

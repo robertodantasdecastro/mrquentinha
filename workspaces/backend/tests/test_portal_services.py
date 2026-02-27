@@ -386,6 +386,71 @@ def test_cloudflare_preview_dev_mode_retorna_urls_trycloudflare():
     assert "trycloudflare.com" in preview["coexistence_note"]
 
 
+def test_read_cloudflare_dev_url_from_log_ignora_endpoint_interno(tmp_path):
+    log_file = tmp_path / "cloudflare-dev-api.log"
+    log_file.write_text(
+        "\n".join(
+            [
+                (
+                    "failed to request quick Tunnel: Post "
+                    '"https://api.trycloudflare.com/tunnel": '
+                    "context deadline exceeded"
+                ),
+                "INF + https://portal-valido.trycloudflare.com",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert portal_services._read_cloudflare_dev_url_from_log(log_file) == (
+        "https://portal-valido.trycloudflare.com"
+    )
+
+
+def test_read_cloudflare_dev_url_from_log_retorna_vazio_sem_url_valida(tmp_path):
+    log_file = tmp_path / "cloudflare-dev-api.log"
+    log_file.write_text(
+        'failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel"',
+        encoding="utf-8",
+    )
+
+    assert portal_services._read_cloudflare_dev_url_from_log(log_file) == ""
+
+
+@pytest.mark.django_db
+def test_apply_cloudflare_dev_urls_to_config_aceita_payload_parcial():
+    config = ensure_portal_config()
+    portal_base_local = config.portal_base_url
+
+    changed_fields = portal_services._apply_cloudflare_dev_urls_to_config(
+        config=config,
+        settings={
+            "mode": "hybrid",
+            "local_snapshot": {
+                "cors_allowed_origins": [
+                    "http://10.211.55.21:3000",
+                    "http://10.211.55.21:3001",
+                    "http://10.211.55.21:3002",
+                ]
+            },
+        },
+        dev_urls={
+            "portal": "",
+            "client": "https://client-dev.trycloudflare.com",
+            "admin": "https://admin-dev.trycloudflare.com",
+            "api": "https://api-dev.trycloudflare.com",
+        },
+    )
+
+    assert "client_base_url" in changed_fields
+    assert "api_base_url" in changed_fields
+    assert config.portal_base_url == portal_base_local
+    assert config.client_base_url == "https://client-dev.trycloudflare.com"
+    assert config.api_base_url == "https://api-dev.trycloudflare.com"
+    assert "https://client-dev.trycloudflare.com" in config.cors_allowed_origins
+    assert "http://10.211.55.21:3001" in config.cors_allowed_origins
+
+
 @pytest.mark.django_db
 def test_toggle_cloudflare_dev_mode_com_urls_aplica_enderecos():
     updated_config, _preview_enabled = toggle_cloudflare_mode(

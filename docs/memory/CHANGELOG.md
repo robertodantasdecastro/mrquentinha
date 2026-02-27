@@ -1,6 +1,11 @@
 # Changelog (por sprint)
 
 ## 27/02/2026
+- T6.3.2-A14-HF3 (cloudflare dev/parser): leitura dos logs `cloudflare-dev-*.log` endurecida para aceitar apenas URLs publicas validas `*.trycloudflare.com` e ignorar o endpoint interno `api.trycloudflare.com`.
+- T6.3.2-A14-HF3 (cloudflare dev/runtime): start dos tunnels por servico passou a recriar o log no inicio (`write/truncate`) para evitar reaproveitamento de URLs antigas em ciclos de refresh.
+- T6.3.2-A14-HF3 (cloudflare dev/auto-apply): sincronizacao de `portal/client/admin/api` no `PortalConfig` passou a aceitar atualizacao parcial dos canais disponiveis, preservando modo hibrido local+cloudflare e CORS consistente.
+- T6.3.2-A14-HF3 (backend CORS): `dev.py` recebeu `CORS_ALLOWED_ORIGIN_REGEXES` para aceitar dominios aleatorios `https://*.trycloudflare.com` sem quebrar o acesso por IP local.
+- T6.3.2-A14-HF3 (qualidade): validado com `python manage.py check`, `ruff check`, `black --check` e `pytest tests/test_portal_services.py tests/test_portal_api.py` (`30 passed`).
 - T6.3.2-A14-HF1 (cloudflare dev/frontends): hotfix implementado para corrigir comunicacao dos frontends publicados por dominios `trycloudflare` com a API publicada em dominio aleatorio dedicado.
 - T6.3.2-A14-HF1 (runtime discovery): adicionado endpoint local de runtime (`/api/runtime/config`) em `admin`, `client` e `portal` para resolver dinamicamente `api_base_url` via `PortalConfig` no backend, reduzindo dependencia de `.env.local` e de restart manual.
 - T6.3.2-A14-HF1 (start scripts): `start_admin_dev.sh`, `start_client_dev.sh` e `start_portal_dev.sh` passaram a resolver `NEXT_PUBLIC_API_BASE_URL` automaticamente a partir do backend (`/api/v1/portal/config`) quando variavel/env local nao estiver definida.

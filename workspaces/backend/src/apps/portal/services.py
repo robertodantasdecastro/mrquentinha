@@ -42,7 +42,10 @@ OPS_LOG_DIR = OPS_RUNTIME_DIR / "logs"
 CLOUDFLARED_LOCAL_BIN = PROJECT_ROOT / ".runtime" / "bin" / "cloudflared"
 CLOUDFLARE_PID_FILE = OPS_PID_DIR / "cloudflare.pid"
 CLOUDFLARE_LOG_FILE = OPS_LOG_DIR / "cloudflare.log"
-CLOUDFLARE_DEV_URL_PATTERN = re.compile(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com")
+CLOUDFLARE_DEV_URL_PATTERN = re.compile(r"https?://[a-zA-Z0-9-]+\.trycloudflare\.com")
+CLOUDFLARE_DEV_RESERVED_HOSTS = {
+    "api.trycloudflare.com",
+}
 CLOUDFLARE_DEV_SERVICE_SPECS = (
     {"key": "portal", "name": "Portal Web", "port": 3000},
     {"key": "client", "name": "Client Web", "port": 3001},
@@ -1159,9 +1162,26 @@ def _read_cloudflare_dev_url_from_log(log_file: Path) -> str:
         return ""
 
     matches = CLOUDFLARE_DEV_URL_PATTERN.findall(content)
-    if not matches:
+    valid_matches: list[str] = []
+    for raw_match in matches:
+        normalized = str(raw_match).strip().rstrip("/")
+        if not normalized:
+            continue
+
+        parsed = urlparse(normalized)
+        host = str(parsed.hostname or "").strip().lower()
+        if not host or host in CLOUDFLARE_DEV_RESERVED_HOSTS:
+            continue
+        if not host.endswith(".trycloudflare.com"):
+            continue
+        if parsed.scheme not in {"http", "https"}:
+            continue
+
+        valid_matches.append(normalized)
+
+    if not valid_matches:
         return ""
-    return matches[-1].strip().rstrip("/")
+    return valid_matches[-1]
 
 
 def _stop_pid_file(pid_file: Path) -> None:
@@ -1999,17 +2019,13 @@ def _apply_cloudflare_dev_urls_to_config(
     settings: dict,
     dev_urls: dict[str, str],
 ) -> list[str]:
-    if not _has_complete_cloudflare_dev_urls(dev_urls):
-        return []
-
+    normalized_dev_urls = _normalize_cloudflare_dev_urls({"dev_urls": dev_urls})
     urls = {
-        "portal": dev_urls["portal"].strip().rstrip("/"),
-        "client": dev_urls["client"].strip().rstrip("/"),
-        "admin": dev_urls["admin"].strip().rstrip("/"),
-        "api": dev_urls["api"].strip().rstrip("/"),
+        "portal": normalized_dev_urls["portal"].strip().rstrip("/"),
+        "client": normalized_dev_urls["client"].strip().rstrip("/"),
+        "admin": normalized_dev_urls["admin"].strip().rstrip("/"),
+        "api": normalized_dev_urls["api"].strip().rstrip("/"),
     }
-    if not all(urls.values()):
-        return []
 
     mode = _normalize_cloudflare_mode(settings.get("mode"))
     local_snapshot = settings.get("local_snapshot", {})
@@ -2017,35 +2033,37 @@ def _apply_cloudflare_dev_urls_to_config(
     if not isinstance(local_origins, list):
         local_origins = []
 
+    update_fields: list[str] = []
+
+    if urls["portal"]:
+        config.portal_base_url = urls["portal"]
+        config.portal_domain = _extract_hostname_from_url(urls["portal"])
+        update_fields.extend(["portal_base_url", "portal_domain"])
+    if urls["client"]:
+        config.client_base_url = urls["client"]
+        config.client_domain = _extract_hostname_from_url(urls["client"])
+        update_fields.extend(["client_base_url", "client_domain"])
+    if urls["admin"]:
+        config.admin_base_url = urls["admin"]
+        config.admin_domain = _extract_hostname_from_url(urls["admin"])
+        update_fields.extend(["admin_base_url", "admin_domain"])
+    if urls["api"]:
+        config.api_base_url = urls["api"]
+        config.backend_base_url = urls["api"]
+        config.api_domain = _extract_hostname_from_url(urls["api"])
+        update_fields.extend(["api_base_url", "backend_base_url", "api_domain"])
+
     cloud_origins = [urls["portal"], urls["client"], urls["admin"]]
-    if mode == "cloudflare_only":
-        cors_origins = _append_unique_origins([], cloud_origins)
-    else:
-        cors_origins = _append_unique_origins(local_origins, cloud_origins)
+    cloud_origins = [origin for origin in cloud_origins if origin]
+    if cloud_origins:
+        if mode == "cloudflare_only":
+            cors_origins = _append_unique_origins([], cloud_origins)
+        else:
+            cors_origins = _append_unique_origins(local_origins, cloud_origins)
+        config.cors_allowed_origins = cors_origins
+        update_fields.append("cors_allowed_origins")
 
-    config.portal_base_url = urls["portal"]
-    config.client_base_url = urls["client"]
-    config.admin_base_url = urls["admin"]
-    config.api_base_url = urls["api"]
-    config.backend_base_url = urls["api"]
-    config.portal_domain = _extract_hostname_from_url(urls["portal"])
-    config.client_domain = _extract_hostname_from_url(urls["client"])
-    config.admin_domain = _extract_hostname_from_url(urls["admin"])
-    config.api_domain = _extract_hostname_from_url(urls["api"])
-    config.cors_allowed_origins = cors_origins
-
-    return [
-        "portal_base_url",
-        "client_base_url",
-        "admin_base_url",
-        "api_base_url",
-        "backend_base_url",
-        "portal_domain",
-        "client_domain",
-        "admin_domain",
-        "api_domain",
-        "cors_allowed_origins",
-    ]
+    return update_fields
 
 
 @transaction.atomic
@@ -2255,7 +2273,7 @@ def manage_cloudflare_runtime(
                             "--no-autoupdate",
                         ]
                         try:
-                            log_handle = open(log_file, "a", encoding="utf-8")
+                            log_handle = open(log_file, "w", encoding="utf-8")
                         except OSError as exc:
                             raise ValidationError(
                                 f"Falha ao abrir log do tunnel DEV ({key})."

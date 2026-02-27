@@ -187,6 +187,8 @@ Importante:
 - quando o runtime DEV reinicia, as URLs mudam;
 - apos mudar URLs, sincronize os frontends (Web Admin/Client/Portal) para usar a nova `API` via script de terminal (abaixo).
 - o card de runtime no Web Admin exibe monitoramento por servico (URL, PID, HTTP, latencia e status de conectividade).
+- `GET /api/v1/` pode retornar `404` (esperado); use `GET /api/v1/health` para validar a API.
+- validacao funcional concluida em `27/02/2026`: comunicacao `Portal/Client/Admin -> API` funcionando via dominios aleatorios `trycloudflare`.
 
 ### Modo OPERACAO (dominio oficial)
 Fluxo recomendado:

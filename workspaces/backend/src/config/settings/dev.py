@@ -4,7 +4,9 @@ from .base import env
 DEBUG = env.bool("DEBUG", default=True)
 
 if DEBUG:  # noqa: F405
-    ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, ".trycloudflare.com"]))  # noqa: F405
+    ALLOWED_HOSTS = list(
+        dict.fromkeys([*ALLOWED_HOSTS, ".trycloudflare.com"])  # noqa: F405
+    )  # noqa: F405
 
 INSTALLED_APPS = [*INSTALLED_APPS, "corsheaders"]  # noqa: F405
 
@@ -29,6 +31,12 @@ CORS_ALLOWED_ORIGINS = env.list(
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
         "http://127.0.0.1:3002",
+    ],
+)
+CORS_ALLOWED_ORIGIN_REGEXES = env.list(
+    "CORS_ALLOWED_ORIGIN_REGEXES",
+    default=[
+        r"^https://[a-zA-Z0-9-]+\.trycloudflare\.com$",
     ],
 )
 CORS_ALLOW_CREDENTIALS = True

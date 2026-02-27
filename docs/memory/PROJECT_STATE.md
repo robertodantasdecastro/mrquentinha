@@ -97,6 +97,7 @@ Referencia de atualizacao: 27/02/2026.
   - status do runtime passou a sincronizar rotacao de `dev_urls` diretamente no `PortalConfig`, garantindo reconfiguracao automatica dos endpoints quando dominio aleatorio mudar.
   - backend `dev` passou a aceitar `*.trycloudflare.com` em `ALLOWED_HOSTS`.
   - script `scripts/install_cloudflared_local.sh` publicado para setup local do binario.
+  - hotfix `T6.3.2-A14-HF3` aplicado: parser de URL dos logs dev endurecido para ignorar `api.trycloudflare.com`, auto-apply parcial de rotas por servico e CORS regex para `https://*.trycloudflare.com`.
 - Financas pessoais (`T8.1.1`):
   - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
   - ownership estrito por usuario em querysets e validacoes.
@@ -166,7 +167,7 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A2`): camada global de validacao/formatacao de formularios aplicada no Admin/Client/Portal (CPF/CNPJ/CEP/email/senha/datas) com reforco de validacao backend para senha de cadastro e recebedor de pagamentos.
 - Workspace ativo: `workspaces/web/admin`.
 - Hotfix `T6.3.2-A14-HF1` implementado: resolucao automatica de `api_base_url` em runtime aplicada nos frontends `admin/client/portal` para acessos via dominios dinamicos `trycloudflare`.
-- Status de validacao externa do `T6.3.2-A14-HF1`: pendente de reexecucao com runtime Cloudflare DEV ativo, pois os dominios testados retornaram `Cloudflare 530 (Error 1033)` nesta sessao.
+- Status de validacao externa do fluxo Cloudflare DEV: concluido em `27/02/2026 15:04` (Portal/Client/Admin/API online, health 200, comunicacao frontend <-> API validada no teste funcional).
 - Hotfix `T6.3.2-A14-HF2` implementado: em acesso local por IP/localhost, os frontends passaram a resolver `api_base_url` para `http://<host-local>:8000`, evitando dependencia de dominio Cloudflare para operar no modo DEV local.
 - Hotfix `T6.3.2-A14-HF2` implementado: Portal (`Header/Footer/Home`) ajustado para links locais dinamicos sem mismatch de hidratacao.
 - Proximo alvo tecnico: executar `T8.2.3` (hardening pos-MVP da trilha pessoal).
