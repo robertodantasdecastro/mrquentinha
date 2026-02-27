@@ -1,9 +1,9 @@
 # Project State (dev)
 
-Referencia de atualizacao: 26/02/2026.
+Referencia de atualizacao: 27/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
 
@@ -131,6 +131,7 @@ Referencia de atualizacao: 26/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A6`): compras/OCR com captura/upload de imagens no Admin, persistencia de fotos no destino apos OCR aplicado e icones visuais por item/comprovante.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A7`): ciclo operacional completo no Admin com linha de producao (dashboard realtime, auto-checagem de estoque no cardapio, alertas de compras, entrega e confirmacao de recebimento pelo cliente).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): modulo Portal CMS ganhou editor de secoes dinamicas (template/pagina/body_json) e a composicao ganhou upload de fotos para insumos e pratos.
+- Atualizacao concluida em 27/02/2026 (`T9.2.6-A1`): nova area `/perfil` no Web Admin (todos os templates) para administracao completa do usuario logado com dados adicionais, endereco, documentos, foto de perfil, digitalizacao por camera, biometria por foto e logoff.
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo tecnico: executar `T8.2.3` (hardening pos-MVP da trilha pessoal).
 - Proximo alvo operacional: executar `T9.2.1-A2` (rodada manual E2E completa) e manter `T8.2.3` como trilha tecnica de backend.
@@ -153,6 +154,8 @@ Referencia de atualizacao: 26/02/2026.
 - `POST /api/v1/accounts/token/`
 - `POST /api/v1/accounts/token/refresh/`
 - `GET /api/v1/accounts/me/`
+- `GET /api/v1/accounts/me/profile/`
+- `PATCH /api/v1/accounts/me/profile/`
 - `GET /api/v1/accounts/roles/`
 - `GET /api/v1/accounts/users/`
 - `GET /api/v1/accounts/users/<id>/`
@@ -214,5 +217,6 @@ Referencia de atualizacao: 26/02/2026.
 - T8.1.2 concluida (LGPD operacional com exportacao, auditoria e retencao de logs).
 - T8.2.1 concluida (discovery da evolucao funcional da trilha pessoal).
 - T8.2.2 concluida (recorrencia, resumo mensal e importacao CSV MVP em producao de desenvolvimento).
+- T9.2.6-A1 concluida (area de perfil completo do usuario logado no Admin Web + endpoint autenticado `me/profile` com suporte a upload de arquivos).
 - Proxima subetapa unica: executar `T7.2.4-A4` (homologacao externa dos tres gateways com credenciais reais, assinatura de webhook por provider e validacao fim a fim de webhook/status).
 - Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T8.2.3` (hardening backend) e `T9.2.1` (qualidade operacional manual).

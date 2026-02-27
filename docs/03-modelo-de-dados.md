@@ -36,6 +36,34 @@
 - `user_id` (FK)
 - `role_id` (FK)
 
+### `accounts_user_profile`
+- `id` (PK)
+- `user_id` (FK unique -> accounts_user)
+- dados pessoais:
+  - `full_name`, `preferred_name`
+  - `phone`, `secondary_phone`
+  - `birth_date`
+  - `cpf`, `cnpj`, `rg`
+  - `occupation`
+- endereco:
+  - `postal_code`, `street`, `street_number`
+  - `address_complement`, `neighborhood`
+  - `city`, `state`, `country`
+- documentos:
+  - `document_type` (`CPF`, `CNPJ`, `RG`, `CNH`, `PASSAPORTE`, `OUTRO`)
+  - `document_number`, `document_issuer`
+  - `document_front_image`, `document_back_image`, `document_selfie_image`
+- identidade visual e biometria:
+  - `profile_photo`
+  - `biometric_photo`
+  - `biometric_status` (`NOT_CONFIGURED`, `PENDING_REVIEW`, `VERIFIED`, `REJECTED`)
+  - `biometric_captured_at`, `biometric_verified_at`
+- complementares:
+  - `notes`
+  - `extra_data` (JSON)
+- auditoria:
+  - `created_at`, `updated_at`
+
 ---
 
 ## Catalogo / Cardapio

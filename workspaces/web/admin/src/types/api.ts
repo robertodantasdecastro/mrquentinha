@@ -12,6 +12,86 @@ export type AuthUserProfile = {
   roles: string[];
 };
 
+export type UserDocumentType =
+  | ""
+  | "CPF"
+  | "CNPJ"
+  | "RG"
+  | "CNH"
+  | "PASSAPORTE"
+  | "OUTRO";
+
+export type UserBiometricStatus =
+  | "NOT_CONFIGURED"
+  | "PENDING_REVIEW"
+  | "VERIFIED"
+  | "REJECTED";
+
+export type UserProfileData = {
+  id: number;
+  user: number;
+  full_name: string;
+  preferred_name: string;
+  phone: string;
+  secondary_phone: string;
+  birth_date: string | null;
+  cpf: string;
+  cnpj: string;
+  rg: string;
+  occupation: string;
+  postal_code: string;
+  street: string;
+  street_number: string;
+  address_complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  country: string;
+  document_type: UserDocumentType;
+  document_number: string;
+  document_issuer: string;
+  profile_photo_url: string | null;
+  document_front_image_url: string | null;
+  document_back_image_url: string | null;
+  document_selfie_image_url: string | null;
+  biometric_photo_url: string | null;
+  biometric_status: UserBiometricStatus;
+  biometric_captured_at: string | null;
+  biometric_verified_at: string | null;
+  notes: string;
+  extra_data: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UpdateUserProfilePayload = Partial<
+  Pick<
+    UserProfileData,
+    | "full_name"
+    | "preferred_name"
+    | "phone"
+    | "secondary_phone"
+    | "birth_date"
+    | "cpf"
+    | "cnpj"
+    | "rg"
+    | "occupation"
+    | "postal_code"
+    | "street"
+    | "street_number"
+    | "address_complement"
+    | "neighborhood"
+    | "city"
+    | "state"
+    | "country"
+    | "document_type"
+    | "document_number"
+    | "document_issuer"
+    | "notes"
+    | "extra_data"
+  >
+>;
+
 export type RoleData = {
   id: number;
   code: string;
@@ -666,6 +746,8 @@ export type PortalConfigData = {
   available_templates: Array<PortalTemplateData | string>;
   client_active_template: string;
   client_available_templates: Array<PortalTemplateData | string>;
+  admin_active_template: string;
+  admin_available_templates: Array<PortalTemplateData | string>;
   site_name: string;
   site_title: string;
   meta_description: string;
@@ -704,6 +786,8 @@ export type PortalConfigWritePayload = Partial<
     | "available_templates"
     | "client_active_template"
     | "client_available_templates"
+    | "admin_active_template"
+    | "admin_available_templates"
     | "local_hostname"
     | "local_network_ip"
     | "root_domain"

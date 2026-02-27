@@ -1,6 +1,6 @@
 # Backlog Priorizado (P0/P1/P2)
 
-Referencia: 26/02/2026.
+Referencia: 27/02/2026.
 
 ## Regras de execucao
 - Branch policy:
@@ -25,6 +25,7 @@ Referencia: 26/02/2026.
 - [x] `T6.3.2-A7` template `client-vitrine-fit` + configuracao OAuth Google/Apple (web/mobile) centralizada no Portal CMS.
 - [x] `T9.0.1` Admin Web foundation (shell + auth + dashboard inicial).
 - [x] `T9.0.2` Admin Web operacional (Pedidos, Financeiro, Estoque).
+- [x] `T9.2.6-A1` perfil completo do usuario logado no Web Admin com endpoint `me/profile` e upload de foto/documentos/biometria.
 - [x] `T8.0.1` discovery de financas pessoais com segregacao LGPD (docs + ADR).
 - [x] `T8.1.1` MVP tecnico backend de financas pessoais (`personal_finance`) com isolamento por ownership e testes.
 - [x] `T8.1.2` camada operacional LGPD (exportacao de dados pessoais + auditoria + retencao de logs).

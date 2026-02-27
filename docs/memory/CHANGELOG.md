@@ -1,6 +1,24 @@
 # Changelog (por sprint)
 
+## 27/02/2026
+- T9.2.6-A1 (accounts/backend): criado `UserProfile` em `accounts` com dados adicionais completos (dados pessoais, endereco, documentos, fotos e biometria), incluindo migration `0002_userprofile`.
+- T9.2.6-A1 (accounts/api): novo endpoint autenticado `GET/PATCH /api/v1/accounts/me/profile/` com suporte a JSON e multipart para upload de foto de perfil, digitalizacao de documentos (frente/verso/selfie) e biometria facial por foto.
+- T9.2.6-A1 (web admin): nova area `Meu perfil` em `/perfil`, adicionada na navegacao de todos os templates (`classic`, `admin-adminkit`, `admin-admindek`), com formulario completo, upload por camera (`capture`) e acao de logoff.
+- T9.2.6-A1 (qualidade): testes de `accounts` ampliados para cobrir autorizacao, criacao automatica de perfil, atualizacao textual e upload de imagens de perfil/documentos/biometria.
+
 ## 26/02/2026
+- T9.2.5 (web admin template): novo template `admin-admindek` adicionado ao CMS/Admin com layout completo inspirado no padrão AdminDek (sidebar gradiente, header operacional, cards executivos, visual CRM/ecommerce/finance).
+- T9.2.5 (ui/admin): shell, estilos globais, formularios, navegação de modulos e wizard operacional refinados para variação visual por template sem quebrar a identidade oficial do Mr Quentinha.
+- T9.2.5 (preload template-aware): preload inline e overlay global do Admin passaram a suportar também o template `admin-admindek`.
+- T9.2.4 (preload template-aware): preloads do ecossistema web padronizados por template em `admin`, `client` e `portal`, com variacoes visuais para `admin-classic/admin-adminkit`, `client-classic/client-quentinhas/client-vitrine-fit` e `classic/letsfit-clean`.
+- T9.2.4 (preload route + overlay): componentes de preload inline e overlay global passaram a respeitar identidade de cada template, preservando contraste e hierarquia visual durante carregamento de paginas e dados.
+- T9.2.3 (web admin templates): backend `PortalConfig` evoluiu para suportar `admin_active_template` e `admin_available_templates`, com validacao, serializacao publica (`channel=admin`) e persistencia no CMS.
+- T9.2.3 (web admin): estrutura de layout passou a suportar templates dinamicos do painel com provider dedicado, seletor de template no modulo `Portal CMS` e novo template inicial `admin-adminkit` inspirado no modelo AdminKit.
+- T9.2.3 (ux/ix operacao): incluido modulo `Fluxo Operacional Guiado` (`/modulos/fluxo-operacional`) com navegacao passo a passo (anterior/proxima etapa) cobrindo receitas/cardapio, compras, producao, pedidos, financeiro e relatorios.
+- T9.2.3 (visual/charts): paleta e componentes de graficos do Admin refinados por template com contraste e hierarquia visual para dashboards e relatorios detalhados.
+- T9.2.2 UX preload (web): implementado preload global e por rota nos frontends `admin`, `client` e `portal` com `loading.tsx`, overlay de rede e componentes visuais padronizados para todos os estados de carregamento de dados.
+- T9.2.2 UX preload (integracao): wrappers de API do Admin/Client e fetch client-side do Portal passaram a publicar estado de requisições para monitoramento de carregamento em tempo real na UI.
+- T9.2.2 UX preload (qualidade): validado com sucesso em `npm run lint` e `npm run build` para os tres frontends web.
 - T7.2.4-A2 (backend/orders): roteamento de provider por canal de frontend implementado com `frontend_provider.web/mobile`, resolucao por header (`X-Client-Channel`) e fallback seguro para `WEB`.
 - T7.2.4-A2 (web client): criacao de intent passou a enviar `X-Client-Channel: WEB`, garantindo selecao de gateway por canal no backend.
 - T7.2.4-A2 (admin web/Portal CMS): secao `Pagamentos` passou a selecionar provider unico por canal (`Web Cliente` e `App Mobile`) e a exibir campos dinamicos conforme provider selecionado.

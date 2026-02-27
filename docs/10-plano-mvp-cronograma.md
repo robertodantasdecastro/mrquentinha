@@ -1,6 +1,6 @@
 # Plano do MVP e cronograma
 
-Data de referencia: 26/02/2026.
+Data de referencia: 27/02/2026.
 
 ## Status atual do roadmap
 - Etapa 0: concluida
@@ -25,6 +25,9 @@ Data de referencia: 26/02/2026.
 - Etapa 8.2.2 (implementacao evolucao MVP): concluida em 26/02/2026
 - Etapa 9.0 e 9.1 (ate T9.1.3-A7): concluida em 26/02/2026
 - Etapa 9.2.1 (plano de testes manuais E2E): planejamento concluido em 26/02/2026
+- Etapa 9.2.3 (templates e UX do Web Admin): concluida em 26/02/2026
+- Etapa 9.2.5 (template AdminDek e refinacao visual do Web Admin): concluida em 26/02/2026
+- Etapa 9.2.6-A1 (perfil completo do usuario logado no Web Admin): concluida em 27/02/2026
 
 ## Fechamento do MVP operacional
 O MVP operacional foi fechado com o backend cobrindo:
@@ -48,6 +51,7 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase operacao interna web: Etapas 9.0 e 9.1
 - Fechamento da trilha CMS em canais web: `T6.3.2-A1` ate `T6.3.2-A7`
 - Fase de qualidade operacional: `T9.2.1` (plano e campanha recorrente de testes manuais E2E)
+- Fase de governanca de identidade no Admin Web: `T9.2.6-A1` (cadastro completo de perfil, documentos e biometria por foto do usuario logado)
 
 ## Proximas fases (planejado)
 ### 6.2 Consolidacao visual do portal (ownership Antigravity)
@@ -78,7 +82,9 @@ Dependencias:
 - Etapa ativa recomendada: `T7.2.4-A4` (homologacao real dos gateways Mercado Pago/Efi/Asaas com credenciais oficiais, assinatura de webhook por provider e validacao externa).
 - Trilha de qualidade paralela: `T9.2.1-A2` (rodada manual E2E completa do ecossistema, incluindo matrix de pagamentos por provider).
 - Trilha tecnica paralela: `T8.2.3` (hardening pos-MVP de financas pessoais).
+- Trilha de experiencia operacional: `T9.2.3` concluida com template `admin-adminkit` e fluxo guiado do ciclo operacional no Web Admin.
 - Resultado do passo anterior: `T7.2.4-A2` e `T7.2.4-A3` concluidas em 26/02/2026 com provider unico por canal (`web/mobile`), campos adaptativos por provider no Admin e monitoramento realtime em `/api/v1/orders/ops/realtime/` + modulo `/modulos/monitoramento`.
+- Resultado complementar mais recente: `T9.2.6-A1` concluida em 27/02/2026 com nova area `/perfil` no Web Admin (todos os templates), endpoint `GET/PATCH /api/v1/accounts/me/profile/` e suporte a upload/digitalizacao de foto/documentos/biometria.
 
 ## Regra de execucao continua
 Cada nova fase deve manter:

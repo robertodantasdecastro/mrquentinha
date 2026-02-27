@@ -1,7 +1,8 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from apps.accounts.models import UserRole
+from apps.accounts.models import UserProfile, UserRole
 from apps.accounts.services import (
     SystemRole,
     assign_roles_to_user,
@@ -191,3 +192,89 @@ def test_accounts_users_retrieve_retorna_roles(client):
     assert payload["id"] == target_user.id
     assert payload["username"] == "estoquista_1"
     assert set(payload["roles"]) == {SystemRole.ESTOQUE, SystemRole.COMPRAS}
+
+
+VALID_GIF_BYTES = (
+    b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff"
+    b"\x21\xf9\x04\x01\x00\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02"
+    b"\x02\x4c\x01\x00\x3b"
+)
+
+
+@pytest.mark.django_db
+def test_accounts_me_profile_exige_autenticacao(anonymous_client):
+    response = anonymous_client.get("/api/v1/accounts/me/profile/")
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_accounts_me_profile_get_cria_perfil_default(client, admin_user):
+    response = client.get("/api/v1/accounts/me/profile/")
+    assert response.status_code == 200
+
+    payload = response.json()
+    assert payload["user"] == admin_user.id
+    assert payload["biometric_status"] == UserProfile.BiometricStatus.NOT_CONFIGURED
+
+    profile = UserProfile.objects.get(user=admin_user)
+    assert profile.user_id == admin_user.id
+
+
+@pytest.mark.django_db
+def test_accounts_me_profile_patch_atualiza_campos_textuais(client):
+    response = client.patch(
+        "/api/v1/accounts/me/profile/",
+        {
+            "full_name": "Administrador Operacional",
+            "phone": "(11) 99999-0000",
+            "cpf": "123.456.789-09",
+            "postal_code": "01001-000",
+            "city": "Sao Paulo",
+            "state": "SP",
+            "street": "Rua da Operacao",
+            "street_number": "245",
+            "document_type": "RG",
+            "document_number": "55.333.111-9",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["full_name"] == "Administrador Operacional"
+    assert payload["cpf"] == "12345678909"
+    assert payload["postal_code"] == "01001000"
+    assert payload["city"] == "Sao Paulo"
+
+
+@pytest.mark.django_db
+def test_accounts_me_profile_patch_uploads_documentos_e_biometria(client):
+    response = client.patch(
+        "/api/v1/accounts/me/profile/",
+        {
+            "profile_photo": SimpleUploadedFile(
+                "foto-perfil.gif",
+                VALID_GIF_BYTES,
+                content_type="image/gif",
+            ),
+            "document_front_image": SimpleUploadedFile(
+                "documento-frente.gif",
+                VALID_GIF_BYTES,
+                content_type="image/gif",
+            ),
+            "biometric_photo": SimpleUploadedFile(
+                "biometria.gif",
+                VALID_GIF_BYTES,
+                content_type="image/gif",
+            ),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["profile_photo_url"]
+    assert payload["document_front_image_url"]
+    assert payload["biometric_photo_url"]
+    assert payload["biometric_status"] == UserProfile.BiometricStatus.PENDING_REVIEW
+    assert payload["biometric_captured_at"] is not None

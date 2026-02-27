@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .views import (
     MeAPIView,
+    MeProfileAPIView,
     RegisterAPIView,
     RoleViewSet,
     UserAdminViewSet,
@@ -19,6 +20,7 @@ urlpatterns = [
     path("token/", TokenObtainPairView.as_view(), name="accounts-token"),
     path("token/refresh/", TokenRefreshView.as_view(), name="accounts-token-refresh"),
     path("me/", MeAPIView.as_view(), name="accounts-me"),
+    path("me/profile/", MeProfileAPIView.as_view(), name="accounts-me-profile"),
     path(
         "users/<int:user_id>/roles/",
         UserRoleAssignmentAPIView.as_view(),

@@ -1,8 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Role
+from .models import Role, UserProfile
 from .services import (
     SystemRole,
     assign_roles_to_user,
@@ -109,3 +110,138 @@ class AssignRolesSerializer(serializers.Serializer):
             )
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.messages) from exc
+
+
+def _normalize_digits(value: str) -> str:
+    return "".join(char for char in value if char.isdigit())
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    profile_photo_url = serializers.SerializerMethodField()
+    document_front_image_url = serializers.SerializerMethodField()
+    document_back_image_url = serializers.SerializerMethodField()
+    document_selfie_image_url = serializers.SerializerMethodField()
+    biometric_photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            "id",
+            "user",
+            "full_name",
+            "preferred_name",
+            "phone",
+            "secondary_phone",
+            "birth_date",
+            "cpf",
+            "cnpj",
+            "rg",
+            "occupation",
+            "postal_code",
+            "street",
+            "street_number",
+            "address_complement",
+            "neighborhood",
+            "city",
+            "state",
+            "country",
+            "document_type",
+            "document_number",
+            "document_issuer",
+            "profile_photo",
+            "profile_photo_url",
+            "document_front_image",
+            "document_front_image_url",
+            "document_back_image",
+            "document_back_image_url",
+            "document_selfie_image",
+            "document_selfie_image_url",
+            "biometric_photo",
+            "biometric_photo_url",
+            "biometric_status",
+            "biometric_captured_at",
+            "biometric_verified_at",
+            "notes",
+            "extra_data",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "user",
+            "profile_photo_url",
+            "document_front_image_url",
+            "document_back_image_url",
+            "document_selfie_image_url",
+            "biometric_photo_url",
+            "biometric_status",
+            "biometric_captured_at",
+            "biometric_verified_at",
+            "created_at",
+            "updated_at",
+        ]
+        extra_kwargs = {
+            "profile_photo": {"required": False, "allow_null": True},
+            "document_front_image": {"required": False, "allow_null": True},
+            "document_back_image": {"required": False, "allow_null": True},
+            "document_selfie_image": {"required": False, "allow_null": True},
+            "biometric_photo": {"required": False, "allow_null": True},
+            "document_type": {"required": False, "allow_blank": True},
+        }
+
+    def _build_file_url(self, value) -> str | None:
+        if not value:
+            return None
+
+        request = self.context.get("request")
+        url = value.url
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+
+    def get_profile_photo_url(self, obj):
+        return self._build_file_url(obj.profile_photo)
+
+    def get_document_front_image_url(self, obj):
+        return self._build_file_url(obj.document_front_image)
+
+    def get_document_back_image_url(self, obj):
+        return self._build_file_url(obj.document_back_image)
+
+    def get_document_selfie_image_url(self, obj):
+        return self._build_file_url(obj.document_selfie_image)
+
+    def get_biometric_photo_url(self, obj):
+        return self._build_file_url(obj.biometric_photo)
+
+    def validate_cpf(self, value: str) -> str:
+        normalized = _normalize_digits(value)
+        if normalized and len(normalized) != 11:
+            raise serializers.ValidationError("CPF invalido. Informe 11 digitos.")
+        return normalized
+
+    def validate_cnpj(self, value: str) -> str:
+        normalized = _normalize_digits(value)
+        if normalized and len(normalized) != 14:
+            raise serializers.ValidationError("CNPJ invalido. Informe 14 digitos.")
+        return normalized
+
+    def validate_postal_code(self, value: str) -> str:
+        normalized = _normalize_digits(value)
+        if normalized and len(normalized) not in {8}:
+            raise serializers.ValidationError("CEP invalido. Informe 8 digitos.")
+        return normalized
+
+    def update(self, instance: UserProfile, validated_data):
+        biometric_photo = validated_data.get("biometric_photo", serializers.empty)
+        if biometric_photo is not serializers.empty:
+            if biometric_photo:
+                instance.biometric_status = UserProfile.BiometricStatus.PENDING_REVIEW
+                instance.biometric_captured_at = timezone.now()
+                instance.biometric_verified_at = None
+            else:
+                instance.biometric_status = UserProfile.BiometricStatus.NOT_CONFIGURED
+                instance.biometric_captured_at = None
+                instance.biometric_verified_at = None
+
+        return super().update(instance, validated_data)

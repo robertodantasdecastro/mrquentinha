@@ -1,6 +1,6 @@
 # Roadmap Master
 
-Referencia: 26/02/2026.
+Referencia: 27/02/2026.
 Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) com foco em execucao controlada entre Codex e Antigravity.
 
 ## 1) Implementado
@@ -49,6 +49,8 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - Evidencia: `workspaces/web/admin/src/components/modules/*`, `AdminFoundation` integrado e `scripts/quality_gate_all.sh` em status `OK`.
 - `T9.0.3` concluida: Admin Web expansion com baseline de Cardapio, Compras e Producao conectados ao backend.
   - Evidencia: `MenuOpsPanel`, `ProcurementOpsPanel`, `ProductionOpsPanel`, camada API expandida e quality gate completo em `OK`.
+- `T9.2.6-A1` concluida: area de perfil completo do usuario logado no Web Admin em todos os templates, com endpoint autenticado dedicado e suporte a upload de foto/documentos/biometria por foto.
+  - Evidencia: `workspaces/backend/src/apps/accounts/models.py`, `workspaces/backend/src/apps/accounts/views.py`, `workspaces/web/admin/src/app/perfil/page.tsx`, `workspaces/backend/tests/test_accounts_api.py`.
 
 ### Etapa 8 (Financas pessoais)
 - `T8.0.1` concluida: discovery de segregacao de dominio, ownership e requisitos LGPD para trilha pessoal.

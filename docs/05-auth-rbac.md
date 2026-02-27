@@ -5,11 +5,12 @@
 - Manter JWT como sessao oficial de API (`access` + `refresh`).
 - Centralizar configuracoes OAuth no Web Admin (Portal CMS), sem segredo no frontend.
 
-## Estado atual (26/02/2026)
+## Estado atual (27/02/2026)
 - Login JWT nativo (usuario/senha) em producao de desenvolvimento: **concluido**.
 - Parametros OAuth Google/Apple no Portal CMS (`PortalConfig.auth_providers`): **concluido**.
 - Painel do Admin Web revisado com mapeamento correto de campos por provider (Google x Apple): **concluido**.
 - UI do web client para iniciar OAuth + callbacks de retorno (`/conta/oauth/google/callback`, `/conta/oauth/apple/callback`): **concluido**.
+- Perfil completo do usuario logado no Admin Web (dados adicionais, endereco, documentos, foto e biometria por foto): **concluido**.
 - Troca do `code` OAuth no backend para emissao de JWT local: **pendente**.
 
 ## Contrato de configuracao OAuth (Portal CMS)
@@ -65,6 +66,18 @@
 - RBAC via `Role`/`UserRole` com permission classes por modulo e acao.
 - Ownership obrigatorio em dados de cliente/pessoal.
 - Auditoria em endpoints sensiveis (especialmente financeiro e dados pessoais).
+
+## Endpoint de perfil do usuario logado (Admin Web)
+- Endpoint: `GET/PATCH /api/v1/accounts/me/profile/`
+- Autenticacao: JWT obrigatorio.
+- Atualizacao textual: payload JSON parcial (`PATCH`) com dados pessoais, endereco e documentos.
+- Upload de arquivos: `PATCH multipart/form-data` para:
+  - `profile_photo`
+  - `document_front_image`
+  - `document_back_image`
+  - `document_selfie_image`
+  - `biometric_photo`
+- Regra de biometria: ao enviar `biometric_photo`, status vai para `PENDING_REVIEW` para validacao futura.
 
 ## Requisitos de seguranca
 - Nunca expor segredos OAuth no payload publico.

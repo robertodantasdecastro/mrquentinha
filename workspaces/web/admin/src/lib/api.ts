@@ -4,9 +4,12 @@ import {
   getStoredAuthTokens,
   persistAuthTokens,
 } from "@/lib/storage";
+import { trackNetworkRequest } from "@/lib/networkPreloader";
 import type {
   AuthTokens,
   AuthUserProfile,
+  UserProfileData,
+  UpdateUserProfilePayload,
   AdminUserData,
   AssignUserRolesPayload,
   AssignUserRolesResultData,
@@ -188,15 +191,17 @@ async function tryRefreshAccessToken(): Promise<boolean> {
 
   let response: Response;
   try {
-    response = await fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        refresh: tokens.refresh,
+    response = await trackNetworkRequest(() =>
+      fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          refresh: tokens.refresh,
+        }),
       }),
-    });
+    );
   } catch {
     return false;
   }
@@ -240,11 +245,13 @@ async function requestJson<T>(path: string, options: RequestJsonOptions = {}): P
 
   let response: Response;
   try {
-    response = await fetch(resolveUrl(path), {
-      ...rest,
-      headers: requestHeaders,
-      body,
-    });
+    response = await trackNetworkRequest(() =>
+      fetch(resolveUrl(path), {
+        ...rest,
+        headers: requestHeaders,
+        body,
+      }),
+    );
   } catch {
     throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
   }
@@ -300,11 +307,13 @@ async function requestFile(
 
   let response: Response;
   try {
-    response = await fetch(resolveUrl(path), {
-      ...rest,
-      headers: requestHeaders,
-      body,
-    });
+    response = await trackNetworkRequest(() =>
+      fetch(resolveUrl(path), {
+        ...rest,
+        headers: requestHeaders,
+        body,
+      }),
+    );
   } catch {
     throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
   }
@@ -362,11 +371,13 @@ async function requestFormData<T>(
 
   let response: Response;
   try {
-    response = await fetch(resolveUrl(path), {
-      ...rest,
-      headers: requestHeaders,
-      body,
-    });
+    response = await trackNetworkRequest(() =>
+      fetch(resolveUrl(path), {
+        ...rest,
+        headers: requestHeaders,
+        body,
+      }),
+    );
   } catch {
     throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
   }
@@ -420,6 +431,32 @@ export async function fetchMe(): Promise<AuthUserProfile> {
     method: "GET",
     auth: true,
     cache: "no-store",
+  });
+}
+
+export async function fetchMyUserProfile(): Promise<UserProfileData> {
+  return requestJson<UserProfileData>("/api/v1/accounts/me/profile/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+}
+
+export async function updateMyUserProfile(
+  payload: UpdateUserProfilePayload,
+): Promise<UserProfileData> {
+  return requestJson<UserProfileData>("/api/v1/accounts/me/profile/", {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadMyUserProfileFiles(body: FormData): Promise<UserProfileData> {
+  return requestFormData<UserProfileData>("/api/v1/accounts/me/profile/", {
+    method: "PATCH",
+    auth: true,
+    body,
   });
 }
 
