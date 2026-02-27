@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
 
 import { getResolvedApiBaseUrl } from "@/lib/api";
+import { trackNetworkRequest } from "@/lib/networkPreloader";
 
 type ApiHealthState = "checking" | "ok" | "error";
 
@@ -52,9 +53,11 @@ export function ApiConnectionStatus() {
       setMessage("");
 
       try {
-        const response = await fetch(`${apiBaseUrl}/api/v1/health`, {
-          cache: "no-store",
-        });
+        const response = await trackNetworkRequest(() =>
+          fetch(`${apiBaseUrl}/api/v1/health`, {
+            cache: "no-store",
+          }),
+        );
 
         if (!mounted) {
           return;

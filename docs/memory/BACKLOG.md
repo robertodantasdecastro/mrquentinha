@@ -23,9 +23,12 @@ Referencia: 27/02/2026.
 - [x] `T6.3.1` Portal CMS backend-only (Config/Sections + API publica/admin).
 - [x] `T6.3.2-A6` release mobile no Portal CMS (backend/admin/portal + endpoint publico latest).
 - [x] `T6.3.2-A7` template `client-vitrine-fit` + configuracao OAuth Google/Apple (web/mobile) centralizada no Portal CMS.
+- [x] `T6.3.2-A9` exposicao online via Cloudflare no Portal CMS com preview e toggle (1 clique), URLs/CORS automaticos e modo `hybrid` para coexistencia local+internet.
+- [x] `T6.3.2-A10` runtime do tunnel Cloudflare com `start/stop/status` via Admin + monitoramento do servico no realtime do ecossistema.
 - [x] `T9.0.1` Admin Web foundation (shell + auth + dashboard inicial).
 - [x] `T9.0.2` Admin Web operacional (Pedidos, Financeiro, Estoque).
 - [x] `T9.2.6-A1` perfil completo do usuario logado no Web Admin com endpoint `me/profile` e upload de foto/documentos/biometria.
+- [x] `T9.2.6-A2` validadores/formatadores globais de formularios (CPF/CNPJ/CEP/email/senha/datas) no Admin/Client/Portal, com reforco de validacao no backend.
 - [x] `T8.0.1` discovery de financas pessoais com segregacao LGPD (docs + ADR).
 - [x] `T8.1.1` MVP tecnico backend de financas pessoais (`personal_finance`) com isolamento por ownership e testes.
 - [x] `T8.1.2` camada operacional LGPD (exportacao de dados pessoais + auditoria + retencao de logs).
@@ -97,7 +100,7 @@ Referencia: 27/02/2026.
 - Escopo: portal + backend.
 - Conflito Codex x Antigravity: alto.
 - Branch sugerida: `main-etapa-6.3-PortalCMS-Integracao`.
-- Status parcial: `A1..A7` concluidas; pendente `A8` para troca de `code` OAuth no backend.
+- Status parcial: `A1..A7` e `A9` concluidas; pendente `A8` para troca de `code` OAuth no backend.
 
 ### T7.2.4 (P1)
 - Objetivo: evoluir pagamentos para operacao multigateway real-time (Mercado Pago, Efi, Asaas) com governanca de credenciais no Admin Web.

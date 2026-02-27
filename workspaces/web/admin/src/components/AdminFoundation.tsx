@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import { AdminSessionGate, useAdminSession } from "@/components/AdminSessionGate";
 import { ApiError, fetchEcosystemOpsRealtimeAdmin, fetchOrdersOpsDashboardAdmin } from "@/lib/api";
 import { ADMIN_MODULES, resolveModuleCardBorder, resolveModuleStatusTone } from "@/lib/adminModules";
 import type { EcosystemOpsRealtimeData, OpsAlertData, OpsPipelineStageData } from "@/types/api";
+import { ProcessJourneyPanel } from "@/components/ProcessJourneyPanel";
 import { Sparkline } from "@/components/charts/Sparkline";
 
 function resolveHealthTone(status: string): StatusTone {
@@ -197,6 +199,50 @@ const Dashboard = () => {
         )}
       </section>
 
+      <ProcessJourneyPanel />
+
+      <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-text">Painel executivo</h2>
+            <p className="mt-1 text-sm text-muted">
+              Visao consolidada no estilo membership/finance para decisao rapida.
+            </p>
+          </div>
+          <Link
+            href="/modulos/relatorios"
+            className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+          >
+            Abrir relatorios completos
+          </Link>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <article className="rounded-xl border border-border bg-bg p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Pedidos hoje</p>
+            <p className="mt-1 text-2xl font-semibold text-text">{opsKpis?.pedidos_hoje ?? "-"}</p>
+            <p className="mt-2 text-xs text-muted">Meta diaria: 180 pedidos</p>
+          </article>
+          <article className="rounded-xl border border-border bg-bg p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Receita do dia</p>
+            <p className="mt-1 text-2xl font-semibold text-text">
+              {opsKpis?.receita_hoje ? `R$ ${opsKpis.receita_hoje}` : "-"}
+            </p>
+            <p className="mt-2 text-xs text-muted">Inclui pagamentos online em tempo real</p>
+          </article>
+          <article className="rounded-xl border border-border bg-bg p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Fila operacional</p>
+            <p className="mt-1 text-2xl font-semibold text-text">{opsKpis?.pedidos_fila ?? "-"}</p>
+            <p className="mt-2 text-xs text-muted">Pedidos aguardando proxima etapa</p>
+          </article>
+          <article className="rounded-xl border border-border bg-bg p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Lotes concluidos</p>
+            <p className="mt-1 text-2xl font-semibold text-text">{opsKpis?.lotes_concluidos ?? "-"}</p>
+            <p className="mt-2 text-xs text-muted">Efetividade da producao no turno</p>
+          </article>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -213,7 +259,10 @@ const Dashboard = () => {
         </div>
 
         {opsLoading && (
-          <p className="mt-3 text-sm text-muted">Carregando pipeline operacional...</p>
+          <InlinePreloader
+            message="Carregando pipeline operacional..."
+            className="mt-3 justify-start bg-surface/70"
+          />
         )}
         {!opsLoading && opsError && (
           <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">

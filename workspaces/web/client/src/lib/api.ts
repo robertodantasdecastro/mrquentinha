@@ -4,6 +4,7 @@ import {
   getStoredAuthTokens,
   persistAuthTokens,
 } from "@/lib/storage";
+import { trackNetworkRequest } from "@/lib/networkPreloader";
 import type {
   AuthTokens,
   AuthUserProfile,
@@ -157,15 +158,17 @@ async function tryRefreshAccessToken(): Promise<boolean> {
 
   let response: Response;
   try {
-    response = await fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        refresh: tokens.refresh,
+    response = await trackNetworkRequest(() =>
+      fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          refresh: tokens.refresh,
+        }),
       }),
-    });
+    );
   } catch {
     return false;
   }
@@ -217,11 +220,13 @@ async function requestJson<T>(
 
   let response: Response;
   try {
-    response = await fetch(resolveUrl(path), {
-      ...rest,
-      headers: requestHeaders,
-      body,
-    });
+    response = await trackNetworkRequest(() =>
+      fetch(resolveUrl(path), {
+        ...rest,
+        headers: requestHeaders,
+        body,
+      }),
+    );
   } catch {
     throw new ApiError(buildNetworkErrorMessage(), 0);
   }

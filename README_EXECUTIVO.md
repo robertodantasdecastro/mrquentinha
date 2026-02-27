@@ -30,6 +30,7 @@ O Mr Quentinha unifica essa operacao em uma plataforma unica, com rastreabilidad
 - Webhooks idempotentes com reconciliacao financeira.
 - Monitoramento realtime de servicos, pagamentos e lifecycle de pedidos.
 - Governanca de autenticacao social (Google/Apple) via Admin.
+- Publicacao online com Cloudflare em 1 clique no Admin (modo `hybrid` para local + internet sem conflito).
 
 ## Estado atual (26/02/2026)
 - MVP operacional fechado (catalogo, estoque, compras, producao, pedidos, financeiro).
@@ -40,7 +41,7 @@ O Mr Quentinha unifica essa operacao em uma plataforma unica, com rastreabilidad
 ## Modelo tecnico
 - Backend unico para todos os canais.
 - Frontends desacoplados consumindo API versionada (`/api/v1/...`).
-- Sem Docker no fluxo oficial inicial.
+- Suporte a operacao em VM (modelo atual) e Docker (modelo novo opcional).
 - Qualidade com lint, build, testes automatizados e smoke scripts.
 
 ## Valor de negocio

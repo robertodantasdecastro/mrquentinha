@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -184,7 +185,7 @@ export function FinanceOpsPanel() {
         </div>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando financeiro...</p>}
+      {loading && <InlinePreloader message="Carregando financeiro..." className="mt-4 justify-start bg-surface/70" />}
 
       {!loading && kpis && (
         <div className="mt-4 grid gap-3 md:grid-cols-3">

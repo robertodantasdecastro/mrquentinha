@@ -91,6 +91,18 @@ Dominios backend:
 
 ## Setup rapido
 
+Instalador unico (Ubuntu) com escolha de modelo (`vm` ou `docker`) e ambiente (`dev` ou `prod`):
+
+```bash
+bash scripts/install_mrquentinha.sh
+```
+
+Modo nao interativo (exemplo):
+
+```bash
+bash scripts/install_mrquentinha.sh --stack docker --env dev --yes
+```
+
 ### 1) Backend
 
 ```bash
@@ -127,6 +139,17 @@ Portas oficiais:
 - client: `3001`
 - proxy local nginx: `8088`
 
+### Ciclo Docker (novo)
+
+```bash
+bash scripts/docker_lifecycle.sh dev up
+bash scripts/docker_lifecycle.sh dev ps
+bash scripts/docker_lifecycle.sh dev logs
+bash scripts/docker_lifecycle.sh dev down
+```
+
+Para producao em Docker, troque `dev` por `prod`.
+
 ## Proxy local
 
 ```bash
@@ -146,6 +169,31 @@ Parar proxy:
 ./scripts/stop_proxy_dev.sh
 ```
 
+## Exposicao online com Cloudflare
+
+No Web Admin, acesse:
+- `Portal CMS` -> `Conectividade` -> `Cloudflare online (1 clique)`
+
+Fluxo recomendado:
+1. Configure dominio raiz/subdominios.
+2. Use modo `hybrid` para manter local + internet simultaneamente.
+3. Clique em `Pre-visualizar rotas`.
+4. Clique em `Ativar Cloudflare`.
+5. Inicie o runtime do tunnel por `Iniciar tunnel` (ou via script abaixo).
+
+Script operacional do tunnel:
+
+```bash
+./scripts/cloudflare_tunnel.sh status
+./scripts/cloudflare_tunnel.sh start
+./scripts/cloudflare_tunnel.sh logs 80
+./scripts/cloudflare_tunnel.sh stop
+```
+
+Variaveis aceitas no script:
+- `CF_TUNNEL_TOKEN`
+- `CF_TUNNEL_NAME` (fallback: `mrquentinha`)
+
 ## Observabilidade e operacao
 
 Painel operacional em terminal:
@@ -159,6 +207,41 @@ Tambem disponivel:
 ```bash
 python3 scripts/ops_center.py
 ```
+
+### Como usar o `ops_dashboard` no dev
+
+Com auto-inicializacao do stack:
+
+```bash
+./scripts/ops_dashboard.sh --auto-start
+```
+
+Atalhos principais:
+- `a`: start all
+- `s`: stop all
+- `r`: restart all
+- `1/2/3`: backend (start/stop/restart)
+- `g/h/j`: admin (start/stop/restart)
+- `4/5/6`: portal (start/stop/restart)
+- `7/8/9`: client (start/stop/restart)
+- `l`: modo de logs
+- `c`: modo compacto
+- `?`: ajuda
+- `q`: sair
+
+Modo snapshot unico (diagnostico rapido):
+
+```bash
+python3 scripts/ops_center.py --once
+```
+
+Export de metricas para historico:
+
+```bash
+./scripts/ops_dashboard.sh --export-json --export-csv --export-interval 5
+```
+
+Arquivos de exportacao: `.runtime/ops/exports/`.
 
 Monitoramento realtime no backend:
 - `GET /api/v1/orders/ops/realtime/`

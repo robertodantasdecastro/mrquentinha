@@ -6,22 +6,37 @@ type MiniBarChartProps = HTMLAttributes<HTMLDivElement> & {
 
 export function MiniBarChart({ values, className, ...props }: MiniBarChartProps) {
   const max = Math.max(...values, 1);
+  const palette = [
+    "var(--mrq-chart-1)",
+    "var(--mrq-chart-2)",
+    "var(--mrq-chart-3)",
+    "var(--mrq-chart-4)",
+  ];
 
   return (
     <div
-      className={["flex items-end gap-2", className].filter(Boolean).join(" ")}
+      className={[
+        "rounded-lg border border-border bg-bg p-3",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       aria-label="Grafico de barras"
       {...props}
     >
-      {values.map((value, index) => (
-        <div
-          key={`${value}-${index}`}
-          className="flex-1 rounded-md bg-primary/20"
-          style={{ height: `${Math.round((value / max) * 72) + 12}px` }}
-        >
-          <div className="h-full rounded-md bg-primary/70" />
-        </div>
-      ))}
+      <div className="flex h-[98px] items-end gap-2">
+        {values.map((value, index) => (
+          <div
+            key={`${value}-${index}`}
+            className="flex-1 rounded-md"
+            style={{
+              height: `${Math.round((value / max) * 72) + 16}px`,
+              backgroundColor: palette[index % palette.length],
+              opacity: 0.85,
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

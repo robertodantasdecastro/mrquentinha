@@ -26,6 +26,11 @@ class PortalConfig(models.Model):
         default="client-classic",
     )
     client_available_templates = models.JSONField(default=list, blank=True)
+    admin_active_template = models.CharField(
+        max_length=64,
+        default="admin-classic",
+    )
+    admin_available_templates = models.JSONField(default=list, blank=True)
     site_name = models.CharField(max_length=120, default="Mr Quentinha")
     site_title = models.CharField(max_length=180, blank=True, default="")
     meta_description = models.TextField(blank=True, default="")
@@ -49,6 +54,7 @@ class PortalConfig(models.Model):
     backend_base_url = models.URLField(default="http://mrquentinha:8000")
     proxy_base_url = models.URLField(default="http://mrquentinha:8088")
     cors_allowed_origins = models.JSONField(default=list, blank=True)
+    cloudflare_settings = models.JSONField(default=dict, blank=True)
     auth_providers = models.JSONField(default=dict, blank=True)
     payment_providers = models.JSONField(default=dict, blank=True)
     is_published = models.BooleanField(default=False)

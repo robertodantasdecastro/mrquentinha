@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -161,7 +162,7 @@ export function EstoqueSections({ activeSection = "all" }: EstoqueSectionsProps)
             </div>
             <StatusPill tone="warning">{alertCount} alertas</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando resumo de estoque...</p>}
+          {loading && <InlinePreloader message="Carregando resumo de estoque..." className="mt-3 justify-start bg-surface/70" />}
           {!loading && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -196,7 +197,7 @@ export function EstoqueSections({ activeSection = "all" }: EstoqueSectionsProps)
             </div>
             <StatusPill tone="info">{movements.length} movimentos</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando tendências...</p>}
+          {loading && <InlinePreloader message="Carregando tendências..." className="mt-3 justify-start bg-surface/70" />}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">

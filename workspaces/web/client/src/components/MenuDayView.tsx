@@ -4,6 +4,7 @@ import { Badge, Button, Card, Input, StatusPill, type StatusTone } from "@mrquen
 import Image from "next/image";
 
 import { useClientTemplate } from "@/components/ClientTemplateProvider";
+import { InlinePreloader } from "@/components/InlinePreloader";
 import { formatCurrency } from "@/lib/format";
 import type { MenuDayData, MenuItemData } from "@/types/api";
 
@@ -78,6 +79,7 @@ export function MenuDayView({
         <label className="flex flex-col gap-1 text-sm font-medium text-muted">
           Selecione a data
           <Input
+            name="delivery_date"
             type="date"
             value={selectedDate}
             onChange={(event) => onSelectedDateChange(event.target.value)}
@@ -88,9 +90,7 @@ export function MenuDayView({
 
       <div className="mt-5">
         {state === "loading" && (
-          <div className="rounded-xl border border-border bg-bg px-4 py-10 text-center text-sm text-muted">
-            {message}
-          </div>
+          <InlinePreloader message={message} className="py-10" />
         )}
 
         {state === "empty" && (

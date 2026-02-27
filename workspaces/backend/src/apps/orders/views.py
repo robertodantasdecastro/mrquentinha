@@ -545,6 +545,12 @@ SERVICE_MONITOR_SPECS = (
     {"key": "admin", "name": "Admin Web", "port": 3002},
     {"key": "portal", "name": "Portal Web", "port": 3000},
     {"key": "client", "name": "Client Web", "port": 3001},
+    {
+        "key": "cloudflare",
+        "name": "Cloudflare Tunnel",
+        "port": None,
+        "process_only": True,
+    },
 )
 
 
@@ -652,18 +658,25 @@ def _build_service_monitor_payload() -> list[dict]:
     services_payload: list[dict] = []
     for service in SERVICE_MONITOR_SPECS:
         pid = _read_pid_from_file(service["key"])
-        port_open = _is_port_open(service["port"])
-        status = "online" if port_open else ("running" if pid else "offline")
+        port = service.get("port")
+        process_only = bool(service.get("process_only", False))
+        port_open = bool(port and _is_port_open(int(port)))
+        if process_only:
+            status = "running" if pid else "offline"
+            listener_ok = pid is not None
+        else:
+            status = "online" if port_open else ("running" if pid else "offline")
+            listener_ok = port_open
         services_payload.append(
             {
                 "key": service["key"],
                 "name": service["name"],
-                "port": service["port"],
+                "port": port,
                 "status": status,
                 "pid": pid,
                 "uptime_seconds": _read_process_uptime_seconds(pid),
                 "rss_mb": _read_process_rss_mb(pid),
-                "listener_ok": port_open,
+                "listener_ok": listener_ok,
             }
         )
     return services_payload
@@ -736,9 +749,7 @@ def _build_payment_monitor_payload() -> dict:
         )
 
         success_rate = (
-            (succeeded_24h / webhooks_24h * 100.0)
-            if webhooks_24h > 0
-            else 0.0
+            (succeeded_24h / webhooks_24h * 100.0) if webhooks_24h > 0 else 0.0
         )
         enabled = (
             bool(provider_cfg.get("enabled"))

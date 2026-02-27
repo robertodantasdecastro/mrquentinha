@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
+import { InlinePreloader } from "@/components/InlinePreloader";
 import {
   ApiError,
   fetchAuthProvidersConfig,
@@ -370,7 +371,10 @@ export default function ContaPage() {
         )}
 
         {viewState === "loading" && (
-          <p className="mt-3 text-sm text-muted">Validando sessao...</p>
+          <InlinePreloader
+            message="Validando sessao..."
+            className="mt-3 justify-start bg-surface/80"
+          />
         )}
 
         {viewState === "authenticated" && user && (
@@ -479,6 +483,7 @@ export default function ContaPage() {
                 <label className="grid gap-1 text-sm text-muted">
                   Usuario
                   <input
+                    name="username"
                     required
                     autoComplete="username"
                     className={INPUT_CLASS}
@@ -495,8 +500,10 @@ export default function ContaPage() {
                 <label className="grid gap-1 text-sm text-muted">
                   Senha
                   <input
+                    name="password"
                     required
                     type="password"
+                    minLength={8}
                     autoComplete="current-password"
                     className={INPUT_CLASS}
                     value={loginForm.password}
@@ -524,6 +531,7 @@ export default function ContaPage() {
                 <label className="grid gap-1 text-sm text-muted">
                   Usuario
                   <input
+                    name="register_username"
                     required
                     autoComplete="username"
                     className={INPUT_CLASS}
@@ -540,6 +548,7 @@ export default function ContaPage() {
                 <label className="grid gap-1 text-sm text-muted">
                   Email
                   <input
+                    name="email"
                     type="email"
                     autoComplete="email"
                     className={INPUT_CLASS}
@@ -557,6 +566,7 @@ export default function ContaPage() {
                   <label className="grid gap-1 text-sm text-muted">
                     Nome
                     <input
+                      name="first_name"
                       autoComplete="given-name"
                       className={INPUT_CLASS}
                       value={registerForm.firstName}
@@ -572,6 +582,7 @@ export default function ContaPage() {
                   <label className="grid gap-1 text-sm text-muted">
                     Sobrenome
                     <input
+                      name="last_name"
                       autoComplete="family-name"
                       className={INPUT_CLASS}
                       value={registerForm.lastName}
@@ -588,6 +599,7 @@ export default function ContaPage() {
                 <label className="grid gap-1 text-sm text-muted">
                   Senha
                   <input
+                    name="new_password"
                     required
                     type="password"
                     minLength={8}

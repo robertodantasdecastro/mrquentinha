@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -263,7 +264,7 @@ export function ProductionOpsPanel() {
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando módulo de produção...</p>}
+      {loading && <InlinePreloader message="Carregando módulo de produção..." className="mt-4 justify-start bg-surface/70" />}
 
       {!loading && (
         <>

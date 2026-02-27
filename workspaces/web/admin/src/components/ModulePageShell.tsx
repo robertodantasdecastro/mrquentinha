@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
+import { useAdminTemplate } from "@/components/AdminTemplateProvider";
+
 export type ModuleMenuItem = {
   key: string;
   label: string;
@@ -29,9 +31,18 @@ export function ModulePageShell({
   activeKey,
   children,
 }: ModulePageShellProps) {
+  const { template } = useAdminTemplate();
+  const isAdminKit = template === "admin-adminkit";
+  const isAdminDek = template === "admin-admindek";
+
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
+      <section
+        className={[
+          "rounded-2xl border border-border bg-surface/80 p-6 shadow-sm",
+          isAdminKit || isAdminDek ? "bg-white/90 dark:bg-surface/90" : "",
+        ].join(" ")}
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Admin Web</p>
@@ -44,13 +55,19 @@ export function ModulePageShell({
             </StatusPill>
           )}
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div
+          className={[
+            "mt-4 flex flex-wrap gap-2",
+            isAdminKit || isAdminDek ? "rounded-xl border border-border bg-bg p-2" : "",
+          ].join(" ")}
+        >
           {menuItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={[
-                "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition",
+                "border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition",
+                isAdminKit || isAdminDek ? "rounded-lg" : "rounded-full",
                 activeKey === item.key
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border bg-bg text-text hover:border-primary hover:text-primary",

@@ -16,7 +16,7 @@ def test_accounts_register_cria_usuario_com_role_cliente(anonymous_client):
         "/api/v1/accounts/register/",
         {
             "username": "cliente_novo",
-            "password": "senha_forte_123",
+            "password": "Senha_Forte_123",
             "email": "cliente_novo@example.com",
             "first_name": "Cliente",
             "last_name": "Novo",
@@ -34,6 +34,23 @@ def test_accounts_register_cria_usuario_com_role_cliente(anonymous_client):
         UserRole.objects.filter(user=created_user).values_list("role__code", flat=True)
     )
     assert role_codes == {SystemRole.CLIENTE}
+
+
+@pytest.mark.django_db
+def test_accounts_register_rejeita_senha_fraca(anonymous_client):
+    response = anonymous_client.post(
+        "/api/v1/accounts/register/",
+        {
+            "username": "cliente_fraco",
+            "password": "senhafraca",
+            "email": "cliente_fraco@example.com",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert "password" in payload
 
 
 @pytest.mark.django_db

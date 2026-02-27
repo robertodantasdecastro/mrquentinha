@@ -9,6 +9,14 @@ export type AdminModule = {
 
 export const ADMIN_MODULES: AdminModule[] = [
   {
+    slug: "fluxo-operacional",
+    title: "Fluxo Operacional Guiado",
+    description: "Passo a passo de receitas/cardapio ate fechamento de relatorios.",
+    stage: "T9.2.3",
+    status: "ativo",
+    path: "/modulos/fluxo-operacional",
+  },
+  {
     slug: "pedidos",
     title: "Pedidos",
     description: "Fila do dia, mudança de status e atendimento operacional.",

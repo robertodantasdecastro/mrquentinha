@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
+import { InlinePreloader } from "@/components/InlinePreloader";
 import { ApiError, confirmOrderReceipt, listOrders } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import type { OrderData, OrderStatus } from "@/types/api";
@@ -193,9 +194,7 @@ export function OrderHistoryList() {
       </div>
 
       {historyState === "loading" && (
-        <div className="rounded-xl border border-border bg-bg px-4 py-10 text-center text-sm text-muted">
-          Carregando pedidos...
-        </div>
+        <InlinePreloader message="Carregando pedidos..." className="py-10" />
       )}
 
       {historyState === "unauthorized" && (

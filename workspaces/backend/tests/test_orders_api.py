@@ -550,9 +550,9 @@ def test_orders_ops_realtime_retorna_monitoramento_ecossistema(admin_user):
     assert "payment_monitor" in body
     assert "summary" in body["payment_monitor"]
     assert "providers" in body["payment_monitor"]
-    providers = {
-        item["provider"] for item in body["payment_monitor"]["providers"]
-    }
+    service_keys = {item["key"] for item in body["services"]}
+    assert "cloudflare" in service_keys
+    providers = {item["provider"] for item in body["payment_monitor"]["providers"]}
     assert {"mock", "mercadopago", "efi", "asaas"}.issubset(providers)
 
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -368,7 +369,7 @@ export function RelatoriosSections({ activeSection = "all" }: RelatoriosSections
             </div>
             <StatusPill tone="brand">Caixa mensal</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando fluxo de caixa...</p>}
+          {loading && <InlinePreloader message="Carregando fluxo de caixa..." className="mt-3 justify-start bg-surface/70" />}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
@@ -395,7 +396,7 @@ export function RelatoriosSections({ activeSection = "all" }: RelatoriosSections
             </div>
             <StatusPill tone="warning">Compras {filteredPurchases.length}</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando compras...</p>}
+          {loading && <InlinePreloader message="Carregando compras..." className="mt-3 justify-start bg-surface/70" />}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
@@ -422,7 +423,7 @@ export function RelatoriosSections({ activeSection = "all" }: RelatoriosSections
             </div>
             <StatusPill tone="info">Lotes {filteredBatches.length}</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando produção...</p>}
+          {loading && <InlinePreloader message="Carregando produção..." className="mt-3 justify-start bg-surface/70" />}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">
@@ -449,7 +450,7 @@ export function RelatoriosSections({ activeSection = "all" }: RelatoriosSections
             </div>
             <StatusPill tone="success">Pedidos {filteredOrders.length}</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando pedidos...</p>}
+          {loading && <InlinePreloader message="Carregando pedidos..." className="mt-3 justify-start bg-surface/70" />}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">

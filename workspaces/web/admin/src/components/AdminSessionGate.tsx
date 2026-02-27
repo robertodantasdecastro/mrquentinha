@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, createContext, useContext, useEffect, useState } from "react";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import { ApiError, fetchHealth, fetchMe, loginAccount, logoutAccount } from "@/lib/api";
 import { hasStoredAuthSession } from "@/lib/storage";
@@ -128,7 +129,7 @@ export function AdminSessionGate({ children }: { children: React.ReactNode }) {
   if (viewState === "loading") {
     return (
       <section className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
-        <p className="text-sm text-muted">Validando sessao do Admin...</p>
+        <InlinePreloader message="Validando sessao do Admin..." className="justify-start bg-surface/70" />
       </section>
     );
   }
@@ -147,6 +148,7 @@ export function AdminSessionGate({ children }: { children: React.ReactNode }) {
           <label className="grid gap-1 text-sm text-muted">
             Usuario
             <input
+              name="username"
               required
               autoComplete="username"
               className={INPUT_CLASS}
@@ -160,8 +162,10 @@ export function AdminSessionGate({ children }: { children: React.ReactNode }) {
           <label className="grid gap-1 text-sm text-muted">
             Senha
             <input
+              name="password"
               required
               type="password"
+              minLength={8}
               autoComplete="current-password"
               className={INPUT_CLASS}
               value={loginForm.password}

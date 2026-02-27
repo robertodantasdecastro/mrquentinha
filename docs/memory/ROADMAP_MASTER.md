@@ -43,6 +43,10 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - Evidencia: `workspaces/backend/src/apps/portal/models.py`, `workspaces/backend/src/apps/portal/views.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/web/portal/src/lib/mobileRelease.ts`.
 - `T6.3.2-A7` concluida: novo template web cliente `client-vitrine-fit` (foco em fotos) e governanca de parametros OAuth Google/Apple no Portal CMS.
   - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/backend/src/apps/portal/models.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/web/client/src/components/MenuPage.tsx`, `workspaces/web/client/src/app/conta/page.tsx`.
+- `T6.3.2-A9` concluida: exposicao online via Cloudflare no Portal CMS com preview de rotas e toggle de ativacao/desativacao em 1 clique, incluindo atualizacao automatica de URLs/CORS e suporte a modo `hybrid`.
+  - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/backend/src/apps/portal/views.py`, `workspaces/backend/src/apps/portal/models.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/backend/tests/test_portal_api.py`, `workspaces/backend/tests/test_portal_services.py`.
+- `T6.3.2-A10` concluida: runtime do tunnel Cloudflare controlado pelo Admin (`start/stop/status`) com logs/PID em `.runtime/ops` e monitoramento do servico no endpoint realtime.
+  - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/backend/src/apps/portal/views.py`, `scripts/cloudflare_tunnel.sh`, `workspaces/backend/src/apps/orders/views.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`.
 - `T9.0.1` concluida: Admin Web foundation com novo workspace `workspaces/web/admin`.
   - Evidencia: shell inicial, login JWT (`token/refresh/me`) e dashboard base com status operacional.
 - `T9.0.2` concluida: Admin Web operacional com modulos de Pedidos, Financeiro e Estoque conectados ao backend.
@@ -51,6 +55,8 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - Evidencia: `MenuOpsPanel`, `ProcurementOpsPanel`, `ProductionOpsPanel`, camada API expandida e quality gate completo em `OK`.
 - `T9.2.6-A1` concluida: area de perfil completo do usuario logado no Web Admin em todos os templates, com endpoint autenticado dedicado e suporte a upload de foto/documentos/biometria por foto.
   - Evidencia: `workspaces/backend/src/apps/accounts/models.py`, `workspaces/backend/src/apps/accounts/views.py`, `workspaces/web/admin/src/app/perfil/page.tsx`, `workspaces/backend/tests/test_accounts_api.py`.
+- `T9.2.6-A2` concluida: validadores/formatadores globais de formularios no ecossistema web (Admin/Client/Portal), com UX touch para datas e reforco de validacao backend.
+  - Evidencia: `workspaces/web/ui/src/components/FormFieldGuard.tsx`, layouts dos 3 frontends, `workspaces/backend/src/apps/accounts/serializers.py`, `workspaces/backend/src/apps/portal/serializers.py`.
 
 ### Etapa 8 (Financas pessoais)
 - `T8.0.1` concluida: discovery de segregacao de dominio, ownership e requisitos LGPD para trilha pessoal.
@@ -165,7 +171,7 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 
 #### T6.3.2 - Integracao CMS no portal
 - Objetivo: portal/client consumir CMS via API (template/page sections + parametros de autenticacao) com fallback seguro.
-- Status parcial: `A1..A7` concluidas (restante tecnico: troca de `code` OAuth no backend para login social completo).
+- Status parcial: `A1..A7`, `A9` e `A10` concluidas (restante tecnico: `A8` para troca de `code` OAuth no backend para login social completo).
 
 #### T7.2.4 - Pagamentos multigateway em tempo real
 - Objetivo: suportar Mercado Pago, Efi e Asaas com configuracao central no Portal CMS, fallback por metodo (PIX/CARD/VR) e retorno de status em tempo real para cliente/admin/mobile.

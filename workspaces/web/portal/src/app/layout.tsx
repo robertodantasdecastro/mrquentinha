@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { FormFieldGuard } from "@mrquentinha/ui";
 
 import { Footer } from "@/components/Footer";
+import { GlobalNetworkPreloader } from "@/components/GlobalNetworkPreloader";
 import { Header } from "@/components/Header";
 import { PortalTemplateProvider } from "@/components/TemplateProvider";
 import { fetchPortalActiveTemplate } from "@/lib/portalTemplate";
@@ -42,12 +44,14 @@ export default async function RootLayout({
   const template = await fetchPortalActiveTemplate("home");
 
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning data-portal-template={template}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: initThemeScript }} />
       </head>
       <body className="bg-bg text-text antialiased">
         <PortalTemplateProvider initialTemplate={template}>
+          <GlobalNetworkPreloader />
+          <FormFieldGuard />
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-6 md:py-10">

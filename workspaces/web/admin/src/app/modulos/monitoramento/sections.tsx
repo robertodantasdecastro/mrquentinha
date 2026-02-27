@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import { ApiError, fetchEcosystemOpsRealtimeAdmin } from "@/lib/api";
 import type { EcosystemOpsRealtimeData } from "@/types/api";
@@ -88,7 +89,10 @@ export function MonitoramentoSections({ activeSection = "all" }: MonitoramentoSe
   const showAll = activeSection === "all";
 
   const serviceChartValues = useMemo(
-    () => payload?.services.map((item) => (item.listener_ok ? 100 : 0)) ?? [0, 0, 0, 0],
+    () =>
+      payload?.services.map((item) =>
+        item.status === "online" || item.status === "running" ? 100 : 0,
+      ) ?? [0, 0, 0, 0, 0],
     [payload],
   );
   const paymentSeries = useMemo(
@@ -112,7 +116,7 @@ export function MonitoramentoSections({ activeSection = "all" }: MonitoramentoSe
             <StatusPill tone="info">10s</StatusPill>
           </div>
 
-          {loading && <p className="mt-4 text-sm text-muted">Carregando dados realtime...</p>}
+          {loading && <InlinePreloader message="Carregando dados realtime..." className="mt-4 justify-start bg-surface/70" />}
           {!loading && payload && (
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -153,7 +157,8 @@ export function MonitoramentoSections({ activeSection = "all" }: MonitoramentoSe
                   {service.name}
                 </p>
                 <p className="mt-1 text-base font-semibold text-text">
-                  {service.status.toUpperCase()} :{service.port}
+                  {service.status.toUpperCase()}
+                  {service.port ? ` :${service.port}` : " (sem porta local)"}
                 </p>
                 <p className="mt-1 text-xs text-muted">
                   PID: {service.pid ?? "-"} | RSS: {service.rss_mb ?? 0} MB

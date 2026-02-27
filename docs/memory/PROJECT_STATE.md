@@ -3,7 +3,7 @@
 Referencia de atualizacao: 27/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
 
@@ -71,6 +71,16 @@ Referencia de atualizacao: 27/02/2026.
   - `PortalConfig` passou a expor `auth_providers` (Google/Apple) com parametros web/mobile gerenciados no Admin Web.
   - payload publico do CMS expoe apenas dados seguros e `configured`, sem `client_secret`/`private_key`.
   - template adicional `client-vitrine-fit` incluido no cadastro oficial de templates do canal cliente.
+- Portal CMS conectividade cloud (`T6.3.2-A9`):
+  - `PortalConfig` ganhou `cloudflare_settings` para governanca de dominio/tunnel/modo de exposicao.
+  - novos endpoints admin para preview e toggle:
+    - `POST /api/v1/portal/admin/config/cloudflare-preview/`
+    - `POST /api/v1/portal/admin/config/cloudflare-toggle/`
+  - ativacao/desativacao em 1 clique com atualizacao automatica de URLs dos frontends/API, CORS e rollback de snapshot local.
+- Portal CMS runtime cloud (`T6.3.2-A10`):
+  - novo endpoint admin `POST /api/v1/portal/admin/config/cloudflare-runtime/` com acoes `start|stop|status`.
+  - runtime do tunnel persiste PID/log em `.runtime/ops` e retorna ultimas linhas de log para o painel.
+  - monitoramento de servicos do ecossistema passou a incluir `cloudflare` em `GET /api/v1/orders/ops/realtime/`.
 - Financas pessoais (`T8.1.1`):
   - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
   - ownership estrito por usuario em querysets e validacoes.
@@ -120,6 +130,8 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A6`): `Portal CMS` ganhou secao `Build mobile` com criacao/compilacao/publicacao de releases e acompanhamento de status.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A2`): Portal Web passou a consumir `active_template` do CMS em runtime (server-side), refletindo mudancas do Admin sem rebuild por variavel de ambiente.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A7`): `Portal CMS` ganhou secao `Autenticacao social` para configurar Google/Apple (web + iOS + Android) com persistencia centralizada em `auth_providers`.
+- Atualizacao concluida em 27/02/2026 (`T6.3.2-A9`): `Portal CMS` ganhou secao `Cloudflare online (1 clique)` para preview e ativacao/desativacao de exposicao na internet com modos `local_only`, `cloudflare_only` e `hybrid`.
+- Atualizacao concluida em 27/02/2026 (`T6.3.2-A10`): secao Cloudflare ganhou controle de runtime do tunnel (`start/stop/status`) e exibicao das ultimas linhas de log em tela.
 - Atualizacao concluida em 26/02/2026 (`T7.2.4-A1`): `Portal CMS` ganhou secao `Pagamentos` para configurar Mercado Pago/Efi/Asaas, ordem por metodo (PIX/CARD/VR), recebedor CPF/CNPJ e teste de conexao por provider.
 - Atualizacao concluida em 26/02/2026 (`T7.2.4-A2`): `Portal CMS` passou a selecionar provider unico por canal (`Web Cliente` e `App Mobile`) com campos adaptativos por provider.
 - Atualizacao concluida em 26/02/2026 (`T7.2.4-A3`): dashboard recebeu monitoramento realtime de servicos/pagamentos e novo modulo `/modulos/monitoramento` com visao de saude e lifecycle.
@@ -132,6 +144,7 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T9.1.3-A7`): ciclo operacional completo no Admin com linha de producao (dashboard realtime, auto-checagem de estoque no cardapio, alertas de compras, entrega e confirmacao de recebimento pelo cliente).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): modulo Portal CMS ganhou editor de secoes dinamicas (template/pagina/body_json) e a composicao ganhou upload de fotos para insumos e pratos.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A1`): nova area `/perfil` no Web Admin (todos os templates) para administracao completa do usuario logado com dados adicionais, endereco, documentos, foto de perfil, digitalizacao por camera, biometria por foto e logoff.
+- Atualizacao concluida em 27/02/2026 (`T9.2.6-A2`): camada global de validacao/formatacao de formularios aplicada no Admin/Client/Portal (CPF/CNPJ/CEP/email/senha/datas) com reforco de validacao backend para senha de cadastro e recebedor de pagamentos.
 - Workspace ativo: `workspaces/web/admin`.
 - Proximo alvo tecnico: executar `T8.2.3` (hardening pos-MVP da trilha pessoal).
 - Proximo alvo operacional: executar `T9.2.1-A2` (rodada manual E2E completa) e manter `T8.2.3` como trilha tecnica de backend.
@@ -180,6 +193,9 @@ Referencia de atualizacao: 27/02/2026.
   - `PATCH /api/v1/portal/admin/config/<id>/`
   - `POST /api/v1/portal/admin/config/<id>/publish/`
   - `POST /api/v1/portal/admin/config/test-payment-provider/`
+  - `POST /api/v1/portal/admin/config/cloudflare-preview/`
+  - `POST /api/v1/portal/admin/config/cloudflare-toggle/`
+  - `POST /api/v1/portal/admin/config/cloudflare-runtime/`
 - Financas pessoais:
   - `GET/POST /api/v1/personal-finance/accounts/`
   - `GET/POST /api/v1/personal-finance/categories/`
@@ -211,6 +227,8 @@ Referencia de atualizacao: 27/02/2026.
 - T9.1.2 concluida (relatorios/exportacoes no Admin Web com filtro por periodo e exportacao CSV funcional por modulo).
 - T6.3.2-A6 concluida (release mobile no Portal CMS com publicacao de links para QR/download no Portal).
 - T6.3.2-A7 concluida (template cliente `client-vitrine-fit` + parametros OAuth Google/Apple gerenciados no Portal CMS).
+- T6.3.2-A9 concluida (Cloudflare online no Portal CMS com preview/toggle e coexistencia local+internet por modo `hybrid`).
+- T6.3.2-A10 concluida (runtime do cloudflared no Admin + monitoramento realtime do servico `cloudflare`).
 - T7.2.4-A1 concluida (multigateway no Portal CMS + webhooks dedicados por provider + habilitacao dinamica de metodos no web client).
 - T8.0.1 concluida (discovery de financas pessoais + ADR de segregacao entre dominio operacional e pessoal).
 - T8.1.1 concluida (backend `personal_finance` com isolamento por ownership + testes API).
@@ -218,5 +236,6 @@ Referencia de atualizacao: 27/02/2026.
 - T8.2.1 concluida (discovery da evolucao funcional da trilha pessoal).
 - T8.2.2 concluida (recorrencia, resumo mensal e importacao CSV MVP em producao de desenvolvimento).
 - T9.2.6-A1 concluida (area de perfil completo do usuario logado no Admin Web + endpoint autenticado `me/profile` com suporte a upload de arquivos).
+- T9.2.6-A2 concluida (validadores/formatadores globais de formularios no ecossistema web + hardening de validacao de senha/email/documento).
 - Proxima subetapa unica: executar `T7.2.4-A4` (homologacao externa dos tres gateways com credenciais reais, assinatura de webhook por provider e validacao fim a fim de webhook/status).
 - Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T8.2.3` (hardening backend) e `T9.2.1` (qualidade operacional manual).

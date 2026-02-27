@@ -11,7 +11,7 @@ Data de referencia: 27/02/2026.
 - Etapa 5.0 a 5.6.3: concluida
 - Etapa 6.0, 6.0.1 e 6.1.1: concluida
 - Etapa 6.3.1: concluida
-- Etapa 6.3.2 (A1 ate A7): concluida
+- Etapa 6.3.2 (A1 ate A7 + A9): concluida
 - Etapa 7.0: concluida
 - Etapa 7.1 (7.1.1 a 7.1.3): concluida em 25/02/2026
 - Etapa 7.2 (T7.2.1 a T7.2.3): concluida em 26/02/2026
@@ -28,6 +28,9 @@ Data de referencia: 27/02/2026.
 - Etapa 9.2.3 (templates e UX do Web Admin): concluida em 26/02/2026
 - Etapa 9.2.5 (template AdminDek e refinacao visual do Web Admin): concluida em 26/02/2026
 - Etapa 9.2.6-A1 (perfil completo do usuario logado no Web Admin): concluida em 27/02/2026
+- Etapa 9.2.6-A2 (validadores/formatadores globais de formularios no ecossistema web): concluida em 27/02/2026
+- Etapa 6.3.2-A9 (exposicao online Cloudflare com toggle 1 clique no Portal CMS): concluida em 27/02/2026
+- Etapa 6.3.2-A10 (runtime cloudflared + monitoramento realtime do tunnel): concluida em 27/02/2026
 
 ## Fechamento do MVP operacional
 O MVP operacional foi fechado com o backend cobrindo:
@@ -49,9 +52,10 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase financas pessoais (fundacao): Etapas 8.0.1, 8.1.1 e 8.1.2
 - Fase financas pessoais (evolucao): Etapas 8.2.1 (discovery) e 8.2.2 (implementacao MVP)
 - Fase operacao interna web: Etapas 9.0 e 9.1
-- Fechamento da trilha CMS em canais web: `T6.3.2-A1` ate `T6.3.2-A7`
+- Fechamento da trilha CMS em canais web: `T6.3.2-A1` ate `T6.3.2-A7` + `T6.3.2-A9`
 - Fase de qualidade operacional: `T9.2.1` (plano e campanha recorrente de testes manuais E2E)
 - Fase de governanca de identidade no Admin Web: `T9.2.6-A1` (cadastro completo de perfil, documentos e biometria por foto do usuario logado)
+- Fase de qualidade de dados em formularios: `T9.2.6-A2` (formatacao e validacao global para CPF/CNPJ/CEP/email/senha/datas nos frontends web + reforco backend)
 
 ## Proximas fases (planejado)
 ### 6.2 Consolidacao visual do portal (ownership Antigravity)
@@ -85,6 +89,8 @@ Dependencias:
 - Trilha de experiencia operacional: `T9.2.3` concluida com template `admin-adminkit` e fluxo guiado do ciclo operacional no Web Admin.
 - Resultado do passo anterior: `T7.2.4-A2` e `T7.2.4-A3` concluidas em 26/02/2026 com provider unico por canal (`web/mobile`), campos adaptativos por provider no Admin e monitoramento realtime em `/api/v1/orders/ops/realtime/` + modulo `/modulos/monitoramento`.
 - Resultado complementar mais recente: `T9.2.6-A1` concluida em 27/02/2026 com nova area `/perfil` no Web Admin (todos os templates), endpoint `GET/PATCH /api/v1/accounts/me/profile/` e suporte a upload/digitalizacao de foto/documentos/biometria.
+- Resultado complementar atual: `T6.3.2-A9` concluida em 27/02/2026 com area `Cloudflare online (1 clique)` em `/modulos/portal`, endpoints de preview/toggle e suporte a modos `local_only/cloudflare_only/hybrid` para coexistencia local + internet.
+- Resultado complementar mais recente: `T6.3.2-A10` concluida em 27/02/2026 com acao runtime (`start/stop/status`) do tunnel via Admin, script operacional `scripts/cloudflare_tunnel.sh` e visibilidade do servico `cloudflare` no monitoramento realtime.
 
 ## Regra de execucao continua
 Cada nova fase deve manter:

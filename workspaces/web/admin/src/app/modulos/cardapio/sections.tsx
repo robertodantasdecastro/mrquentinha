@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import { ApiError, listDishesAdmin, listMenuDaysAdmin } from "@/lib/api";
 import {
@@ -150,7 +151,7 @@ export function CardapioSections({ activeSection = "all" }: CardapioSectionsProp
             </div>
             <StatusPill tone="brand">Menu ativo</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando resumo do cardápio...</p>}
+          {loading && <InlinePreloader message="Carregando resumo do cardápio..." className="mt-3 justify-start bg-surface/70" />}
           {!loading && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <article className="rounded-xl border border-border bg-bg p-4">
@@ -191,7 +192,7 @@ export function CardapioSections({ activeSection = "all" }: CardapioSectionsProp
             </div>
             <StatusPill tone="info">{dishes.length} pratos cadastrados</StatusPill>
           </div>
-          {loading && <p className="mt-3 text-sm text-muted">Carregando tendências...</p>}
+          {loading && <InlinePreloader message="Carregando tendências..." className="mt-3 justify-start bg-surface/70" />}
           {!loading && (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-bg p-4">

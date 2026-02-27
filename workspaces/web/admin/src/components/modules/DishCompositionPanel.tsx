@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -542,7 +543,7 @@ export function DishCompositionPanel() {
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando composição...</p>}
+      {loading && <InlinePreloader message="Carregando composição..." className="mt-4 justify-start bg-surface/70" />}
 
       {!loading && (
         <>

@@ -326,6 +326,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Nome completo
             <input
+              name="full_name"
               className={INPUT_CLASS}
               value={formState.full_name}
               onChange={(event) => handleFieldChange("full_name", event.currentTarget.value)}
@@ -334,6 +335,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Nome preferido
             <input
+              name="preferred_name"
               className={INPUT_CLASS}
               value={formState.preferred_name}
               onChange={(event) => handleFieldChange("preferred_name", event.currentTarget.value)}
@@ -342,6 +344,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Telefone principal
             <input
+              name="phone"
               className={INPUT_CLASS}
               value={formState.phone}
               onChange={(event) => handleFieldChange("phone", event.currentTarget.value)}
@@ -350,6 +353,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Telefone secundario
             <input
+              name="secondary_phone"
               className={INPUT_CLASS}
               value={formState.secondary_phone}
               onChange={(event) => handleFieldChange("secondary_phone", event.currentTarget.value)}
@@ -358,6 +362,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Data de nascimento
             <input
+              name="birth_date"
               type="date"
               className={INPUT_CLASS}
               value={formState.birth_date}
@@ -367,6 +372,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Profissao/funcao
             <input
+              name="occupation"
               className={INPUT_CLASS}
               value={formState.occupation}
               onChange={(event) => handleFieldChange("occupation", event.currentTarget.value)}
@@ -375,6 +381,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             CPF
             <input
+              name="cpf"
               className={INPUT_CLASS}
               value={formState.cpf}
               onChange={(event) => handleFieldChange("cpf", event.currentTarget.value)}
@@ -383,6 +390,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             CNPJ
             <input
+              name="cnpj"
               className={INPUT_CLASS}
               value={formState.cnpj}
               onChange={(event) => handleFieldChange("cnpj", event.currentTarget.value)}
@@ -391,6 +399,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             RG
             <input
+              name="rg"
               className={INPUT_CLASS}
               value={formState.rg}
               onChange={(event) => handleFieldChange("rg", event.currentTarget.value)}
@@ -403,6 +412,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             CEP
             <input
+              name="postal_code"
               className={INPUT_CLASS}
               value={formState.postal_code}
               onChange={(event) => handleFieldChange("postal_code", event.currentTarget.value)}
@@ -411,6 +421,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Rua
             <input
+              name="street"
               className={INPUT_CLASS}
               value={formState.street}
               onChange={(event) => handleFieldChange("street", event.currentTarget.value)}
@@ -419,6 +430,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Numero
             <input
+              name="street_number"
               className={INPUT_CLASS}
               value={formState.street_number}
               onChange={(event) => handleFieldChange("street_number", event.currentTarget.value)}
@@ -427,6 +439,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Complemento
             <input
+              name="address_complement"
               className={INPUT_CLASS}
               value={formState.address_complement}
               onChange={(event) =>
@@ -437,6 +450,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Bairro
             <input
+              name="neighborhood"
               className={INPUT_CLASS}
               value={formState.neighborhood}
               onChange={(event) => handleFieldChange("neighborhood", event.currentTarget.value)}
@@ -445,6 +459,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Cidade
             <input
+              name="city"
               className={INPUT_CLASS}
               value={formState.city}
               onChange={(event) => handleFieldChange("city", event.currentTarget.value)}
@@ -453,6 +468,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Estado
             <input
+              name="state"
               className={INPUT_CLASS}
               value={formState.state}
               onChange={(event) => handleFieldChange("state", event.currentTarget.value)}
@@ -461,6 +477,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Pais
             <input
+              name="country"
               className={INPUT_CLASS}
               value={formState.country}
               onChange={(event) => handleFieldChange("country", event.currentTarget.value)}
@@ -473,6 +490,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Tipo do documento
             <select
+              name="document_type"
               className={INPUT_CLASS}
               value={formState.document_type}
               onChange={(event) =>
@@ -489,6 +507,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Numero do documento
             <input
+              name="document_number"
               className={INPUT_CLASS}
               value={formState.document_number}
               onChange={(event) => handleFieldChange("document_number", event.currentTarget.value)}
@@ -497,6 +516,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted">
             Orgao emissor
             <input
+              name="document_issuer"
               className={INPUT_CLASS}
               value={formState.document_issuer}
               onChange={(event) => handleFieldChange("document_issuer", event.currentTarget.value)}
@@ -505,6 +525,7 @@ function ProfilePageContent() {
           <label className="grid gap-1 text-sm text-muted md:col-span-2">
             Observacoes
             <textarea
+              name="notes"
               className={TEXTAREA_CLASS}
               value={formState.notes}
               onChange={(event) => handleFieldChange("notes", event.currentTarget.value)}
@@ -534,6 +555,7 @@ function ProfilePageContent() {
           <article className="rounded-xl border border-border bg-bg p-4">
             <p className="text-sm font-semibold text-text">Foto de perfil</p>
             <input
+              name="profile_photo"
               type="file"
               accept="image/*"
               className="mt-3 block w-full text-sm text-muted"
@@ -555,6 +577,7 @@ function ProfilePageContent() {
             <p className="text-sm font-semibold text-text">Documentos (frente/verso/selfie)</p>
             <div className="mt-3 grid gap-2">
               <input
+                name="document_front_image"
                 type="file"
                 accept="image/*"
                 capture="environment"
@@ -562,6 +585,7 @@ function ProfilePageContent() {
                 onChange={(event) => handleFileChange("document_front_image", event)}
               />
               <input
+                name="document_back_image"
                 type="file"
                 accept="image/*"
                 capture="environment"
@@ -569,6 +593,7 @@ function ProfilePageContent() {
                 onChange={(event) => handleFileChange("document_back_image", event)}
               />
               <input
+                name="document_selfie_image"
                 type="file"
                 accept="image/*"
                 capture="user"
@@ -581,6 +606,7 @@ function ProfilePageContent() {
           <article className="rounded-xl border border-border bg-bg p-4">
             <p className="text-sm font-semibold text-text">Biometria facial (foto)</p>
             <input
+              name="biometric_photo"
               type="file"
               accept="image/*"
               capture="user"

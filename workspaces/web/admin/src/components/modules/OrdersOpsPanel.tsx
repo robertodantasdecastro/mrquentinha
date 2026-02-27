@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -196,7 +197,7 @@ export function OrdersOpsPanel() {
         </article>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando pedidos...</p>}
+      {loading && <InlinePreloader message="Carregando pedidos..." className="mt-4 justify-start bg-surface/70" />}
 
       {!loading && orders.length === 0 && (
         <p className="mt-4 rounded-xl border border-border bg-bg p-4 text-sm text-muted">

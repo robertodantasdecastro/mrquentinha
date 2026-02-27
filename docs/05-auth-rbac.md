@@ -84,3 +84,11 @@
 - Validar `redirect_uri` permitidas por canal (`web` e `mobile`).
 - Aplicar rate limit e monitorar tentativas de login.
 - Registrar eventos de negacao de acesso para auditoria.
+
+## Politica de senha (cadastro)
+- Validacao de cadastro (`/api/v1/accounts/register/`) exige:
+  - minimo de 8 caracteres;
+  - ao menos 1 letra maiuscula;
+  - ao menos 1 letra minuscula;
+  - ao menos 1 numero.
+- Frontends web aplicam validacao de senha no cliente antes do submit para reduzir erros de preenchimento.

@@ -150,3 +150,10 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+input[data-mrq-field-touched="true"]:invalid,
+select[data-mrq-field-touched="true"]:invalid,
+textarea[data-mrq-field-touched="true"]:invalid {
+  border-color: rgb(199 59 59 / 82%);
+  box-shadow: 0 0 0 2px rgb(199 59 59 / 18%);
+}

@@ -1,7 +1,11 @@
 import hashlib
 import json
+import os
+import signal
+import subprocess
 from copy import deepcopy
 from datetime import datetime
+from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -23,9 +27,16 @@ from .selectors import (
     list_sections_by_template_page,
 )
 
-PortalChannel = Literal["portal", "client"]
+PortalChannel = Literal["portal", "client", "admin"]
 CHANNEL_PORTAL: PortalChannel = "portal"
 CHANNEL_CLIENT: PortalChannel = "client"
+CHANNEL_ADMIN: PortalChannel = "admin"
+PROJECT_ROOT = Path(__file__).resolve().parents[5]
+OPS_RUNTIME_DIR = PROJECT_ROOT / ".runtime" / "ops"
+OPS_PID_DIR = OPS_RUNTIME_DIR / "pids"
+OPS_LOG_DIR = OPS_RUNTIME_DIR / "logs"
+CLOUDFLARE_PID_FILE = OPS_PID_DIR / "cloudflare.pid"
+CLOUDFLARE_LOG_FILE = OPS_LOG_DIR / "cloudflare.log"
 
 DEFAULT_PORTAL_TEMPLATE_ITEMS = [
     {"id": "classic", "label": "Classic"},
@@ -36,6 +47,12 @@ DEFAULT_CLIENT_TEMPLATE_ITEMS = [
     {"id": "client-classic", "label": "Cliente Classico"},
     {"id": "client-quentinhas", "label": "Cliente Quentinhas"},
     {"id": "client-vitrine-fit", "label": "Cliente Vitrine Fit"},
+]
+
+DEFAULT_ADMIN_TEMPLATE_ITEMS = [
+    {"id": "admin-classic", "label": "Admin Classico"},
+    {"id": "admin-adminkit", "label": "Admin Operations Kit"},
+    {"id": "admin-admindek", "label": "Admin Dek Prime"},
 ]
 
 DEFAULT_AUTH_PROVIDERS_SETTINGS = {
@@ -121,11 +138,48 @@ def _default_payment_providers_payload() -> dict:
     return deepcopy(DEFAULT_PAYMENT_PROVIDERS_SETTINGS)
 
 
+DEFAULT_CLOUDFLARE_SETTINGS = {
+    "enabled": False,
+    "mode": "hybrid",
+    "scheme": "https",
+    "root_domain": "mrquentinha.com.br",
+    "subdomains": {
+        "portal": "www",
+        "client": "app",
+        "admin": "admin",
+        "api": "api",
+    },
+    "tunnel_name": "mrquentinha",
+    "tunnel_id": "",
+    "tunnel_token": "",
+    "account_id": "",
+    "zone_id": "",
+    "api_token": "",
+    "auto_apply_routes": True,
+    "last_action_at": "",
+    "last_status_message": "Cloudflare desativado.",
+    "runtime": {
+        "state": "inactive",
+        "last_started_at": "",
+        "last_stopped_at": "",
+        "last_error": "",
+        "run_command": "",
+    },
+    "local_snapshot": {},
+}
+
+
+def _default_cloudflare_settings_payload() -> dict:
+    return deepcopy(DEFAULT_CLOUDFLARE_SETTINGS)
+
+
 DEFAULT_CONFIG_PAYLOAD = {
     "active_template": "classic",
     "available_templates": DEFAULT_PORTAL_TEMPLATE_ITEMS,
     "client_active_template": "client-classic",
     "client_available_templates": DEFAULT_CLIENT_TEMPLATE_ITEMS,
+    "admin_active_template": "admin-classic",
+    "admin_available_templates": DEFAULT_ADMIN_TEMPLATE_ITEMS,
     "site_name": "Mr Quentinha",
     "site_title": "Mr Quentinha | Marmitas do dia",
     "meta_description": "Marmitas saudaveis com entrega agendada.",
@@ -159,6 +213,7 @@ DEFAULT_CONFIG_PAYLOAD = {
         "http://10.211.55.21:3001",
         "http://10.211.55.21:3002",
     ],
+    "cloudflare_settings": _default_cloudflare_settings_payload(),
     "auth_providers": _default_auth_providers_payload(),
     "payment_providers": _default_payment_providers_payload(),
     "is_published": False,
@@ -463,6 +518,8 @@ CONFIG_MUTABLE_FIELDS = [
     "available_templates",
     "client_active_template",
     "client_available_templates",
+    "admin_active_template",
+    "admin_available_templates",
     "site_name",
     "site_title",
     "meta_description",
@@ -486,6 +543,7 @@ CONFIG_MUTABLE_FIELDS = [
     "backend_base_url",
     "proxy_base_url",
     "cors_allowed_origins",
+    "cloudflare_settings",
     "auth_providers",
     "payment_providers",
     "is_published",
@@ -625,18 +683,24 @@ def _normalize_payment_providers(raw_value: object | None) -> dict:
             str(item).strip().lower() for item in enabled if str(item).strip()
         ] or ["mock"]
         normalized["enabled_providers"] = [
-            item for item in normalized["enabled_providers"] if item in allowed_providers
+            item
+            for item in normalized["enabled_providers"]
+            if item in allowed_providers
         ] or ["mock"]
 
     frontend_provider = raw_value.get("frontend_provider")
     if isinstance(frontend_provider, dict):
-        web_provider = str(frontend_provider.get("web", "mock")).strip().lower() or "mock"
+        web_provider = (
+            str(frontend_provider.get("web", "mock")).strip().lower() or "mock"
+        )
         mobile_provider = (
             str(frontend_provider.get("mobile", "mock")).strip().lower() or "mock"
         )
         normalized["frontend_provider"] = {
             "web": web_provider if web_provider in allowed_providers else "mock",
-            "mobile": mobile_provider if mobile_provider in allowed_providers else "mock",
+            "mobile": (
+                mobile_provider if mobile_provider in allowed_providers else "mock"
+            ),
         }
 
     method_order = raw_value.get("method_provider_order")
@@ -724,6 +788,284 @@ def _build_public_payment_providers(raw_value: object | None) -> dict:
             "sandbox": bool(asaas.get("sandbox", True)),
             "configured": bool(str(asaas.get("api_key", "")).strip()),
         },
+    }
+
+
+def _normalize_cloudflare_mode(value: object) -> str:
+    normalized = str(value or "").strip().lower()
+    if normalized in {"local_only", "cloudflare_only", "hybrid"}:
+        return normalized
+    return "hybrid"
+
+
+def _normalize_cloudflare_settings(raw_value: object | None) -> dict:
+    normalized = _default_cloudflare_settings_payload()
+    if not isinstance(raw_value, dict):
+        return normalized
+
+    normalized["enabled"] = bool(raw_value.get("enabled", False))
+    normalized["mode"] = _normalize_cloudflare_mode(raw_value.get("mode"))
+    scheme = str(raw_value.get("scheme", "https")).strip().lower()
+    normalized["scheme"] = "https" if scheme not in {"http", "https"} else scheme
+    normalized["root_domain"] = (
+        str(raw_value.get("root_domain", "")).strip() or normalized["root_domain"]
+    )
+    normalized["tunnel_name"] = (
+        str(raw_value.get("tunnel_name", "")).strip() or normalized["tunnel_name"]
+    )
+    normalized["tunnel_id"] = str(raw_value.get("tunnel_id", "")).strip()
+    normalized["tunnel_token"] = str(raw_value.get("tunnel_token", "")).strip()
+    normalized["account_id"] = str(raw_value.get("account_id", "")).strip()
+    normalized["zone_id"] = str(raw_value.get("zone_id", "")).strip()
+    normalized["api_token"] = str(raw_value.get("api_token", "")).strip()
+    normalized["auto_apply_routes"] = bool(raw_value.get("auto_apply_routes", True))
+    normalized["last_action_at"] = str(raw_value.get("last_action_at", "")).strip()
+    normalized["last_status_message"] = (
+        str(raw_value.get("last_status_message", "")).strip()
+        or "Cloudflare desativado."
+    )
+
+    source_subdomains = raw_value.get("subdomains")
+    if isinstance(source_subdomains, dict):
+        for channel in ("portal", "client", "admin", "api"):
+            source_value = source_subdomains.get(channel)
+            if source_value is None:
+                continue
+            normalized["subdomains"][channel] = str(source_value).strip().lower()
+
+    source_runtime = raw_value.get("runtime")
+    if isinstance(source_runtime, dict):
+        for key in ("state", "last_started_at", "last_stopped_at", "last_error"):
+            if key in source_runtime:
+                normalized["runtime"][key] = str(source_runtime.get(key, "")).strip()
+        if "run_command" in source_runtime:
+            normalized["runtime"]["run_command"] = str(
+                source_runtime.get("run_command", "")
+            ).strip()
+
+    source_snapshot = raw_value.get("local_snapshot")
+    if isinstance(source_snapshot, dict):
+        normalized["local_snapshot"] = {
+            str(key): source_snapshot[key]
+            for key in source_snapshot
+            if isinstance(key, str)
+        }
+
+    return normalized
+
+
+def _join_cloudflare_domain(*, subdomain: str, root_domain: str) -> str:
+    clean_root = root_domain.strip().lower().strip(".")
+    clean_subdomain = subdomain.strip().lower().strip(".")
+    if not clean_root:
+        return ""
+    if clean_subdomain in {"", "@", "root"}:
+        return clean_root
+    return f"{clean_subdomain}.{clean_root}"
+
+
+def _build_cloudflare_preview_payload(config: PortalConfig, settings: dict) -> dict:
+    normalized = _normalize_cloudflare_settings(settings)
+    scheme = normalized["scheme"]
+    root_domain = normalized["root_domain"]
+    subdomains = normalized["subdomains"]
+
+    portal_domain = _join_cloudflare_domain(
+        subdomain=subdomains["portal"],
+        root_domain=root_domain,
+    )
+    client_domain = _join_cloudflare_domain(
+        subdomain=subdomains["client"],
+        root_domain=root_domain,
+    )
+    admin_domain = _join_cloudflare_domain(
+        subdomain=subdomains["admin"],
+        root_domain=root_domain,
+    )
+    api_domain = _join_cloudflare_domain(
+        subdomain=subdomains["api"],
+        root_domain=root_domain,
+    )
+
+    portal_base_url = f"{scheme}://{portal_domain}" if portal_domain else ""
+    client_base_url = f"{scheme}://{client_domain}" if client_domain else ""
+    admin_base_url = f"{scheme}://{admin_domain}" if admin_domain else ""
+    api_base_url = f"{scheme}://{api_domain}" if api_domain else ""
+
+    cors_origins = [
+        origin
+        for origin in [portal_base_url, client_base_url, admin_base_url]
+        if origin
+    ]
+
+    ingress_rules = [
+        f"{portal_domain} -> http://127.0.0.1:3000",
+        f"{client_domain} -> http://127.0.0.1:3001",
+        f"{admin_domain} -> http://127.0.0.1:3002",
+        f"{api_domain} -> http://127.0.0.1:8000",
+    ]
+    run_command = ""
+    if normalized["tunnel_token"]:
+        run_command = "cloudflared tunnel run --token <token-configurado-no-admin>"
+    elif normalized["tunnel_name"]:
+        run_command = f"cloudflared tunnel run {normalized['tunnel_name']}"
+
+    return {
+        "mode": normalized["mode"],
+        "scheme": scheme,
+        "root_domain": root_domain,
+        "domains": {
+            "portal": portal_domain,
+            "client": client_domain,
+            "admin": admin_domain,
+            "api": api_domain,
+        },
+        "urls": {
+            "portal_base_url": portal_base_url,
+            "client_base_url": client_base_url,
+            "admin_base_url": admin_base_url,
+            "api_base_url": api_base_url,
+            "backend_base_url": api_base_url,
+        },
+        "cors_allowed_origins": cors_origins,
+        "tunnel": {
+            "name": normalized["tunnel_name"],
+            "id": normalized["tunnel_id"],
+            "configured": bool(normalized["tunnel_token"] or normalized["tunnel_id"]),
+            "run_command": run_command,
+        },
+        "ingress_rules": ingress_rules,
+        "coexistence_note": (
+            "Modo hybrid permite acesso local e Cloudflare ao mesmo tempo."
+        ),
+        "generated_at": timezone.now().isoformat(),
+    }
+
+
+def _build_public_cloudflare_settings(config: PortalConfig) -> dict:
+    normalized = _normalize_cloudflare_settings(config.cloudflare_settings)
+    preview = _build_cloudflare_preview_payload(config, normalized)
+    return {
+        "enabled": normalized["enabled"],
+        "mode": normalized["mode"],
+        "scheme": normalized["scheme"],
+        "root_domain": normalized["root_domain"],
+        "subdomains": normalized["subdomains"],
+        "last_action_at": normalized["last_action_at"],
+        "last_status_message": normalized["last_status_message"],
+        "runtime": {
+            "state": str(normalized["runtime"].get("state", "inactive")).strip()
+            or "inactive",
+            "last_started_at": str(
+                normalized["runtime"].get("last_started_at", "")
+            ).strip(),
+            "last_stopped_at": str(
+                normalized["runtime"].get("last_stopped_at", "")
+            ).strip(),
+            "last_error": str(normalized["runtime"].get("last_error", "")).strip(),
+        },
+        "domains": preview["domains"],
+        "urls": preview["urls"],
+        "coexistence_supported": True,
+    }
+
+
+def _build_local_connectivity_snapshot(config: PortalConfig) -> dict:
+    return {
+        "local_hostname": config.local_hostname,
+        "local_network_ip": config.local_network_ip,
+        "root_domain": config.root_domain,
+        "portal_domain": config.portal_domain,
+        "client_domain": config.client_domain,
+        "admin_domain": config.admin_domain,
+        "api_domain": config.api_domain,
+        "api_base_url": config.api_base_url,
+        "portal_base_url": config.portal_base_url,
+        "client_base_url": config.client_base_url,
+        "admin_base_url": config.admin_base_url,
+        "backend_base_url": config.backend_base_url,
+        "proxy_base_url": config.proxy_base_url,
+        "cors_allowed_origins": list(config.cors_allowed_origins),
+    }
+
+
+def _ensure_ops_runtime_dirs() -> None:
+    OPS_PID_DIR.mkdir(parents=True, exist_ok=True)
+    OPS_LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _read_cloudflare_pid() -> int | None:
+    if not CLOUDFLARE_PID_FILE.exists():
+        return None
+
+    try:
+        pid = int(CLOUDFLARE_PID_FILE.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return None
+
+    try:
+        os.kill(pid, 0)
+        return pid
+    except OSError:
+        return None
+
+
+def _tail_cloudflare_log(*, lines: int = 80) -> list[str]:
+    if lines <= 0:
+        return []
+    if not CLOUDFLARE_LOG_FILE.exists():
+        return []
+
+    try:
+        content = CLOUDFLARE_LOG_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    return [line for line in content.splitlines()[-lines:] if line.strip()]
+
+
+def _build_cloudflare_run_command(settings: dict) -> list[str]:
+    tunnel_token = str(settings.get("tunnel_token", "")).strip()
+    tunnel_name = str(settings.get("tunnel_name", "")).strip()
+
+    if tunnel_token:
+        return ["cloudflared", "tunnel", "run", "--token", tunnel_token]
+    if tunnel_name:
+        return ["cloudflared", "tunnel", "run", tunnel_name]
+
+    raise ValidationError(
+        "Defina tunnel_token ou tunnel_name para iniciar runtime do Cloudflare."
+    )
+
+
+def _format_command_for_display(command: list[str]) -> str:
+    parts: list[str] = []
+    for item in command:
+        clean = str(item).strip()
+        if " " in clean:
+            parts.append(f'"{clean}"')
+        else:
+            parts.append(clean)
+    return " ".join(parts)
+
+
+def _build_cloudflare_runtime_payload(config: PortalConfig) -> dict:
+    settings = _normalize_cloudflare_settings(config.cloudflare_settings)
+    pid = _read_cloudflare_pid()
+    runtime = settings.get("runtime", {})
+    state = "active" if pid else "inactive"
+    if runtime.get("state") == "error":
+        state = "error"
+
+    return {
+        "state": state,
+        "pid": pid,
+        "log_file": str(CLOUDFLARE_LOG_FILE),
+        "last_started_at": str(runtime.get("last_started_at", "")).strip(),
+        "last_stopped_at": str(runtime.get("last_stopped_at", "")).strip(),
+        "last_error": str(runtime.get("last_error", "")).strip(),
+        "run_command": str(runtime.get("run_command", "")).strip(),
+        "last_log_lines": _tail_cloudflare_log(lines=40),
     }
 
 
@@ -834,6 +1176,14 @@ def _ensure_connection_defaults(config: PortalConfig) -> None:
         config.client_available_templates = merged_client_templates
         update_fields.append("client_available_templates")
 
+    merged_admin_templates = _merge_default_template_items(
+        current_items=config.admin_available_templates,
+        default_items=DEFAULT_ADMIN_TEMPLATE_ITEMS,
+    )
+    if config.admin_available_templates != merged_admin_templates:
+        config.admin_available_templates = merged_admin_templates
+        update_fields.append("admin_available_templates")
+
     normalized_auth_providers = _normalize_auth_providers(config.auth_providers)
     if config.auth_providers != normalized_auth_providers:
         config.auth_providers = normalized_auth_providers
@@ -845,6 +1195,13 @@ def _ensure_connection_defaults(config: PortalConfig) -> None:
     if config.payment_providers != normalized_payment_providers:
         config.payment_providers = normalized_payment_providers
         update_fields.append("payment_providers")
+
+    normalized_cloudflare_settings = _normalize_cloudflare_settings(
+        config.cloudflare_settings
+    )
+    if config.cloudflare_settings != normalized_cloudflare_settings:
+        config.cloudflare_settings = normalized_cloudflare_settings
+        update_fields.append("cloudflare_settings")
 
     if update_fields:
         update_fields.append("updated_at")
@@ -879,6 +1236,10 @@ def save_portal_config(
     if "payment_providers" in payload:
         payload["payment_providers"] = _normalize_payment_providers(
             payload["payment_providers"]
+        )
+    if "cloudflare_settings" in payload:
+        payload["cloudflare_settings"] = _normalize_cloudflare_settings(
+            payload["cloudflare_settings"]
         )
     if "api_base_url" in payload and "backend_base_url" not in payload:
         payload["backend_base_url"] = payload["api_base_url"]
@@ -917,6 +1278,14 @@ def save_portal_config(
         "client_active_template",
         config.client_active_template,
     )
+    admin_available_templates = payload.get(
+        "admin_available_templates",
+        config.admin_available_templates,
+    )
+    admin_active_template = payload.get(
+        "admin_active_template",
+        config.admin_active_template,
+    )
 
     if available_templates and active_template not in _extract_template_ids(
         available_templates
@@ -930,6 +1299,15 @@ def save_portal_config(
     ):
         raise ValidationError(
             "client_active_template precisa existir em client_available_templates."
+        )
+
+    if (
+        admin_available_templates
+        and admin_active_template
+        not in _extract_template_ids(admin_available_templates)
+    ):
+        raise ValidationError(
+            "admin_active_template precisa existir em admin_available_templates."
         )
 
     if created:
@@ -970,6 +1348,11 @@ def _resolve_templates(config: PortalConfig, *, channel: PortalChannel) -> list[
             return config.client_available_templates
         return DEFAULT_CLIENT_TEMPLATE_ITEMS
 
+    if channel == CHANNEL_ADMIN:
+        if config.admin_available_templates:
+            return config.admin_available_templates
+        return DEFAULT_ADMIN_TEMPLATE_ITEMS
+
     if config.available_templates:
         return config.available_templates
     return DEFAULT_PORTAL_TEMPLATE_ITEMS
@@ -978,6 +1361,8 @@ def _resolve_templates(config: PortalConfig, *, channel: PortalChannel) -> list[
 def _resolve_active_template(config: PortalConfig, *, channel: PortalChannel) -> str:
     if channel == CHANNEL_CLIENT:
         return config.client_active_template
+    if channel == CHANNEL_ADMIN:
+        return config.admin_active_template
     return config.active_template
 
 
@@ -986,7 +1371,7 @@ def build_public_portal_payload(
     page: str = PortalPage.HOME,
     channel: PortalChannel = CHANNEL_PORTAL,
 ) -> dict:
-    if channel not in {CHANNEL_PORTAL, CHANNEL_CLIENT}:
+    if channel not in {CHANNEL_PORTAL, CHANNEL_CLIENT, CHANNEL_ADMIN}:
         raise ValidationError("Canal invalido para configuracao publica.")
 
     config = ensure_portal_config()
@@ -1007,6 +1392,11 @@ def build_public_portal_payload(
         "client_available_templates": _resolve_templates(
             config,
             channel=CHANNEL_CLIENT,
+        ),
+        "admin_active_template": config.admin_active_template,
+        "admin_available_templates": _resolve_templates(
+            config,
+            channel=CHANNEL_ADMIN,
         ),
         "site_name": config.site_name,
         "site_title": config.site_title,
@@ -1031,6 +1421,7 @@ def build_public_portal_payload(
         "backend_base_url": config.backend_base_url,
         "proxy_base_url": config.proxy_base_url,
         "cors_allowed_origins": config.cors_allowed_origins,
+        "cloudflare": _build_public_cloudflare_settings(config),
         "auth_providers": _build_public_auth_providers(config.auth_providers),
         "payment_providers": _build_public_payment_providers(config.payment_providers),
         "host_publico": _resolve_public_host(config),
@@ -1095,6 +1486,7 @@ def build_portal_version_payload() -> dict:
     fingerprint_payload = {
         "active_template": config.active_template,
         "client_active_template": config.client_active_template,
+        "admin_active_template": config.admin_active_template,
         "config_updated_at": _serialize_dt(config.updated_at),
         "sections": {
             "portal": [
@@ -1110,6 +1502,18 @@ def build_portal_version_payload() -> dict:
                     "updated_at": _serialize_dt(row["updated_at"]),
                 }
                 for row in client_sections_qs.order_by("id").values("id", "updated_at")
+            ],
+            "admin": [
+                {
+                    "id": row["id"],
+                    "updated_at": _serialize_dt(row["updated_at"]),
+                }
+                for row in PortalSection.objects.filter(
+                    config=config,
+                    template_id=config.admin_active_template,
+                )
+                .order_by("id")
+                .values("id", "updated_at")
             ],
         },
     }
@@ -1264,6 +1668,258 @@ def build_latest_mobile_release_payload() -> dict:
         "published_at": release.published_at,
         "release_notes": release.release_notes,
     }
+
+
+def build_cloudflare_preview(
+    *,
+    overrides: dict | None = None,
+) -> dict:
+    config = ensure_portal_config()
+    base_settings = _normalize_cloudflare_settings(config.cloudflare_settings)
+    if isinstance(overrides, dict):
+        base_settings = _normalize_cloudflare_settings({**base_settings, **overrides})
+    return _build_cloudflare_preview_payload(config, base_settings)
+
+
+def _append_unique_origins(origins: list[str], extra: list[str]) -> list[str]:
+    output: list[str] = []
+    seen: set[str] = set()
+
+    for item in [*origins, *extra]:
+        normalized = str(item).strip().rstrip("/")
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        output.append(normalized)
+
+    return output
+
+
+@transaction.atomic
+def toggle_cloudflare_mode(
+    *,
+    enabled: bool,
+    overrides: dict | None = None,
+) -> tuple[PortalConfig, dict]:
+    config = ensure_portal_config()
+    settings = _normalize_cloudflare_settings(config.cloudflare_settings)
+    if isinstance(overrides, dict):
+        settings = _normalize_cloudflare_settings({**settings, **overrides})
+
+    now_iso = timezone.now().isoformat()
+    preview = _build_cloudflare_preview_payload(config, settings)
+    update_fields: list[str] = []
+
+    if enabled:
+        if not settings.get("local_snapshot"):
+            settings["local_snapshot"] = _build_local_connectivity_snapshot(config)
+
+        mode = _normalize_cloudflare_mode(settings.get("mode"))
+        if mode == "local_only":
+            mode = "hybrid"
+            settings["mode"] = mode
+
+        urls = preview["urls"]
+        domains = preview["domains"]
+        cloud_origins = preview["cors_allowed_origins"]
+        local_snapshot = settings.get("local_snapshot", {})
+        local_origins = local_snapshot.get("cors_allowed_origins", [])
+        if not isinstance(local_origins, list):
+            local_origins = []
+
+        if mode == "cloudflare_only":
+            cors_origins = _append_unique_origins([], cloud_origins)
+        else:
+            cors_origins = _append_unique_origins(local_origins, cloud_origins)
+
+        config.root_domain = settings["root_domain"]
+        config.portal_domain = str(domains.get("portal", "")).strip()
+        config.client_domain = str(domains.get("client", "")).strip()
+        config.admin_domain = str(domains.get("admin", "")).strip()
+        config.api_domain = str(domains.get("api", "")).strip()
+        config.portal_base_url = str(urls.get("portal_base_url", "")).strip()
+        config.client_base_url = str(urls.get("client_base_url", "")).strip()
+        config.admin_base_url = str(urls.get("admin_base_url", "")).strip()
+        config.api_base_url = str(urls.get("api_base_url", "")).strip()
+        config.backend_base_url = str(urls.get("backend_base_url", "")).strip()
+        config.cors_allowed_origins = cors_origins
+
+        update_fields.extend(
+            [
+                "root_domain",
+                "portal_domain",
+                "client_domain",
+                "admin_domain",
+                "api_domain",
+                "portal_base_url",
+                "client_base_url",
+                "admin_base_url",
+                "api_base_url",
+                "backend_base_url",
+                "cors_allowed_origins",
+            ]
+        )
+
+        settings["enabled"] = True
+        settings["last_action_at"] = now_iso
+        settings["last_status_message"] = (
+            "Cloudflare ativo com roteamento automatico para todos os frontends."
+        )
+        settings["runtime"]["state"] = "active"
+        settings["runtime"]["last_started_at"] = now_iso
+        settings["runtime"]["last_error"] = ""
+        settings["runtime"]["run_command"] = preview["tunnel"]["run_command"]
+    else:
+        snapshot = settings.get("local_snapshot", {})
+        if not isinstance(snapshot, dict):
+            snapshot = {}
+
+        for field_name in (
+            "local_hostname",
+            "local_network_ip",
+            "root_domain",
+            "portal_domain",
+            "client_domain",
+            "admin_domain",
+            "api_domain",
+            "api_base_url",
+            "portal_base_url",
+            "client_base_url",
+            "admin_base_url",
+            "backend_base_url",
+            "proxy_base_url",
+        ):
+            if field_name in snapshot:
+                setattr(config, field_name, snapshot[field_name])
+                update_fields.append(field_name)
+
+        snapshot_origins = snapshot.get("cors_allowed_origins")
+        if isinstance(snapshot_origins, list):
+            config.cors_allowed_origins = _append_unique_origins(snapshot_origins, [])
+            update_fields.append("cors_allowed_origins")
+
+        settings["enabled"] = False
+        settings["last_action_at"] = now_iso
+        settings["last_status_message"] = (
+            "Cloudflare desativado e modo local restaurado."
+        )
+        settings["runtime"]["state"] = "inactive"
+        settings["runtime"]["last_stopped_at"] = now_iso
+
+    normalized_settings = _normalize_cloudflare_settings(settings)
+    config.cloudflare_settings = normalized_settings
+    update_fields.append("cloudflare_settings")
+
+    if update_fields:
+        update_fields = list(dict.fromkeys([*update_fields, "updated_at"]))
+        config.save(update_fields=update_fields)
+
+    return config, preview
+
+
+@transaction.atomic
+def manage_cloudflare_runtime(
+    *,
+    action: str,
+) -> tuple[PortalConfig, dict]:
+    normalized_action = str(action or "").strip().lower()
+    if normalized_action not in {"start", "stop", "status"}:
+        raise ValidationError("Acao invalida para runtime Cloudflare.")
+
+    config = ensure_portal_config()
+    settings = _normalize_cloudflare_settings(config.cloudflare_settings)
+    runtime = settings.get("runtime", {})
+    _ensure_ops_runtime_dirs()
+    now_iso = timezone.now().isoformat()
+
+    current_pid = _read_cloudflare_pid()
+    if current_pid is None and CLOUDFLARE_PID_FILE.exists():
+        try:
+            CLOUDFLARE_PID_FILE.unlink()
+        except OSError:
+            pass
+
+    if normalized_action == "start":
+        if current_pid is not None:
+            runtime["state"] = "active"
+            runtime["last_error"] = ""
+            settings["runtime"] = runtime
+            config.cloudflare_settings = _normalize_cloudflare_settings(settings)
+            config.save(update_fields=["cloudflare_settings", "updated_at"])
+            return config, _build_cloudflare_runtime_payload(config)
+
+        command = _build_cloudflare_run_command(settings)
+        try:
+            log_handle = open(CLOUDFLARE_LOG_FILE, "a", encoding="utf-8")
+        except OSError as exc:
+            raise ValidationError("Falha ao abrir log do Cloudflare runtime.") from exc
+
+        try:
+            proc = subprocess.Popen(
+                command,
+                cwd=PROJECT_ROOT,
+                stdout=log_handle,
+                stderr=log_handle,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except FileNotFoundError as exc:
+            log_handle.close()
+            raise ValidationError(
+                "Binario cloudflared nao encontrado no servidor."
+            ) from exc
+        except OSError as exc:
+            log_handle.close()
+            raise ValidationError(
+                "Falha ao iniciar processo cloudflared no servidor."
+            ) from exc
+
+        log_handle.close()
+        CLOUDFLARE_PID_FILE.write_text(str(proc.pid), encoding="utf-8")
+
+        runtime["state"] = "active"
+        runtime["last_started_at"] = now_iso
+        runtime["last_error"] = ""
+        runtime["run_command"] = _format_command_for_display(command)
+        settings["runtime"] = runtime
+        settings["last_action_at"] = now_iso
+        settings["last_status_message"] = (
+            "Tunnel Cloudflare iniciado pelo painel administrativo."
+        )
+        config.cloudflare_settings = _normalize_cloudflare_settings(settings)
+        config.save(update_fields=["cloudflare_settings", "updated_at"])
+        return config, _build_cloudflare_runtime_payload(config)
+
+    if normalized_action == "stop":
+        if current_pid is not None:
+            try:
+                os.kill(current_pid, signal.SIGTERM)
+            except OSError:
+                pass
+        if CLOUDFLARE_PID_FILE.exists():
+            try:
+                CLOUDFLARE_PID_FILE.unlink()
+            except OSError:
+                pass
+
+        runtime["state"] = "inactive"
+        runtime["last_stopped_at"] = now_iso
+        settings["runtime"] = runtime
+        settings["last_action_at"] = now_iso
+        settings["last_status_message"] = (
+            "Tunnel Cloudflare parado pelo painel administrativo."
+        )
+        config.cloudflare_settings = _normalize_cloudflare_settings(settings)
+        config.save(update_fields=["cloudflare_settings", "updated_at"])
+        return config, _build_cloudflare_runtime_payload(config)
+
+    # status
+    runtime_payload = _build_cloudflare_runtime_payload(config)
+    runtime["state"] = runtime_payload["state"]
+    settings["runtime"] = runtime
+    config.cloudflare_settings = _normalize_cloudflare_settings(settings)
+    config.save(update_fields=["cloudflare_settings", "updated_at"])
+    return config, runtime_payload
 
 
 @transaction.atomic

@@ -455,7 +455,7 @@ export type OrdersOpsDashboardData = {
 export type EcosystemServiceMonitorData = {
   key: string;
   name: string;
-  port: number;
+  port: number | null;
   status: "online" | "running" | "offline";
   pid: number | null;
   uptime_seconds: number | null;
@@ -740,6 +740,94 @@ export type PortalPaymentProviderTestResult = {
   detail: string;
 };
 
+export type PortalCloudflareMode = "local_only" | "cloudflare_only" | "hybrid";
+
+export type PortalCloudflareSubdomains = {
+  portal: string;
+  client: string;
+  admin: string;
+  api: string;
+};
+
+export type PortalCloudflareRuntime = {
+  state: string;
+  last_started_at: string;
+  last_stopped_at: string;
+  last_error: string;
+  run_command: string;
+};
+
+export type PortalCloudflareConfig = {
+  enabled: boolean;
+  mode: PortalCloudflareMode;
+  scheme: "http" | "https";
+  root_domain: string;
+  subdomains: PortalCloudflareSubdomains;
+  tunnel_name: string;
+  tunnel_id: string;
+  tunnel_token: string;
+  account_id: string;
+  zone_id: string;
+  api_token: string;
+  auto_apply_routes: boolean;
+  last_action_at: string;
+  last_status_message: string;
+  runtime: PortalCloudflareRuntime;
+  local_snapshot: Record<string, unknown>;
+};
+
+export type PortalCloudflarePreviewData = {
+  mode: PortalCloudflareMode;
+  scheme: string;
+  root_domain: string;
+  domains: {
+    portal: string;
+    client: string;
+    admin: string;
+    api: string;
+  };
+  urls: {
+    portal_base_url: string;
+    client_base_url: string;
+    admin_base_url: string;
+    api_base_url: string;
+    backend_base_url: string;
+  };
+  cors_allowed_origins: string[];
+  tunnel: {
+    name: string;
+    id: string;
+    configured: boolean;
+    run_command: string;
+  };
+  ingress_rules: string[];
+  coexistence_note: string;
+  generated_at: string;
+};
+
+export type PortalCloudflareToggleResult = {
+  config: PortalConfigData;
+  preview: PortalCloudflarePreviewData;
+  enabled: boolean;
+};
+
+export type PortalCloudflareRuntimeData = {
+  state: string;
+  pid: number | null;
+  log_file: string;
+  last_started_at: string;
+  last_stopped_at: string;
+  last_error: string;
+  run_command: string;
+  last_log_lines: string[];
+};
+
+export type PortalCloudflareRuntimeResult = {
+  config: PortalConfigData;
+  runtime: PortalCloudflareRuntimeData;
+  action: "start" | "stop" | "status";
+};
+
 export type PortalConfigData = {
   id: number;
   active_template: string;
@@ -771,6 +859,7 @@ export type PortalConfigData = {
   backend_base_url: string;
   proxy_base_url: string;
   cors_allowed_origins: string[];
+  cloudflare_settings: PortalCloudflareConfig;
   auth_providers: PortalAuthProvidersConfig;
   payment_providers: PortalPaymentProvidersConfig;
   is_published: boolean;
@@ -801,6 +890,7 @@ export type PortalConfigWritePayload = Partial<
     | "backend_base_url"
     | "proxy_base_url"
     | "cors_allowed_origins"
+    | "cloudflare_settings"
     | "api_base_url"
     | "auth_providers"
     | "payment_providers"

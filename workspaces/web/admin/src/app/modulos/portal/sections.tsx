@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -9,13 +10,20 @@ import {
   ensurePortalConfigAdmin,
   listMobileReleasesAdmin,
   listPortalSectionsAdmin,
+  managePortalCloudflareRuntimeAdmin,
+  previewPortalCloudflareAdmin,
   publishMobileReleaseAdmin,
   publishPortalConfigAdmin,
   testPortalPaymentProviderAdmin,
+  togglePortalCloudflareAdmin,
   updatePortalConfigAdmin,
   updatePortalSectionAdmin,
 } from "@/lib/api";
 import type {
+  PortalCloudflareConfig,
+  PortalCloudflareMode,
+  PortalCloudflarePreviewData,
+  PortalCloudflareRuntimeData,
   MobileReleaseData,
   PortalAsaasConfig,
   PortalAppleAuthConfig,
@@ -82,6 +90,9 @@ const TEMPLATE_LABEL_FALLBACK: Record<string, string> = {
   "client-classic": "Cliente Classico",
   "client-quentinhas": "Cliente Quentinhas",
   "client-vitrine-fit": "Cliente Vitrine Fit",
+  "admin-classic": "Admin Classico",
+  "admin-adminkit": "Admin Operations Kit",
+  "admin-admindek": "Admin Dek Prime",
 };
 
 const PORTAL_PAGE_LABELS: Record<string, string> = {
@@ -388,11 +399,74 @@ function normalizePaymentProviders(
   };
 }
 
+function getDefaultCloudflareSettings(): PortalCloudflareConfig {
+  return {
+    enabled: false,
+    mode: "hybrid",
+    scheme: "https",
+    root_domain: "mrquentinha.com.br",
+    subdomains: {
+      portal: "www",
+      client: "app",
+      admin: "admin",
+      api: "api",
+    },
+    tunnel_name: "mrquentinha",
+    tunnel_id: "",
+    tunnel_token: "",
+    account_id: "",
+    zone_id: "",
+    api_token: "",
+    auto_apply_routes: true,
+    last_action_at: "",
+    last_status_message: "Cloudflare desativado.",
+    runtime: {
+      state: "inactive",
+      last_started_at: "",
+      last_stopped_at: "",
+      last_error: "",
+      run_command: "",
+    },
+    local_snapshot: {},
+  };
+}
+
+function normalizeCloudflareSettings(
+  value: PortalCloudflareConfig | null | undefined,
+): PortalCloudflareConfig {
+  const defaults = getDefaultCloudflareSettings();
+  const normalizedMode =
+    value?.mode === "local_only" ||
+    value?.mode === "cloudflare_only" ||
+    value?.mode === "hybrid"
+      ? value.mode
+      : defaults.mode;
+  const normalizedScheme =
+    value?.scheme === "http" || value?.scheme === "https" ? value.scheme : defaults.scheme;
+
+  return {
+    ...defaults,
+    ...(value ?? {}),
+    mode: normalizedMode,
+    scheme: normalizedScheme,
+    subdomains: {
+      ...defaults.subdomains,
+      ...(value?.subdomains ?? {}),
+    },
+    runtime: {
+      ...defaults.runtime,
+      ...(value?.runtime ?? {}),
+    },
+    local_snapshot: value?.local_snapshot ?? {},
+  };
+}
+
 export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   const [config, setConfig] = useState<PortalConfigData | null>(null);
   const [sections, setSections] = useState<PortalSectionData[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [selectedClientTemplateId, setSelectedClientTemplateId] = useState("");
+  const [selectedAdminTemplateId, setSelectedAdminTemplateId] = useState("");
   const [contentTemplateId, setContentTemplateId] = useState("");
   const [contentPageFilter, setContentPageFilter] = useState("all");
   const [selectedSectionId, setSelectedSectionId] = useState("");
@@ -414,6 +488,28 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   const [backendBaseUrlDraft, setBackendBaseUrlDraft] = useState("https://10.211.55.21:8000");
   const [proxyBaseUrlDraft, setProxyBaseUrlDraft] = useState("https://10.211.55.21:8088");
   const [corsAllowedOriginsDraft, setCorsAllowedOriginsDraft] = useState("");
+  const [cloudflareEnabledDraft, setCloudflareEnabledDraft] = useState(false);
+  const [cloudflareModeDraft, setCloudflareModeDraft] = useState<PortalCloudflareMode>("hybrid");
+  const [cloudflareSchemeDraft, setCloudflareSchemeDraft] = useState<"http" | "https">("https");
+  const [cloudflareRootDomainDraft, setCloudflareRootDomainDraft] = useState("mrquentinha.com.br");
+  const [cloudflarePortalSubdomainDraft, setCloudflarePortalSubdomainDraft] = useState("www");
+  const [cloudflareClientSubdomainDraft, setCloudflareClientSubdomainDraft] = useState("app");
+  const [cloudflareAdminSubdomainDraft, setCloudflareAdminSubdomainDraft] = useState("admin");
+  const [cloudflareApiSubdomainDraft, setCloudflareApiSubdomainDraft] = useState("api");
+  const [cloudflareTunnelNameDraft, setCloudflareTunnelNameDraft] = useState("mrquentinha");
+  const [cloudflareTunnelIdDraft, setCloudflareTunnelIdDraft] = useState("");
+  const [cloudflareTunnelTokenDraft, setCloudflareTunnelTokenDraft] = useState("");
+  const [cloudflareAccountIdDraft, setCloudflareAccountIdDraft] = useState("");
+  const [cloudflareZoneIdDraft, setCloudflareZoneIdDraft] = useState("");
+  const [cloudflareApiTokenDraft, setCloudflareApiTokenDraft] = useState("");
+  const [cloudflareAutoApplyRoutesDraft, setCloudflareAutoApplyRoutesDraft] = useState(true);
+  const [cloudflarePreview, setCloudflarePreview] = useState<PortalCloudflarePreviewData | null>(
+    null,
+  );
+  const [cloudflareRuntime, setCloudflareRuntime] = useState<PortalCloudflareRuntimeData | null>(
+    null,
+  );
+  const [cloudflareSaving, setCloudflareSaving] = useState(false);
   const [googleEnabledDraft, setGoogleEnabledDraft] = useState(false);
   const [googleWebClientIdDraft, setGoogleWebClientIdDraft] = useState("");
   const [googleIosClientIdDraft, setGoogleIosClientIdDraft] = useState("");
@@ -525,6 +621,14 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     return normalizeTemplateOptions(config.client_available_templates);
   }, [config]);
 
+  const adminTemplateOptions = useMemo(() => {
+    if (!config) {
+      return [] as TemplateOption[];
+    }
+
+    return normalizeTemplateOptions(config.admin_available_templates);
+  }, [config]);
+
   const contentTemplateOptions = useMemo(() => {
     const optionMap = new Map<string, TemplateOption>();
     for (const option of templateOptions) {
@@ -533,8 +637,11 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     for (const option of clientTemplateOptions) {
       optionMap.set(option.id, option);
     }
+    for (const option of adminTemplateOptions) {
+      optionMap.set(option.id, option);
+    }
     return Array.from(optionMap.values());
-  }, [clientTemplateOptions, templateOptions]);
+  }, [adminTemplateOptions, clientTemplateOptions, templateOptions]);
 
   const pageOptions = useMemo<PortalPageOption[]>(() => {
     const values = new Set<string>();
@@ -604,6 +711,20 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
     );
   }, [clientTemplateOptions, config]);
 
+  const activeAdminTemplateLabel = useMemo(() => {
+    if (!config) {
+      return "-";
+    }
+
+    return (
+      adminTemplateOptions.find(
+        (option) => option.id === config.admin_active_template,
+      )?.label ??
+      TEMPLATE_LABEL_FALLBACK[config.admin_active_template] ??
+      config.admin_active_template
+    );
+  }, [adminTemplateOptions, config]);
+
   const derivedPublicHost = useMemo(
     () => resolveHostFromApiBaseUrl(apiBaseUrlDraft),
     [apiBaseUrlDraft],
@@ -619,6 +740,30 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
   );
   const derivedAndroidDownloadUrl = `https://${derivedPublicHost}:3000/app/downloads/android.apk`;
   const derivedIosDownloadUrl = `https://${derivedPublicHost}:3000/app/downloads/ios`;
+
+  function buildCloudflareSettingsDraftPayload(): PortalCloudflareConfig {
+    const base = normalizeCloudflareSettings(config?.cloudflare_settings);
+    return {
+      ...base,
+      enabled: cloudflareEnabledDraft,
+      mode: cloudflareModeDraft,
+      scheme: cloudflareSchemeDraft,
+      root_domain: cloudflareRootDomainDraft.trim(),
+      subdomains: {
+        portal: cloudflarePortalSubdomainDraft.trim(),
+        client: cloudflareClientSubdomainDraft.trim(),
+        admin: cloudflareAdminSubdomainDraft.trim(),
+        api: cloudflareApiSubdomainDraft.trim(),
+      },
+      tunnel_name: cloudflareTunnelNameDraft.trim(),
+      tunnel_id: cloudflareTunnelIdDraft.trim(),
+      tunnel_token: cloudflareTunnelTokenDraft.trim(),
+      account_id: cloudflareAccountIdDraft.trim(),
+      zone_id: cloudflareZoneIdDraft.trim(),
+      api_token: cloudflareApiTokenDraft.trim(),
+      auto_apply_routes: cloudflareAutoApplyRoutesDraft,
+    };
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -640,12 +785,16 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         const normalizedClientTemplateOptions = normalizeTemplateOptions(
           configPayload.client_available_templates,
         );
+        const normalizedAdminTemplateOptions = normalizeTemplateOptions(
+          configPayload.admin_available_templates,
+        );
         const defaultTemplateId = normalizedTemplateOptions.some(
           (option) => option.id === configPayload.active_template,
         )
           ? configPayload.active_template
           : (normalizedTemplateOptions[0]?.id ??
             normalizedClientTemplateOptions[0]?.id ??
+            normalizedAdminTemplateOptions[0]?.id ??
             "");
 
         setConfig(configPayload);
@@ -653,6 +802,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         setMobileReleases(releasesPayload);
         setSelectedTemplateId(configPayload.active_template);
         setSelectedClientTemplateId(configPayload.client_active_template);
+        setSelectedAdminTemplateId(configPayload.admin_active_template);
         setContentTemplateId(defaultTemplateId);
         setContentPageFilter("all");
         setLocalHostnameDraft(configPayload.local_hostname || "mrquentinha");
@@ -669,6 +819,34 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         setBackendBaseUrlDraft(configPayload.backend_base_url || "https://10.211.55.21:8000");
         setProxyBaseUrlDraft(configPayload.proxy_base_url || "https://10.211.55.21:8088");
         setCorsAllowedOriginsDraft(stringifyOrigins(configPayload.cors_allowed_origins));
+        const cloudflareSettings = normalizeCloudflareSettings(
+          configPayload.cloudflare_settings,
+        );
+        setCloudflareEnabledDraft(cloudflareSettings.enabled);
+        setCloudflareModeDraft(cloudflareSettings.mode);
+        setCloudflareSchemeDraft(cloudflareSettings.scheme);
+        setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
+        setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
+        setCloudflareClientSubdomainDraft(cloudflareSettings.subdomains.client);
+        setCloudflareAdminSubdomainDraft(cloudflareSettings.subdomains.admin);
+        setCloudflareApiSubdomainDraft(cloudflareSettings.subdomains.api);
+        setCloudflareTunnelNameDraft(cloudflareSettings.tunnel_name);
+        setCloudflareTunnelIdDraft(cloudflareSettings.tunnel_id);
+        setCloudflareTunnelTokenDraft(cloudflareSettings.tunnel_token);
+        setCloudflareAccountIdDraft(cloudflareSettings.account_id);
+        setCloudflareZoneIdDraft(cloudflareSettings.zone_id);
+        setCloudflareApiTokenDraft(cloudflareSettings.api_token);
+        setCloudflareAutoApplyRoutesDraft(cloudflareSettings.auto_apply_routes);
+        setCloudflareRuntime({
+          state: cloudflareSettings.runtime.state,
+          pid: null,
+          log_file: "",
+          last_started_at: cloudflareSettings.runtime.last_started_at,
+          last_stopped_at: cloudflareSettings.runtime.last_stopped_at,
+          last_error: cloudflareSettings.runtime.last_error,
+          run_command: cloudflareSettings.runtime.run_command,
+          last_log_lines: [],
+        });
         const authProviders = normalizeAuthProviders(configPayload.auth_providers);
         setGoogleEnabledDraft(authProviders.google.enabled);
         setGoogleWebClientIdDraft(authProviders.google.web_client_id);
@@ -729,6 +907,15 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         setAsaasApiKeyDraft(paymentProviders.asaas.api_key);
         setAsaasWebhookSecretDraft(paymentProviders.asaas.webhook_secret);
         setAsaasSandboxDraft(paymentProviders.asaas.sandbox);
+        setCloudflarePreview(null);
+        try {
+          const runtimePayload = await managePortalCloudflareRuntimeAdmin("status");
+          if (mounted) {
+            setCloudflareRuntime(runtimePayload.runtime);
+          }
+        } catch {
+          // Mantem fallback de runtime local quando nao for possivel consultar status.
+        }
         setErrorMessage("");
       } catch (error) {
         if (mounted) {
@@ -839,6 +1026,29 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
       setSelectedClientTemplateId(updatedConfig.client_active_template);
       setContentTemplateId(updatedConfig.client_active_template);
       setSuccessMessage("Template ativo do Web Cliente atualizado com sucesso.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveAdminTemplate() {
+    if (!config || !selectedAdminTemplateId) {
+      return;
+    }
+
+    setSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedConfig = await updatePortalConfigAdmin(config.id, {
+        admin_active_template: selectedAdminTemplateId,
+      });
+      setConfig(updatedConfig);
+      setSelectedAdminTemplateId(updatedConfig.admin_active_template);
+      setSuccessMessage("Template ativo do Web Admin atualizado com sucesso.");
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
@@ -1061,6 +1271,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
         backend_base_url: backendBaseUrlDraft.trim(),
         proxy_base_url: proxyBaseUrlDraft.trim(),
         cors_allowed_origins: parseOrigins(corsAllowedOriginsDraft),
+        cloudflare_settings: buildCloudflareSettingsDraftPayload(),
       });
 
       setConfig(updatedConfig);
@@ -1078,11 +1289,166 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
       setBackendBaseUrlDraft(updatedConfig.backend_base_url);
       setProxyBaseUrlDraft(updatedConfig.proxy_base_url);
       setCorsAllowedOriginsDraft(stringifyOrigins(updatedConfig.cors_allowed_origins));
+      const cloudflareSettings = normalizeCloudflareSettings(
+        updatedConfig.cloudflare_settings,
+      );
+      setCloudflareEnabledDraft(cloudflareSettings.enabled);
+      setCloudflareModeDraft(cloudflareSettings.mode);
+      setCloudflareSchemeDraft(cloudflareSettings.scheme);
+      setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
+      setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
+      setCloudflareClientSubdomainDraft(cloudflareSettings.subdomains.client);
+      setCloudflareAdminSubdomainDraft(cloudflareSettings.subdomains.admin);
+      setCloudflareApiSubdomainDraft(cloudflareSettings.subdomains.api);
+      setCloudflareTunnelNameDraft(cloudflareSettings.tunnel_name);
+      setCloudflareTunnelIdDraft(cloudflareSettings.tunnel_id);
+      setCloudflareTunnelTokenDraft(cloudflareSettings.tunnel_token);
+      setCloudflareAccountIdDraft(cloudflareSettings.account_id);
+      setCloudflareZoneIdDraft(cloudflareSettings.zone_id);
+      setCloudflareApiTokenDraft(cloudflareSettings.api_token);
+      setCloudflareAutoApplyRoutesDraft(cloudflareSettings.auto_apply_routes);
+      setCloudflareRuntime({
+        state: cloudflareSettings.runtime.state,
+        pid: null,
+        log_file: "",
+        last_started_at: cloudflareSettings.runtime.last_started_at,
+        last_stopped_at: cloudflareSettings.runtime.last_stopped_at,
+        last_error: cloudflareSettings.runtime.last_error,
+        run_command: cloudflareSettings.runtime.run_command,
+        last_log_lines: [],
+      });
       setSuccessMessage("Conectividade entre aplicacoes atualizada com sucesso.");
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePreviewCloudflare() {
+    setCloudflareSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const previewPayload = await previewPortalCloudflareAdmin(
+        buildCloudflareSettingsDraftPayload(),
+      );
+      setCloudflarePreview(previewPayload);
+      setSuccessMessage("Preview Cloudflare gerado com sucesso.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setCloudflareSaving(false);
+    }
+  }
+
+  async function handleToggleCloudflare(enabled: boolean) {
+    if (!config) {
+      return;
+    }
+
+    setCloudflareSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const payload = await togglePortalCloudflareAdmin({
+        enabled,
+        settings: buildCloudflareSettingsDraftPayload(),
+      });
+      const updatedConfig = payload.config;
+      const cloudflareSettings = normalizeCloudflareSettings(
+        updatedConfig.cloudflare_settings,
+      );
+
+      setConfig(updatedConfig);
+      setLocalHostnameDraft(updatedConfig.local_hostname);
+      setLocalNetworkIpDraft(updatedConfig.local_network_ip);
+      setApiBaseUrlDraft(updatedConfig.api_base_url);
+      setRootDomainDraft(updatedConfig.root_domain);
+      setPortalDomainDraft(updatedConfig.portal_domain);
+      setClientDomainDraft(updatedConfig.client_domain);
+      setAdminDomainDraft(updatedConfig.admin_domain);
+      setApiDomainDraft(updatedConfig.api_domain);
+      setPortalBaseUrlDraft(updatedConfig.portal_base_url);
+      setClientBaseUrlDraft(updatedConfig.client_base_url);
+      setAdminBaseUrlDraft(updatedConfig.admin_base_url);
+      setBackendBaseUrlDraft(updatedConfig.backend_base_url);
+      setProxyBaseUrlDraft(updatedConfig.proxy_base_url);
+      setCorsAllowedOriginsDraft(stringifyOrigins(updatedConfig.cors_allowed_origins));
+      setCloudflareEnabledDraft(cloudflareSettings.enabled);
+      setCloudflareModeDraft(cloudflareSettings.mode);
+      setCloudflareSchemeDraft(cloudflareSettings.scheme);
+      setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
+      setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
+      setCloudflareClientSubdomainDraft(cloudflareSettings.subdomains.client);
+      setCloudflareAdminSubdomainDraft(cloudflareSettings.subdomains.admin);
+      setCloudflareApiSubdomainDraft(cloudflareSettings.subdomains.api);
+      setCloudflareTunnelNameDraft(cloudflareSettings.tunnel_name);
+      setCloudflareTunnelIdDraft(cloudflareSettings.tunnel_id);
+      setCloudflareTunnelTokenDraft(cloudflareSettings.tunnel_token);
+      setCloudflareAccountIdDraft(cloudflareSettings.account_id);
+      setCloudflareZoneIdDraft(cloudflareSettings.zone_id);
+      setCloudflareApiTokenDraft(cloudflareSettings.api_token);
+      setCloudflareAutoApplyRoutesDraft(cloudflareSettings.auto_apply_routes);
+      setCloudflareRuntime({
+        state: cloudflareSettings.runtime.state,
+        pid: null,
+        log_file: "",
+        last_started_at: cloudflareSettings.runtime.last_started_at,
+        last_stopped_at: cloudflareSettings.runtime.last_stopped_at,
+        last_error: cloudflareSettings.runtime.last_error,
+        run_command: cloudflareSettings.runtime.run_command,
+        last_log_lines: [],
+      });
+      setCloudflarePreview(payload.preview);
+      setSuccessMessage(
+        enabled
+          ? "Cloudflare ativado com sucesso para exposicao online."
+          : "Cloudflare desativado. Configuracao local restaurada.",
+      );
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setCloudflareSaving(false);
+    }
+  }
+
+  async function handleCloudflareRuntimeAction(action: "start" | "stop" | "status") {
+    setCloudflareSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const payload = await managePortalCloudflareRuntimeAdmin(action);
+      const updatedConfig = payload.config;
+      const cloudflareSettings = normalizeCloudflareSettings(
+        updatedConfig.cloudflare_settings,
+      );
+
+      setConfig(updatedConfig);
+      setCloudflareEnabledDraft(cloudflareSettings.enabled);
+      setCloudflareModeDraft(cloudflareSettings.mode);
+      setCloudflareSchemeDraft(cloudflareSettings.scheme);
+      setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
+      setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
+      setCloudflareClientSubdomainDraft(cloudflareSettings.subdomains.client);
+      setCloudflareAdminSubdomainDraft(cloudflareSettings.subdomains.admin);
+      setCloudflareApiSubdomainDraft(cloudflareSettings.subdomains.api);
+      setCloudflareTunnelNameDraft(cloudflareSettings.tunnel_name);
+      setCloudflareTunnelIdDraft(cloudflareSettings.tunnel_id);
+      setCloudflareTunnelTokenDraft(cloudflareSettings.tunnel_token);
+      setCloudflareAccountIdDraft(cloudflareSettings.account_id);
+      setCloudflareZoneIdDraft(cloudflareSettings.zone_id);
+      setCloudflareApiTokenDraft(cloudflareSettings.api_token);
+      setCloudflareAutoApplyRoutesDraft(cloudflareSettings.auto_apply_routes);
+      setCloudflareRuntime(payload.runtime);
+      setSuccessMessage(`Runtime Cloudflare: acao '${action}' executada com sucesso.`);
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setCloudflareSaving(false);
     }
   }
 
@@ -1205,6 +1571,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
       setConfig(publishedConfig);
       setSelectedTemplateId(publishedConfig.active_template);
       setSelectedClientTemplateId(publishedConfig.client_active_template);
+      setSelectedAdminTemplateId(publishedConfig.admin_active_template);
       setContentTemplateId(publishedConfig.active_template);
       setSuccessMessage("Configuracao do portal publicada com sucesso.");
     } catch (error) {
@@ -1230,9 +1597,9 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
             <StatusPill tone="warning">Rascunho</StatusPill>
           )}
         </div>
-        {loading && <p className="mt-3 text-sm text-muted">Carregando configuracoes do portal...</p>}
+        {loading && <InlinePreloader message="Carregando configuracoes do portal..." className="mt-3 justify-start bg-surface/70" />}
         {!loading && config && (
-          <div className="mt-4 grid gap-3 md:grid-cols-5">
+          <div className="mt-4 grid gap-3 md:grid-cols-7">
             <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Template ativo</p>
               <p className="mt-1 text-base font-semibold text-text">{activeTemplateLabel}</p>
@@ -1242,9 +1609,13 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
               <p className="mt-1 text-base font-semibold text-text">{activeClientTemplateLabel}</p>
             </article>
             <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Template admin</p>
+              <p className="mt-1 text-base font-semibold text-text">{activeAdminTemplateLabel}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Templates disponiveis</p>
               <p className="mt-1 text-base font-semibold text-text">
-                {templateOptions.length + clientTemplateOptions.length}
+                {templateOptions.length + clientTemplateOptions.length + adminTemplateOptions.length}
               </p>
             </article>
             <article className="rounded-xl border border-border bg-bg p-4">
@@ -1254,6 +1625,12 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
             <article className="rounded-xl border border-border bg-bg p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Ultima publicacao</p>
               <p className="mt-1 text-base font-semibold text-text">{formatDateTime(config.published_at)}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Cloudflare</p>
+              <p className="mt-1 text-base font-semibold text-text">
+                {normalizeCloudflareSettings(config.cloudflare_settings).enabled ? "Ativo" : "Inativo"}
+              </p>
             </article>
           </div>
         )}
@@ -1265,7 +1642,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
           <p className="mt-1 text-sm text-muted">
             Escolha templates do Portal e do Web Cliente com publicacao unificada.
           </p>
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="mt-4 grid gap-4 lg:grid-cols-3">
             <article className="rounded-xl border border-border bg-bg p-4">
               <label className="flex flex-col gap-2 text-sm font-medium text-text">
                 Template do Portal
@@ -1336,6 +1713,46 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
                   className="rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? "Salvando..." : "Salvar template do cliente"}
+                </button>
+              </div>
+            </article>
+
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <label className="flex flex-col gap-2 text-sm font-medium text-text">
+                Template do Web Admin
+                <select
+                  value={selectedAdminTemplateId}
+                  onChange={(event) => setSelectedAdminTemplateId(event.target.value)}
+                  disabled={loading || saving || adminTemplateOptions.length === 0}
+                  className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+                >
+                  {adminTemplateOptions.length === 0 && (
+                    <option value="">Nenhum template do admin disponivel</option>
+                  )}
+                  {adminTemplateOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="mt-3 text-xs text-muted">
+                O template admin muda layout, navegacao e graficos do painel.
+              </p>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => void handleSaveAdminTemplate()}
+                  disabled={
+                    loading ||
+                    saving ||
+                    !config ||
+                    !selectedAdminTemplateId ||
+                    selectedAdminTemplateId === config.admin_active_template
+                  }
+                  className="rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? "Salvando..." : "Salvar template do admin"}
                 </button>
               </div>
             </article>
@@ -1677,6 +2094,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
                 <label className="grid gap-1 text-sm text-muted">
                   Documento
                   <input
+                    name={receiverPersonTypeDraft === "CPF" ? "receiver_cpf" : "receiver_cnpj"}
                     value={receiverDocumentDraft}
                     onChange={(event) => setReceiverDocumentDraft(event.currentTarget.value)}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
@@ -1693,6 +2111,7 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
                 <label className="grid gap-1 text-sm text-muted">
                   Email financeiro
                   <input
+                    name="receiver_email"
                     value={receiverEmailDraft}
                     onChange={(event) => setReceiverEmailDraft(event.currentTarget.value)}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
@@ -1941,6 +2360,266 @@ export function PortalSections({ activeSection = "all" }: PortalSectionsProps) {
               </button>
             </div>
           </div>
+
+          <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-text">Cloudflare online (1 clique)</h3>
+                <p className="mt-1 text-xs text-muted">
+                  Configure dominio/subdominios e ative ou desative todo o roteamento externo.
+                  O modo <strong>hybrid</strong> permite Cloudflare + rede local simultaneos.
+                </p>
+              </div>
+              <StatusPill tone={cloudflareEnabledDraft ? "success" : "neutral"}>
+                {cloudflareEnabledDraft ? "Ativo" : "Inativo"}
+              </StatusPill>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <label className="grid gap-1 text-sm text-muted">
+                Modo de exposicao
+                <select
+                  value={cloudflareModeDraft}
+                  onChange={(event) =>
+                    setCloudflareModeDraft(event.currentTarget.value as PortalCloudflareMode)
+                  }
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                >
+                  <option value="hybrid">Hybrid (local + cloudflare)</option>
+                  <option value="cloudflare_only">Somente cloudflare</option>
+                  <option value="local_only">Somente local</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Protocolo
+                <select
+                  value={cloudflareSchemeDraft}
+                  onChange={(event) =>
+                    setCloudflareSchemeDraft(event.currentTarget.value as "http" | "https")
+                  }
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                >
+                  <option value="https">https</option>
+                  <option value="http">http</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Dominio raiz Cloudflare
+                <input
+                  value={cloudflareRootDomainDraft}
+                  onChange={(event) => setCloudflareRootDomainDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="mrquentinha.com.br"
+                />
+              </label>
+              <label className="mt-6 inline-flex items-center gap-2 text-sm text-text">
+                <input
+                  type="checkbox"
+                  checked={cloudflareAutoApplyRoutesDraft}
+                  onChange={(event) => setCloudflareAutoApplyRoutesDraft(event.currentTarget.checked)}
+                  className="h-4 w-4 rounded border-border text-primary"
+                />
+                Atualizar links automaticamente
+              </label>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <label className="grid gap-1 text-sm text-muted">
+                Subdominio Portal
+                <input
+                  value={cloudflarePortalSubdomainDraft}
+                  onChange={(event) => setCloudflarePortalSubdomainDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="www"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Subdominio Cliente
+                <input
+                  value={cloudflareClientSubdomainDraft}
+                  onChange={(event) => setCloudflareClientSubdomainDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="app"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Subdominio Admin
+                <input
+                  value={cloudflareAdminSubdomainDraft}
+                  onChange={(event) => setCloudflareAdminSubdomainDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="admin"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Subdominio API
+                <input
+                  value={cloudflareApiSubdomainDraft}
+                  onChange={(event) => setCloudflareApiSubdomainDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="api"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <label className="grid gap-1 text-sm text-muted">
+                Tunnel name
+                <input
+                  value={cloudflareTunnelNameDraft}
+                  onChange={(event) => setCloudflareTunnelNameDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="mrquentinha"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Tunnel ID (opcional)
+                <input
+                  value={cloudflareTunnelIdDraft}
+                  onChange={(event) => setCloudflareTunnelIdDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Tunnel token (opcional)
+                <input
+                  value={cloudflareTunnelTokenDraft}
+                  onChange={(event) => setCloudflareTunnelTokenDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Account ID (opcional)
+                <input
+                  value={cloudflareAccountIdDraft}
+                  onChange={(event) => setCloudflareAccountIdDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Zone ID (opcional)
+                <input
+                  value={cloudflareZoneIdDraft}
+                  onChange={(event) => setCloudflareZoneIdDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                API token (opcional)
+                <input
+                  value={cloudflareApiTokenDraft}
+                  onChange={(event) => setCloudflareApiTokenDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handlePreviewCloudflare()}
+                disabled={cloudflareSaving}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cloudflareSaving ? "Processando..." : "Pre-visualizar rotas"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleToggleCloudflare(true)}
+                disabled={loading || cloudflareSaving || !config}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cloudflareSaving ? "Ativando..." : "Ativar Cloudflare"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleToggleCloudflare(false)}
+                disabled={loading || cloudflareSaving || !config}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cloudflareSaving ? "Desativando..." : "Desativar Cloudflare"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCloudflareRuntimeAction("status")}
+                disabled={cloudflareSaving || !config}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cloudflareSaving ? "Atualizando..." : "Status runtime"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCloudflareRuntimeAction("start")}
+                disabled={cloudflareSaving || !config}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cloudflareSaving ? "Iniciando..." : "Iniciar tunnel"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCloudflareRuntimeAction("stop")}
+                disabled={cloudflareSaving || !config}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cloudflareSaving ? "Parando..." : "Parar tunnel"}
+              </button>
+            </div>
+
+            {cloudflarePreview && (
+              <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-xs text-muted">
+                <p className="font-semibold text-text">Preview Cloudflare</p>
+                <p className="mt-1">Modo: {cloudflarePreview.mode}</p>
+                <p className="mt-1">Portal: {cloudflarePreview.urls.portal_base_url}</p>
+                <p className="mt-1">Cliente: {cloudflarePreview.urls.client_base_url}</p>
+                <p className="mt-1">Admin: {cloudflarePreview.urls.admin_base_url}</p>
+                <p className="mt-1">API: {cloudflarePreview.urls.api_base_url}</p>
+                <p className="mt-2 font-semibold text-text">Ingress sugerido</p>
+                {cloudflarePreview.ingress_rules.map((rule) => (
+                  <p key={rule} className="mt-1">
+                    {rule}
+                  </p>
+                ))}
+                {cloudflarePreview.tunnel.run_command && (
+                  <p className="mt-2">
+                    Comando: <code>{cloudflarePreview.tunnel.run_command}</code>
+                  </p>
+                )}
+                <p className="mt-2">{cloudflarePreview.coexistence_note}</p>
+              </div>
+            )}
+
+            {cloudflareRuntime && (
+              <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-xs text-muted">
+                <p className="font-semibold text-text">Runtime cloudflared</p>
+                <p className="mt-1">
+                  Estado: <strong className="text-text">{cloudflareRuntime.state}</strong> | PID:{" "}
+                  <strong className="text-text">{cloudflareRuntime.pid ?? "-"}</strong>
+                </p>
+                <p className="mt-1">Ultimo start: {cloudflareRuntime.last_started_at || "-"}</p>
+                <p className="mt-1">Ultimo stop: {cloudflareRuntime.last_stopped_at || "-"}</p>
+                {cloudflareRuntime.run_command && (
+                  <p className="mt-1">
+                    Comando ativo: <code>{cloudflareRuntime.run_command}</code>
+                  </p>
+                )}
+                {cloudflareRuntime.last_error && (
+                  <p className="mt-1 text-rose-600">
+                    Erro: {cloudflareRuntime.last_error}
+                  </p>
+                )}
+                <p className="mt-1">Log: <code>{cloudflareRuntime.log_file || "-"}</code></p>
+                {cloudflareRuntime.last_log_lines.length > 0 && (
+                  <div className="mt-2 max-h-48 overflow-auto rounded-md border border-border bg-bg p-2 font-mono">
+                    {cloudflareRuntime.last_log_lines.map((line, index) => (
+                      <p key={`${index}-${line}`} className="whitespace-pre-wrap break-words">
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </article>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             <label className="grid gap-1 text-sm text-muted">

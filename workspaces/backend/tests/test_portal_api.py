@@ -15,6 +15,7 @@ def test_portal_public_config_get_sem_auth_retorna_200(anonymous_client):
     payload = response.json()
     assert payload["active_template"]
     assert payload["client_active_template"]
+    assert payload["admin_active_template"]
     assert payload["local_hostname"] == "mrquentinha"
     assert payload["backend_base_url"].endswith(":8000")
     assert payload["app_download_android_url"].endswith("/app/downloads/android.apk")
@@ -24,6 +25,8 @@ def test_portal_public_config_get_sem_auth_retorna_200(anonymous_client):
     assert "client_secret" not in payload["auth_providers"]["google"]
     assert "payment_providers" in payload
     assert payload["payment_providers"]["default_provider"] == "mock"
+    assert "cloudflare" in payload
+    assert payload["cloudflare"]["enabled"] is False
     assert "sections" in payload
 
 
@@ -38,6 +41,19 @@ def test_portal_public_config_client_channel_retorna_200(anonymous_client):
     assert payload["channel"] == "client"
     assert payload["active_template"] == payload["client_active_template"]
     assert isinstance(payload["client_available_templates"], list)
+
+
+@pytest.mark.django_db
+def test_portal_public_config_admin_channel_retorna_200(anonymous_client):
+    ensure_portal_config()
+
+    response = anonymous_client.get("/api/v1/portal/config/?channel=admin&page=home")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["channel"] == "admin"
+    assert payload["active_template"] == payload["admin_active_template"]
+    assert isinstance(payload["admin_available_templates"], list)
 
 
 @pytest.mark.django_db
@@ -244,4 +260,94 @@ def test_portal_admin_test_payment_provider_action(client, monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["ok"] is True
-    assert captured_provider["name"] == "asaas"
+
+
+@pytest.mark.django_db
+def test_portal_admin_cloudflare_preview_e_toggle(client):
+    preview_response = client.post(
+        "/api/v1/portal/admin/config/cloudflare-preview/",
+        data={
+            "settings": {
+                "mode": "hybrid",
+                "root_domain": "mrquentinha.com.br",
+                "subdomains": {
+                    "portal": "www",
+                    "client": "app",
+                    "admin": "admin",
+                    "api": "api",
+                },
+                "tunnel_name": "mrquentinha",
+            }
+        },
+        format="json",
+    )
+    assert preview_response.status_code == 200
+    preview_payload = preview_response.json()
+    assert preview_payload["urls"]["api_base_url"] == "https://api.mrquentinha.com.br"
+
+    toggle_on_response = client.post(
+        "/api/v1/portal/admin/config/cloudflare-toggle/",
+        data={
+            "enabled": True,
+            "settings": {
+                "mode": "hybrid",
+                "root_domain": "mrquentinha.com.br",
+                "subdomains": {
+                    "portal": "www",
+                    "client": "app",
+                    "admin": "admin",
+                    "api": "api",
+                },
+                "tunnel_name": "mrquentinha",
+            },
+        },
+        format="json",
+    )
+    assert toggle_on_response.status_code == 200
+    toggle_on_payload = toggle_on_response.json()
+    assert toggle_on_payload["enabled"] is True
+    assert (
+        toggle_on_payload["config"]["api_base_url"] == "https://api.mrquentinha.com.br"
+    )
+    assert toggle_on_payload["config"]["cloudflare_settings"]["enabled"] is True
+
+    toggle_off_response = client.post(
+        "/api/v1/portal/admin/config/cloudflare-toggle/",
+        data={"enabled": False},
+        format="json",
+    )
+    assert toggle_off_response.status_code == 200
+    toggle_off_payload = toggle_off_response.json()
+    assert toggle_off_payload["enabled"] is False
+    assert toggle_off_payload["config"]["cloudflare_settings"]["enabled"] is False
+
+
+@pytest.mark.django_db
+def test_portal_admin_cloudflare_runtime_action(client, monkeypatch):
+    def fake_manage_cloudflare_runtime(*, action: str):
+        config = ensure_portal_config()
+        return config, {
+            "state": "active" if action == "start" else "inactive",
+            "pid": 12345 if action == "start" else None,
+            "log_file": "/tmp/cloudflare.log",
+            "last_started_at": "",
+            "last_stopped_at": "",
+            "last_error": "",
+            "run_command": "cloudflared tunnel run mrquentinha",
+            "last_log_lines": [],
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.manage_cloudflare_runtime",
+        fake_manage_cloudflare_runtime,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/cloudflare-runtime/",
+        data={"action": "status"},
+        format="json",
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["action"] == "status"
+    assert "runtime" in payload

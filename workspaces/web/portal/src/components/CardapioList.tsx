@@ -4,6 +4,9 @@ import { Badge, Card, Input } from "@mrquentinha/ui";
 import Image from "next/image";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 
+import { InlinePreloader } from "@/components/InlinePreloader";
+import { trackNetworkRequest } from "@/lib/networkPreloader";
+
 type DishData = {
   id: number;
   name: string;
@@ -112,11 +115,10 @@ export function CardapioList() {
           ? `/api/v1/catalog/menus/today/`
           : `/api/v1/catalog/menus/by-date/${selectedDate}/`;
 
-        const response = await fetch(
-          `${apiBaseUrl}${endpoint}`,
-          {
+        const response = await trackNetworkRequest(() =>
+          fetch(`${apiBaseUrl}${endpoint}`, {
             cache: "no-store",
-          },
+          }),
         );
 
         if (response.status === 404) {
@@ -181,6 +183,7 @@ export function CardapioList() {
         <label className="flex flex-col gap-1 text-sm font-medium text-muted">
           Selecione a data
           <Input
+            name="menu_date"
             type="date"
             value={selectedDate}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setSelectedDate(event.target.value)}
@@ -191,9 +194,7 @@ export function CardapioList() {
 
       <div className="mt-6">
         {state === "loading" && (
-          <div className="rounded-md border border-border bg-bg px-4 py-8 text-center text-muted">
-            {message}
-          </div>
+          <InlinePreloader message={message} className="py-8" />
         )}
 
         {state === "error" && (

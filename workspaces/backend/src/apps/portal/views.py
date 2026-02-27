@@ -20,15 +20,18 @@ from .serializers import (
 )
 from .services import (
     CHANNEL_PORTAL,
+    build_cloudflare_preview,
     build_latest_mobile_release_payload,
     build_portal_version_payload,
     build_public_portal_payload,
     compile_mobile_release,
     create_mobile_release,
     ensure_portal_config,
+    manage_cloudflare_runtime,
     publish_mobile_release,
     publish_portal_config,
     save_portal_config,
+    toggle_cloudflare_mode,
 )
 
 
@@ -132,6 +135,62 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
         except DjangoValidationError as exc:
             raise DRFValidationError(exc.messages) from exc
         return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="cloudflare-preview")
+    def cloudflare_preview(self, request):
+        settings = request.data.get("settings", {})
+        if settings is None:
+            settings = {}
+        if not isinstance(settings, dict):
+            raise DRFValidationError(["Campo settings precisa ser um objeto JSON."])
+
+        payload = build_cloudflare_preview(overrides=settings)
+        return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="cloudflare-toggle")
+    def cloudflare_toggle(self, request):
+        enabled = bool(request.data.get("enabled", False))
+        settings = request.data.get("settings", {})
+        if settings is None:
+            settings = {}
+        if not isinstance(settings, dict):
+            raise DRFValidationError(["Campo settings precisa ser um objeto JSON."])
+
+        try:
+            config, preview = toggle_cloudflare_mode(
+                enabled=enabled,
+                overrides=settings,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        output = self.get_serializer(config)
+        return Response(
+            {
+                "config": output.data,
+                "preview": preview,
+                "enabled": enabled,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["post"], url_path="cloudflare-runtime")
+    def cloudflare_runtime(self, request):
+        action_name = str(request.data.get("action", "status")).strip().lower()
+        try:
+            config, runtime_payload = manage_cloudflare_runtime(action=action_name)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        output = self.get_serializer(config)
+        return Response(
+            {
+                "config": output.data,
+                "runtime": runtime_payload,
+                "action": action_name,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class PortalSectionAdminViewSet(viewsets.ModelViewSet):

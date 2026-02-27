@@ -1,7 +1,10 @@
-import { TemplateProvider } from "@mrquentinha/ui";
+import { FormFieldGuard, TemplateProvider } from "@mrquentinha/ui";
 import type { Metadata } from "next";
 
+import { AdminTemplateProvider } from "@/components/AdminTemplateProvider";
 import { AdminShell } from "@/components/AdminShell";
+import { GlobalNetworkPreloader } from "@/components/GlobalNetworkPreloader";
+import { fetchAdminActiveTemplate } from "@/lib/adminTemplate";
 
 import "./globals.css";
 
@@ -31,25 +34,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const template = await fetchAdminActiveTemplate();
+
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning data-admin-template={template}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: initThemeScript }} />
       </head>
       <body className="bg-bg text-text antialiased">
-        <TemplateProvider template="clean">
-          <div className="flex min-h-screen flex-col">
-            <AdminShell />
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 md:px-6 md:py-8">
-              {children}
-            </main>
-          </div>
-        </TemplateProvider>
+        <AdminTemplateProvider initialTemplate={template}>
+          <TemplateProvider template="clean">
+            <GlobalNetworkPreloader />
+            <FormFieldGuard />
+            <AdminShell>{children}</AdminShell>
+          </TemplateProvider>
+        </AdminTemplateProvider>
       </body>
     </html>
   );

@@ -8,11 +8,17 @@ class PortalConfigAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "active_template",
+        "admin_active_template",
         "site_name",
         "is_published",
         "updated_at",
     )
-    search_fields = ("site_name", "site_title", "active_template")
+    search_fields = (
+        "site_name",
+        "site_title",
+        "active_template",
+        "admin_active_template",
+    )
 
 
 @admin.register(PortalSection)

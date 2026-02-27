@@ -73,6 +73,22 @@ class RegisterSerializer(serializers.Serializer):
 
         return username
 
+    def validate_password(self, value: str) -> str:
+        password = value or ""
+        if len(password) < 8:
+            raise serializers.ValidationError("Senha deve ter ao menos 8 caracteres.")
+
+        has_lower = any(char.islower() for char in password)
+        has_upper = any(char.isupper() for char in password)
+        has_digit = any(char.isdigit() for char in password)
+
+        if not (has_lower and has_upper and has_digit):
+            raise serializers.ValidationError(
+                "Senha deve conter letra maiuscula, minuscula e numero."
+            )
+
+        return password
+
     def create(self, validated_data):
         try:
             user = register_user_with_default_role(**validated_data)

@@ -5,6 +5,20 @@
 - T9.2.6-A1 (accounts/api): novo endpoint autenticado `GET/PATCH /api/v1/accounts/me/profile/` com suporte a JSON e multipart para upload de foto de perfil, digitalizacao de documentos (frente/verso/selfie) e biometria facial por foto.
 - T9.2.6-A1 (web admin): nova area `Meu perfil` em `/perfil`, adicionada na navegacao de todos os templates (`classic`, `admin-adminkit`, `admin-admindek`), com formulario completo, upload por camera (`capture`) e acao de logoff.
 - T9.2.6-A1 (qualidade): testes de `accounts` ampliados para cobrir autorizacao, criacao automatica de perfil, atualizacao textual e upload de imagens de perfil/documentos/biometria.
+- T9.2.6-A2 (ecosistema web): implementada camada global de formatacao/validacao de formularios em `@mrquentinha/ui` (`FormFieldGuard`) aplicada no `admin`, `client` e `portal`.
+- T9.2.6-A2 (campos sensiveis): mascaras e validacoes automáticas para CPF, CNPJ, CEP, email, senha e datas (com `type=\"date\"` para melhor experiencia touch no mobile quando aplicavel).
+- T9.2.6-A2 (backend): politicas de validacao reforcadas para senha de cadastro (`accounts/register`) e para recebedor de pagamentos no Portal CMS (`payment_providers.receiver` com validacao de CPF/CNPJ e email).
+- T9.2.6-A2 (qualidade): validado com `ruff`, `black`, `pytest` direcionado (accounts/portal) e `npm run lint && npm run build` nos tres frontends web.
+- T6.3.2-A9 (Portal CMS/Cloudflare): novo modulo de exposicao online com `cloudflare_settings` no backend, preview de rotas e toggle de ativacao/desativacao com 1 clique no Web Admin.
+- T6.3.2-A9 (backend/API): novos endpoints admin:
+  - `POST /api/v1/portal/admin/config/cloudflare-preview/`
+  - `POST /api/v1/portal/admin/config/cloudflare-toggle/`
+  com atualizacao automatica de `api_base_url`, URLs de frontend e `cors_allowed_origins`.
+- T6.3.2-A9 (coexistencia de modos): suporte explicito a `local_only`, `cloudflare_only` e `hybrid` (padrao recomendado), mantendo snapshot local para rollback rapido.
+- T6.3.2-A9 (qualidade): `ruff check` backend e `npm run lint && npm run build` no `web/admin` executados com sucesso; `pytest` backend bloqueado nesta sessao por indisponibilidade do PostgreSQL local.
+- T6.3.2-A10 (Cloudflare runtime): adicionada acao admin `POST /api/v1/portal/admin/config/cloudflare-runtime/` para `start|stop|status` do processo `cloudflared`, com PID/log em `.runtime/ops`.
+- T6.3.2-A10 (monitoramento): `GET /api/v1/orders/ops/realtime/` passou a incluir servico `cloudflare` no bloco `services`.
+- T6.3.2-A10 (operacao): novo script `scripts/cloudflare_tunnel.sh` com comandos `start|stop|restart|status|logs`.
 
 ## 26/02/2026
 - T9.2.5 (web admin template): novo template `admin-admindek` adicionado ao CMS/Admin com layout completo inspirado no padrão AdminDek (sidebar gradiente, header operacional, cards executivos, visual CRM/ecommerce/finance).

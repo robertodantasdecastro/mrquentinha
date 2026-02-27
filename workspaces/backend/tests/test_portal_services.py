@@ -1,14 +1,18 @@
 import pytest
+from django.core.exceptions import ValidationError
 
 from apps.portal.models import PortalConfig, PortalSection
 from apps.portal.services import (
+    build_cloudflare_preview,
     build_latest_mobile_release_payload,
     build_public_portal_payload,
     compile_mobile_release,
     create_mobile_release,
     ensure_portal_config,
+    manage_cloudflare_runtime,
     publish_mobile_release,
     save_portal_config,
+    toggle_cloudflare_mode,
 )
 
 
@@ -25,6 +29,13 @@ def test_portal_config_singleton():
     assert any(
         item["id"] == "client-vitrine-fit" for item in first.client_available_templates
     )
+    assert any(
+        item["id"] == "admin-adminkit" for item in first.admin_available_templates
+    )
+    assert any(
+        item["id"] == "admin-admindek" for item in first.admin_available_templates
+    )
+    assert first.admin_active_template == "admin-classic"
     assert "google" in first.auth_providers
     assert "apple" in first.auth_providers
     assert first.payment_providers["default_provider"] == "mock"
@@ -167,6 +178,29 @@ def test_build_public_payload_client_retorna_template_do_web_cliente():
 
 
 @pytest.mark.django_db
+def test_build_public_payload_admin_retorna_template_do_web_admin():
+    config, _ = save_portal_config(
+        payload={
+            "admin_active_template": "admin-adminkit",
+            "admin_available_templates": [
+                {"id": "admin-classic", "label": "Admin Classico"},
+                {"id": "admin-adminkit", "label": "Admin Operations Kit"},
+            ],
+        }
+    )
+
+    payload = build_public_portal_payload(page="home", channel="admin")
+
+    assert payload["channel"] == "admin"
+    assert payload["active_template"] == "admin-adminkit"
+    assert payload["admin_active_template"] == "admin-adminkit"
+    assert any(
+        item["id"] == "admin-adminkit" for item in payload["admin_available_templates"]
+    )
+    assert config.admin_active_template == "admin-adminkit"
+
+
+@pytest.mark.django_db
 def test_build_public_payload_auth_providers_nao_expoe_segredos():
     config, _ = save_portal_config(
         payload={
@@ -266,3 +300,64 @@ def test_build_latest_mobile_release_payload_retorna_release_publicada():
     assert payload["status"] == "PUBLISHED"
     assert payload["update_policy"] == "FORCE"
     assert payload["android_download_url"].endswith("/app/downloads/android.apk")
+
+
+@pytest.mark.django_db
+def test_cloudflare_preview_gera_urls_e_ingress():
+    preview = build_cloudflare_preview(
+        overrides={
+            "mode": "hybrid",
+            "root_domain": "mrquentinha.com.br",
+            "subdomains": {
+                "portal": "www",
+                "client": "app",
+                "admin": "admin",
+                "api": "api",
+            },
+            "tunnel_name": "mrquentinha",
+        }
+    )
+
+    assert preview["mode"] == "hybrid"
+    assert preview["urls"]["portal_base_url"] == "https://www.mrquentinha.com.br"
+    assert preview["urls"]["api_base_url"] == "https://api.mrquentinha.com.br"
+    assert any("127.0.0.1:8000" in rule for rule in preview["ingress_rules"])
+
+
+@pytest.mark.django_db
+def test_toggle_cloudflare_ativa_e_restaura_config_local():
+    config = ensure_portal_config()
+    local_api_base = config.api_base_url
+    local_portal_base = config.portal_base_url
+
+    updated_config, _preview_enabled = toggle_cloudflare_mode(
+        enabled=True,
+        overrides={
+            "mode": "hybrid",
+            "root_domain": "mrquentinha.com.br",
+            "subdomains": {
+                "portal": "www",
+                "client": "app",
+                "admin": "admin",
+                "api": "api",
+            },
+            "tunnel_name": "mrquentinha",
+        },
+    )
+    assert updated_config.cloudflare_settings["enabled"] is True
+    assert updated_config.api_base_url == "https://api.mrquentinha.com.br"
+    assert updated_config.portal_base_url == "https://www.mrquentinha.com.br"
+    assert "https://www.mrquentinha.com.br" in updated_config.cors_allowed_origins
+    assert updated_config.cloudflare_settings["runtime"]["state"] == "active"
+
+    restored_config, _preview_disabled = toggle_cloudflare_mode(enabled=False)
+    assert restored_config.cloudflare_settings["enabled"] is False
+    assert restored_config.api_base_url == local_api_base
+    assert restored_config.portal_base_url == local_portal_base
+    assert restored_config.cloudflare_settings["runtime"]["state"] == "inactive"
+
+
+@pytest.mark.django_db
+def test_manage_cloudflare_runtime_rejeita_acao_invalida():
+    with pytest.raises(ValidationError):
+        manage_cloudflare_runtime(action="invalid-action")

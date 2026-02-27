@@ -7,6 +7,7 @@ export { Input } from "./components/Input";
 export { Navbar } from "./components/Navbar";
 export { Section } from "./components/Section";
 export { ThemeToggle } from "./components/ThemeToggle";
+export { FormFieldGuard } from "./components/FormFieldGuard";
 export { StatusPill } from "./components/StatusPill";
 export type { StatusTone } from "./components/StatusPill";
 export { TemplateProvider } from "./template/TemplateProvider";

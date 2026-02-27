@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import { useId, type HTMLAttributes } from "react";
 
 type SparklineProps = HTMLAttributes<SVGSVGElement> & {
   values: number[];
@@ -27,25 +27,34 @@ export function Sparkline({ values, className, ...props }: SparklineProps) {
   const width = 220;
   const height = 60;
   const path = buildPath(values, width, height);
+  const gradientId = useId().replace(/:/g, "");
 
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label="Grafico de tendencia"
-      className={["h-12 w-full", className].filter(Boolean).join(" ")}
+      className={["h-14 w-full", className].filter(Boolean).join(" ")}
       {...props}
     >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="var(--mrq-chart-1)" />
+          <stop offset="100%" stopColor="var(--mrq-chart-2)" />
+        </linearGradient>
+      </defs>
       <path
         d={path}
         fill="none"
-        stroke="currentColor"
+        stroke={`url(#${gradientId})`}
         strokeWidth={2}
-        className="text-primary"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <path
         d={`${path} L ${width} ${height} L 0 ${height} Z`}
-        className="fill-primary/10"
+        fill="var(--mrq-chart-1)"
+        opacity={0.14}
       />
     </svg>
   );

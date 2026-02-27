@@ -37,6 +37,10 @@ import type {
   ProductionBatchData,
   PortalConfigData,
   PortalConfigWritePayload,
+  PortalCloudflareConfig,
+  PortalCloudflarePreviewData,
+  PortalCloudflareRuntimeResult,
+  PortalCloudflareToggleResult,
   PortalPaymentProviderTestResult,
   PortalSectionData,
   PortalSectionWritePayload,
@@ -1053,6 +1057,44 @@ export async function testPortalPaymentProviderAdmin(
       method: "POST",
       auth: true,
       body: JSON.stringify({ provider }),
+    },
+  );
+}
+
+export async function previewPortalCloudflareAdmin(
+  settings: Partial<PortalCloudflareConfig>,
+): Promise<PortalCloudflarePreviewData> {
+  return requestJson<PortalCloudflarePreviewData>(
+    "/api/v1/portal/admin/config/cloudflare-preview/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ settings }),
+    },
+  );
+}
+
+export async function togglePortalCloudflareAdmin(payload: {
+  enabled: boolean;
+  settings?: Partial<PortalCloudflareConfig>;
+}): Promise<PortalCloudflareToggleResult> {
+  return requestJson<PortalCloudflareToggleResult>(
+    "/api/v1/portal/admin/config/cloudflare-toggle/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function managePortalCloudflareRuntimeAdmin(action: "start" | "stop" | "status"): Promise<PortalCloudflareRuntimeResult> {
+  return requestJson<PortalCloudflareRuntimeResult>(
+    "/api/v1/portal/admin/config/cloudflare-runtime/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ action }),
     },
   );
 }

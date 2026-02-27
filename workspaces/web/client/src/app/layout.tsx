@@ -1,8 +1,9 @@
-import { TemplateProvider } from "@mrquentinha/ui";
+import { FormFieldGuard, TemplateProvider } from "@mrquentinha/ui";
 import type { Metadata } from "next";
 
 import { ClientTemplateProvider } from "@/components/ClientTemplateProvider";
 import { Footer } from "@/components/Footer";
+import { GlobalNetworkPreloader } from "@/components/GlobalNetworkPreloader";
 import { Header } from "@/components/Header";
 import { fetchClientActiveTemplate } from "@/lib/clientTemplate";
 
@@ -54,6 +55,8 @@ export default async function RootLayout({
       <body className="bg-bg text-text antialiased">
         <ClientTemplateProvider initialTemplate={template}>
           <TemplateProvider template="clean">
+            <GlobalNetworkPreloader />
+            <FormFieldGuard />
             <div className="flex min-h-screen flex-col">
               <Header />
               <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 md:px-6 md:py-8">

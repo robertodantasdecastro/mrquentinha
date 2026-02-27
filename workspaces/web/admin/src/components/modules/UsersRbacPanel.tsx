@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -172,7 +173,7 @@ export function UsersRbacPanel() {
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando módulo de Usuários/RBAC...</p>}
+      {loading && <InlinePreloader message="Carregando módulo de Usuários/RBAC..." className="mt-4 justify-start bg-surface/70" />}
 
       {!loading && (
         <>

@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
@@ -394,7 +395,7 @@ export function MenuOpsPanel() {
         </div>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-muted">Carregando módulo de cardápio...</p>}
+      {loading && <InlinePreloader message="Carregando módulo de cardápio..." className="mt-4 justify-start bg-surface/70" />}
 
       {!loading && (
         <>
