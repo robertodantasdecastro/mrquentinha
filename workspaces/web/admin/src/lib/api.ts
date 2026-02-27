@@ -90,6 +90,11 @@ type JsonObject = Record<string, unknown>;
 
 const NETWORK_ERROR_MESSAGE =
   "Falha de conexao com a API. Verifique backend (porta 8000) e CORS do Admin (porta 3002).";
+const RUNTIME_API_CONFIG_ENDPOINT = "/api/runtime/config";
+const RUNTIME_API_CACHE_TTL_MS = 15_000;
+
+let runtimeApiBaseUrlCache = "";
+let runtimeApiCacheExpiresAt = 0;
 
 function resolveBrowserBaseUrl(): string {
   if (typeof window === "undefined") {
@@ -105,7 +110,43 @@ function resolveBrowserBaseUrl(): string {
   return protocol + "//" + hostname + ":8000";
 }
 
-function getApiBaseUrl(): string {
+function normalizeApiBaseUrl(value: string): string {
+  return value.trim().replace(/\/$/, "");
+}
+
+async function getRuntimeApiBaseUrlFromSameOrigin(): Promise<string> {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const now = Date.now();
+  if (runtimeApiBaseUrlCache && now < runtimeApiCacheExpiresAt) {
+    return runtimeApiBaseUrlCache;
+  }
+
+  try {
+    const response = await fetch(RUNTIME_API_CONFIG_ENDPOINT, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return runtimeApiBaseUrlCache;
+    }
+
+    const payload = (await response.json()) as { api_base_url?: unknown };
+    const resolved = normalizeApiBaseUrl(String(payload.api_base_url ?? ""));
+    if (!resolved) {
+      return runtimeApiBaseUrlCache;
+    }
+
+    runtimeApiBaseUrlCache = resolved;
+    runtimeApiCacheExpiresAt = now + RUNTIME_API_CACHE_TTL_MS;
+    return runtimeApiBaseUrlCache;
+  } catch {
+    return runtimeApiBaseUrlCache;
+  }
+}
+
+function getStaticApiBaseUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") ?? "";
   if (fromEnv) {
     return fromEnv;
@@ -114,8 +155,14 @@ function getApiBaseUrl(): string {
   return resolveBrowserBaseUrl();
 }
 
-function resolveUrl(path: string): string {
-  const baseUrl = getApiBaseUrl();
+async function getApiBaseUrl(): Promise<string> {
+  const staticUrl = getStaticApiBaseUrl();
+  const runtimeUrl = await getRuntimeApiBaseUrlFromSameOrigin();
+  return runtimeUrl || staticUrl;
+}
+
+async function resolveUrl(path: string): Promise<string> {
+  const baseUrl = await getApiBaseUrl();
   if (!baseUrl) {
     throw new ApiError("Não foi possível identificar a URL da API do backend. Verifique a configuração do Admin.", 0);
   }
@@ -195,8 +242,9 @@ async function tryRefreshAccessToken(): Promise<boolean> {
 
   let response: Response;
   try {
+    const refreshUrl = await resolveUrl("/api/v1/accounts/token/refresh/");
     response = await trackNetworkRequest(() =>
-      fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
+      fetch(refreshUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -249,8 +297,9 @@ async function requestJson<T>(path: string, options: RequestJsonOptions = {}): P
 
   let response: Response;
   try {
+    const resolvedUrl = await resolveUrl(path);
     response = await trackNetworkRequest(() =>
-      fetch(resolveUrl(path), {
+      fetch(resolvedUrl, {
         ...rest,
         headers: requestHeaders,
         body,
@@ -311,8 +360,9 @@ async function requestFile(
 
   let response: Response;
   try {
+    const resolvedUrl = await resolveUrl(path);
     response = await trackNetworkRequest(() =>
-      fetch(resolveUrl(path), {
+      fetch(resolvedUrl, {
         ...rest,
         headers: requestHeaders,
         body,
@@ -375,8 +425,9 @@ async function requestFormData<T>(
 
   let response: Response;
   try {
+    const resolvedUrl = await resolveUrl(path);
     response = await trackNetworkRequest(() =>
-      fetch(resolveUrl(path), {
+      fetch(resolvedUrl, {
         ...rest,
         headers: requestHeaders,
         body,
@@ -1088,7 +1139,9 @@ export async function togglePortalCloudflareAdmin(payload: {
   );
 }
 
-export async function managePortalCloudflareRuntimeAdmin(action: "start" | "stop" | "status"): Promise<PortalCloudflareRuntimeResult> {
+export async function managePortalCloudflareRuntimeAdmin(
+  action: "start" | "stop" | "status" | "refresh",
+): Promise<PortalCloudflareRuntimeResult> {
   return requestJson<PortalCloudflareRuntimeResult>(
     "/api/v1/portal/admin/config/cloudflare-runtime/",
     {

@@ -31,6 +31,10 @@ Data de referencia: 27/02/2026.
 - Etapa 9.2.6-A2 (validadores/formatadores globais de formularios no ecossistema web): concluida em 27/02/2026
 - Etapa 6.3.2-A9 (exposicao online Cloudflare com toggle 1 clique no Portal CMS): concluida em 27/02/2026
 - Etapa 6.3.2-A10 (runtime cloudflared + monitoramento realtime do tunnel): concluida em 27/02/2026
+- Etapa 6.3.2-A11 (modo DEV Cloudflare com dominios aleatorios trycloudflare): concluida em 27/02/2026
+- Etapa 6.3.2-A12 (automacao por terminal + sync de endpoints frontend): concluida em 27/02/2026
+- Etapa 6.3.2-A13 (monitoramento de conectividade DEV + refresh de dominios): concluida em 27/02/2026
+- Etapa 6.3.2-A14 (hardening da rotacao DEV + ALLOWED_HOSTS trycloudflare): concluida em 27/02/2026
 
 ## Fechamento do MVP operacional
 O MVP operacional foi fechado com o backend cobrindo:
@@ -56,6 +60,10 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase de qualidade operacional: `T9.2.1` (plano e campanha recorrente de testes manuais E2E)
 - Fase de governanca de identidade no Admin Web: `T9.2.6-A1` (cadastro completo de perfil, documentos e biometria por foto do usuario logado)
 - Fase de qualidade de dados em formularios: `T9.2.6-A2` (formatacao e validacao global para CPF/CNPJ/CEP/email/senha/datas nos frontends web + reforco backend)
+- Fase de conectividade DEV online: `T6.3.2-A11` (Cloudflare em modo desenvolvimento com URLs aleatorias por servico e sem dependencia de dominio real)
+- Fase de automacao operacional cloud: `T6.3.2-A12` (scripts de terminal para operar Cloudflare DEV/PROD e sincronizar URLs de API dos frontends)
+- Fase de observabilidade cloud em DEV: `T6.3.2-A13` (monitoramento de conectividade por servico e refresh de dominios aleatorios no Web Admin)
+- Fase de hardening cloud em DEV: `T6.3.2-A14` (sincronizacao automatica de rotacao de dominios no status e suporte de host no backend)
 
 ## Proximas fases (planejado)
 ### 6.2 Consolidacao visual do portal (ownership Antigravity)
@@ -91,6 +99,12 @@ Dependencias:
 - Resultado complementar mais recente: `T9.2.6-A1` concluida em 27/02/2026 com nova area `/perfil` no Web Admin (todos os templates), endpoint `GET/PATCH /api/v1/accounts/me/profile/` e suporte a upload/digitalizacao de foto/documentos/biometria.
 - Resultado complementar atual: `T6.3.2-A9` concluida em 27/02/2026 com area `Cloudflare online (1 clique)` em `/modulos/portal`, endpoints de preview/toggle e suporte a modos `local_only/cloudflare_only/hybrid` para coexistencia local + internet.
 - Resultado complementar mais recente: `T6.3.2-A10` concluida em 27/02/2026 com acao runtime (`start/stop/status`) do tunnel via Admin, script operacional `scripts/cloudflare_tunnel.sh` e visibilidade do servico `cloudflare` no monitoramento realtime.
+- Resultado complementar mais recente: `T6.3.2-A11` concluida em 27/02/2026 com `dev_mode` no Cloudflare para gerar dominios aleatorios (`trycloudflare`) em DEV, com sincronizacao automatica das URLs no backend e exibicao por servico no Web Admin.
+- Resultado complementar mais recente: `T6.3.2-A12` concluida em 27/02/2026 com automacao terminal (`cloudflare_admin.sh`) para os mesmos fluxos do Web Admin e sincronizacao de `.env.local` dos frontends quando as URLs mudam.
+- Resultado complementar mais recente: `T6.3.2-A13` concluida em 27/02/2026 com botao `Gerar novos dominios DEV` e monitoramento ativo de conectividade/latencia/HTTP por dominio aleatorio no runtime do Web Admin.
+- Resultado complementar mais recente: `T6.3.2-A14` concluida em 27/02/2026 com sincronizacao automatica de URLs rotacionadas no `status` e eliminacao de `DisallowedHost` para `*.trycloudflare.com` no ambiente dev.
+- Hotfix `T6.3.2-A14-HF1` implementado em 27/02/2026 (frontend -> API em dominios dinamicos Cloudflare): resolucao automatica de `api_base_url` em runtime concluida para `portal/client/admin`; validacao externa ficou pendente porque os dominios informados retornaram `Cloudflare 530 (Error 1033)` no momento do teste.
+- Hotfix `T6.3.2-A14-HF2` implementado em 27/02/2026 (prioridade rede local): frontends em acesso local (`10.x/localhost`) passaram a usar API local `http://<host>:8000` em runtime e o Portal teve ajuste de links dinamicos sem mismatch de hidratacao.
 
 ## Regra de execucao continua
 Cada nova fase deve manter:

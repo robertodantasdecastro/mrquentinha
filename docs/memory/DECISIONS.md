@@ -47,6 +47,42 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Consequencia:
   - operacao pode alternar layout do web client sem deploy e sem alterar o portal institucional em ownership Antigravity.
 
+## 27/02/2026 - Cloudflare em DEV com dominios aleatorios
+- Decisao:
+  - adicionar `dev_mode` em `PortalConfig.cloudflare_settings` para permitir exposicao internet em desenvolvimento via URLs temporarias `trycloudflare`.
+  - no `dev_mode`, nao exigir dominio real/subdominios/tunnel nomeado para publicar Portal/Client/Admin/API.
+  - manter dominio real apenas para modo de operacao (`dev_mode=false`), preservando o fluxo de producao ja existente.
+- Consequencia:
+  - homologacao e testes externos podem ocorrer imediatamente sem bloqueio de DNS oficial.
+  - configuracoes de conectividade (`api_base_url`, frontends e CORS) continuam sincronizadas automaticamente no backend quando `auto_apply_routes` estiver ativo.
+  - o mesmo modulo de Cloudflare no Web Admin atende todos os templates do painel, sem necessidade de variacao por template.
+
+## 27/02/2026 - Operacao Cloudflare por terminal com sync de frontends
+- Decisao:
+  - disponibilizar scripts oficiais para operar os mesmos fluxos do Web Admin via terminal (`status`, toggle DEV/PROD, runtime e preview).
+  - padronizar sincronizacao de `.env.local` dos frontends (`admin/client/portal`) com a URL da API vigente, evitando apontamento stale apos rotacao de `trycloudflare`.
+  - ajustar scripts de start do admin e client para priorizar `NEXT_PUBLIC_API_BASE_URL` vindo de `.env.local`.
+- Consequencia:
+  - a troca de endpoint da API em DEV/PROD passa a ser reprodutivel por CLI e sem edicao manual de arquivo.
+  - o operador consegue alternar entre testes externos e configuracao de deploy tipico mantendo consistencia de enderecamento nos frontends.
+
+## 27/02/2026 - Monitoramento de dominios DEV e refresh de URLs
+- Decisao:
+  - adicionar verificacao ativa de conectividade nos dominios aleatorios (`trycloudflare`) por servico (`portal/client/admin/api`) durante o status do runtime.
+  - expor no Web Admin status, HTTP, latencia, URL checada e timestamp por servico.
+  - incluir acao de runtime `refresh` para regenerar dominios aleatorios com um clique e reaplicar configuracao automaticamente.
+- Consequencia:
+  - operacao passa a validar se os dominios DEV estao realmente acessiveis sem sair do painel.
+  - troca de URL temporaria fica controlada e repetivel, reduzindo risco de frontends apontarem para endpoint antigo.
+
+## 27/02/2026 - Sincronizacao automatica na rotacao de trycloudflare
+- Decisao:
+  - sempre que o `status` do runtime detectar dominio DEV diferente do salvo, atualizar `cloudflare_settings.dev_urls` e reaplicar automaticamente `api_base_url` + URLs de frontends no `PortalConfig` (com `auto_apply_routes` ativo).
+  - aceitar `*.trycloudflare.com` no `ALLOWED_HOSTS` do ambiente `dev` para garantir respostas da API via dominio aleatorio.
+- Consequencia:
+  - elimina drift entre dominio atual do tunnel e configuracao consumida pelos frontends.
+  - evita erro `DisallowedHost` no backend durante homologacao online em modo DEV.
+
 ## 26/02/2026 - Configuracao multigateway de pagamentos via Portal CMS
 - Decisao:
   - centralizar no `PortalConfig.payment_providers` as credenciais e roteamento de Mercado Pago, Efi e Asaas.

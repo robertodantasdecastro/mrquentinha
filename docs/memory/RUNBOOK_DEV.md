@@ -208,3 +208,73 @@ Diagnostico rapido:
 ss -ltnp | egrep ':8088|:8000|:3000|:3001|:3002' || true
 curl -H 'Host: api.mrquentinha.local' http://127.0.0.1:8088/api/v1/health
 ```
+
+## 15) Cloudflare DEV com dominios aleatorios (T6.3.2-A11)
+Objetivo: publicar em internet para teste sem dominio oficial, usando URLs `trycloudflare`.
+
+1. No Web Admin (`/modulos/portal`), secao Cloudflare:
+   - habilitar `Modo DEV com dominios aleatorios (trycloudflare)`;
+   - manter `auto_apply_routes` ligado;
+   - clicar `Ativar Cloudflare`.
+2. Iniciar runtime:
+   - clicar `Iniciar tunnel`.
+3. Validar URLs geradas:
+   - no card de runtime, conferir `Portal`, `Client`, `Admin` e `API`.
+   - validar monitoramento por servico (status de conectividade, HTTP e latencia).
+4. Renovar dominios aleatorios quando necessario:
+   - clicar `Gerar novos dominios DEV` (equivalente a refresh do runtime).
+5. Testar rapidamente:
+   - abrir as URLs `Portal` e `Client` no navegador.
+   - validar `API` em `<url-api>/api/v1/health`.
+6. Encerrar quando finalizar:
+   - clicar `Parar tunnel`;
+   - clicar `Desativar Cloudflare` para voltar modo local.
+
+Observacoes:
+- As URLs `trycloudflare` mudam a cada novo start do runtime.
+- Esse fluxo vale para todos os templates do Web Admin, pois a tela de Cloudflare e compartilhada entre eles.
+
+## 16) Cloudflare via terminal (Web Admin API)
+Pre-requisitos:
+- backend ativo em `http://127.0.0.1:8000` (ou ajustar `--api-base-url`);
+- credenciais admin (`MQ_ADMIN_USER` + `MQ_ADMIN_PASSWORD`) ou token (`MQ_ADMIN_ACCESS_TOKEN`).
+- `cloudflared` instalado localmente:
+
+```bash
+./scripts/install_cloudflared_local.sh
+```
+
+Configuracao de credenciais:
+```bash
+export MQ_ADMIN_USER="admin"
+export MQ_ADMIN_PASSWORD="senha"
+```
+
+Status geral:
+```bash
+./scripts/cloudflare_admin.sh status
+```
+
+Modo DEV (URLs aleatorias):
+```bash
+./scripts/cloudflare_admin.sh dev-up
+./scripts/cloudflare_admin.sh dev-refresh
+./scripts/cloudflare_admin.sh dev-down
+```
+
+Modo operacional (dominio oficial):
+```bash
+./scripts/cloudflare_admin.sh preview-prod --root-domain mrquentinha.com.br
+./scripts/cloudflare_admin.sh prod-up --root-domain mrquentinha.com.br --mode cloudflare_only
+./scripts/cloudflare_admin.sh prod-refresh
+./scripts/cloudflare_admin.sh prod-down
+```
+
+Sincronizacao manual de `.env.local` dos frontends:
+```bash
+./scripts/cloudflare_sync_frontends.sh --api-base-url http://127.0.0.1:8000
+```
+
+Observacao:
+- apos sincronizar, reiniciar `start_admin_dev.sh`, `start_portal_dev.sh` e `start_client_dev.sh` para carregar as novas variaveis.
+- no `trycloudflare`, pode ocorrer `HTTP 530` nos primeiros segundos apos `refresh`; use `status` novamente ate estabilizar.

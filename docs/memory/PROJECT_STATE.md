@@ -3,7 +3,7 @@
 Referencia de atualizacao: 27/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
 
@@ -81,6 +81,22 @@ Referencia de atualizacao: 27/02/2026.
   - novo endpoint admin `POST /api/v1/portal/admin/config/cloudflare-runtime/` com acoes `start|stop|status`.
   - runtime do tunnel persiste PID/log em `.runtime/ops` e retorna ultimas linhas de log para o painel.
   - monitoramento de servicos do ecossistema passou a incluir `cloudflare` em `GET /api/v1/orders/ops/realtime/`.
+- Portal CMS cloud dev (`T6.3.2-A11`):
+  - `cloudflare_settings` evoluiu com `dev_mode` e `dev_urls` para habilitar dominios aleatorios `trycloudflare.com` no modo de desenvolvimento.
+  - `cloudflare-runtime start` em `dev_mode` inicia tunnels por servico (`portal/client/admin/api`), captura URLs publicas por log e sincroniza automaticamente a configuracao quando `auto_apply_routes` estiver ativo.
+  - desativacao (`cloudflare-toggle enabled=false`) encerra tunnel principal e tunnels dev, limpando URLs temporarias.
+- Automacao terminal cloud (`T6.3.2-A12`):
+  - script `scripts/cloudflare_admin.sh` publicado para controlar status/toggle/runtime de Cloudflare DEV/PROD via terminal usando a API admin.
+  - script `scripts/cloudflare_sync_frontends.sh` publicado para sincronizar `.env.local` de `admin/client/portal` com a URL atual da API (incluindo rotacao `trycloudflare`).
+  - `start_admin_dev.sh` e `start_client_dev.sh` passaram a respeitar `NEXT_PUBLIC_API_BASE_URL` de `.env.local` antes do fallback local.
+- Observabilidade cloud dev (`T6.3.2-A13`):
+  - runtime Cloudflare DEV passou a incluir monitoramento de conectividade por servico (status, HTTP, latencia, URL checada e timestamp).
+  - acao `refresh` adicionada no endpoint de runtime para regenerar dominios aleatorios com um clique.
+  - Web Admin passou a exibir painel de monitoramento por dominio e botao `Gerar novos dominios DEV`.
+- Hardening cloud dev (`T6.3.2-A14`):
+  - status do runtime passou a sincronizar rotacao de `dev_urls` diretamente no `PortalConfig`, garantindo reconfiguracao automatica dos endpoints quando dominio aleatorio mudar.
+  - backend `dev` passou a aceitar `*.trycloudflare.com` em `ALLOWED_HOSTS`.
+  - script `scripts/install_cloudflared_local.sh` publicado para setup local do binario.
 - Financas pessoais (`T8.1.1`):
   - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
   - ownership estrito por usuario em querysets e validacoes.
@@ -132,6 +148,9 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A7`): `Portal CMS` ganhou secao `Autenticacao social` para configurar Google/Apple (web + iOS + Android) com persistencia centralizada em `auth_providers`.
 - Atualizacao concluida em 27/02/2026 (`T6.3.2-A9`): `Portal CMS` ganhou secao `Cloudflare online (1 clique)` para preview e ativacao/desativacao de exposicao na internet com modos `local_only`, `cloudflare_only` e `hybrid`.
 - Atualizacao concluida em 27/02/2026 (`T6.3.2-A10`): secao Cloudflare ganhou controle de runtime do tunnel (`start/stop/status`) e exibicao das ultimas linhas de log em tela.
+- Atualizacao concluida em 27/02/2026 (`T6.3.2-A11`): secao Cloudflare ganhou modo DEV com dominios aleatorios (`trycloudflare`), campos de dominio/tunnel condicionais e exibicao das URLs publicas por servico no runtime.
+- Atualizacao concluida em 27/02/2026 (`T6.3.2-A12`): automacao terminal para Cloudflare DEV/PROD e sincronizacao dos endpoints de API dos frontends via scripts oficiais.
+- Atualizacao concluida em 27/02/2026 (`T6.3.2-A13`): monitoramento de conectividade dos dominios DEV e acao `refresh` para gerar novos dominios aleatorios no painel Cloudflare.
 - Atualizacao concluida em 26/02/2026 (`T7.2.4-A1`): `Portal CMS` ganhou secao `Pagamentos` para configurar Mercado Pago/Efi/Asaas, ordem por metodo (PIX/CARD/VR), recebedor CPF/CNPJ e teste de conexao por provider.
 - Atualizacao concluida em 26/02/2026 (`T7.2.4-A2`): `Portal CMS` passou a selecionar provider unico por canal (`Web Cliente` e `App Mobile`) com campos adaptativos por provider.
 - Atualizacao concluida em 26/02/2026 (`T7.2.4-A3`): dashboard recebeu monitoramento realtime de servicos/pagamentos e novo modulo `/modulos/monitoramento` com visao de saude e lifecycle.
@@ -146,6 +165,10 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A1`): nova area `/perfil` no Web Admin (todos os templates) para administracao completa do usuario logado com dados adicionais, endereco, documentos, foto de perfil, digitalizacao por camera, biometria por foto e logoff.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A2`): camada global de validacao/formatacao de formularios aplicada no Admin/Client/Portal (CPF/CNPJ/CEP/email/senha/datas) com reforco de validacao backend para senha de cadastro e recebedor de pagamentos.
 - Workspace ativo: `workspaces/web/admin`.
+- Hotfix `T6.3.2-A14-HF1` implementado: resolucao automatica de `api_base_url` em runtime aplicada nos frontends `admin/client/portal` para acessos via dominios dinamicos `trycloudflare`.
+- Status de validacao externa do `T6.3.2-A14-HF1`: pendente de reexecucao com runtime Cloudflare DEV ativo, pois os dominios testados retornaram `Cloudflare 530 (Error 1033)` nesta sessao.
+- Hotfix `T6.3.2-A14-HF2` implementado: em acesso local por IP/localhost, os frontends passaram a resolver `api_base_url` para `http://<host-local>:8000`, evitando dependencia de dominio Cloudflare para operar no modo DEV local.
+- Hotfix `T6.3.2-A14-HF2` implementado: Portal (`Header/Footer/Home`) ajustado para links locais dinamicos sem mismatch de hidratacao.
 - Proximo alvo tecnico: executar `T8.2.3` (hardening pos-MVP da trilha pessoal).
 - Proximo alvo operacional: executar `T9.2.1-A2` (rodada manual E2E completa) e manter `T8.2.3` como trilha tecnica de backend.
 
@@ -229,6 +252,9 @@ Referencia de atualizacao: 27/02/2026.
 - T6.3.2-A7 concluida (template cliente `client-vitrine-fit` + parametros OAuth Google/Apple gerenciados no Portal CMS).
 - T6.3.2-A9 concluida (Cloudflare online no Portal CMS com preview/toggle e coexistencia local+internet por modo `hybrid`).
 - T6.3.2-A10 concluida (runtime do cloudflared no Admin + monitoramento realtime do servico `cloudflare`).
+- T6.3.2-A11 concluida (modo DEV Cloudflare com dominios aleatorios por servico + sincronizacao automatica de URLs no backend).
+- T6.3.2-A12 concluida (operacao Cloudflare via terminal + sync de `.env.local` dos frontends quando endpoints mudam).
+- T6.3.2-A13 concluida (monitoramento de conectividade por dominio DEV + botao de regeneracao de dominios aleatorios).
 - T7.2.4-A1 concluida (multigateway no Portal CMS + webhooks dedicados por provider + habilitacao dinamica de metodos no web client).
 - T8.0.1 concluida (discovery de financas pessoais + ADR de segregacao entre dominio operacional e pessoal).
 - T8.1.1 concluida (backend `personal_finance` com isolamento por ownership + testes API).

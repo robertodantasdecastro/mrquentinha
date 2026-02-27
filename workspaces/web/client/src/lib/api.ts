@@ -36,6 +36,11 @@ type RequestJsonOptions = Omit<RequestInit, "body"> & {
 };
 
 type JsonObject = Record<string, unknown>;
+const RUNTIME_API_CONFIG_ENDPOINT = "/api/runtime/config";
+const RUNTIME_API_CACHE_TTL_MS = 15_000;
+
+let runtimeApiBaseUrlCache = "";
+let runtimeApiCacheExpiresAt = 0;
 
 function buildNetworkErrorMessage(): string {
   const origin =
@@ -60,6 +65,10 @@ function resolveBrowserBaseUrl(): string {
   return `${protocol}//${hostname}:8000`;
 }
 
+function normalizeApiBaseUrl(value: string): string {
+  return value.trim().replace(/\/$/, "");
+}
+
 function isLoopbackHost(host: string): boolean {
   return host === "localhost" || host === "127.0.0.1";
 }
@@ -82,7 +91,39 @@ function shouldPreferBrowserHostBaseUrl(fromEnv: string): boolean {
   }
 }
 
-function getApiBaseUrl(): string {
+async function getRuntimeApiBaseUrlFromSameOrigin(): Promise<string> {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const now = Date.now();
+  if (runtimeApiBaseUrlCache && now < runtimeApiCacheExpiresAt) {
+    return runtimeApiBaseUrlCache;
+  }
+
+  try {
+    const response = await fetch(RUNTIME_API_CONFIG_ENDPOINT, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return runtimeApiBaseUrlCache;
+    }
+
+    const payload = (await response.json()) as { api_base_url?: unknown };
+    const resolved = normalizeApiBaseUrl(String(payload.api_base_url ?? ""));
+    if (!resolved) {
+      return runtimeApiBaseUrlCache;
+    }
+
+    runtimeApiBaseUrlCache = resolved;
+    runtimeApiCacheExpiresAt = now + RUNTIME_API_CACHE_TTL_MS;
+    return runtimeApiBaseUrlCache;
+  } catch {
+    return runtimeApiBaseUrlCache;
+  }
+}
+
+function getStaticApiBaseUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") ?? "";
   if (fromEnv) {
     if (shouldPreferBrowserHostBaseUrl(fromEnv)) {
@@ -95,11 +136,26 @@ function getApiBaseUrl(): string {
 }
 
 export function getResolvedApiBaseUrl(): string {
-  return getApiBaseUrl();
+  return runtimeApiBaseUrlCache || getStaticApiBaseUrl();
 }
 
-function resolveUrl(path: string): string {
-  const baseUrl = getApiBaseUrl();
+async function getApiBaseUrl(): Promise<string> {
+  const staticBaseUrl = getStaticApiBaseUrl();
+  const runtimeBaseUrl = await getRuntimeApiBaseUrlFromSameOrigin();
+  return runtimeBaseUrl || staticBaseUrl;
+}
+
+function joinPath(baseUrl: string, path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${baseUrl}${normalizedPath}`;
+}
+
+async function resolveUrl(path: string): Promise<string> {
+  const baseUrl = await getApiBaseUrl();
   if (!baseUrl) {
     throw new ApiError(
       "Nao foi possivel identificar a URL da API do backend.",
@@ -107,12 +163,7 @@ function resolveUrl(path: string): string {
     );
   }
 
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${baseUrl}${normalizedPath}`;
+  return joinPath(baseUrl, path);
 }
 
 function parseErrorMessage(payload: unknown): string | null {
@@ -158,8 +209,9 @@ async function tryRefreshAccessToken(): Promise<boolean> {
 
   let response: Response;
   try {
+    const refreshUrl = await resolveUrl("/api/v1/accounts/token/refresh/");
     response = await trackNetworkRequest(() =>
-      fetch(resolveUrl("/api/v1/accounts/token/refresh/"), {
+      fetch(refreshUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -220,8 +272,9 @@ async function requestJson<T>(
 
   let response: Response;
   try {
+    const resolvedUrl = await resolveUrl(path);
     response = await trackNetworkRequest(() =>
-      fetch(resolveUrl(path), {
+      fetch(resolvedUrl, {
         ...rest,
         headers: requestHeaders,
         body,

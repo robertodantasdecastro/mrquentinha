@@ -3,34 +3,52 @@
 import { Container, Navbar, ThemeToggle } from "@mrquentinha/ui";
 import Image from "next/image";
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { useTemplate } from "./TemplateProvider";
 
 const ADMIN_URL =
   process.env.NEXT_PUBLIC_ADMIN_URL?.trim() || "https://admin.mrquentinha.com.br";
 const CLIENT_AREA_FALLBACK =
   process.env.NEXT_PUBLIC_CLIENT_AREA_URL?.trim() || "https://app.mrquentinha.com.br";
+const PRIVATE_IPV4_PATTERN = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/;
 
-function resolveClientAreaUrl(): string {
+function isLocalNetworkHostname(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "0.0.0.0" ||
+    hostname.endsWith(".local") ||
+    PRIVATE_IPV4_PATTERN.test(hostname)
+  );
+}
+
+function resolveUrlForCurrentHost(port: number, fallback: string): string {
   if (typeof window === "undefined") {
-    return CLIENT_AREA_FALLBACK;
+    return fallback;
   }
 
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;
   if (!hostname) {
-    return CLIENT_AREA_FALLBACK;
+    return fallback;
   }
 
-  const isLocalHost =
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname.startsWith("10.");
-
-  if (!isLocalHost) {
-    return CLIENT_AREA_FALLBACK;
+  if (!isLocalNetworkHostname(hostname)) {
+    return fallback;
   }
 
-  return `${protocol}//${hostname}:3001`;
+  return `${protocol}//${hostname}:${port}`;
+}
+
+function subscribeNoop(): () => void {
+  return () => {};
+}
+
+function useRuntimeUrl(port: number, fallback: string): string {
+  return useSyncExternalStore(
+    subscribeNoop,
+    () => resolveUrlForCurrentHost(port, fallback),
+    () => fallback,
+  );
 }
 
 const NAV_LINKS_CLASSIC = [
@@ -50,7 +68,8 @@ export function Header() {
   const { template } = useTemplate();
   const isLetsFit = template === "letsfit-clean";
   const NAV_LINKS = isLetsFit ? NAV_LINKS_LETSFIT : NAV_LINKS_CLASSIC;
-  const clientAreaUrl = resolveClientAreaUrl();
+  const adminUrl = useRuntimeUrl(3002, ADMIN_URL);
+  const clientAreaUrl = useRuntimeUrl(3001, CLIENT_AREA_FALLBACK);
 
   return (
     <Navbar>
@@ -72,7 +91,7 @@ export function Header() {
             {!isLetsFit && (
               <a
                 className="hidden rounded-md border border-border bg-surface px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted transition hover:border-primary hover:text-primary sm:inline-flex"
-                href={ADMIN_URL}
+                href={adminUrl}
                 target="_blank"
                 rel="noreferrer"
               >

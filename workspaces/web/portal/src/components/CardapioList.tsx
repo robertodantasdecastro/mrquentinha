@@ -39,6 +39,11 @@ type MenuDayData = {
 };
 
 type CardapioState = "loading" | "empty" | "loaded" | "error";
+const RUNTIME_API_CONFIG_ENDPOINT = "/api/runtime/config";
+const RUNTIME_API_CACHE_TTL_MS = 15_000;
+
+let runtimeApiBaseUrlCache = "";
+let runtimeApiCacheExpiresAt = 0;
 
 function getDefaultDate(): string {
   const now = new Date();
@@ -81,6 +86,38 @@ function resolveApiBaseUrl(): string {
   return resolveBrowserApiBaseUrl();
 }
 
+async function resolveRuntimeApiBaseUrl(fallback: string): Promise<string> {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  const now = Date.now();
+  if (runtimeApiBaseUrlCache && now < runtimeApiCacheExpiresAt) {
+    return runtimeApiBaseUrlCache;
+  }
+
+  try {
+    const response = await fetch(RUNTIME_API_CONFIG_ENDPOINT, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return runtimeApiBaseUrlCache || fallback;
+    }
+
+    const payload = (await response.json()) as { api_base_url?: unknown };
+    const resolved = String(payload.api_base_url ?? "").trim().replace(/\/$/, "");
+    if (!resolved) {
+      return runtimeApiBaseUrlCache || fallback;
+    }
+
+    runtimeApiBaseUrlCache = resolved;
+    runtimeApiCacheExpiresAt = now + RUNTIME_API_CACHE_TTL_MS;
+    return runtimeApiBaseUrlCache;
+  } catch {
+    return runtimeApiBaseUrlCache || fallback;
+  }
+}
+
 export function CardapioList() {
   const [selectedDate, setSelectedDate] = useState<string>(getDefaultDate());
   const [menu, setMenu] = useState<MenuDayData | null>(null);
@@ -93,7 +130,8 @@ export function CardapioList() {
     let isMounted = true;
 
     async function fetchMenuByDate() {
-      if (!apiBaseUrl) {
+      const resolvedApiBaseUrl = await resolveRuntimeApiBaseUrl(apiBaseUrl);
+      if (!resolvedApiBaseUrl) {
         if (isMounted) {
           setMenu(null);
           setState("error");
@@ -116,7 +154,7 @@ export function CardapioList() {
           : `/api/v1/catalog/menus/by-date/${selectedDate}/`;
 
         const response = await trackNetworkRequest(() =>
-          fetch(`${apiBaseUrl}${endpoint}`, {
+          fetch(`${resolvedApiBaseUrl}${endpoint}`, {
             cache: "no-store",
           }),
         );

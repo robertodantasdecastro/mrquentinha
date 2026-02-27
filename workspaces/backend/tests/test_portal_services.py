@@ -1,6 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 
+from apps.portal import services as portal_services
 from apps.portal.models import PortalConfig, PortalSection
 from apps.portal.services import (
     build_cloudflare_preview,
@@ -361,3 +362,142 @@ def test_toggle_cloudflare_ativa_e_restaura_config_local():
 def test_manage_cloudflare_runtime_rejeita_acao_invalida():
     with pytest.raises(ValidationError):
         manage_cloudflare_runtime(action="invalid-action")
+
+
+@pytest.mark.django_db
+def test_cloudflare_preview_dev_mode_retorna_urls_trycloudflare():
+    preview = build_cloudflare_preview(
+        overrides={
+            "mode": "hybrid",
+            "dev_mode": True,
+            "dev_urls": {
+                "portal": "https://portal-dev.trycloudflare.com",
+                "client": "https://client-dev.trycloudflare.com",
+                "admin": "https://admin-dev.trycloudflare.com",
+                "api": "https://api-dev.trycloudflare.com",
+            },
+        }
+    )
+
+    assert preview["dev_mode"] is True
+    assert preview["urls"]["portal_base_url"] == "https://portal-dev.trycloudflare.com"
+    assert preview["urls"]["api_base_url"] == "https://api-dev.trycloudflare.com"
+    assert preview["tunnel"]["configured"] is True
+    assert "trycloudflare.com" in preview["coexistence_note"]
+
+
+@pytest.mark.django_db
+def test_toggle_cloudflare_dev_mode_com_urls_aplica_enderecos():
+    updated_config, _preview_enabled = toggle_cloudflare_mode(
+        enabled=True,
+        overrides={
+            "mode": "hybrid",
+            "dev_mode": True,
+            "auto_apply_routes": True,
+            "dev_urls": {
+                "portal": "https://portal-dev.trycloudflare.com",
+                "client": "https://client-dev.trycloudflare.com",
+                "admin": "https://admin-dev.trycloudflare.com",
+                "api": "https://api-dev.trycloudflare.com",
+            },
+        },
+    )
+
+    assert updated_config.cloudflare_settings["enabled"] is True
+    assert updated_config.cloudflare_settings["dev_mode"] is True
+    assert updated_config.api_base_url == "https://api-dev.trycloudflare.com"
+    assert updated_config.portal_base_url == "https://portal-dev.trycloudflare.com"
+    assert "https://portal-dev.trycloudflare.com" in updated_config.cors_allowed_origins
+
+
+@pytest.mark.django_db
+def test_cloudflare_runtime_dev_inclui_status_de_conectividade(monkeypatch):
+    monkeypatch.setattr(
+        portal_services,
+        "_check_cloudflare_dev_service_connectivity",
+        lambda *, key, base_url: {
+            "connectivity": "online" if base_url else "unknown",
+            "http_status": 200 if base_url else None,
+            "latency_ms": 80 if base_url else None,
+            "checked_url": f"{base_url}/health" if base_url else "",
+            "checked_at": "2026-02-27T12:00:00+00:00",
+            "error": "",
+        },
+    )
+
+    runtime_payload = portal_services._build_cloudflare_dev_runtime_payload(
+        {
+            "dev_mode": True,
+            "dev_urls": {
+                "portal": "https://portal-dev.trycloudflare.com",
+                "client": "https://client-dev.trycloudflare.com",
+                "admin": "https://admin-dev.trycloudflare.com",
+                "api": "https://api-dev.trycloudflare.com",
+            },
+            "runtime": {
+                "state": "active",
+            },
+        }
+    )
+
+    assert runtime_payload["dev_mode"] is True
+    assert len(runtime_payload["dev_services"]) == 4
+    assert all(
+        service["connectivity"] == "online"
+        for service in runtime_payload["dev_services"]
+    )
+    assert runtime_payload["dev_services"][0]["http_status"] == 200
+
+
+@pytest.mark.django_db
+def test_cloudflare_runtime_status_dev_sincroniza_urls_quando_rotacionar(monkeypatch):
+    config, _ = toggle_cloudflare_mode(
+        enabled=True,
+        overrides={
+            "mode": "hybrid",
+            "dev_mode": True,
+            "auto_apply_routes": True,
+            "dev_urls": {
+                "portal": "https://old-portal.trycloudflare.com",
+                "client": "https://old-client.trycloudflare.com",
+                "admin": "https://old-admin.trycloudflare.com",
+                "api": "https://old-api.trycloudflare.com",
+            },
+        },
+    )
+
+    def fake_runtime_payload(_config):
+        return {
+            "state": "active",
+            "pid": 123,
+            "log_file": "/tmp/cloudflare-dev.log",
+            "last_started_at": "",
+            "last_stopped_at": "",
+            "last_error": "",
+            "run_command": "cloudflared tunnel --url ...",
+            "last_log_lines": [],
+            "dev_mode": True,
+            "dev_urls": {
+                "portal": "https://new-portal.trycloudflare.com",
+                "client": "https://new-client.trycloudflare.com",
+                "admin": "https://new-admin.trycloudflare.com",
+                "api": "https://new-api.trycloudflare.com",
+            },
+            "dev_services": [],
+        }
+
+    monkeypatch.setattr(
+        portal_services,
+        "_build_cloudflare_runtime_payload",
+        fake_runtime_payload,
+    )
+
+    updated_config, runtime_payload = manage_cloudflare_runtime(action="status")
+    updated_config.refresh_from_db()
+
+    assert runtime_payload["state"] == "active"
+    assert updated_config.cloudflare_settings["dev_urls"]["api"] == (
+        "https://new-api.trycloudflare.com"
+    )
+    assert updated_config.api_base_url == "https://new-api.trycloudflare.com"
+    assert updated_config.portal_base_url == "https://new-portal.trycloudflare.com"

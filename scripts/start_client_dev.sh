@@ -6,10 +6,15 @@ CLIENT_DIR="$ROOT_DIR/workspaces/web/client"
 CLIENT_PORT="${CLIENT_PORT:-3001}"
 CLIENT_HOST="${CLIENT_HOST:-0.0.0.0}"
 LOCK_FILE="$CLIENT_DIR/.next/dev/lock"
+API_RESOLVER_SCRIPT="$ROOT_DIR/scripts/resolve_api_base_from_backend.sh"
 
 if [[ ! -d "$CLIENT_DIR" ]]; then
   echo "[client] Diretorio nao encontrado: $CLIENT_DIR" >&2
   exit 1
+fi
+
+if [[ ! -x "$API_RESOLVER_SCRIPT" ]]; then
+  chmod +x "$API_RESOLVER_SCRIPT" 2>/dev/null || true
 fi
 
 ensure_npm() {
@@ -25,6 +30,25 @@ ensure_npm() {
   fi
 
   command -v npm >/dev/null 2>&1
+}
+
+read_env_local_value() {
+  local file_path="$1"
+  local key_name="$2"
+
+  if [[ ! -f "$file_path" ]]; then
+    return 1
+  fi
+
+  local raw_value
+  raw_value="$(awk -F= -v key="$key_name" '$1 == key {print substr($0, index($0, "=") + 1); exit}' "$file_path")"
+  if [[ -z "$raw_value" ]]; then
+    return 1
+  fi
+
+  raw_value="${raw_value%\"}"
+  raw_value="${raw_value#\"}"
+  printf '%s' "$raw_value"
 }
 
 if ! ensure_npm; then
@@ -113,6 +137,25 @@ cd "$CLIENT_DIR"
 if [[ ! -d node_modules ]]; then
   echo "[client] Instalando dependencias..."
   npm install
+fi
+
+if [[ -z "${NEXT_PUBLIC_API_BASE_URL:-}" ]]; then
+  env_local_value="$(read_env_local_value "$CLIENT_DIR/.env.local" "NEXT_PUBLIC_API_BASE_URL" || true)"
+  if [[ -n "${env_local_value:-}" ]]; then
+    export NEXT_PUBLIC_API_BASE_URL="$env_local_value"
+    echo "[client] NEXT_PUBLIC_API_BASE_URL carregado de .env.local"
+  fi
+fi
+
+export INTERNAL_API_BASE_URL="${INTERNAL_API_BASE_URL:-http://127.0.0.1:8000}"
+export CLIENT_API_BASE_URL="${CLIENT_API_BASE_URL:-$INTERNAL_API_BASE_URL}"
+
+if [[ -z "${NEXT_PUBLIC_API_BASE_URL:-}" ]]; then
+  resolved_api_base_url="$("$API_RESOLVER_SCRIPT" client home 2>/dev/null || true)"
+  if [[ -n "${resolved_api_base_url:-}" ]]; then
+    export NEXT_PUBLIC_API_BASE_URL="$resolved_api_base_url"
+    echo "[client] NEXT_PUBLIC_API_BASE_URL resolvido via backend config"
+  fi
 fi
 
 if [[ -z "${NEXT_PUBLIC_API_BASE_URL:-}" ]]; then

@@ -757,9 +757,17 @@ export type PortalCloudflareRuntime = {
   run_command: string;
 };
 
+export type PortalCloudflareDevUrls = {
+  portal: string;
+  client: string;
+  admin: string;
+  api: string;
+};
+
 export type PortalCloudflareConfig = {
   enabled: boolean;
   mode: PortalCloudflareMode;
+  dev_mode: boolean;
   scheme: "http" | "https";
   root_domain: string;
   subdomains: PortalCloudflareSubdomains;
@@ -773,11 +781,13 @@ export type PortalCloudflareConfig = {
   last_action_at: string;
   last_status_message: string;
   runtime: PortalCloudflareRuntime;
+  dev_urls: PortalCloudflareDevUrls;
   local_snapshot: Record<string, unknown>;
 };
 
 export type PortalCloudflarePreviewData = {
   mode: PortalCloudflareMode;
+  dev_mode?: boolean;
   scheme: string;
   root_domain: string;
   domains: {
@@ -820,12 +830,29 @@ export type PortalCloudflareRuntimeData = {
   last_error: string;
   run_command: string;
   last_log_lines: string[];
+  dev_mode?: boolean;
+  dev_urls?: PortalCloudflareDevUrls;
+  dev_services?: Array<{
+    key: string;
+    name: string;
+    port: number;
+    pid: number | null;
+    url: string;
+    log_file: string;
+    running: boolean;
+    connectivity?: "online" | "offline" | "unknown";
+    http_status?: number | null;
+    latency_ms?: number | null;
+    checked_url?: string;
+    checked_at?: string;
+    error?: string;
+  }>;
 };
 
 export type PortalCloudflareRuntimeResult = {
   config: PortalConfigData;
   runtime: PortalCloudflareRuntimeData;
-  action: "start" | "stop" | "status";
+  action: "start" | "stop" | "status" | "refresh";
 };
 
 export type PortalConfigData = {

@@ -42,6 +42,9 @@
   - `scripts/start_portal_dev.sh`
   - `scripts/start_client_dev.sh`
   - `scripts/start_proxy_dev.sh`
+  - `scripts/install_cloudflared_local.sh`
+  - `scripts/cloudflare_admin.sh` (Cloudflare DEV/PROD via API admin)
+  - `scripts/cloudflare_sync_frontends.sh` (sync de `.env.local` dos frontends)
 - Stop:
   - `scripts/stop_proxy_dev.sh`
 - Smoke:

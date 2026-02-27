@@ -1,6 +1,14 @@
 # Changelog (por sprint)
 
 ## 27/02/2026
+- T6.3.2-A14-HF1 (cloudflare dev/frontends): hotfix implementado para corrigir comunicacao dos frontends publicados por dominios `trycloudflare` com a API publicada em dominio aleatorio dedicado.
+- T6.3.2-A14-HF1 (runtime discovery): adicionado endpoint local de runtime (`/api/runtime/config`) em `admin`, `client` e `portal` para resolver dinamicamente `api_base_url` via `PortalConfig` no backend, reduzindo dependencia de `.env.local` e de restart manual.
+- T6.3.2-A14-HF1 (start scripts): `start_admin_dev.sh`, `start_client_dev.sh` e `start_portal_dev.sh` passaram a resolver `NEXT_PUBLIC_API_BASE_URL` automaticamente a partir do backend (`/api/v1/portal/config`) quando variavel/env local nao estiver definida.
+- T6.3.2-A14-HF1 (qualidade): validado com `npm run lint` e `npm run build` em `web/admin`, `web/client` e `web/portal`, alem de `python manage.py check` e `pytest tests/test_portal_services.py tests/test_portal_api.py` no backend.
+- T6.3.2-A14-HF1 (validacao externa): os dominios `trycloudflare` informados para API/frontends retornaram `Cloudflare 530 (Error 1033)` durante o teste desta sessao; necessario reexecutar a validacao publica apos reativar o runtime DEV do Cloudflare.
+- T6.3.2-A14-HF2 (rede local DEV): `runtime/config` de `admin`, `client` e `portal` passou a priorizar `http://<host-local>:8000` quando o frontend for acessado por IP/localhost na rede local, mesmo com Cloudflare DEV ativo no backend.
+- T6.3.2-A14-HF2 (portal UX): links de `Gestao` e `Area do Cliente` em `Header/Footer` e `Home` do Portal foram ajustados para resolver host local dinamicamente sem erro de hidratacao.
+- T6.3.2-A14-HF2 (qualidade): validado com `npm run lint` e `npm run build` em `web/admin`, `web/client` e `web/portal`; validado por `curl` em `http://10.211.55.21:{3000,3001,3002}/api/runtime/config` retornando `api_base_url=http://10.211.55.21:8000`.
 - T9.2.6-A1 (accounts/backend): criado `UserProfile` em `accounts` com dados adicionais completos (dados pessoais, endereco, documentos, fotos e biometria), incluindo migration `0002_userprofile`.
 - T9.2.6-A1 (accounts/api): novo endpoint autenticado `GET/PATCH /api/v1/accounts/me/profile/` com suporte a JSON e multipart para upload de foto de perfil, digitalizacao de documentos (frente/verso/selfie) e biometria facial por foto.
 - T9.2.6-A1 (web admin): nova area `Meu perfil` em `/perfil`, adicionada na navegacao de todos os templates (`classic`, `admin-adminkit`, `admin-admindek`), com formulario completo, upload por camera (`capture`) e acao de logoff.
@@ -19,6 +27,23 @@
 - T6.3.2-A10 (Cloudflare runtime): adicionada acao admin `POST /api/v1/portal/admin/config/cloudflare-runtime/` para `start|stop|status` do processo `cloudflared`, com PID/log em `.runtime/ops`.
 - T6.3.2-A10 (monitoramento): `GET /api/v1/orders/ops/realtime/` passou a incluir servico `cloudflare` no bloco `services`.
 - T6.3.2-A10 (operacao): novo script `scripts/cloudflare_tunnel.sh` com comandos `start|stop|restart|status|logs`.
+- T6.3.2-A11 (Cloudflare DEV): `cloudflare_settings` evoluiu com `dev_mode` + `dev_urls` para operar desenvolvimento com dominios aleatorios `trycloudflare.com` sem exigir dominio real configurado.
+- T6.3.2-A11 (runtime DEV): `POST /api/v1/portal/admin/config/cloudflare-runtime/` passou a iniciar/parar 4 tunnels dev (portal/client/admin/api), capturar URLs publicas por log e sincronizar `dev_urls` no `PortalConfig`.
+- T6.3.2-A11 (auto-aplicacao): quando `auto_apply_routes` estiver ativo, as URLs aleatorias do DEV atualizam automaticamente `api_base_url`, `portal/client/admin base_url` e `cors_allowed_origins`.
+- T6.3.2-A11 (web admin): secao `Portal CMS > Conectividade > Cloudflare` ganhou toggle `Modo DEV com dominios aleatorios (trycloudflare)`, bloqueio de campos de dominio/tunnel no modo DEV e exibicao das URLs geradas por servico no card de runtime.
+- T6.3.2-A11 (qualidade): validado com `python manage.py check`, `pytest tests/test_portal_services.py tests/test_portal_api.py`, `black --check`, `ruff check`, `npm run lint` e `npm run build` no Web Admin.
+- T6.3.2-A12 (terminal/cloudflare): criado `scripts/cloudflare_admin_cli.py` com wrapper `scripts/cloudflare_admin.sh` para operar DEV/PROD via terminal usando os mesmos endpoints do Web Admin (`status`, `dev-up`, `dev-refresh`, `dev-down`, `preview-prod`, `prod-up`, `prod-refresh`, `prod-down`).
+- T6.3.2-A12 (sync frontends): criado `scripts/cloudflare_sync_frontends.sh` para atualizar `.env.local` de `admin/client/portal` com a URL atual da API (incluindo rotacao de URLs `trycloudflare`).
+- T6.3.2-A12 (start scripts): `scripts/start_admin_dev.sh` e `scripts/start_client_dev.sh` agora priorizam `NEXT_PUBLIC_API_BASE_URL` vindo de `.env.local` antes do fallback local, evitando sobrescrever o endpoint sincronizado pelo Cloudflare DEV.
+- T6.3.2-A12 (documentacao): README, README_EXECUTIVO e runbooks atualizados com fluxos DEV/PROD via Web Admin e via terminal.
+- T6.3.2-A13 (monitoramento DEV): runtime Cloudflare passou a retornar conectividade por servico (`portal/client/admin/api`) com status (`online/offline`), `http_status`, `latency_ms`, URL verificada e timestamp do check.
+- T6.3.2-A13 (web admin): secao Cloudflare ganhou botao `Gerar novos dominios DEV` (acao `refresh`) e painel de monitoramento de conectividade dos dominios aleatorios.
+- T6.3.2-A13 (backend): endpoint `cloudflare-runtime` passou a aceitar `action=refresh` para reiniciar tunnels DEV e gerar novos dominios automaticamente.
+- T6.3.2-A13 (teste real): tentativa de teste ponta a ponta com runtime DEV executada; ambiente atual bloqueado por ausencia do binario `cloudflared` no servidor de desenvolvimento.
+- T6.3.2-A14 (runtime sync): `status` do runtime DEV passou a sincronizar automaticamente `dev_urls` rotacionadas e reaplicar `api_base_url`/URLs de frontends no `PortalConfig` quando houver mudanca.
+- T6.3.2-A14 (backend host): ambiente `dev` passou a aceitar `*.trycloudflare.com` em `ALLOWED_HOSTS` para evitar `DisallowedHost` na API via dominio aleatorio.
+- T6.3.2-A14 (operacao): novo script `scripts/install_cloudflared_local.sh` para instalar `cloudflared` em `.runtime/bin` sem dependencia de pacote do sistema.
+- T6.3.2-A14 (teste real): validacao executada com `refresh` real e dominios aleatorios gerados; monitoramento por servico estabilizou em `online` (`portal/client/admin/api`) e sincronizacao de URLs no payload publico confirmada.
 
 ## 26/02/2026
 - T9.2.5 (web admin template): novo template `admin-admindek` adicionado ao CMS/Admin com layout completo inspirado no padrão AdminDek (sidebar gradiente, header operacional, cards executivos, visual CRM/ecommerce/finance).

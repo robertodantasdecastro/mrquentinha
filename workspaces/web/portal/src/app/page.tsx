@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { CardapioList } from "@/components/CardapioList";
 import { Hero } from "@/components/Hero";
@@ -17,15 +18,10 @@ import {
 } from "@/lib/portalTemplate";
 
 const ADMIN_URL =
-  process.env.NEXT_PUBLIC_ADMIN_URL?.trim() ||
-  (process.env.NODE_ENV === "development"
-    ? "http://127.0.0.1:3002"
-    : "https://admin.mrquentinha.com.br");
+  process.env.NEXT_PUBLIC_ADMIN_URL?.trim() || "https://admin.mrquentinha.com.br";
 const CLIENT_AREA_URL =
-  process.env.NEXT_PUBLIC_CLIENT_AREA_URL?.trim() ||
-  (process.env.NODE_ENV === "development"
-    ? "http://127.0.0.1:3001"
-    : "https://app.mrquentinha.com.br");
+  process.env.NEXT_PUBLIC_CLIENT_AREA_URL?.trim() || "https://app.mrquentinha.com.br";
+const PRIVATE_IPV4_PATTERN = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/;
 
 type JsonObject = Record<string, unknown>;
 
@@ -57,6 +53,40 @@ function parseCta(
     label: asString(body.label, fallbackLabel),
     href: asString(body.href, fallbackHref),
   };
+}
+
+function extractHostname(hostHeader: string): string {
+  const rawHost = hostHeader.split(",")[0]?.trim() ?? "";
+  if (!rawHost) {
+    return "";
+  }
+  if (rawHost.startsWith("[")) {
+    const ipv6Match = rawHost.match(/^\[([^\]]+)\]/);
+    if (ipv6Match?.[1]) {
+      return ipv6Match[1].toLowerCase();
+    }
+  }
+  return rawHost.replace(/:\d+$/, "").toLowerCase();
+}
+
+function isLocalNetworkHostname(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "0.0.0.0" ||
+    hostname.endsWith(".local") ||
+    PRIVATE_IPV4_PATTERN.test(hostname)
+  );
+}
+
+function resolveFrontendUrl(
+  hostname: string,
+  port: number,
+  fallback: string,
+): string {
+  if (!isLocalNetworkHostname(hostname)) {
+    return fallback;
+  }
+  return `http://${hostname}:${port}`;
 }
 
 function resolveLetsFitContent(portalConfig: PortalConfigPayload) {
@@ -213,7 +243,13 @@ function resolveLetsFitContent(portalConfig: PortalConfigPayload) {
   };
 }
 
-function HomeClassic() {
+function HomeClassic({
+  adminUrl,
+  clientAreaUrl,
+}: {
+  adminUrl: string;
+  clientAreaUrl: string;
+}) {
   return (
     <div className="space-y-8 md:space-y-10">
       <Hero />
@@ -275,7 +311,7 @@ function HomeClassic() {
           </Link>
           <a
             className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-soft"
-            href={ADMIN_URL}
+            href={adminUrl}
             target="_blank"
             rel="noreferrer"
           >
@@ -283,7 +319,7 @@ function HomeClassic() {
           </a>
           <a
             className="rounded-md bg-graphite px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary"
-            href={CLIENT_AREA_URL}
+            href={clientAreaUrl}
             target="_blank"
             rel="noreferrer"
           >
@@ -326,12 +362,19 @@ function HomeLetsFit({ portalConfig }: { portalConfig: PortalConfigPayload }) {
 }
 
 export default async function HomePage() {
+  const requestHeaders = await headers();
+  const requestHostname = extractHostname(
+    requestHeaders.get("x-forwarded-host") || requestHeaders.get("host") || "",
+  );
+  const adminUrl = resolveFrontendUrl(requestHostname, 3002, ADMIN_URL);
+  const clientAreaUrl = resolveFrontendUrl(requestHostname, 3001, CLIENT_AREA_URL);
+
   const portalConfig = await fetchPortalConfig("home");
   const template = portalConfig.active_template;
 
   return template === "letsfit-clean" ? (
     <HomeLetsFit portalConfig={portalConfig} />
   ) : (
-    <HomeClassic />
+    <HomeClassic adminUrl={adminUrl} clientAreaUrl={clientAreaUrl} />
   );
 }

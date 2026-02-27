@@ -174,12 +174,27 @@ Parar proxy:
 No Web Admin, acesse:
 - `Portal CMS` -> `Conectividade` -> `Cloudflare online (1 clique)`
 
+### Modo DEV (URLs aleatorias `trycloudflare`)
 Fluxo recomendado:
-1. Configure dominio raiz/subdominios.
-2. Use modo `hybrid` para manter local + internet simultaneamente.
-3. Clique em `Pre-visualizar rotas`.
+1. Ative `Modo DEV com dominios aleatorios (trycloudflare)`.
+2. Mantenha `auto_apply_routes` ligado.
+3. Clique em `Ativar Cloudflare`.
+4. Clique em `Iniciar tunnel`.
+5. Use as URLs geradas para `Portal`, `Client`, `Admin` e `API`.
+6. Use `Gerar novos dominios DEV` quando precisar renovar os dominios aleatorios.
+
+Importante:
+- quando o runtime DEV reinicia, as URLs mudam;
+- apos mudar URLs, sincronize os frontends (Web Admin/Client/Portal) para usar a nova `API` via script de terminal (abaixo).
+- o card de runtime no Web Admin exibe monitoramento por servico (URL, PID, HTTP, latencia e status de conectividade).
+
+### Modo OPERACAO (dominio oficial)
+Fluxo recomendado:
+1. Desative `Modo DEV`.
+2. Configure dominio raiz, subdominios e credenciais do tunnel.
+3. Escolha modo `cloudflare_only` (tipico de deploy) ou `hybrid`.
 4. Clique em `Ativar Cloudflare`.
-5. Inicie o runtime do tunnel por `Iniciar tunnel` (ou via script abaixo).
+5. Inicie runtime por `Iniciar tunnel`.
 
 Script operacional do tunnel:
 
@@ -193,6 +208,55 @@ Script operacional do tunnel:
 Variaveis aceitas no script:
 - `CF_TUNNEL_TOKEN`
 - `CF_TUNNEL_NAME` (fallback: `mrquentinha`)
+
+### Automacao por terminal (mesma API do Web Admin)
+Script principal:
+
+```bash
+./scripts/cloudflare_admin.sh status
+```
+
+Instalacao local do binario `cloudflared` (sem apt/sudo):
+
+```bash
+./scripts/install_cloudflared_local.sh
+```
+
+DEV (trycloudflare):
+
+```bash
+./scripts/cloudflare_admin.sh dev-up
+./scripts/cloudflare_admin.sh dev-refresh
+./scripts/cloudflare_admin.sh dev-down
+```
+
+PRODUCAO (dominio oficial):
+
+```bash
+./scripts/cloudflare_admin.sh preview-prod --root-domain mrquentinha.com.br
+./scripts/cloudflare_admin.sh prod-up --root-domain mrquentinha.com.br --mode cloudflare_only
+./scripts/cloudflare_admin.sh prod-refresh
+./scripts/cloudflare_admin.sh prod-down
+```
+
+Sincronizacao manual dos frontends com a URL da API vigente:
+
+```bash
+./scripts/cloudflare_sync_frontends.sh --api-base-url http://127.0.0.1:8000
+```
+
+Credenciais para comandos admin (quando nao usar token direto):
+
+```bash
+export MQ_ADMIN_USER="seu_usuario_admin"
+export MQ_ADMIN_PASSWORD="sua_senha_admin"
+```
+
+Ou token JWT:
+
+```bash
+export MQ_ADMIN_ACCESS_TOKEN="<jwt_access>"
+```
 
 ## Observabilidade e operacao
 

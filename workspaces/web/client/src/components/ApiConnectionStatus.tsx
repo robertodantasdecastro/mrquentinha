@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
 
 import { getResolvedApiBaseUrl } from "@/lib/api";
@@ -35,8 +35,36 @@ function resolveLabel(state: ApiHealthState): string {
 export function ApiConnectionStatus() {
   const [state, setState] = useState<ApiHealthState>("checking");
   const [message, setMessage] = useState<string>("");
-  const apiBaseUrl = useMemo(() => getResolvedApiBaseUrl(), []);
+  const [apiBaseUrl, setApiBaseUrl] = useState<string>(() => getResolvedApiBaseUrl());
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadRuntimeApiBaseUrl() {
+      try {
+        const response = await fetch("/api/runtime/config", {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { api_base_url?: unknown };
+        const runtimeApiBaseUrl = String(payload.api_base_url ?? "").trim().replace(/\/$/, "");
+        if (mounted && runtimeApiBaseUrl) {
+          setApiBaseUrl(runtimeApiBaseUrl);
+        }
+      } catch {
+        // Mantem fallback local quando runtime nao responder.
+      }
+    }
+
+    void loadRuntimeApiBaseUrl();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  
   useEffect(() => {
     let mounted = true;
 

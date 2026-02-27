@@ -7,6 +7,7 @@ PID_DIR="$RUNTIME_DIR/pids"
 LOG_DIR="$RUNTIME_DIR/logs"
 PID_FILE="$PID_DIR/cloudflare.pid"
 LOG_FILE="$LOG_DIR/cloudflare.log"
+LOCAL_BIN="$ROOT_DIR/.runtime/bin/cloudflared"
 
 mkdir -p "$PID_DIR" "$LOG_DIR"
 
@@ -31,8 +32,17 @@ read_pid() {
 }
 
 resolve_command() {
-  if ! command -v cloudflared >/dev/null 2>&1; then
-    echo "[cloudflare] binario 'cloudflared' nao encontrado no PATH." >&2
+  local cloudflared_bin="${MQ_CLOUDFLARED_BIN:-}"
+  if [[ -z "$cloudflared_bin" ]]; then
+    if [[ -x "$LOCAL_BIN" ]]; then
+      cloudflared_bin="$LOCAL_BIN"
+    else
+      cloudflared_bin="$(command -v cloudflared || true)"
+    fi
+  fi
+
+  if [[ -z "$cloudflared_bin" ]]; then
+    echo "[cloudflare] binario 'cloudflared' nao encontrado no PATH nem em $LOCAL_BIN." >&2
     exit 1
   fi
 
@@ -40,12 +50,12 @@ resolve_command() {
   local name="${CF_TUNNEL_NAME:-mrquentinha}"
 
   if [[ -n "$token" ]]; then
-    printf 'cloudflared\ntunnel\nrun\n--token\n%s\n' "$token"
+    printf '%s\ntunnel\nrun\n--token\n%s\n' "$cloudflared_bin" "$token"
     return 0
   fi
 
   if [[ -n "$name" ]]; then
-    printf 'cloudflared\ntunnel\nrun\n%s\n' "$name"
+    printf '%s\ntunnel\nrun\n%s\n' "$cloudflared_bin" "$name"
     return 0
   fi
 

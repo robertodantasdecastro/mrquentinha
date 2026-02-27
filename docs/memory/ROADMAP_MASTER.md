@@ -47,6 +47,14 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/backend/src/apps/portal/views.py`, `workspaces/backend/src/apps/portal/models.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/backend/tests/test_portal_api.py`, `workspaces/backend/tests/test_portal_services.py`.
 - `T6.3.2-A10` concluida: runtime do tunnel Cloudflare controlado pelo Admin (`start/stop/status`) com logs/PID em `.runtime/ops` e monitoramento do servico no endpoint realtime.
   - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/backend/src/apps/portal/views.py`, `scripts/cloudflare_tunnel.sh`, `workspaces/backend/src/apps/orders/views.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`.
+- `T6.3.2-A11` concluida: modo DEV do Cloudflare com dominios aleatorios (`trycloudflare`) por servico, sem dependencia de dominio real durante desenvolvimento.
+  - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/backend/tests/test_portal_services.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/web/admin/src/types/api.ts`.
+- `T6.3.2-A12` concluida: automacao terminal da trilha Cloudflare (DEV/PROD) e sincronizacao de endpoints frontend quando URLs do tunnel mudam.
+  - Evidencia: `scripts/cloudflare_admin_cli.py`, `scripts/cloudflare_admin.sh`, `scripts/cloudflare_sync_frontends.sh`, `scripts/start_admin_dev.sh`, `scripts/start_client_dev.sh`.
+- `T6.3.2-A13` concluida: monitoramento de conectividade dos dominios DEV no Web Admin e acao de refresh para gerar novos dominios aleatorios.
+  - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/web/admin/src/app/modulos/portal/sections.tsx`, `workspaces/web/admin/src/lib/api.ts`, `workspaces/backend/tests/test_portal_services.py`, `workspaces/backend/tests/test_portal_api.py`.
+- `T6.3.2-A14` concluida: hardening da rotacao de dominios DEV com sincronizacao automatica no `status` e suporte `ALLOWED_HOSTS` para `*.trycloudflare.com`.
+  - Evidencia: `workspaces/backend/src/apps/portal/services.py`, `workspaces/backend/src/config/settings/dev.py`, `scripts/install_cloudflared_local.sh`, `workspaces/backend/tests/test_portal_services.py`.
 - `T9.0.1` concluida: Admin Web foundation com novo workspace `workspaces/web/admin`.
   - Evidencia: shell inicial, login JWT (`token/refresh/me`) e dashboard base com status operacional.
 - `T9.0.2` concluida: Admin Web operacional com modulos de Pedidos, Financeiro e Estoque conectados ao backend.
@@ -171,7 +179,7 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 
 #### T6.3.2 - Integracao CMS no portal
 - Objetivo: portal/client consumir CMS via API (template/page sections + parametros de autenticacao) com fallback seguro.
-- Status parcial: `A1..A7`, `A9` e `A10` concluidas (restante tecnico: `A8` para troca de `code` OAuth no backend para login social completo).
+- Status parcial: `A1..A7`, `A9`, `A10`, `A11`, `A12`, `A13` e `A14` concluidas; `A14-HF1` implementado (resolucao dinamica frontend -> API via `runtime/config`) com validacao externa pendente por indisponibilidade temporaria dos tunnels (`Cloudflare 530/1033`). Restante tecnico: `A8` para troca de `code` OAuth no backend para login social completo.
 
 #### T7.2.4 - Pagamentos multigateway em tempo real
 - Objetivo: suportar Mercado Pago, Efi e Asaas com configuracao central no Portal CMS, fallback por metodo (PIX/CARD/VR) e retorno de status em tempo real para cliente/admin/mobile.

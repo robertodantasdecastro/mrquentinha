@@ -327,8 +327,8 @@ def test_portal_admin_cloudflare_runtime_action(client, monkeypatch):
     def fake_manage_cloudflare_runtime(*, action: str):
         config = ensure_portal_config()
         return config, {
-            "state": "active" if action == "start" else "inactive",
-            "pid": 12345 if action == "start" else None,
+            "state": "active" if action in {"start", "refresh"} else "inactive",
+            "pid": 12345 if action in {"start", "refresh"} else None,
             "log_file": "/tmp/cloudflare.log",
             "last_started_at": "",
             "last_stopped_at": "",
@@ -351,3 +351,13 @@ def test_portal_admin_cloudflare_runtime_action(client, monkeypatch):
     payload = response.json()
     assert payload["action"] == "status"
     assert "runtime" in payload
+
+    refresh_response = client.post(
+        "/api/v1/portal/admin/config/cloudflare-runtime/",
+        data={"action": "refresh"},
+        format="json",
+    )
+    assert refresh_response.status_code == 200
+    refresh_payload = refresh_response.json()
+    assert refresh_payload["action"] == "refresh"
+    assert refresh_payload["runtime"]["state"] == "active"

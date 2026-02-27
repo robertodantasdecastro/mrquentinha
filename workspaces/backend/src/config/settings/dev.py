@@ -3,6 +3,9 @@ from .base import env
 
 DEBUG = env.bool("DEBUG", default=True)
 
+if DEBUG:  # noqa: F405
+    ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, ".trycloudflare.com"]))  # noqa: F405
+
 INSTALLED_APPS = [*INSTALLED_APPS, "corsheaders"]  # noqa: F405
 
 CORS_MIDDLEWARE = "corsheaders.middleware.CorsMiddleware"
