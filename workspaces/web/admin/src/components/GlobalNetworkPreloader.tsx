@@ -7,6 +7,7 @@ import { subscribeNetworkPreloader } from "@/lib/networkPreloader";
 
 export function GlobalNetworkPreloader() {
   const [pendingRequests, setPendingRequests] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
   const { template } = useAdminTemplate();
   const isAdminKit = template === "admin-adminkit";
   const isAdminDek = template === "admin-admindek";
@@ -17,46 +18,73 @@ export function GlobalNetworkPreloader() {
     });
   }, []);
 
-  if (pendingRequests <= 0) {
+  useEffect(() => {
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    if (pendingRequests > 0) {
+      // Evita flicker em requests curtos e reduz impacto visual no operador.
+      timerId = setTimeout(() => setIsVisible(true), 450);
+    } else {
+      // Mantem a troca de estado assíncrona para evitar render cascata no efeito.
+      timerId = setTimeout(() => setIsVisible(false), 80);
+    }
+
+    return () => {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+    };
+  }, [pendingRequests]);
+
+  if (!isVisible || pendingRequests <= 0) {
     return null;
   }
 
   return (
-    <div
-      className={[
-        "pointer-events-none fixed inset-0 z-[120] flex items-center justify-center backdrop-blur-[2px]",
-        isAdminKit || isAdminDek ? "bg-slate-950/28" : "bg-bg/45",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
+    <>
       <div
+        aria-hidden
         className={[
-          "inline-flex items-center gap-3 border px-5 py-3 shadow-lg",
-          isAdminKit
-            ? "rounded-xl border-slate-300 bg-white/95 dark:border-slate-700 dark:bg-slate-900/95"
-            : isAdminDek
-              ? "rounded-xl border-primary/40 bg-white/95 dark:border-primary/35 dark:bg-slate-900/95"
-            : "rounded-full border-border bg-surface/95",
+          "pointer-events-none fixed inset-x-0 top-0 z-[119] h-1",
+          isAdminKit || isAdminDek
+            ? "bg-gradient-to-r from-transparent via-primary/70 to-transparent"
+            : "bg-gradient-to-r from-transparent via-primary/50 to-transparent",
         ]
           .filter(Boolean)
           .join(" ")}
+      />
+      <div
+        aria-live="polite"
+        className="pointer-events-none fixed right-3 top-3 z-[120]"
       >
-        <span
-          aria-hidden
+        <div
           className={[
-            "h-5 w-5 animate-spin rounded-full border-2 border-t-primary",
-            isAdminKit || isAdminDek ? "border-primary/45" : "border-primary/30",
+            "inline-flex items-center gap-2 border px-3 py-1.5 shadow-sm",
+            isAdminKit
+              ? "rounded-lg border-slate-200 bg-white/90 dark:border-slate-700 dark:bg-slate-900/90"
+              : isAdminDek
+                ? "rounded-lg border-primary/35 bg-white/90 dark:border-primary/30 dark:bg-slate-900/90"
+                : "rounded-full border-border bg-surface/92",
           ]
             .filter(Boolean)
             .join(" ")}
-        />
-        <span className="text-sm font-medium text-text">
-          {isAdminKit || isAdminDek
-            ? "Sincronizando operacao..."
-            : "Carregando dados do Admin..."}
-        </span>
+        >
+          <span
+            aria-hidden
+            className={[
+              "h-3.5 w-3.5 animate-spin rounded-full border-2 border-t-primary",
+              isAdminKit || isAdminDek ? "border-primary/45" : "border-primary/30",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          />
+          <span className="text-xs font-medium text-text">
+            {isAdminKit || isAdminDek
+              ? "Sincronizando em segundo plano..."
+              : "Atualizando dados..."}
+          </span>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1022,3 +1022,16 @@
     - `npm run build` (web/admin) -> OK;
     - `python manage.py check` (backend) -> OK;
     - `pytest tests/test_customers_admin_api.py` -> OK (`8 passed`).
+
+- T9.2.7-A2-HF1 (27/02/2026): preloader global do Admin em modo nao bloqueante
+  - problema corrigido:
+    - alerta "Sincronizando operacao" aparecia em overlay de tela cheia com fundo ofuscado durante requisicoes recorrentes, prejudicando a operacao visual.
+  - ajuste aplicado:
+    - `GlobalNetworkPreloader` deixou de usar overlay full-screen;
+    - indicador passou para formato discreto no canto superior direito + barra fina no topo;
+    - exibicao com atraso (450ms) para evitar flicker em requests curtos.
+  - resultado esperado:
+    - sincronizacao continua visivel, mas transparente ao operador sem interromper leitura/uso da pagina.
+  - validacao executada:
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK.
