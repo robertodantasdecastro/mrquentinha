@@ -1,6 +1,6 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     EmailVerificationConfirmAPIView,
@@ -9,6 +9,7 @@ from .views import (
     MeProfileAPIView,
     RegisterAPIView,
     RoleViewSet,
+    TokenObtainPairEmailVerifiedView,
     UserAdminViewSet,
     UserRoleAssignmentAPIView,
 )
@@ -29,7 +30,7 @@ urlpatterns = [
         EmailVerificationResendAPIView.as_view(),
         name="accounts-email-verification-resend",
     ),
-    path("token/", TokenObtainPairView.as_view(), name="accounts-token"),
+    path("token/", TokenObtainPairEmailVerifiedView.as_view(), name="accounts-token"),
     path("token/refresh/", TokenRefreshView.as_view(), name="accounts-token-refresh"),
     path("me/", MeAPIView.as_view(), name="accounts-me"),
     path("me/profile/", MeProfileAPIView.as_view(), name="accounts-me-profile"),

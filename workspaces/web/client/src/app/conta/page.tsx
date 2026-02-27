@@ -167,6 +167,7 @@ export default function ContaPage() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [busy, setBusy] = useState<boolean>(false);
   const [resendingVerification, setResendingVerification] = useState<boolean>(false);
+  const [showResendFromLogin, setShowResendFromLogin] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [authProviders, setAuthProviders] = useState<PublicAuthProvidersConfig>(
@@ -249,6 +250,18 @@ export default function ContaPage() {
       new URLSearchParams(window.location.search).get("next"),
     );
     setNextPath(resolvedNextPath);
+
+    const emailConfirmed = new URLSearchParams(window.location.search).get(
+      "email_confirmed",
+    );
+    if (emailConfirmed === "1") {
+      setViewState("anonymous");
+      setMode("login");
+      setMessage(
+        "E-mail validado com sucesso. Agora voce pode entrar com seu usuario e senha.",
+      );
+      setErrorMessage("");
+    }
   }, []);
 
   function proceedAfterAuth() {
@@ -282,6 +295,7 @@ export default function ContaPage() {
     setBusy(true);
     setMessage("");
     setErrorMessage("");
+    setShowResendFromLogin(false);
 
     try {
       await loginAccount(loginForm.username.trim(), loginForm.password);
@@ -293,7 +307,13 @@ export default function ContaPage() {
       setLoginForm({ username: "", password: "" });
       proceedAfterAuth();
     } catch (error) {
-      setErrorMessage(resolveErrorMessage(error));
+      const resolvedMessage = resolveErrorMessage(error);
+      setErrorMessage(resolvedMessage);
+      const normalizedMessage = resolvedMessage.toLowerCase();
+      setShowResendFromLogin(
+        normalizedMessage.includes("conta nao validada")
+        || normalizedMessage.includes("email_not_verified"),
+      );
     } finally {
       setBusy(false);
     }
@@ -305,9 +325,10 @@ export default function ContaPage() {
     setBusy(true);
     setMessage("");
     setErrorMessage("");
+    setShowResendFromLogin(false);
 
     try {
-      const profile = await registerAccount({
+      const registration = await registerAccount({
         username: registerForm.username.trim(),
         password: registerForm.password,
         email: registerForm.email.trim(),
@@ -315,10 +336,14 @@ export default function ContaPage() {
         last_name: registerForm.lastName.trim(),
       });
 
-      setUser(profile);
-      setViewState("authenticated");
+      setUser(null);
+      setViewState("anonymous");
+      setMode("login");
       setMessage(
-        "Cadastro realizado e sessao iniciada. Enviamos um e-mail para confirmacao da sua conta.",
+        registration.email_verification_sent
+          ? "Cadastro realizado. Enviamos um e-mail de confirmacao. Verifique sua caixa de entrada e spam."
+          : registration.email_verification_detail
+            || "Cadastro realizado. Reenvie o token caso nao receba o e-mail.",
       );
       setRegisterForm({
         username: "",
@@ -327,7 +352,6 @@ export default function ContaPage() {
         firstName: "",
         lastName: "",
       });
-      proceedAfterAuth();
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
@@ -349,6 +373,32 @@ export default function ContaPage() {
           ? "Novo e-mail de confirmacao enviado."
           : payload.detail || "Nao foi possivel reenviar o e-mail agora.",
       );
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setResendingVerification(false);
+    }
+  }
+
+  async function handleResendVerificationFromLogin() {
+    const identifier = loginForm.username.trim();
+    if (!identifier) {
+      setErrorMessage("Informe usuario ou e-mail para reenviar o token.");
+      return;
+    }
+
+    setResendingVerification(true);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      const payload = await resendEmailVerificationToken(identifier);
+      setMessage(
+        payload.sent
+          ? "Novo e-mail de confirmacao enviado. Verifique a caixa de entrada e spam."
+          : payload.detail || "Nao foi possivel reenviar o token agora.",
+      );
+      setShowResendFromLogin(true);
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
@@ -568,6 +618,18 @@ export default function ContaPage() {
                 >
                   {busy ? "Entrando..." : "Entrar"}
                 </button>
+                {showResendFromLogin && (
+                  <button
+                    type="button"
+                    onClick={() => void handleResendVerificationFromLogin()}
+                    disabled={resendingVerification}
+                    className="rounded-md border border-amber-400/70 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-950/20 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                  >
+                    {resendingVerification
+                      ? "Reenviando token..."
+                      : "Reenviar token de validacao"}
+                  </button>
+                )}
               </form>
             )}
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -20,6 +21,7 @@ function resolveErrorMessage(error: unknown): string {
 }
 
 export default function ConfirmarEmailPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
@@ -45,6 +47,9 @@ export default function ConfirmarEmailPage() {
         }
         setState("success");
         setMessage(payload.detail || "E-mail confirmado com sucesso.");
+        setTimeout(() => {
+          router.replace("/conta?email_confirmed=1");
+        }, 1200);
       } catch (error) {
         if (!mounted) {
           return;
@@ -58,7 +63,7 @@ export default function ConfirmarEmailPage() {
     return () => {
       mounted = false;
     };
-  }, [token]);
+  }, [router, token]);
 
   return (
     <section className="space-y-4">

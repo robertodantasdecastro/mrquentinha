@@ -18,6 +18,7 @@ import type {
   PaymentIntentData,
   PublicAuthProvidersConfig,
   PublicPaymentProvidersConfig,
+  RegisterAccountResult,
   RegisterPayload,
 } from "@/types/api";
 
@@ -491,14 +492,11 @@ export async function loginAccount(
 
 export async function registerAccount(
   registration: RegisterPayload,
-): Promise<AuthUserProfile> {
-  await requestJson<JsonObject>("/api/v1/accounts/register/", {
+): Promise<RegisterAccountResult> {
+  return requestJson<RegisterAccountResult>("/api/v1/accounts/register/", {
     method: "POST",
     body: JSON.stringify(registration),
   });
-
-  await loginAccount(registration.username, registration.password);
-  return fetchMe();
 }
 
 export async function confirmEmailVerificationToken(
@@ -514,13 +512,17 @@ export async function confirmEmailVerificationToken(
   );
 }
 
-export async function resendEmailVerificationToken(): Promise<EmailVerificationResendResult> {
+export async function resendEmailVerificationToken(
+  identifier?: string,
+): Promise<EmailVerificationResendResult> {
+  const normalizedIdentifier = String(identifier ?? "").trim();
   return requestJson<EmailVerificationResendResult>(
     "/api/v1/accounts/email-verification/resend/",
     {
       method: "POST",
-      auth: true,
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        identifier: normalizedIdentifier || undefined,
+      }),
     },
   );
 }

@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import Role, UserProfile
 from .services import (
@@ -149,6 +151,25 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError(exc.messages) from exc
 
         return user
+
+
+class TokenObtainPairEmailVerifiedSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = self.user
+        role_codes = get_user_role_codes(user)
+        if SystemRole.CLIENTE not in role_codes:
+            return data
+
+        profile, _created = UserProfile.objects.get_or_create(user=user)
+        if profile.email_verified_at is not None:
+            return data
+
+        raise AuthenticationFailed(
+            "Conta nao validada. Verifique seu e-mail (incluindo caixa de spam) "
+            "ou solicite novo token de validacao.",
+            code="email_not_verified",
+        )
 
 
 class AssignRolesSerializer(serializers.Serializer):
@@ -327,4 +348,5 @@ class EmailVerificationConfirmSerializer(serializers.Serializer):
 
 
 class EmailVerificationResendSerializer(serializers.Serializer):
+    identifier = serializers.CharField(required=False, allow_blank=True, max_length=150)
     preferred_client_base_url = serializers.URLField(required=False, allow_blank=True)

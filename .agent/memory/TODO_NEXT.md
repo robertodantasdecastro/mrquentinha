@@ -36,3 +36,4 @@ Fila atual:
 31. [x] T6.3.2-A5 Portal CMS: configuracao de dominios/subdominios e conectividade local (host `mrquentinha`) para Portal/Client/Admin/API - concluida em 26/02/2026.
 32. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
 33. [x] T9.2.1-A2-HF4 Confirmacao de e-mail no cadastro do web client com URL dinamica DEV/PROD + compliance no Admin - concluida em 27/02/2026.
+34. [x] T9.2.1-A2-HF5 Bloqueio de login sem validacao de e-mail + reenvio publico de token + TTL 3h + template HTML dinamico - concluida em 27/02/2026.

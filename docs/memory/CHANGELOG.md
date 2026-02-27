@@ -1,6 +1,11 @@
 # Changelog (por sprint)
 
 ## 27/02/2026
+- T9.2.1-A2-HF5 (accounts/auth): login JWT de contas `CLIENTE` passou a exigir `email_verified_at`; quando pendente, o backend retorna bloqueio com instrucao para validar e-mail.
+- T9.2.1-A2-HF5 (accounts/email): template de confirmacao evoluiu para HTML com identidade visual (logo do Web Client) e dados dinâmicos da empresa vindos do CMS (`PortalConfig` + secao `footer`).
+- T9.2.1-A2-HF5 (accounts/email): validade do token ajustada para 3 horas (`ACCOUNTS_EMAIL_VERIFICATION_TOKEN_TTL_HOURS`, default `3`), mantendo invalidação automática do token anterior a cada reenvio.
+- T9.2.1-A2-HF5 (accounts/api): `POST /api/v1/accounts/email-verification/resend/` passou a aceitar fluxo público por `identifier` (usuario/e-mail), além do fluxo autenticado.
+- T9.2.1-A2-HF5 (web client): confirmação de e-mail agora redireciona automaticamente para `/conta?email_confirmed=1`; tela de login mostra ação de reenvio de token quando o backend bloquear login por e-mail não validado.
 - T9.2.1-A2-HF4 (accounts/email verification): cadastro web cliente passou a exigir e-mail e enviar confirmacao com token; links agora apontam para `/conta/confirmar-email` no frontend cliente com URL dinamica por ambiente (origem ativa no DEV Cloudflare/IP e fallback para `PortalConfig.client_base_url`).
 - T9.2.1-A2-HF4 (accounts/backend): adicionados campos de verificacao em `UserProfile` (`email_verified_at`, token hash, timestamps e ultima base URL), endpoints `GET /api/v1/accounts/email-verification/confirm/` e `POST /api/v1/accounts/email-verification/resend/`.
 - T9.2.1-A2-HF4 (users admin): payload de `GET /api/v1/accounts/users/` evoluiu com status de e-mail confirmado e conformidade de dados essenciais para autenticacao/pagamentos (`essential_profile_complete`, `missing_essential_profile_fields`), refletido no painel `/modulos/usuarios-rbac`.

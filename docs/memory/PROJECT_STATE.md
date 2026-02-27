@@ -44,6 +44,7 @@ Referencia de atualizacao: 27/02/2026.
 - Banco: PostgreSQL (`mrquentinhabd`).
 - Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `personal_finance`, `production`, `ocr_ai`, `portal`.
 - Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): cadastro do cliente exige e-mail e envia confirmacao com link dinamico por ambiente; novos endpoints de confirmacao/reenvio e novos campos de compliance de usuario no payload admin.
+- Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF5`): login JWT de contas `CLIENTE` sem e-mail validado passou a ser bloqueado; reenvio de token disponivel por `identifier` no fluxo publico; token de confirmacao com TTL padrao de 3 horas.
 - Pagamentos online (`7.2.1` + `7.2.2` + `7.2.3`):
   - `PaymentIntent` persistido com idempotencia por pagamento/chave.
   - provider abstraction inicial (`mock`) com payload de intent para PIX/CARD/VR.

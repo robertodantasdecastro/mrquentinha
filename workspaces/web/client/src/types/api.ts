@@ -153,6 +153,15 @@ export type RegisterPayload = {
   last_name?: string;
 };
 
+export type RegisterAccountResult = {
+  id: number;
+  username: string;
+  email: string;
+  roles: string[];
+  email_verification_sent: boolean;
+  email_verification_detail: string;
+};
+
 export type EmailVerificationConfirmResult = {
   detail: string;
   email_verified: boolean;

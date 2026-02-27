@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -7,6 +8,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import UserProfile
 from .permissions import RoleMatrixPermission
@@ -18,6 +20,7 @@ from .serializers import (
     MeSerializer,
     RegisterSerializer,
     RoleSerializer,
+    TokenObtainPairEmailVerifiedSerializer,
     UserAdminSerializer,
     UserProfileSerializer,
 )
@@ -73,6 +76,10 @@ class RegisterAPIView(APIView):
             ).strip(),
         }
         return Response(output, status=status.HTTP_201_CREATED)
+
+
+class TokenObtainPairEmailVerifiedView(TokenObtainPairView):
+    serializer_class = TokenObtainPairEmailVerifiedSerializer
 
 
 class MeAPIView(APIView):
@@ -188,17 +195,48 @@ class EmailVerificationConfirmAPIView(APIView):
 
 
 class EmailVerificationResendAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = EmailVerificationResendSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        target_user = request.user if request.user.is_authenticated else None
+        identifier = str(serializer.validated_data.get("identifier", "")).strip()
+
+        if target_user is None:
+            if not identifier:
+                raise DRFValidationError(
+                    {"identifier": ["Informe usuario ou e-mail para reenviar o token."]}
+                )
+
+            User = get_user_model()
+            target_user = (
+                User.objects.filter(
+                    Q(username__iexact=identifier) | Q(email__iexact=identifier)
+                )
+                .order_by("id")
+                .first()
+            )
+            if target_user is None:
+                return Response(
+                    {
+                        "detail": (
+                            "Se a conta existir, um novo e-mail de "
+                            "confirmacao sera enviado."
+                        ),
+                        "sent": False,
+                        "email": "",
+                        "client_base_url": "",
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
+
         preferred_client_base_url = serializer.validated_data.get(
             "preferred_client_base_url"
         ) or _resolve_preferred_client_base_url(request)
         result = issue_email_verification_for_user(
-            user=request.user,
+            user=target_user,
             preferred_client_base_url=preferred_client_base_url,
         )
         response_status = status.HTTP_200_OK

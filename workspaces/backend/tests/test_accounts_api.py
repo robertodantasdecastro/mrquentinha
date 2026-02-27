@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
+from django.utils import timezone
 
 from apps.accounts.models import UserProfile, UserRole
 from apps.accounts.services import (
@@ -165,6 +166,9 @@ def test_accounts_token_e_me_retorna_usuario_autenticado_com_roles(anonymous_cli
     )
     ensure_default_roles()
     assign_roles_to_user(user=user, role_codes=[SystemRole.CLIENTE], replace=True)
+    profile, _created = UserProfile.objects.get_or_create(user=user)
+    profile.email_verified_at = timezone.now()
+    profile.save(update_fields=["email_verified_at", "updated_at"])
 
     token_response = anonymous_client.post(
         "/api/v1/accounts/token/",
@@ -186,6 +190,60 @@ def test_accounts_token_e_me_retorna_usuario_autenticado_com_roles(anonymous_cli
     payload = me_response.json()
     assert payload["username"] == "cliente_login"
     assert SystemRole.CLIENTE in payload["roles"]
+
+
+@pytest.mark.django_db
+def test_accounts_token_bloqueia_cliente_sem_email_validado(anonymous_client):
+    User = get_user_model()
+    user = User.objects.create_user(
+        username="cliente_sem_validacao",
+        password="senha_login_123",
+        email="cliente_sem_validacao@example.com",
+    )
+    ensure_default_roles()
+    assign_roles_to_user(user=user, role_codes=[SystemRole.CLIENTE], replace=True)
+
+    token_response = anonymous_client.post(
+        "/api/v1/accounts/token/",
+        {
+            "username": "cliente_sem_validacao",
+            "password": "senha_login_123",
+        },
+        format="json",
+    )
+
+    assert token_response.status_code == 401
+    assert "Conta nao validada" in str(token_response.json().get("detail", ""))
+
+
+@pytest.mark.django_db
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+def test_accounts_email_verification_resend_publico_por_identifier(anonymous_client):
+    User = get_user_model()
+    User.objects.create_user(
+        username="cliente_public_resend",
+        password="Senha_Forte_123",
+        email="cliente_public_resend@example.com",
+    )
+
+    response = anonymous_client.post(
+        "/api/v1/accounts/email-verification/resend/",
+        {
+            "identifier": "cliente_public_resend",
+        },
+        format="json",
+        HTTP_ORIGIN="https://cliente-publico-dev.trycloudflare.com",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["sent"] is True
+
+    profile = UserProfile.objects.get(user__username="cliente_public_resend")
+    assert (
+        profile.email_verification_last_client_base_url
+        == "https://cliente-publico-dev.trycloudflare.com"
+    )
 
 
 @pytest.mark.django_db

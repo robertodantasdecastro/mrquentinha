@@ -94,6 +94,17 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - modo producao permanece aderente ao DNS oficial configurado no CMS.
   - operacao passa a identificar no painel de usuarios quem ainda nao concluiu validacao e quais campos faltam para jornada de pagamento autenticado.
 
+## 27/02/2026 - Bloqueio de login cliente sem e-mail validado + token de 3h
+- Decisao:
+  - bloquear emissao de JWT em `/api/v1/accounts/token/` para contas com role `CLIENTE` sem `email_verified_at`.
+  - tornar reenvio de token acessivel no fluxo de login sem sessao (`identifier` por usuario/e-mail).
+  - reduzir TTL do token de confirmacao para 3 horas.
+  - manter somente o ultimo token valido (rotacao por sobrescrita do hash no perfil).
+- Consequencia:
+  - conta recem-cadastrada nao acessa checkout/login pleno sem validacao de e-mail.
+  - UX de recuperacao fica autoatendida direto na tela de login.
+  - reduz risco de uso de links antigos apos reenvios sucessivos.
+
 ## 26/02/2026 - Configuracao multigateway de pagamentos via Portal CMS
 - Decisao:
   - centralizar no `PortalConfig.payment_providers` as credenciais e roteamento de Mercado Pago, Efi e Asaas.

@@ -110,6 +110,9 @@ Endpoints principais:
 Regras atuais:
 - cadastro exige e-mail valido;
 - e-mail de confirmacao usa URL do web client dinamica (origem atual em DEV e DNS oficial em producao);
+- login de contas `CLIENTE` exige e-mail validado (`email_verified_at`);
+- reenvio de token pode ser feito sem sessao via `identifier` (usuario/e-mail);
+- token de confirmacao tem validade padrao de 3 horas;
 - status de conformidade do perfil (dados essenciais) e validacao de e-mail sao expostos no payload admin de usuarios.
 
 ## Catalogo (Etapa 2 - MVP)

@@ -3,12 +3,13 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import timedelta
+from html import escape
 from urllib.parse import quote, urlparse, urlunparse
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.utils import timezone
 
@@ -54,7 +55,7 @@ DEFAULT_ROLE_METADATA = {
 }
 
 DEFAULT_CLIENT_BASE_URL = "http://127.0.0.1:3001"
-EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24
+EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 3
 
 ESSENTIAL_PROFILE_FIELDS = (
     "full_name",
@@ -103,6 +104,190 @@ def _hash_email_verification_token(token: str) -> str:
 
 def _build_email_verification_link(*, token: str, client_base_url: str) -> str:
     return f"{client_base_url}/conta/confirmar-email?token={quote(token)}"
+
+
+def _build_company_email_context(*, client_base_url: str) -> dict:
+    context = {
+        "site_name": "Mr Quentinha",
+        "primary_color": "#FF6A00",
+        "support_email": "contato@mrquentinha.com.br",
+        "support_phone": "",
+        "site_url": client_base_url,
+        "logo_url": f"{client_base_url}/brand/png/logo_wordmark_2000x.png",
+    }
+    try:
+        from apps.portal.models import PortalPage
+        from apps.portal.selectors import list_sections_by_template_page
+        from apps.portal.services import ensure_portal_config
+
+        portal_config = ensure_portal_config()
+        if str(portal_config.site_name or "").strip():
+            context["site_name"] = str(portal_config.site_name).strip()
+        if str(portal_config.primary_color or "").strip():
+            context["primary_color"] = str(portal_config.primary_color).strip()
+
+        footer_section = (
+            list_sections_by_template_page(
+                config=portal_config,
+                template_id=portal_config.client_active_template,
+                page=PortalPage.HOME,
+                enabled_only=False,
+            )
+            .filter(key="footer")
+            .first()
+        )
+        if footer_section is not None and isinstance(footer_section.body_json, dict):
+            support_email = str(footer_section.body_json.get("email", "")).strip()
+            support_phone = str(footer_section.body_json.get("phone", "")).strip()
+            if support_email:
+                context["support_email"] = support_email
+            if support_phone:
+                context["support_phone"] = support_phone
+    except Exception:
+        pass
+
+    return context
+
+
+def _build_email_verification_html_body(
+    *,
+    username: str,
+    confirmation_link: str,
+    token_ttl_hours: int,
+    client_base_url: str,
+) -> str:
+    company = _build_company_email_context(client_base_url=client_base_url)
+    site_name = escape(company["site_name"])
+    support_email = escape(company["support_email"])
+    support_phone = escape(company["support_phone"])
+    logo_url = escape(company["logo_url"])
+    primary_color = escape(company["primary_color"])
+    site_url = escape(company["site_url"])
+    safe_username = escape(username)
+    safe_link = escape(confirmation_link)
+    year = timezone.localtime().year
+
+    support_phone_html = (
+        f"<p style='margin:4px 0;color:#475569;'>Telefone: {support_phone}</p>"
+        if support_phone
+        else ""
+    )
+
+    return f"""
+<!doctype html>
+<html lang="pt-BR">
+<body
+  style="
+    margin:0;
+    padding:0;
+    background:#f8fafc;
+    font-family:Arial,sans-serif;
+  "
+>
+  <table
+    width="100%"
+    cellpadding="0"
+    cellspacing="0"
+    style="background:#f8fafc;padding:24px 0;"
+  >
+    <tr>
+      <td align="center">
+        <table
+          width="100%"
+          cellpadding="0"
+          cellspacing="0"
+          style="
+            max-width:640px;
+            background:#ffffff;
+            border:1px solid #e2e8f0;
+            border-radius:16px;
+            overflow:hidden;
+          "
+        >
+          <tr>
+            <td style="padding:24px 24px 12px 24px;text-align:center;">
+              <img
+                src="{logo_url}"
+                alt="{site_name}"
+                style="max-width:220px;height:auto;display:inline-block;"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 24px 20px 24px;">
+              <h1
+                style="margin:0 0 12px 0;font-size:22px;line-height:1.3;color:#0f172a;"
+              >
+                Confirme seu e-mail, {safe_username}
+              </h1>
+              <p
+                style="margin:0 0 12px 0;color:#334155;font-size:15px;line-height:1.5;"
+              >
+                Seu cadastro no <strong>{site_name}</strong> foi criado com sucesso.
+                Para liberar o acesso ao login e aos recursos de pagamento,
+                confirme seu e-mail.
+              </p>
+              <p
+                style="margin:0 0 20px 0;color:#334155;font-size:15px;line-height:1.5;"
+              >
+                Este link expira em <strong>{token_ttl_hours} horas</strong>.
+              </p>
+              <p style="margin:0 0 24px 0;text-align:center;">
+                <a
+                  href="{safe_link}"
+                  style="
+                    display:inline-block;
+                    background:{primary_color};
+                    color:#ffffff;
+                    text-decoration:none;
+                    font-weight:700;
+                    padding:12px 20px;
+                    border-radius:10px;
+                  "
+                >
+                  Confirmar e-mail
+                </a>
+              </p>
+              <p style="margin:0 0 8px 0;color:#64748b;font-size:13px;line-height:1.5;">
+                Se o botão não abrir, copie e cole o link no navegador:
+              </p>
+              <p
+                style="
+                  margin:0 0 16px 0;
+                  color:#0f172a;
+                  font-size:13px;
+                  line-height:1.5;
+                  word-break:break-all;
+                "
+              >
+                {safe_link}
+              </p>
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0;" />
+              <p style="margin:4px 0;color:#475569;">{site_name}</p>
+              <p style="margin:4px 0;color:#475569;">E-mail: {support_email}</p>
+              {support_phone_html}
+              <p style="margin:4px 0;color:#475569;">Site: {site_url}</p>
+            </td>
+          </tr>
+          <tr>
+            <td
+              style="
+                padding:12px 24px 24px 24px;
+                text-align:center;
+                color:#94a3b8;
+                font-size:12px;
+              "
+            >
+              © {year} {site_name}. Todos os direitos reservados.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+""".strip()
 
 
 def _collect_missing_essential_profile_fields(user) -> list[str]:
@@ -207,7 +392,7 @@ def issue_email_verification_for_user(
         )
     )
     subject = "[Mr Quentinha] Confirme seu e-mail"
-    message = "\n".join(
+    text_body = "\n".join(
         [
             f"Ola, {user.username}!",
             "",
@@ -223,17 +408,24 @@ def issue_email_verification_for_user(
             "Se voce nao reconhece este cadastro, ignore este e-mail.",
         ]
     )
+    html_body = _build_email_verification_html_body(
+        username=user.username,
+        confirmation_link=confirmation_link,
+        token_ttl_hours=token_ttl_hours,
+        client_base_url=client_base_url,
+    )
     from_email = (
         str(getattr(settings, "DEFAULT_FROM_EMAIL", "")).strip()
         or "noreply@mrquentinha.local"
     )
-    sent_count = send_mail(
+    email_message = EmailMultiAlternatives(
         subject=subject,
-        message=message,
+        body=text_body,
         from_email=from_email,
-        recipient_list=[email_value],
-        fail_silently=True,
+        to=[email_value],
     )
+    email_message.attach_alternative(html_body, "text/html")
+    sent_count = email_message.send(fail_silently=True)
 
     return {
         "sent": bool(sent_count),

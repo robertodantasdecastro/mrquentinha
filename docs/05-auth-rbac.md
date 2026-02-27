@@ -96,12 +96,18 @@
 
 ## Confirmacao de e-mail (cadastro web cliente)
 - Cadastro (`POST /api/v1/accounts/register/`) exige e-mail e dispara envio de confirmacao.
+- O e-mail de confirmacao e enviado em HTML com identidade da marca, logo do Web Client e dados da empresa carregados dinamicamente do `PortalConfig`/secoes do CMS.
 - Link de confirmacao sempre aponta para o **frontend web client** (`/conta/confirmar-email?token=...`), resolvido em runtime:
   - modo DEV: prioriza origem atual do frontend (IP local ou dominio dinamico `trycloudflare`);
   - modo producao: usa DNS oficial configurado no `PortalConfig.client_base_url`.
+- Validade do token: **3 horas**.
+- Apenas o **ultimo token gerado** permanece valido (reenvio invalida o anterior).
 - Endpoints:
   - `GET /api/v1/accounts/email-verification/confirm/?token=<token>`
-  - `POST /api/v1/accounts/email-verification/resend/` (autenticado)
+  - `POST /api/v1/accounts/email-verification/resend/` (publico por `identifier` ou autenticado)
+- Regra de login:
+  - contas com role `CLIENTE` sem `email_verified_at` nao recebem JWT em `/api/v1/accounts/token/`;
+  - frontend deve orientar verificacao de caixa de spam e opcao de reenvio de token.
 - Campos de controle em `accounts_user_profile`:
   - `email_verified_at`
   - `email_verification_token_hash`
