@@ -966,3 +966,34 @@
     - `npm run lint` (web/admin) -> OK;
     - `npm run build` (web/admin) -> OK;
     - `pytest` backend bloqueado por indisponibilidade de conexao PostgreSQL no ambiente atual.
+
+- T9.2.7-A1 (27/02/2026): modulo completo de gestao de clientes no Web Admin (ecommerce + LGPD)
+  - backend/accounts:
+    - novas entidades de governanca de cliente:
+      - `CustomerGovernanceProfile` (status de conta, bloqueio de checkout, consentimentos e KYC);
+      - `CustomerLgpdRequest` (protocolo, tipo/canal de solicitacao, prazo e resolucao);
+    - migration adicionada: `accounts.0004_customergovernanceprofile_customerlgpdrequest`;
+    - novo pacote administrativo:
+      - `customer_services.py`, `customer_selectors.py`, `customer_serializers.py`, `customer_views.py`;
+    - novas rotas:
+      - `GET /api/v1/accounts/customers/`
+      - `GET /api/v1/accounts/customers/<id>/`
+      - `PATCH /api/v1/accounts/customers/<id>/profile/`
+      - `PATCH /api/v1/accounts/customers/<id>/governance/`
+      - `POST /api/v1/accounts/customers/<id>/status/`
+      - `POST /api/v1/accounts/customers/<id>/consents/`
+      - `POST /api/v1/accounts/customers/<id>/resend-email-verification/`
+      - `GET/POST /api/v1/accounts/customers/<id>/lgpd-requests/`
+      - `PATCH /api/v1/accounts/customers/lgpd-requests/<request_id>/status/`
+      - `GET /api/v1/accounts/customers/overview/`;
+    - validacao de elegibilidade de checkout integrada em `orders.create_order`, bloqueando conta suspensa/bloqueada.
+  - web admin:
+    - novo modulo `/modulos/clientes` com secoes:
+      - gestao operacional (cadastro, status, KYC, consentimentos e LGPD),
+      - compliance (LGPD e regras de governanca),
+      - procedimentos operacionais;
+    - navegação atualizada nos templates `admin-adminkit` e `admin-admindek`;
+    - catalogo de modulos atualizado com card dedicado de clientes.
+  - documentacao:
+    - novo ADR `docs/adr/0010-governanca-clientes-lgpd-ecommerce.md`;
+    - atualizacao dos documentos de dados/auth/roadmap/estado para refletir a trilha `T9.2.7`.

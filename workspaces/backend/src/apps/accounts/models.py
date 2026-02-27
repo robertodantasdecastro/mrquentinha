@@ -137,3 +137,120 @@ class UserProfile(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"profile:{self.user_id}"
+
+
+class CustomerGovernanceProfile(TimeStampedModel):
+    class AccountStatus(models.TextChoices):
+        ACTIVE = "ACTIVE", "Ativa"
+        UNDER_REVIEW = "UNDER_REVIEW", "Em revisao"
+        SUSPENDED = "SUSPENDED", "Suspensa"
+        BLOCKED = "BLOCKED", "Bloqueada"
+
+    class KycReviewStatus(models.TextChoices):
+        PENDING = "PENDING", "Pendente"
+        APPROVED = "APPROVED", "Aprovada"
+        REJECTED = "REJECTED", "Rejeitada"
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_governance",
+    )
+    account_status = models.CharField(
+        max_length=24,
+        choices=AccountStatus.choices,
+        default=AccountStatus.ACTIVE,
+    )
+    account_status_reason = models.TextField(blank=True)
+    checkout_blocked = models.BooleanField(default=False)
+    checkout_block_reason = models.CharField(max_length=255, blank=True)
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
+    privacy_policy_accepted_at = models.DateTimeField(null=True, blank=True)
+    marketing_opt_in_at = models.DateTimeField(null=True, blank=True)
+    marketing_opt_out_at = models.DateTimeField(null=True, blank=True)
+    lgpd_data_export_last_at = models.DateTimeField(null=True, blank=True)
+    lgpd_data_anonymized_at = models.DateTimeField(null=True, blank=True)
+    kyc_review_status = models.CharField(
+        max_length=16,
+        choices=KycReviewStatus.choices,
+        default=KycReviewStatus.PENDING,
+    )
+    kyc_review_notes = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="customer_governance_reviews",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    extra_data = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["user_id"]
+
+    def __str__(self) -> str:
+        return f"customer-governance:{self.user_id}"
+
+
+class CustomerLgpdRequest(TimeStampedModel):
+    class RequestType(models.TextChoices):
+        ACCESS = "ACCESS", "Acesso aos dados"
+        CORRECTION = "CORRECTION", "Correcao de dados"
+        DELETION = "DELETION", "Eliminacao de dados"
+        ANONYMIZATION = "ANONYMIZATION", "Anonimizacao"
+        PORTABILITY = "PORTABILITY", "Portabilidade"
+        REVOCATION = "REVOCATION", "Revogacao de consentimento"
+
+    class RequestStatus(models.TextChoices):
+        OPEN = "OPEN", "Aberta"
+        IN_PROGRESS = "IN_PROGRESS", "Em andamento"
+        COMPLETED = "COMPLETED", "Concluida"
+        REJECTED = "REJECTED", "Rejeitada"
+
+    class RequestChannel(models.TextChoices):
+        APP = "APP", "App"
+        WEB = "WEB", "Web"
+        EMAIL = "EMAIL", "E-mail"
+        WHATSAPP = "WHATSAPP", "WhatsApp"
+        PHONE = "PHONE", "Telefone"
+        IN_PERSON = "IN_PERSON", "Presencial"
+
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="lgpd_requests",
+    )
+    protocol_code = models.CharField(max_length=40, unique=True)
+    request_type = models.CharField(max_length=24, choices=RequestType.choices)
+    status = models.CharField(
+        max_length=16,
+        choices=RequestStatus.choices,
+        default=RequestStatus.OPEN,
+    )
+    channel = models.CharField(
+        max_length=16,
+        choices=RequestChannel.choices,
+        default=RequestChannel.WEB,
+    )
+    requested_by_name = models.CharField(max_length=180, blank=True)
+    requested_by_email = models.EmailField(blank=True)
+    requested_at = models.DateTimeField()
+    due_at = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    request_payload = models.JSONField(default=dict, blank=True)
+    resolution_notes = models.TextField(blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="lgpd_requests_resolved",
+    )
+
+    class Meta:
+        ordering = ["-requested_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"LGPD<{self.protocol_code}:{self.status}>"

@@ -201,6 +201,17 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
 - Escopo: QA manual orientado a fluxo de negocio + atualizacao de memoria operacional.
 - Evidencia de planejamento: `docs/memory/PLANO_T9_2_1_TESTES_MANUAIS_E2E.md`.
 
+#### T9.2.7 - Gestao de clientes no Web Admin [CONCLUIDA]
+- Objetivo: consolidar area administrativa de clientes para ecommerce com governanca de cadastro, status de conta, KYC e LGPD.
+- Escopo: backend (`accounts` + integracao em `orders`) + Web Admin + documentacao.
+- Status: concluida em 27/02/2026.
+- Evidencia:
+  - `workspaces/backend/src/apps/accounts/customer_views.py`
+  - `workspaces/backend/src/apps/accounts/customer_services.py`
+  - `workspaces/backend/tests/test_customers_admin_api.py`
+  - `workspaces/web/admin/src/components/modules/CustomersManagementPanel.tsx`
+  - `workspaces/web/admin/src/app/modulos/clientes/`
+
 ### P2 (roadmap)
 
 #### T6.1.1 - Nginx local e dominios dev

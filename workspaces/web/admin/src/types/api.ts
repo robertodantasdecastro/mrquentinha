@@ -134,6 +134,140 @@ export type AssignUserRolesResultData = {
   role_codes: string[];
 };
 
+export type CustomerAccountStatus =
+  | "ACTIVE"
+  | "UNDER_REVIEW"
+  | "SUSPENDED"
+  | "BLOCKED";
+
+export type CustomerKycReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export type CustomerGovernanceData = {
+  id: number;
+  user: number;
+  account_status: CustomerAccountStatus;
+  account_status_reason: string;
+  checkout_blocked: boolean;
+  checkout_block_reason: string;
+  terms_accepted_at: string | null;
+  privacy_policy_accepted_at: string | null;
+  marketing_opt_in_at: string | null;
+  marketing_opt_out_at: string | null;
+  lgpd_data_export_last_at: string | null;
+  lgpd_data_anonymized_at: string | null;
+  kyc_review_status: CustomerKycReviewStatus;
+  kyc_review_notes: string;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
+  extra_data: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomerData = {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  is_active: boolean;
+  is_staff: boolean;
+  date_joined: string;
+  roles: string[];
+  full_name: string;
+  phone: string;
+  city: string;
+  state: string;
+  cpf: string;
+  cnpj: string;
+  email_verified: boolean;
+  email_verified_at: string | null;
+  essential_profile_complete: boolean;
+  missing_essential_profile_fields: string[];
+  account_status: CustomerAccountStatus;
+  checkout_blocked: boolean;
+  kyc_review_status: CustomerKycReviewStatus;
+  orders_count: number;
+  orders_received_count: number;
+  orders_total_amount: string;
+  last_order_at: string | null;
+};
+
+export type CustomerDetailData = CustomerData & {
+  profile: UserProfileData | null;
+  governance: CustomerGovernanceData | null;
+};
+
+export type CustomerOverviewData = {
+  total: number;
+  active: number;
+  inactive: number;
+  with_pending_email: number;
+  by_account_status: Record<string, number>;
+};
+
+export type UpdateCustomerStatusPayload = {
+  account_status: CustomerAccountStatus;
+  reason?: string;
+};
+
+export type UpdateCustomerConsentsPayload = {
+  accepted_terms?: boolean | null;
+  accepted_privacy_policy?: boolean | null;
+  marketing_opt_in?: boolean | null;
+};
+
+export type CustomerLgpdRequestType =
+  | "ACCESS"
+  | "CORRECTION"
+  | "DELETION"
+  | "ANONYMIZATION"
+  | "PORTABILITY"
+  | "REVOCATION";
+
+export type CustomerLgpdRequestStatus =
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "REJECTED";
+
+export type CustomerLgpdRequestChannel =
+  | "APP"
+  | "WEB"
+  | "EMAIL"
+  | "WHATSAPP"
+  | "PHONE"
+  | "IN_PERSON";
+
+export type CustomerLgpdRequestData = {
+  id: number;
+  customer: number;
+  protocol_code: string;
+  request_type: CustomerLgpdRequestType;
+  status: CustomerLgpdRequestStatus;
+  channel: CustomerLgpdRequestChannel;
+  requested_by_name: string;
+  requested_by_email: string;
+  requested_at: string;
+  due_at: string | null;
+  notes: string;
+  request_payload: Record<string, unknown>;
+  resolution_notes: string;
+  resolved_at: string | null;
+  resolved_by: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateCustomerLgpdRequestPayload = {
+  request_type: CustomerLgpdRequestType;
+  channel?: CustomerLgpdRequestChannel;
+  requested_by_name?: string;
+  requested_by_email?: string;
+  notes?: string;
+  request_payload?: Record<string, unknown>;
+};
+
 export type HealthPayload = {
   status?: string;
   service?: string;

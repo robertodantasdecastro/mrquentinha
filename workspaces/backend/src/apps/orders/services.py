@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts.customer_services import assert_customer_checkout_eligible
 from apps.accounts.services import SystemRole, user_has_any_role
 from apps.finance.services import create_ar_from_order, record_cash_in_from_ar
 
@@ -168,6 +169,7 @@ def create_order(
     items_payload: list[dict],
     payment_method: str = PaymentMethod.PIX,
 ) -> Order:
+    assert_customer_checkout_eligible(customer=customer)
     _assert_items_payload(items_payload)
     _validate_menu_items_for_delivery_date(
         delivery_date=delivery_date,

@@ -13,6 +13,7 @@ import type {
   AdminUserData,
   AssignUserRolesPayload,
   AssignUserRolesResultData,
+  CreateCustomerLgpdRequestPayload,
   ApplyOcrPayload,
   ApplyOcrResultData,
   CreateDishPayload,
@@ -47,6 +48,11 @@ import type {
   PortalSectionWritePayload,
   CreateMobileReleasePayload,
   EcosystemOpsRealtimeData,
+  CustomerData,
+  CustomerDetailData,
+  CustomerGovernanceData,
+  CustomerLgpdRequestData,
+  CustomerOverviewData,
   PurchaseData,
   PurchaseItemData,
   PurchaseRequestData,
@@ -55,6 +61,8 @@ import type {
   RoleData,
   StockItemData,
   StockMovementData,
+  UpdateCustomerConsentsPayload,
+  UpdateCustomerStatusPayload,
   UpsertMenuDayPayload,
   UpdateDishPayload,
   UpdateIngredientPayload,
@@ -551,6 +559,185 @@ export async function assignUserRolesAdmin(
     auth: true,
     body: JSON.stringify(payload),
   });
+}
+
+export async function listCustomersAdmin(params?: {
+  search?: string;
+  account_status?: string;
+  is_active?: "true" | "false";
+  compliance?: "pending_email";
+}): Promise<CustomerData[]> {
+  const query = new URLSearchParams();
+  if (params?.search) {
+    query.set("search", params.search.trim());
+  }
+  if (params?.account_status) {
+    query.set("account_status", params.account_status.trim());
+  }
+  if (params?.is_active) {
+    query.set("is_active", params.is_active);
+  }
+  if (params?.compliance) {
+    query.set("compliance", params.compliance);
+  }
+
+  const queryString = query.toString();
+  const endpoint = queryString
+    ? `/api/v1/accounts/customers/?${queryString}`
+    : "/api/v1/accounts/customers/";
+  const payload = await requestJson<CustomerData[] | { results?: CustomerData[] }>(
+    endpoint,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+  return normalizeListPayload(payload);
+}
+
+export async function fetchCustomersOverviewAdmin(): Promise<CustomerOverviewData> {
+  return requestJson<CustomerOverviewData>("/api/v1/accounts/customers/overview/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+}
+
+export async function fetchCustomerDetailAdmin(
+  customerId: number,
+): Promise<CustomerDetailData> {
+  return requestJson<CustomerDetailData>(`/api/v1/accounts/customers/${customerId}/`, {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+}
+
+export async function updateCustomerProfileAdmin(
+  customerId: number,
+  payload: FormData | Record<string, unknown>,
+): Promise<UserProfileData> {
+  if (payload instanceof FormData) {
+    return requestFormData<UserProfileData>(
+      `/api/v1/accounts/customers/${customerId}/profile/`,
+      {
+        method: "PATCH",
+        auth: true,
+        body: payload,
+      },
+    );
+  }
+
+  return requestJson<UserProfileData>(`/api/v1/accounts/customers/${customerId}/profile/`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateCustomerGovernanceAdmin(
+  customerId: number,
+  payload: Partial<CustomerGovernanceData>,
+): Promise<CustomerGovernanceData> {
+  return requestJson<CustomerGovernanceData>(
+    `/api/v1/accounts/customers/${customerId}/governance/`,
+    {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function updateCustomerStatusAdmin(
+  customerId: number,
+  payload: UpdateCustomerStatusPayload,
+): Promise<CustomerGovernanceData> {
+  return requestJson<CustomerGovernanceData>(
+    `/api/v1/accounts/customers/${customerId}/status/`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function updateCustomerConsentsAdmin(
+  customerId: number,
+  payload: UpdateCustomerConsentsPayload,
+): Promise<CustomerGovernanceData> {
+  return requestJson<CustomerGovernanceData>(
+    `/api/v1/accounts/customers/${customerId}/consents/`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function resendCustomerEmailVerificationAdmin(
+  customerId: number,
+  preferredClientBaseUrl = "",
+): Promise<{
+  sent: boolean;
+  detail: string;
+  email?: string;
+  client_base_url?: string;
+}> {
+  return requestJson(`/api/v1/accounts/customers/${customerId}/resend-email-verification/`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({
+      preferred_client_base_url: preferredClientBaseUrl,
+    }),
+  });
+}
+
+export async function listCustomerLgpdRequestsAdmin(
+  customerId: number,
+): Promise<CustomerLgpdRequestData[]> {
+  const payload = await requestJson<
+    CustomerLgpdRequestData[] | { results?: CustomerLgpdRequestData[] }
+  >(`/api/v1/accounts/customers/${customerId}/lgpd-requests/`, {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+  return normalizeListPayload(payload);
+}
+
+export async function createCustomerLgpdRequestAdmin(
+  customerId: number,
+  payload: CreateCustomerLgpdRequestPayload,
+): Promise<CustomerLgpdRequestData> {
+  return requestJson<CustomerLgpdRequestData>(
+    `/api/v1/accounts/customers/${customerId}/lgpd-requests/`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function updateCustomerLgpdRequestStatusAdmin(
+  requestId: number,
+  payload: {
+    status: string;
+    resolution_notes?: string;
+  },
+): Promise<CustomerLgpdRequestData> {
+  return requestJson<CustomerLgpdRequestData>(
+    `/api/v1/accounts/customers/lgpd-requests/${requestId}/status/`,
+    {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function fetchHealth(): Promise<HealthPayload> {

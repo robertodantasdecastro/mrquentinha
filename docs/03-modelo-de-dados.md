@@ -64,6 +64,41 @@
 - auditoria:
   - `created_at`, `updated_at`
 
+### `accounts_customer_governance_profile`
+- `id` (PK)
+- `user_id` (FK unique -> accounts_user)
+- status de conta:
+  - `account_status` (`ACTIVE`, `UNDER_REVIEW`, `SUSPENDED`, `BLOCKED`)
+  - `account_status_reason`
+  - `checkout_blocked`, `checkout_block_reason`
+- consentimentos:
+  - `terms_accepted_at`
+  - `privacy_policy_accepted_at`
+  - `marketing_opt_in_at`, `marketing_opt_out_at`
+- governanca e compliance:
+  - `kyc_review_status` (`PENDING`, `APPROVED`, `REJECTED`)
+  - `kyc_review_notes`
+  - `lgpd_data_export_last_at`, `lgpd_data_anonymized_at`
+  - `reviewed_by_id` (FK user), `reviewed_at`
+  - `extra_data` (JSON)
+- auditoria:
+  - `created_at`, `updated_at`
+
+### `accounts_customer_lgpd_request`
+- `id` (PK)
+- `customer_id` (FK -> accounts_user)
+- `protocol_code` (unique)
+- `request_type` (`ACCESS`, `CORRECTION`, `DELETION`, `ANONYMIZATION`, `PORTABILITY`, `REVOCATION`)
+- `status` (`OPEN`, `IN_PROGRESS`, `COMPLETED`, `REJECTED`)
+- `channel` (`APP`, `WEB`, `EMAIL`, `WHATSAPP`, `PHONE`, `IN_PERSON`)
+- `requested_by_name`, `requested_by_email`
+- `requested_at`, `due_at`
+- `notes`, `request_payload` (JSON)
+- `resolution_notes`
+- `resolved_at`, `resolved_by_id` (FK user)
+- auditoria:
+  - `created_at`, `updated_at`
+
 ---
 
 ## Catalogo / Cardapio

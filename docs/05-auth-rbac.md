@@ -120,6 +120,24 @@
   - status de e-mail validado por usuario;
   - lista de pendencias de dados essenciais para fluxo autenticado/pagamentos.
 
+## Gestao de clientes no Web Admin (ecommerce + LGPD)
+- Modulo: `/modulos/clientes` (menu dedicado no Web Admin).
+- Endpoints administrativos:
+  - `GET /api/v1/accounts/customers/`
+  - `GET /api/v1/accounts/customers/<id>/`
+  - `PATCH /api/v1/accounts/customers/<id>/profile/`
+  - `PATCH /api/v1/accounts/customers/<id>/governance/`
+  - `POST /api/v1/accounts/customers/<id>/status/`
+  - `POST /api/v1/accounts/customers/<id>/consents/`
+  - `POST /api/v1/accounts/customers/<id>/resend-email-verification/`
+  - `GET/POST /api/v1/accounts/customers/<id>/lgpd-requests/`
+  - `PATCH /api/v1/accounts/customers/lgpd-requests/<request_id>/status/`
+  - `GET /api/v1/accounts/customers/overview/`
+- Regras:
+  - modulo restrito a perfis de gestao (`ADMIN`, `FINANCEIRO`, `COZINHA`, `COMPRAS`, `ESTOQUE`) e `is_superuser`;
+  - status `SUSPENDED`/`BLOCKED` bloqueia checkout no backend de pedidos;
+  - consentimentos e solicitacoes LGPD ficam auditaveis por protocolo.
+
 ## Gestao de e-mail no Web Admin
 - Modulo: `Portal CMS > E-mail`.
 - Configuracoes disponiveis:

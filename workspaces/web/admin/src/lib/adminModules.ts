@@ -73,6 +73,14 @@ export const ADMIN_MODULES: AdminModule[] = [
     path: "/modulos/usuarios-rbac",
   },
   {
+    slug: "clientes",
+    title: "Clientes",
+    description: "Cadastro completo, KYC/LGPD e procedimentos operacionais de ecommerce.",
+    stage: "T9.2.7",
+    status: "ativo",
+    path: "/modulos/clientes",
+  },
+  {
     slug: "relatorios",
     title: "Relatórios",
     description: "Fluxo de caixa global, compras, produção e exportações em CSV.",

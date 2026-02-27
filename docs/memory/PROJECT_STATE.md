@@ -3,7 +3,7 @@
 Referencia de atualizacao: 27/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.7-A1`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
 - Status atual de execucao manual: `T9.2.1-A2` iniciado em 27/02/2026, com relatorio operacional aberto em `docs/memory/T9_2_1_A2_RELATORIO_EXECUCAO_2026-02-27.md`.
@@ -45,6 +45,7 @@ Referencia de atualizacao: 27/02/2026.
 - Modulos ativos: `core`, `accounts`, `catalog`, `inventory`, `procurement`, `orders`, `finance`, `personal_finance`, `production`, `ocr_ai`, `portal`.
 - Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): cadastro do cliente exige e-mail e envia confirmacao com link dinamico por ambiente; novos endpoints de confirmacao/reenvio e novos campos de compliance de usuario no payload admin.
 - Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF5`): login JWT de contas `CLIENTE` sem e-mail validado passou a ser bloqueado; reenvio de token disponivel por `identifier` no fluxo publico; token de confirmacao com TTL padrao de 3 horas.
+- Atualizacao concluida em 27/02/2026 (`T9.2.7-A1`): governanca de clientes para ecommerce com novos modelos `CustomerGovernanceProfile` e `CustomerLgpdRequest`, API administrativa dedicada e bloqueio de checkout integrado ao fluxo de pedidos.
 - Pagamentos online (`7.2.1` + `7.2.2` + `7.2.3`):
   - `PaymentIntent` persistido com idempotencia por pagamento/chave.
   - provider abstraction inicial (`mock`) com payload de intent para PIX/CARD/VR.
@@ -170,6 +171,7 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A1`): nova area `/perfil` no Web Admin (todos os templates) para administracao completa do usuario logado com dados adicionais, endereco, documentos, foto de perfil, digitalizacao por camera, biometria por foto e logoff.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A2`): camada global de validacao/formatacao de formularios aplicada no Admin/Client/Portal (CPF/CNPJ/CEP/email/senha/datas) com reforco de validacao backend para senha de cadastro e recebedor de pagamentos.
 - Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): modulo `/modulos/usuarios-rbac` passou a exibir status de validacao de e-mail e pendencias de dados essenciais para habilitacao de pagamento/autenticacao por usuario.
+- Atualizacao concluida em 27/02/2026 (`T9.2.7-A1`): novo modulo `/modulos/clientes` com gestao completa de carteira de clientes (cadastro, status de conta, KYC, consentimentos e solicitacoes LGPD), navegacao integrada em todos os templates.
 - Workspace ativo: `workspaces/web/admin`.
 - Hotfix `T6.3.2-A14-HF1` implementado: resolucao automatica de `api_base_url` em runtime aplicada nos frontends `admin/client/portal` para acessos via dominios dinamicos `trycloudflare`.
 - Status de validacao externa do fluxo Cloudflare DEV: concluido em `27/02/2026 15:04` (Portal/Client/Admin/API online, health 200, comunicacao frontend <-> API validada no teste funcional).
@@ -204,6 +206,16 @@ Referencia de atualizacao: 27/02/2026.
 - `GET /api/v1/accounts/users/`
 - `GET /api/v1/accounts/users/<id>/`
 - `POST /api/v1/accounts/users/<id>/roles/`
+- `GET /api/v1/accounts/customers/`
+- `GET /api/v1/accounts/customers/<id>/`
+- `PATCH /api/v1/accounts/customers/<id>/profile/`
+- `PATCH /api/v1/accounts/customers/<id>/governance/`
+- `POST /api/v1/accounts/customers/<id>/status/`
+- `POST /api/v1/accounts/customers/<id>/consents/`
+- `POST /api/v1/accounts/customers/<id>/resend-email-verification/`
+- `GET/POST /api/v1/accounts/customers/<id>/lgpd-requests/`
+- `PATCH /api/v1/accounts/customers/lgpd-requests/<request_id>/status/`
+- `GET /api/v1/accounts/customers/overview/`
 - Publicos read-only de menu:
   - `GET /api/v1/catalog/menus/by-date/<YYYY-MM-DD>/`
   - `GET /api/v1/catalog/menus/today/`
@@ -273,5 +285,6 @@ Referencia de atualizacao: 27/02/2026.
 - T9.2.6-A1 concluida (area de perfil completo do usuario logado no Admin Web + endpoint autenticado `me/profile` com suporte a upload de arquivos).
 - T9.2.6-A2 concluida (validadores/formatadores globais de formularios no ecossistema web + hardening de validacao de senha/email/documento).
 - T9.2.1-A2-HF6 concluida (gestao de e-mail SMTP no Web Admin + refinamento da regra de login: validacao de e-mail obrigatoria apenas para contas cliente, sem bloquear perfis administrativos/gestao).
+- T9.2.7-A1 concluida (modulo completo de gestao de clientes no Web Admin + governanca LGPD/KYC + bloqueio de checkout por status de conta no backend).
 - Proxima subetapa unica: executar `T7.2.4-A4` (homologacao externa dos tres gateways com credenciais reais, assinatura de webhook por provider e validacao fim a fim de webhook/status).
 - Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T8.2.3` (hardening backend) e `T9.2.1` (qualidade operacional manual).

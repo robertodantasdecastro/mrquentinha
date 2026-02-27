@@ -29,6 +29,7 @@ const ADMINKIT_CORE_ITEMS: NavItem[] = [
 
 const ADMINKIT_OPERATIONS_ITEMS: NavItem[] = [
   { href: "/modulos/cardapio", label: "Receitas e cardápio" },
+  { href: "/modulos/clientes", label: "Clientes" },
   { href: "/modulos/compras", label: "Compras" },
   { href: "/modulos/producao", label: "Produção" },
   { href: "/modulos/pedidos", label: "Pedidos" },
@@ -53,6 +54,7 @@ const ADMINDEK_HUB_ITEMS: NavItem[] = [
 
 const ADMINDEK_BUSINESS_ITEMS: NavItem[] = [
   { href: "/modulos/cardapio", label: "Receitas e Cardápio" },
+  { href: "/modulos/clientes", label: "Clientes" },
   { href: "/modulos/compras", label: "Compras e OCR" },
   { href: "/modulos/producao", label: "Produção" },
   { href: "/modulos/pedidos", label: "Pedidos e Entrega" },
