@@ -277,6 +277,33 @@ function parseOrigins(value: string): string[] {
     .filter((item) => item.length > 0);
 }
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function ExternalUrl({ value }: { value: string | null | undefined }) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized || !isHttpUrl(normalized)) {
+    return <code>{normalized || "-"}</code>;
+  }
+
+  return (
+    <a
+      href={normalized}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary underline decoration-primary/50 underline-offset-2 hover:no-underline"
+    >
+      <code>{normalized}</code>
+    </a>
+  );
+}
+
 function parseProviderOrder(value: string): string[] {
   const allowed = new Set(PAYMENT_PROVIDER_OPTIONS.map((option) => option.value));
   const providers = value
@@ -3048,10 +3075,18 @@ export function PortalSections({
               <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-xs text-muted">
                 <p className="font-semibold text-text">Preview Cloudflare</p>
                 <p className="mt-1">Modo: {cloudflarePreview.mode}</p>
-                <p className="mt-1">Portal: {cloudflarePreview.urls.portal_base_url}</p>
-                <p className="mt-1">Cliente: {cloudflarePreview.urls.client_base_url}</p>
-                <p className="mt-1">Admin: {cloudflarePreview.urls.admin_base_url}</p>
-                <p className="mt-1">API: {cloudflarePreview.urls.api_base_url}</p>
+                <p className="mt-1">
+                  Portal: <ExternalUrl value={cloudflarePreview.urls.portal_base_url} />
+                </p>
+                <p className="mt-1">
+                  Cliente: <ExternalUrl value={cloudflarePreview.urls.client_base_url} />
+                </p>
+                <p className="mt-1">
+                  Admin: <ExternalUrl value={cloudflarePreview.urls.admin_base_url} />
+                </p>
+                <p className="mt-1">
+                  API: <ExternalUrl value={cloudflarePreview.urls.api_base_url} />
+                </p>
                 <p className="mt-2 font-semibold text-text">Ingress sugerido</p>
                 {cloudflarePreview.ingress_rules.map((rule) => (
                   <p key={rule} className="mt-1">
@@ -3084,10 +3119,18 @@ export function PortalSections({
                 {cloudflareRuntime.dev_mode && cloudflareRuntime.dev_urls && (
                   <div className="mt-2 rounded-md border border-border bg-bg px-2 py-2">
                     <p className="font-semibold text-text">URLs DEV geradas</p>
-                    <p className="mt-1">Portal: <code>{cloudflareRuntime.dev_urls.portal || "-"}</code></p>
-                    <p className="mt-1">Client: <code>{cloudflareRuntime.dev_urls.client || "-"}</code></p>
-                    <p className="mt-1">Admin: <code>{cloudflareRuntime.dev_urls.admin || "-"}</code></p>
-                    <p className="mt-1">API: <code>{cloudflareRuntime.dev_urls.api || "-"}</code></p>
+                    <p className="mt-1">
+                      Portal: <ExternalUrl value={cloudflareRuntime.dev_urls.portal} />
+                    </p>
+                    <p className="mt-1">
+                      Client: <ExternalUrl value={cloudflareRuntime.dev_urls.client} />
+                    </p>
+                    <p className="mt-1">
+                      Admin: <ExternalUrl value={cloudflareRuntime.dev_urls.admin} />
+                    </p>
+                    <p className="mt-1">
+                      API: <ExternalUrl value={cloudflareRuntime.dev_urls.api} />
+                    </p>
                   </div>
                 )}
                 {cloudflareRuntime.dev_mode &&
@@ -3114,7 +3157,7 @@ export function PortalSections({
                               </StatusPill>
                             </div>
                             <p className="mt-1">
-                              URL: <code>{service.url || "-"}</code>
+                              URL: <ExternalUrl value={service.url} />
                             </p>
                             <p className="mt-1">
                               PID: <strong className="text-text">{service.pid ?? "-"}</strong> ·
@@ -3128,8 +3171,7 @@ export function PortalSections({
                               </strong>
                             </p>
                             <p className="mt-1">
-                              Check:{" "}
-                              <code>{service.checked_url || "-"}</code> em{" "}
+                              Check: <ExternalUrl value={service.checked_url} /> em{" "}
                               <strong className="text-text">
                                 {service.checked_at ? formatDateTime(service.checked_at) : "-"}
                               </strong>

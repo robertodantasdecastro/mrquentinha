@@ -1048,3 +1048,13 @@
     - `python manage.py check` -> OK;
     - `python manage.py makemigrations --check` -> OK;
     - `pytest tests/test_customers_admin_api.py tests/test_accounts_api.py` -> OK (`25 passed`).
+
+- T9.2.7-A2-HF2 (27/02/2026): links clicaveis dos dominios Cloudflare no modulo Administracao do servidor
+  - web admin:
+    - painel de conectividade passou a renderizar URLs Cloudflare como links externos clicaveis com abertura em nova aba (`target="_blank"` + `rel="noopener noreferrer"`):
+      - preview de rotas (`portal/client/admin/api`);
+      - bloco `URLs DEV geradas`;
+      - monitoramento de conectividade (`URL` e `Check` por servico).
+  - validacao executada:
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK.
