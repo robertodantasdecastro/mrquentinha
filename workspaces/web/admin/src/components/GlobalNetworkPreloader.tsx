@@ -36,55 +36,61 @@ export function GlobalNetworkPreloader() {
     };
   }, [pendingRequests]);
 
-  if (!isVisible || pendingRequests <= 0) {
+  const hasPendingRequests = pendingRequests > 0;
+
+  if (!hasPendingRequests && !isVisible) {
     return null;
   }
 
   return (
     <>
-      <div
-        aria-hidden
-        className={[
-          "pointer-events-none fixed inset-x-0 top-0 z-[119] h-1",
-          isAdminKit || isAdminDek
-            ? "bg-gradient-to-r from-transparent via-primary/70 to-transparent"
-            : "bg-gradient-to-r from-transparent via-primary/50 to-transparent",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      />
-      <div
-        aria-live="polite"
-        className="pointer-events-none fixed right-3 top-3 z-[120]"
-      >
+      {hasPendingRequests && (
         <div
+          aria-hidden
           className={[
-            "inline-flex items-center gap-2 border px-3 py-1.5 shadow-sm",
-            isAdminKit
-              ? "rounded-lg border-slate-200 bg-white/90 dark:border-slate-700 dark:bg-slate-900/90"
-              : isAdminDek
-                ? "rounded-lg border-primary/35 bg-white/90 dark:border-primary/30 dark:bg-slate-900/90"
-                : "rounded-full border-border bg-surface/92",
+            "pointer-events-none fixed inset-x-0 top-0 z-[119] h-1",
+            isAdminKit || isAdminDek
+              ? "bg-gradient-to-r from-transparent via-primary/70 to-transparent"
+              : "bg-gradient-to-r from-transparent via-primary/50 to-transparent",
           ]
             .filter(Boolean)
             .join(" ")}
+        />
+      )}
+      {isVisible && hasPendingRequests && (
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed right-3 top-3 z-[120]"
         >
-          <span
-            aria-hidden
+          <div
             className={[
-              "h-3.5 w-3.5 animate-spin rounded-full border-2 border-t-primary",
-              isAdminKit || isAdminDek ? "border-primary/45" : "border-primary/30",
+              "inline-flex items-center gap-2 border px-3 py-1.5 shadow-sm",
+              isAdminKit
+                ? "rounded-lg border-slate-200 bg-white/90 dark:border-slate-700 dark:bg-slate-900/90"
+                : isAdminDek
+                  ? "rounded-lg border-primary/35 bg-white/90 dark:border-primary/30 dark:bg-slate-900/90"
+                  : "rounded-full border-border bg-surface/92",
             ]
               .filter(Boolean)
               .join(" ")}
-          />
-          <span className="text-xs font-medium text-text">
-            {isAdminKit || isAdminDek
-              ? "Sincronizando em segundo plano..."
-              : "Atualizando dados..."}
-          </span>
+          >
+            <span
+              aria-hidden
+              className={[
+                "h-3.5 w-3.5 animate-spin rounded-full border-2 border-t-primary",
+                isAdminKit || isAdminDek ? "border-primary/45" : "border-primary/30",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+            <span className="text-xs font-medium text-text">
+              {isAdminKit || isAdminDek
+                ? "Sincronizando em segundo plano..."
+                : "Atualizando dados..."}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

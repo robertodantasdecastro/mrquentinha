@@ -1058,3 +1058,14 @@
   - validacao executada:
     - `npm run lint` (web/admin) -> OK;
     - `npm run build` (web/admin) -> OK.
+
+- T9.2.7-A2-HF3 (27/02/2026): preload do Admin restaurado sem bloqueio visual
+  - problema corrigido:
+    - em algumas operacoes o preloader deixava de aparecer apos a troca para modo nao bloqueante.
+  - ajuste aplicado:
+    - barra de preload no topo agora aparece imediatamente quando ha requests pendentes;
+    - badge textual de sincronizacao continua com atraso curto para evitar flicker;
+    - mantido comportamento nao bloqueante (sem overlay que interrompa operacao).
+  - validacao executada:
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK.
