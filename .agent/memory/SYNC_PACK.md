@@ -26,6 +26,9 @@ Arquivos que devem ser revisados/atualizados sempre que houver mudanca tecnica r
 8. `.agent/workflows/USAGE_GUIDE.md`
 - Como o Antigravity usa workflows no dia a dia.
 
+9. `scripts/check_installer_workflow.sh`
+- Guard rail de sincronizacao continua do instalador/deploy.
+
 ## Observacao
 - Nao e necessario alterar todos os arquivos em toda tarefa.
 - E obrigatorio validar e atualizar os afetados pela mudanca.

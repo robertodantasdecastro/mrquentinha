@@ -15,6 +15,7 @@ const SECTION_KEYS: ServerAdminSectionKey[] = [
   "email",
   "conectividade",
   "mobile-build",
+  "assistente-instalacao",
 ];
 
 function resolveSectionKey(value: string | string[] | undefined): ServerAdminSectionKey {

@@ -43,6 +43,7 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
             "auth_providers",
             "payment_providers",
             "email_settings",
+            "installer_settings",
             "is_published",
             "published_at",
             "created_at",

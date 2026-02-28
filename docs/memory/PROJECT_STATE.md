@@ -1,6 +1,6 @@
 # Project State (dev)
 
-Referencia de atualizacao: 27/02/2026.
+Referencia de atualizacao: 28/02/2026.
 
 ## Etapas
 - Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.7-A1`, `9.2.7-A2`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
@@ -173,6 +173,9 @@ Referencia de atualizacao: 27/02/2026.
 - Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): modulo `/modulos/usuarios-rbac` passou a exibir status de validacao de e-mail e pendencias de dados essenciais para habilitacao de pagamento/autenticacao por usuario.
 - Atualizacao concluida em 27/02/2026 (`T9.2.7-A1`): novo modulo `/modulos/clientes` com gestao completa de carteira de clientes (cadastro, status de conta, KYC, consentimentos e solicitacoes LGPD), navegacao integrada em todos os templates.
 - Atualizacao concluida em 27/02/2026 (`T9.2.7-A2`): criado modulo `/modulos/administracao-servidor` e movidos os paineis de `Gestao de e-mail`, `Conectividade e dominio` e `Build/release` para este novo contexto, mantendo o `Portal CMS` focado em template/autenticacao/pagamentos/conteudo/publicacao.
+- Atualizacao concluida em 28/02/2026 (`T9.2.7-A3`): modulo `Administracao do servidor` ganhou o painel `Assistente de instalacao` com wizard guiado por etapas (modo, destino, infraestrutura, deploy, workflow continuo, revisao e execucao), autosave e monitoramento de jobs.
+- Atualizacao concluida em 28/02/2026 (`T9.2.7-A3`): backend `portal` passou a expor `installer_settings` no `PortalConfig` e endpoints administrativos do assistente em `/api/v1/portal/admin/config/installer-*`.
+- Atualizacao concluida em 28/02/2026 (`T9.2.7-A3`): fluxo de atualizacao continua do instalador padronizado via `scripts/check_installer_workflow.sh`, integrado ao `sync_memory`, `quality_gate_all` e `session`.
 - Workspace ativo: `workspaces/web/admin`.
 - Hotfix `T6.3.2-A14-HF1` implementado: resolucao automatica de `api_base_url` em runtime aplicada nos frontends `admin/client/portal` para acessos via dominios dinamicos `trycloudflare`.
 - Status de validacao externa do fluxo Cloudflare DEV: concluido em `27/02/2026 15:04` (Portal/Client/Admin/API online, health 200, comunicacao frontend <-> API validada no teste funcional).
@@ -191,6 +194,7 @@ Referencia de atualizacao: 27/02/2026.
 - Seed: `scripts/seed_demo.sh`
 - Quality gate: `scripts/quality_gate_all.sh`
 - Sync docs: `scripts/sync_memory.sh --check`
+- Workflow do instalador: `scripts/check_installer_workflow.sh --check`
 
 ## Endpoints chave
 - `GET /`
@@ -241,6 +245,12 @@ Referencia de atualizacao: 27/02/2026.
   - `POST /api/v1/portal/admin/config/cloudflare-preview/`
   - `POST /api/v1/portal/admin/config/cloudflare-toggle/`
   - `POST /api/v1/portal/admin/config/cloudflare-runtime/`
+  - `POST /api/v1/portal/admin/config/installer-wizard-validate/`
+  - `POST /api/v1/portal/admin/config/installer-wizard-save/`
+  - `POST /api/v1/portal/admin/config/installer-jobs/start/`
+  - `GET /api/v1/portal/admin/config/installer-jobs/<job_id>/status/`
+  - `POST /api/v1/portal/admin/config/installer-jobs/<job_id>/cancel/`
+  - `GET /api/v1/portal/admin/config/installer-jobs/`
 - Financas pessoais:
   - `GET/POST /api/v1/personal-finance/accounts/`
   - `GET/POST /api/v1/personal-finance/categories/`

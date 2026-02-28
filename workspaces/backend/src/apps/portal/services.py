@@ -2,9 +2,11 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import signal
 import subprocess
 import time
+import uuid
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
@@ -225,6 +227,48 @@ def _default_cloudflare_settings_payload() -> dict:
     return deepcopy(DEFAULT_CLOUDFLARE_SETTINGS)
 
 
+INSTALLER_WORKFLOW_VERSION = "2026.02.28"
+INSTALLER_ALLOWED_STACKS = {"vm", "docker"}
+INSTALLER_ALLOWED_ENVS = {"dev", "prod"}
+INSTALLER_ALLOWED_TARGETS = {"local", "ssh", "aws", "gcp"}
+INSTALLER_ALLOWED_SSH_AUTH_MODES = {"key", "password"}
+INSTALLER_RUNTIME_DIR = PROJECT_ROOT / ".runtime" / "install"
+INSTALLER_JOBS_DIR = INSTALLER_RUNTIME_DIR / "jobs"
+
+DEFAULT_INSTALLER_SETTINGS = {
+    "workflow_version": INSTALLER_WORKFLOW_VERSION,
+    "last_synced_at": "",
+    "last_sync_note": "Workflow do instalador ainda nao sincronizado nesta instancia.",
+    "requires_review": False,
+    "lifecycle": {
+        "enforce_sync_memory": True,
+        "enforce_quality_gate": True,
+        "enforce_installer_workflow_check": True,
+    },
+    "wizard": {
+        "autosave_enabled": True,
+        "last_completed_step": "mode",
+        "draft": {
+            "mode": "dev",
+            "stack": "vm",
+            "target": "local",
+            "start_after_install": False,
+        },
+    },
+    "jobs": {
+        "last_job_id": "",
+        "last_job_status": "idle",
+        "last_job_started_at": "",
+        "last_job_finished_at": "",
+        "last_job_summary": "",
+    },
+}
+
+
+def _default_installer_settings_payload() -> dict:
+    return deepcopy(DEFAULT_INSTALLER_SETTINGS)
+
+
 DEFAULT_CONFIG_PAYLOAD = {
     "active_template": "classic",
     "available_templates": DEFAULT_PORTAL_TEMPLATE_ITEMS,
@@ -269,6 +313,7 @@ DEFAULT_CONFIG_PAYLOAD = {
     "auth_providers": _default_auth_providers_payload(),
     "payment_providers": _default_payment_providers_payload(),
     "email_settings": _default_email_settings_payload(),
+    "installer_settings": _default_installer_settings_payload(),
     "is_published": False,
 }
 
@@ -600,6 +645,7 @@ CONFIG_MUTABLE_FIELDS = [
     "auth_providers",
     "payment_providers",
     "email_settings",
+    "installer_settings",
     "is_published",
     "published_at",
 ]
@@ -906,6 +952,82 @@ def _normalize_email_settings(raw_value: object | None) -> dict:
 
     if normalized["use_tls"] and normalized["use_ssl"]:
         normalized["use_ssl"] = False
+
+    return normalized
+
+
+def _normalize_installer_settings(raw_value: object | None) -> dict:
+    normalized = _default_installer_settings_payload()
+    if not isinstance(raw_value, dict):
+        return normalized
+
+    normalized["workflow_version"] = (
+        str(raw_value.get("workflow_version", "")).strip() or INSTALLER_WORKFLOW_VERSION
+    )
+    normalized["last_synced_at"] = str(raw_value.get("last_synced_at", "")).strip()
+    normalized["last_sync_note"] = (
+        str(raw_value.get("last_sync_note", "")).strip() or normalized["last_sync_note"]
+    )
+    normalized["requires_review"] = bool(raw_value.get("requires_review", False))
+
+    lifecycle = raw_value.get("lifecycle")
+    if isinstance(lifecycle, dict):
+        normalized["lifecycle"] = {
+            "enforce_sync_memory": bool(
+                lifecycle.get(
+                    "enforce_sync_memory",
+                    normalized["lifecycle"]["enforce_sync_memory"],
+                )
+            ),
+            "enforce_quality_gate": bool(
+                lifecycle.get(
+                    "enforce_quality_gate",
+                    normalized["lifecycle"]["enforce_quality_gate"],
+                )
+            ),
+            "enforce_installer_workflow_check": bool(
+                lifecycle.get(
+                    "enforce_installer_workflow_check",
+                    normalized["lifecycle"]["enforce_installer_workflow_check"],
+                )
+            ),
+        }
+
+    wizard = raw_value.get("wizard")
+    if isinstance(wizard, dict):
+        merged_wizard = normalized["wizard"]
+        merged_wizard["autosave_enabled"] = bool(
+            wizard.get("autosave_enabled", merged_wizard["autosave_enabled"])
+        )
+        merged_wizard["last_completed_step"] = (
+            str(
+                wizard.get(
+                    "last_completed_step",
+                    merged_wizard.get("last_completed_step", "mode"),
+                )
+            ).strip()
+            or "mode"
+        )
+        draft_value = wizard.get("draft", {})
+        if isinstance(draft_value, dict):
+            merged_wizard["draft"] = draft_value
+        normalized["wizard"] = merged_wizard
+
+    jobs = raw_value.get("jobs")
+    if isinstance(jobs, dict):
+        merged_jobs = normalized["jobs"]
+        merged_jobs["last_job_id"] = str(jobs.get("last_job_id", "")).strip()
+        merged_jobs["last_job_status"] = (
+            str(jobs.get("last_job_status", "")).strip() or "idle"
+        )
+        merged_jobs["last_job_started_at"] = str(
+            jobs.get("last_job_started_at", "")
+        ).strip()
+        merged_jobs["last_job_finished_at"] = str(
+            jobs.get("last_job_finished_at", "")
+        ).strip()
+        merged_jobs["last_job_summary"] = str(jobs.get("last_job_summary", "")).strip()
+        normalized["jobs"] = merged_jobs
 
     return normalized
 
@@ -1700,6 +1822,13 @@ def _ensure_connection_defaults(config: PortalConfig) -> None:
         config.email_settings = normalized_email_settings
         update_fields.append("email_settings")
 
+    normalized_installer_settings = _normalize_installer_settings(
+        config.installer_settings
+    )
+    if config.installer_settings != normalized_installer_settings:
+        config.installer_settings = normalized_installer_settings
+        update_fields.append("installer_settings")
+
     normalized_cloudflare_settings = _normalize_cloudflare_settings(
         config.cloudflare_settings
     )
@@ -1743,6 +1872,10 @@ def save_portal_config(
         )
     if "email_settings" in payload:
         payload["email_settings"] = _normalize_email_settings(payload["email_settings"])
+    if "installer_settings" in payload:
+        payload["installer_settings"] = _normalize_installer_settings(
+            payload["installer_settings"]
+        )
     if "cloudflare_settings" in payload:
         payload["cloudflare_settings"] = _normalize_cloudflare_settings(
             payload["cloudflare_settings"]
@@ -2708,6 +2841,462 @@ def manage_cloudflare_runtime(
     config.cloudflare_settings = _normalize_cloudflare_settings(settings)
     config.save(update_fields=["cloudflare_settings", "updated_at"])
     return config, runtime_payload
+
+
+def _ensure_installer_runtime_dirs() -> None:
+    INSTALLER_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+    INSTALLER_JOBS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _installer_job_file(job_id: str) -> Path:
+    return INSTALLER_JOBS_DIR / f"{job_id}.json"
+
+
+def _tail_text_file(file_path: Path, *, lines: int = 40) -> list[str]:
+    if not file_path.exists():
+        return []
+    try:
+        content = file_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return []
+    all_lines = content.splitlines()
+    if len(all_lines) <= lines:
+        return all_lines
+    return all_lines[-lines:]
+
+
+def _is_pid_running(pid: int | None) -> bool:
+    if not pid or pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _read_installer_job(job_id: str) -> dict:
+    normalized_job_id = str(job_id).strip()
+    if not normalized_job_id:
+        raise ValidationError("Informe um job_id valido.")
+    if "/" in normalized_job_id or "\\" in normalized_job_id:
+        raise ValidationError("job_id invalido.")
+
+    job_file = _installer_job_file(normalized_job_id)
+    if not job_file.exists():
+        raise ValidationError("Job de instalacao nao encontrado.")
+
+    try:
+        payload = json.loads(job_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValidationError("Falha ao ler o estado do job de instalacao.") from exc
+
+    if not isinstance(payload, dict):
+        raise ValidationError("Estado do job de instalacao invalido.")
+
+    return payload
+
+
+def _write_installer_job(payload: dict) -> dict:
+    job_id = str(payload.get("job_id", "")).strip()
+    if not job_id:
+        raise ValidationError("Estado do job sem identificador.")
+
+    _ensure_installer_runtime_dirs()
+    job_file = _installer_job_file(job_id)
+    try:
+        job_file.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        raise ValidationError(
+            "Falha ao persistir estado do job de instalacao."
+        ) from exc
+    return payload
+
+
+def _normalize_installer_wizard_payload(
+    raw_payload: object | None,
+) -> tuple[dict, list[str]]:
+    if not isinstance(raw_payload, dict):
+        raw_payload = {}
+
+    warnings: list[str] = []
+    normalized: dict = {}
+
+    mode = str(raw_payload.get("mode", "dev")).strip().lower()
+    if mode not in INSTALLER_ALLOWED_ENVS:
+        mode = "dev"
+    normalized["mode"] = mode
+
+    stack = str(raw_payload.get("stack", "vm")).strip().lower()
+    if stack not in INSTALLER_ALLOWED_STACKS:
+        stack = "vm"
+    normalized["stack"] = stack
+    if stack == "docker":
+        warnings.append(
+            "Stack Docker selecionada. "
+            "A arquitetura oficial inicial permanece VM sem Docker."
+        )
+
+    target = str(raw_payload.get("target", "local")).strip().lower()
+    if target not in INSTALLER_ALLOWED_TARGETS:
+        target = "local"
+    normalized["target"] = target
+
+    start_after_install = bool(raw_payload.get("start_after_install", False))
+    normalized["start_after_install"] = start_after_install
+
+    ssh = raw_payload.get("ssh")
+    normalized_ssh = {
+        "host": "",
+        "port": 22,
+        "user": "",
+        "auth_mode": "key",
+        "key_path": "",
+        "password": "",
+    }
+    if isinstance(ssh, dict):
+        normalized_ssh["host"] = str(ssh.get("host", "")).strip()
+        normalized_ssh["user"] = str(ssh.get("user", "")).strip()
+        normalized_ssh["key_path"] = str(ssh.get("key_path", "")).strip()
+        normalized_ssh["password"] = str(ssh.get("password", "")).strip()
+        try:
+            port = int(ssh.get("port", 22))
+        except (TypeError, ValueError):
+            port = 22
+        normalized_ssh["port"] = max(1, min(port, 65535))
+        auth_mode = str(ssh.get("auth_mode", "key")).strip().lower()
+        if auth_mode not in INSTALLER_ALLOWED_SSH_AUTH_MODES:
+            auth_mode = "key"
+        normalized_ssh["auth_mode"] = auth_mode
+    normalized["ssh"] = normalized_ssh
+
+    cloud = raw_payload.get("cloud")
+    normalized_cloud = {
+        "provider": "aws",
+        "region": "",
+        "instance_type": "",
+        "ami": "",
+        "key_pair_name": "",
+        "use_elastic_ip": True,
+    }
+    if isinstance(cloud, dict):
+        provider = str(cloud.get("provider", "aws")).strip().lower()
+        if provider not in {"aws", "gcp"}:
+            provider = "aws"
+        normalized_cloud["provider"] = provider
+        normalized_cloud["region"] = str(cloud.get("region", "")).strip()
+        normalized_cloud["instance_type"] = str(cloud.get("instance_type", "")).strip()
+        normalized_cloud["ami"] = str(cloud.get("ami", "")).strip()
+        normalized_cloud["key_pair_name"] = str(cloud.get("key_pair_name", "")).strip()
+        normalized_cloud["use_elastic_ip"] = bool(cloud.get("use_elastic_ip", True))
+    normalized["cloud"] = normalized_cloud
+
+    deployment = raw_payload.get("deployment")
+    normalized_deployment = {
+        "store_name": "Mr Quentinha",
+        "root_domain": "mrquentinha.com.br",
+        "portal_domain": "www.mrquentinha.com.br",
+        "client_domain": "app.mrquentinha.com.br",
+        "admin_domain": "admin.mrquentinha.com.br",
+        "api_domain": "api.mrquentinha.com.br",
+        "seed_mode": "empty",
+    }
+    if isinstance(deployment, dict):
+        for key in (
+            "store_name",
+            "root_domain",
+            "portal_domain",
+            "client_domain",
+            "admin_domain",
+            "api_domain",
+            "seed_mode",
+        ):
+            value = str(deployment.get(key, normalized_deployment[key])).strip()
+            if value:
+                normalized_deployment[key] = value
+    if normalized_deployment["seed_mode"] not in {"empty", "examples"}:
+        normalized_deployment["seed_mode"] = "empty"
+    normalized["deployment"] = normalized_deployment
+
+    lifecycle = raw_payload.get("lifecycle")
+    normalized_lifecycle = {
+        "enforce_sync_memory": True,
+        "enforce_quality_gate": True,
+        "enforce_installer_workflow_check": True,
+    }
+    if isinstance(lifecycle, dict):
+        for key in normalized_lifecycle:
+            normalized_lifecycle[key] = bool(
+                lifecycle.get(key, normalized_lifecycle[key])
+            )
+    normalized["lifecycle"] = normalized_lifecycle
+
+    if target == "ssh":
+        if not normalized_ssh["host"]:
+            raise ValidationError("SSH: informe o host remoto.")
+        if not normalized_ssh["user"]:
+            raise ValidationError("SSH: informe o usuario remoto.")
+        if normalized_ssh["auth_mode"] == "key" and not normalized_ssh["key_path"]:
+            warnings.append(
+                "SSH por chave selecionado sem key_path. "
+                "Valide o caminho da chave privada."
+            )
+
+    if target in {"aws", "gcp"} and not normalized_cloud["region"]:
+        warnings.append(
+            "Cloud sem regiao definida. O assistente vai exigir antes da execucao."
+        )
+
+    return normalized, warnings
+
+
+def _build_local_installer_command(
+    *, stack: str, env_name: str, start_after: bool
+) -> list[str]:
+    command = [
+        "bash",
+        str(PROJECT_ROOT / "scripts" / "install_mrquentinha.sh"),
+        "--stack",
+        stack,
+        "--env",
+        env_name,
+        "--yes",
+    ]
+    if start_after:
+        command.append("--start")
+    return command
+
+
+def _sync_installer_job_in_config(config: PortalConfig, job_payload: dict) -> None:
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    jobs_state = installer_settings.get("jobs", {})
+    jobs_state["last_job_id"] = str(job_payload.get("job_id", "")).strip()
+    jobs_state["last_job_status"] = str(job_payload.get("status", "")).strip() or "idle"
+    jobs_state["last_job_started_at"] = str(job_payload.get("started_at", "")).strip()
+    jobs_state["last_job_finished_at"] = str(job_payload.get("finished_at", "")).strip()
+    jobs_state["last_job_summary"] = str(job_payload.get("summary", "")).strip()
+    installer_settings["jobs"] = jobs_state
+    installer_settings["last_synced_at"] = timezone.now().isoformat()
+    installer_settings["last_sync_note"] = (
+        "Fluxo do instalador sincronizado apos operacao do assistente."
+    )
+    installer_settings["requires_review"] = False
+    config.installer_settings = _normalize_installer_settings(installer_settings)
+    config.save(update_fields=["installer_settings", "updated_at"])
+
+
+def validate_installer_wizard_payload(*, payload: dict | None) -> dict:
+    normalized_payload, warnings = _normalize_installer_wizard_payload(payload)
+    return {
+        "ok": True,
+        "normalized_payload": normalized_payload,
+        "warnings": warnings,
+        "workflow_version": INSTALLER_WORKFLOW_VERSION,
+        "validated_at": timezone.now().isoformat(),
+    }
+
+
+@transaction.atomic
+def save_installer_wizard_settings(
+    *,
+    payload: dict | None,
+    completed_step: str = "mode",
+) -> PortalConfig:
+    config = ensure_portal_config()
+    normalized_payload, _warnings = _normalize_installer_wizard_payload(payload)
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    wizard = installer_settings.get("wizard", {})
+    wizard["draft"] = normalized_payload
+    wizard["last_completed_step"] = str(completed_step or "mode").strip() or "mode"
+    installer_settings["wizard"] = wizard
+    installer_settings["workflow_version"] = INSTALLER_WORKFLOW_VERSION
+    installer_settings["last_synced_at"] = timezone.now().isoformat()
+    installer_settings["last_sync_note"] = "Draft do assistente salvo com sucesso."
+    installer_settings["requires_review"] = False
+    config.installer_settings = _normalize_installer_settings(installer_settings)
+    config.save(update_fields=["installer_settings", "updated_at"])
+    return config
+
+
+def list_installer_jobs(*, limit: int = 20) -> list[dict]:
+    _ensure_installer_runtime_dirs()
+    files = sorted(
+        INSTALLER_JOBS_DIR.glob("*.json"),
+        key=lambda item: item.stat().st_mtime,
+        reverse=True,
+    )
+    jobs: list[dict] = []
+    for file_path in files[: max(1, min(limit, 100))]:
+        try:
+            payload = json.loads(file_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(payload, dict):
+            jobs.append(payload)
+    return jobs
+
+
+@transaction.atomic
+def start_installer_job(
+    *, payload: dict | None, initiated_by: str = ""
+) -> tuple[PortalConfig, dict]:
+    config = ensure_portal_config()
+    normalized_payload, warnings = _normalize_installer_wizard_payload(payload)
+    _ensure_installer_runtime_dirs()
+
+    target = normalized_payload["target"]
+    stack = normalized_payload["stack"]
+    env_name = normalized_payload["mode"]
+    start_after = bool(normalized_payload.get("start_after_install", False))
+    now_iso = timezone.now().isoformat()
+    job_id = timezone.now().strftime("%Y%m%d%H%M%S") + "-" + uuid.uuid4().hex[:8]
+
+    log_file = INSTALLER_JOBS_DIR / f"{job_id}.log"
+    exit_code_file = INSTALLER_JOBS_DIR / f"{job_id}.exit"
+
+    job_payload: dict = {
+        "job_id": job_id,
+        "type": "installer-deploy",
+        "status": "planned",
+        "target": target,
+        "stack": stack,
+        "mode": env_name,
+        "started_at": now_iso,
+        "finished_at": "",
+        "initiated_by": str(initiated_by or "").strip() or "sistema",
+        "warnings": warnings,
+        "payload": normalized_payload,
+        "pid": None,
+        "log_file": str(log_file),
+        "exit_code_file": str(exit_code_file),
+        "summary": "",
+        "command_preview": "",
+    }
+
+    if target == "local":
+        local_command = _build_local_installer_command(
+            stack=stack,
+            env_name=env_name,
+            start_after=start_after,
+        )
+        job_payload["command_preview"] = " ".join(
+            shlex.quote(part) for part in local_command
+        )
+
+        wrapper_command = (
+            f"cd {shlex.quote(str(PROJECT_ROOT))} && "
+            f"{job_payload['command_preview']}; "
+            f"rc=$?; echo $rc > {shlex.quote(str(exit_code_file))}; exit $rc"
+        )
+        try:
+            log_handle = open(log_file, "w", encoding="utf-8")
+        except OSError as exc:
+            raise ValidationError("Falha ao criar log do job de instalacao.") from exc
+
+        try:
+            process = subprocess.Popen(
+                ["bash", "-lc", wrapper_command],
+                cwd=PROJECT_ROOT,
+                stdout=log_handle,
+                stderr=log_handle,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError as exc:
+            log_handle.close()
+            raise ValidationError("Falha ao iniciar job de instalacao local.") from exc
+        finally:
+            log_handle.close()
+
+        job_payload["pid"] = process.pid
+        job_payload["status"] = "running"
+        job_payload["summary"] = "Instalador local iniciado em background."
+    else:
+        if target == "ssh":
+            job_payload["summary"] = (
+                "Plano SSH preparado. Validacao de conexao e execucao remota "
+                "serao aplicadas nas proximas fases."
+            )
+        elif target == "aws":
+            job_payload["summary"] = (
+                "Plano AWS preparado. Provisionamento automatizado avancado "
+                "segue no roadmap da fase cloud."
+            )
+        else:
+            job_payload["summary"] = (
+                "Plano GCP preparado. Provisionamento automatizado avancado "
+                "segue no roadmap da fase cloud."
+            )
+
+    saved_job = _write_installer_job(job_payload)
+    _sync_installer_job_in_config(config, saved_job)
+    return config, saved_job
+
+
+@transaction.atomic
+def get_installer_job_status(*, job_id: str) -> tuple[PortalConfig, dict]:
+    config = ensure_portal_config()
+    job_payload = _read_installer_job(job_id)
+
+    status_value = str(job_payload.get("status", "")).strip().lower()
+    pid = job_payload.get("pid")
+    running = _is_pid_running(int(pid)) if isinstance(pid, int) else False
+    exit_code_file = Path(str(job_payload.get("exit_code_file", "")).strip())
+
+    if status_value == "running" and not running:
+        exit_code = None
+        if exit_code_file.exists():
+            try:
+                exit_code = int(exit_code_file.read_text(encoding="utf-8").strip())
+            except (OSError, ValueError):
+                exit_code = None
+
+        if exit_code == 0:
+            job_payload["status"] = "succeeded"
+            job_payload["summary"] = "Instalador finalizado com sucesso."
+        elif exit_code is None:
+            job_payload["status"] = "finished"
+            job_payload["summary"] = (
+                "Instalador finalizado (sem codigo de saida registrado)."
+            )
+        else:
+            job_payload["status"] = "failed"
+            job_payload["summary"] = (
+                f"Instalador finalizado com falha (exit_code={exit_code})."
+            )
+        job_payload["finished_at"] = timezone.now().isoformat()
+        _write_installer_job(job_payload)
+
+    log_file = Path(str(job_payload.get("log_file", "")).strip())
+    job_payload["last_log_lines"] = _tail_text_file(log_file, lines=60)
+    job_payload["running"] = _is_pid_running(
+        int(job_payload.get("pid")) if isinstance(job_payload.get("pid"), int) else None
+    )
+
+    _sync_installer_job_in_config(config, job_payload)
+    return config, job_payload
+
+
+@transaction.atomic
+def cancel_installer_job(*, job_id: str) -> tuple[PortalConfig, dict]:
+    config = ensure_portal_config()
+    job_payload = _read_installer_job(job_id)
+    pid = job_payload.get("pid")
+    if isinstance(pid, int) and _is_pid_running(pid):
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+
+    job_payload["status"] = "canceled"
+    job_payload["finished_at"] = timezone.now().isoformat()
+    job_payload["summary"] = "Job cancelado manualmente pelo operador."
+    _write_installer_job(job_payload)
+    _sync_installer_job_in_config(config, job_payload)
+    return config, job_payload
 
 
 @transaction.atomic

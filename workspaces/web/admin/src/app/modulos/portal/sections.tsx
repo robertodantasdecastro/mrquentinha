@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
 import { InlinePreloader } from "@/components/InlinePreloader";
+import { InstallAssistantPanel } from "@/components/modules/InstallAssistantPanel";
 
 import {
   ApiError,
@@ -74,6 +75,11 @@ export const SERVER_ADMIN_MENU_ITEMS = [
     label: "Build e release",
     href: `${SERVER_ADMIN_BASE_PATH}/mobile-build#mobile-build`,
   },
+  {
+    key: "assistente-instalacao",
+    label: "Assistente de instalacao",
+    href: `${SERVER_ADMIN_BASE_PATH}/assistente-instalacao#assistente-instalacao`,
+  },
 ];
 
 export type PortalSectionKey =
@@ -88,7 +94,8 @@ export type ServerAdminSectionKey =
   | "all"
   | "email"
   | "conectividade"
-  | "mobile-build";
+  | "mobile-build"
+  | "assistente-instalacao";
 
 type PortalSectionsMode = "portal" | "server-admin";
 
@@ -3468,6 +3475,15 @@ export function PortalSections({
             ))}
           </div>
         </section>
+      )}
+
+      {shouldRenderSection("assistente-instalacao", "server-admin") && (
+        <InstallAssistantPanel
+          config={config}
+          onConfigUpdated={(updatedConfig) => {
+            setConfig(updatedConfig);
+          }}
+        />
       )}
 
       {shouldRenderSection("conteudo", "portal") && (

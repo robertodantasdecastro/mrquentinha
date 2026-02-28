@@ -20,6 +20,7 @@ Acessos:
 
 ```bash
 bash scripts/gemini_check.sh
+bash scripts/check_installer_workflow.sh --check
 ```
 
 3. Ler `.agent/memory/IN_PROGRESS.md`.
@@ -72,6 +73,7 @@ bash scripts/quality_gate_all.sh
 ## 6) Sync obrigatorio antes de commit final
 ```bash
 bash scripts/gemini_check.sh
+bash scripts/check_installer_workflow.sh --check
 bash scripts/sync_memory.sh --check
 ```
 
@@ -287,3 +289,29 @@ Sincronizacao manual de `.env.local` dos frontends:
 Observacao:
 - apos sincronizar, reiniciar `start_admin_dev.sh`, `start_portal_dev.sh` e `start_client_dev.sh` para carregar as novas variaveis.
 - no `trycloudflare`, pode ocorrer `HTTP 530` nos primeiros segundos apos `refresh`; use `status` novamente ate estabilizar.
+
+## 17) Assistente de instalacao (Administracao do servidor)
+Painel:
+- `http://<host>:3002/modulos/administracao-servidor/assistente-instalacao#assistente-instalacao`
+
+Fluxo rapido:
+1. Etapa `Modo`: escolha `dev/prod`, `vm/docker` e start automatico.
+2. Etapa `Destino`: defina `local`, `ssh`, `aws` ou `gcp`.
+3. Etapa `Infraestrutura`: preencha parametros de SSH/cloud.
+4. Etapa `Aplicacao e dominios`: configure loja, dominios e seed.
+5. Etapa `Workflow continuo`: habilite politicas de sync e qualidade.
+6. Etapa `Revisao`: confira o resumo final.
+7. Etapa `Execucao`: iniciar job, acompanhar logs e cancelar se necessario.
+
+Endpoints operacionais:
+- `POST /api/v1/portal/admin/config/installer-wizard-validate/`
+- `POST /api/v1/portal/admin/config/installer-wizard-save/`
+- `POST /api/v1/portal/admin/config/installer-jobs/start/`
+- `GET /api/v1/portal/admin/config/installer-jobs/<job_id>/status/`
+- `POST /api/v1/portal/admin/config/installer-jobs/<job_id>/cancel/`
+- `GET /api/v1/portal/admin/config/installer-jobs/`
+
+Guard rail obrigatorio para trilhas criticas de deploy/instalacao:
+```bash
+bash scripts/check_installer_workflow.sh --check
+```

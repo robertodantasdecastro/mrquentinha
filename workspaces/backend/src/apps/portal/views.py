@@ -24,15 +24,21 @@ from .services import (
     build_latest_mobile_release_payload,
     build_portal_version_payload,
     build_public_portal_payload,
+    cancel_installer_job,
     compile_mobile_release,
     create_mobile_release,
     ensure_portal_config,
+    get_installer_job_status,
+    list_installer_jobs,
     manage_cloudflare_runtime,
     publish_mobile_release,
     publish_portal_config,
+    save_installer_wizard_settings,
     save_portal_config,
     send_portal_test_email,
+    start_installer_job,
     toggle_cloudflare_mode,
+    validate_installer_wizard_payload,
 )
 
 
@@ -205,6 +211,104 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["post"], url_path="installer-wizard-validate")
+    def installer_wizard_validate(self, request):
+        payload = request.data.get("payload", {})
+        if payload is None:
+            payload = {}
+        if not isinstance(payload, dict):
+            raise DRFValidationError(["Campo payload precisa ser um objeto JSON."])
+        try:
+            result = validate_installer_wizard_payload(payload=payload)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        return Response(result, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="installer-wizard-save")
+    def installer_wizard_save(self, request):
+        payload = request.data.get("payload", {})
+        completed_step = str(request.data.get("completed_step", "mode")).strip()
+        if payload is None:
+            payload = {}
+        if not isinstance(payload, dict):
+            raise DRFValidationError(["Campo payload precisa ser um objeto JSON."])
+        try:
+            config = save_installer_wizard_settings(
+                payload=payload,
+                completed_step=completed_step or "mode",
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        output = self.get_serializer(config)
+        return Response(output.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="installer-jobs/start")
+    def installer_jobs_start(self, request):
+        payload = request.data.get("payload", {})
+        if payload is None:
+            payload = {}
+        if not isinstance(payload, dict):
+            raise DRFValidationError(["Campo payload precisa ser um objeto JSON."])
+        initiated_by = str(getattr(request.user, "username", "")).strip()
+        try:
+            config, job_payload = start_installer_job(
+                payload=payload,
+                initiated_by=initiated_by,
+            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        output = self.get_serializer(config)
+        return Response(
+            {
+                "config": output.data,
+                "job": job_payload,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"installer-jobs/(?P<job_id>[^/.]+)/status",
+    )
+    def installer_job_status(self, _request, job_id: str | None = None):
+        try:
+            config, job_payload = get_installer_job_status(job_id=str(job_id or ""))
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        output = self.get_serializer(config)
+        return Response(
+            {
+                "config": output.data,
+                "job": job_payload,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path=r"installer-jobs/(?P<job_id>[^/.]+)/cancel",
+    )
+    def installer_job_cancel(self, _request, job_id: str | None = None):
+        try:
+            config, job_payload = cancel_installer_job(job_id=str(job_id or ""))
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        output = self.get_serializer(config)
+        return Response(
+            {
+                "config": output.data,
+                "job": job_payload,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["get"], url_path="installer-jobs")
+    def installer_jobs(self, _request):
+        jobs = list_installer_jobs(limit=20)
+        return Response({"results": jobs}, status=status.HTTP_200_OK)
 
 
 class PortalSectionAdminViewSet(viewsets.ModelViewSet):

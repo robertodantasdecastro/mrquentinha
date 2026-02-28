@@ -34,7 +34,9 @@ Fila atual:
 29. [x] T7.2.3-HF2 Fluxo cliente web ponta a ponta + hardening localhost:3000 - concluida em 26/02/2026.
 30. [x] T6.3.2-A4 Web Cliente com template dinamico via CMS (client-classic/client-quentinhas) + seletor no Admin Web - concluida em 26/02/2026.
 31. [x] T6.3.2-A5 Portal CMS: configuracao de dominios/subdominios e conectividade local (host `mrquentinha`) para Portal/Client/Admin/API - concluida em 26/02/2026.
-32. [ ] T8.0.1 Financas pessoais (discovery LGPD + segregacao).
+32. [x] T8.0.1 Financas pessoais (discovery LGPD + segregacao) - concluida em 26/02/2026.
 33. [x] T9.2.1-A2-HF4 Confirmacao de e-mail no cadastro do web client com URL dinamica DEV/PROD + compliance no Admin - concluida em 27/02/2026.
 34. [x] T9.2.1-A2-HF5 Bloqueio de login sem validacao de e-mail + reenvio publico de token + TTL 3h + template HTML dinamico - concluida em 27/02/2026.
 35. [x] T9.2.1-A2-HF6 Gestao de e-mail no Web Admin (SMTP + teste) e correção da regra de login para bloquear validacao de e-mail apenas no fluxo cliente - concluida em 27/02/2026.
+36. [x] T9.2.7-A3 Assistente de instalacao/deploy no modulo Administracao do servidor + workflow continuo de atualizacao do instalador - concluida em 28/02/2026.
+37. [ ] T9.2.7-A4 Evoluir execucao remota do assistente (SSH/AWS/GCP) com automacao completa de provisionamento e validacoes de conectividade.

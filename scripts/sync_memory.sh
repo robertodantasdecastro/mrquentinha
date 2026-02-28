@@ -124,6 +124,9 @@ else
   echo "[sync_memory] Sem trigger em backend/web/scripts."
 fi
 
+echo "[sync_memory] Validando workflow do instalador..."
+bash "$ROOT_DIR/scripts/check_installer_workflow.sh" --check
+
 if [[ "$RUN_QUICK_GATE" == "true" ]]; then
   echo "[sync_memory] Rodando quick gate..."
 

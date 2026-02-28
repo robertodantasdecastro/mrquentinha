@@ -221,6 +221,17 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `workspaces/web/admin/src/app/modulos/portal/sections.tsx` (refatorado por modo `portal`/`server-admin`)
   - `workspaces/web/admin/src/lib/adminModules.ts`
 
+#### T9.2.7-A3 - Assistente de instalacao/deploy + workflow continuo [CONCLUIDA]
+- Objetivo: implementar wizard guiado no modulo `Administracao do servidor` e institucionalizar fluxo de atualizacao continua do instalador.
+- Escopo: backend `portal` (estado + endpoints + jobs), web admin (wizard/monitoramento), scripts de governanca operacional e memoria.
+- Status: concluida em 28/02/2026.
+- Evidencia:
+  - `workspaces/backend/src/apps/portal/models.py` (+ migration `0010_portalconfig_installer_settings.py`)
+  - `workspaces/backend/src/apps/portal/services.py` (wizard validation/save + installer jobs runtime)
+  - `workspaces/backend/src/apps/portal/views.py` (actions `installer-*`)
+  - `workspaces/web/admin/src/components/modules/InstallAssistantPanel.tsx`
+  - `scripts/check_installer_workflow.sh` (integrado em `sync_memory`, `quality_gate_all` e `session`)
+
 ### P2 (roadmap)
 
 #### T6.1.1 - Nginx local e dominios dev

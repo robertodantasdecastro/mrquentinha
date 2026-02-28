@@ -25,6 +25,9 @@
 6. `W21_sync_codex_antigravity`
 7. `W12_salvar_checkpoint`
 
+Comando obrigatorio para trilhas de instalacao/deploy:
+- `bash scripts/check_installer_workflow.sh --check`
+
 ## Trabalho paralelo (Codex + Antigravity)
 1. Antes de editar, ler `.agent/memory/IN_PROGRESS.md`.
 2. Registrar lock humano no `IN_PROGRESS.md` (agente, branch, arquivos/areas).

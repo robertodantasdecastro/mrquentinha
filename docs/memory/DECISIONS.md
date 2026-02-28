@@ -83,6 +83,24 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - elimina drift entre dominio atual do tunnel e configuracao consumida pelos frontends.
   - evita erro `DisallowedHost` no backend durante homologacao online em modo DEV.
 
+## 28/02/2026 - Workflow continuo de atualizacao do instalador
+- Decisao:
+  - instituir guard rail dedicado `scripts/check_installer_workflow.sh` para trilhas criticas de instalacao/deploy.
+  - integrar o guard no fluxo de inicializacao e qualidade (`session.sh`, `sync_memory.sh`, `quality_gate_all.sh`).
+  - exigir sincronizacao de memoria operacional junto com evolucao do instalador.
+- Consequencia:
+  - o instalador passa a evoluir de forma rastreavel quando mudam componentes criticos da aplicacao.
+  - reduz risco de drift entre capacidades reais do ecossistema e fluxo guiado do Web Admin.
+
+## 28/02/2026 - Assistente de instalacao no Web Admin (wizard guiado)
+- Decisao:
+  - criar o painel `Assistente de instalacao` no modulo `Administracao do servidor`.
+  - adotar UX em passos curtos com validacao por etapa, autosave de draft e monitoramento de jobs.
+  - manter reuso do script oficial `scripts/install_mrquentinha.sh` como engine principal da execucao local.
+- Consequencia:
+  - operadores nao tecnicos passam a configurar e iniciar o fluxo com menor friccao.
+  - a automacao cloud/SSH pode evoluir por fases sem quebrar o contrato do wizard ja publicado.
+
 ## 27/02/2026 - Confirmacao de e-mail com URL dinamica por ambiente
 - Decisao:
   - tornar e-mail obrigatorio no cadastro do cliente (`/api/v1/accounts/register/`) e disparar confirmacao por token.

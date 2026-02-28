@@ -1021,6 +1021,109 @@ export type PortalCloudflareRuntimeResult = {
   action: "start" | "stop" | "status" | "refresh";
 };
 
+export type PortalInstallerLifecycleConfig = {
+  enforce_sync_memory: boolean;
+  enforce_quality_gate: boolean;
+  enforce_installer_workflow_check: boolean;
+};
+
+export type PortalInstallerSshConfig = {
+  host: string;
+  port: number;
+  user: string;
+  auth_mode: "key" | "password";
+  key_path: string;
+  password: string;
+};
+
+export type PortalInstallerCloudConfig = {
+  provider: "aws" | "gcp";
+  region: string;
+  instance_type: string;
+  ami: string;
+  key_pair_name: string;
+  use_elastic_ip: boolean;
+};
+
+export type PortalInstallerDeploymentConfig = {
+  store_name: string;
+  root_domain: string;
+  portal_domain: string;
+  client_domain: string;
+  admin_domain: string;
+  api_domain: string;
+  seed_mode: "empty" | "examples";
+};
+
+export type PortalInstallerDraftPayload = {
+  mode: "dev" | "prod";
+  stack: "vm" | "docker";
+  target: "local" | "ssh" | "aws" | "gcp";
+  start_after_install: boolean;
+  ssh: PortalInstallerSshConfig;
+  cloud: PortalInstallerCloudConfig;
+  deployment: PortalInstallerDeploymentConfig;
+  lifecycle: PortalInstallerLifecycleConfig;
+};
+
+export type PortalInstallerSettingsConfig = {
+  workflow_version: string;
+  last_synced_at: string;
+  last_sync_note: string;
+  requires_review: boolean;
+  lifecycle: PortalInstallerLifecycleConfig;
+  wizard: {
+    autosave_enabled: boolean;
+    last_completed_step: string;
+    draft: PortalInstallerDraftPayload;
+  };
+  jobs: {
+    last_job_id: string;
+    last_job_status: string;
+    last_job_started_at: string;
+    last_job_finished_at: string;
+    last_job_summary: string;
+  };
+};
+
+export type PortalInstallerWizardValidateResult = {
+  ok: boolean;
+  normalized_payload: PortalInstallerDraftPayload;
+  warnings: string[];
+  workflow_version: string;
+  validated_at: string;
+};
+
+export type PortalInstallerJobData = {
+  job_id: string;
+  type: string;
+  status: string;
+  target: string;
+  stack: string;
+  mode: string;
+  started_at: string;
+  finished_at: string;
+  initiated_by: string;
+  warnings: string[];
+  payload: PortalInstallerDraftPayload;
+  pid: number | null;
+  log_file: string;
+  exit_code_file: string;
+  summary: string;
+  command_preview: string;
+  last_log_lines?: string[];
+  running?: boolean;
+};
+
+export type PortalInstallerJobResult = {
+  config: PortalConfigData;
+  job: PortalInstallerJobData;
+};
+
+export type PortalInstallerJobsListResult = {
+  results: PortalInstallerJobData[];
+};
+
 export type PortalConfigData = {
   id: number;
   active_template: string;
@@ -1056,6 +1159,7 @@ export type PortalConfigData = {
   auth_providers: PortalAuthProvidersConfig;
   payment_providers: PortalPaymentProvidersConfig;
   email_settings: PortalEmailSettingsConfig;
+  installer_settings: PortalInstallerSettingsConfig;
   is_published: boolean;
   published_at: string | null;
   created_at: string;
@@ -1089,6 +1193,7 @@ export type PortalConfigWritePayload = Partial<
     | "auth_providers"
     | "payment_providers"
     | "email_settings"
+    | "installer_settings"
   >
 >;
 

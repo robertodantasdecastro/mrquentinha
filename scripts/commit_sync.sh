@@ -31,6 +31,7 @@ git add \
   docs/memory/RUNBOOK_DEV.md \
   docs/07-workflow-codex.md \
   scripts/sync_memory.sh \
+  scripts/check_installer_workflow.sh \
   scripts/quality_gate_all.sh \
   scripts/commit_sync.sh
 

@@ -58,6 +58,7 @@ class PortalConfig(models.Model):
     auth_providers = models.JSONField(default=dict, blank=True)
     payment_providers = models.JSONField(default=dict, blank=True)
     email_settings = models.JSONField(default=dict, blank=True)
+    installer_settings = models.JSONField(default=dict, blank=True)
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

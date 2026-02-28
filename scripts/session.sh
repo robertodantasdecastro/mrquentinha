@@ -20,6 +20,7 @@ show_workflow() {
 
 run_basic_checks() {
   activate_backend_venv
+  (cd "$ROOT_DIR" && bash scripts/check_installer_workflow.sh --check)
   (cd "$ROOT_DIR" && make test)
   (cd "$ROOT_DIR/workspaces/web/portal" && npm run build)
   (cd "$ROOT_DIR/workspaces/web/client" && npm run build)
@@ -27,6 +28,7 @@ run_basic_checks() {
 
 run_quality_gate() {
   activate_backend_venv
+  (cd "$ROOT_DIR" && bash scripts/check_installer_workflow.sh --check)
   (cd "$ROOT_DIR/workspaces/backend" && python manage.py check)
   (cd "$ROOT_DIR/workspaces/backend" && make lint)
   (cd "$ROOT_DIR/workspaces/backend" && make test)

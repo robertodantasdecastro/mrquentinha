@@ -318,6 +318,10 @@ Monitoramento realtime no backend:
 Monitoramento no Admin:
 - modulo `Monitoramento` em `/modulos/monitoramento`
 
+Assistente de instalacao no Admin:
+- modulo `Administracao do servidor` em `/modulos/administracao-servidor/assistente-instalacao`
+- wizard guiado com validacao por etapa, autosave de draft e monitoramento de jobs.
+
 ## Qualidade
 
 ### Backend (raiz)
@@ -340,6 +344,7 @@ cd workspaces/web/client && npm run lint && npm run build
 
 ```bash
 ./scripts/quality_gate_all.sh
+./scripts/check_installer_workflow.sh --check
 ```
 
 ## Seed e smoke

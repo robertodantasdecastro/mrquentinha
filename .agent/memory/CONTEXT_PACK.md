@@ -13,12 +13,14 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 28/02/2026 (`T9.2.7-A3`): `Administracao do servidor` ganhou painel `Assistente de instalacao` com wizard guiado, validacao por etapa, autosave e monitoramento de jobs via backend (`installer_settings` + endpoints `installer-*`).
+- Atualizacao em 28/02/2026 (`T9.2.7-A3`): workflow continuo do instalador padronizado com `scripts/check_installer_workflow.sh`, integrado no `session`, `sync_memory` e `quality_gate_all`.
 - Atualizacao em 27/02/2026 (`T9.2.1-A2-HF6`): Web Admin ganhou gestao de e-mail (SMTP + teste de envio) no modulo Portal CMS; regra de login foi refinada para exigir validacao de e-mail somente para contas cliente, sem bloquear perfis administrativos/gestao.
 - Atualizacao em 27/02/2026 (`T9.2.1-A2-HF4`): fluxo de confirmacao de e-mail implantado no cadastro do web client com link dinamico por ambiente (origem ativa DEV + fallback `PortalConfig.client_base_url`), endpoint de confirmacao/reenvio no backend e visibilidade de compliance no Admin (`usuarios-rbac`).
 - Atualizacao em 27/02/2026 (`T9.2.1-A2-HF5`): login de conta cliente sem e-mail validado bloqueado no endpoint JWT; reenvio de token liberado por `identifier` no login; token de confirmacao reduzido para 3h com template HTML de e-mail (logo + dados dinâmicos do CMS).
 - Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `T9.1.1-HF1`, `T9.1.1-HF2`, `T9.1.1-HF3`, `T9.1.1-HF4`.
 - Etapa ativa: `6.2` (ownership Antigravity para consolidacao visual do portal).
-- Proxima subetapa recomendada para Codex: `T8.0.1` (discovery de financas pessoais com segregacao de escopo).
+- Proxima subetapa recomendada para Codex: `T9.2.1-A2` (rodada manual E2E completa) com evolucao tecnica paralela em `T9.2.7-A4` (automacao remota SSH/AWS/GCP do assistente).
 - Entrega parcial de `T6.3.2` concluida em 26/02/2026: Admin Web ganhou modulo `Portal CMS` com selecao de template ativo e acao de publicacao da configuracao.
 - Entrega parcial de `T6.3.2` concluida em 26/02/2026: Portal Web passou a ler `active_template` direto do CMS (`/api/v1/portal/config/`) em runtime.
 - Entrega parcial de `T6.3.2` concluida em 26/02/2026: Portal e Client ganharam fallback automatico de API para host local (`:8000`) quando env nao estiver definida.

@@ -43,6 +43,10 @@ import type {
   PortalCloudflareRuntimeResult,
   PortalCloudflareToggleResult,
   PortalEmailTestResult,
+  PortalInstallerDraftPayload,
+  PortalInstallerJobResult,
+  PortalInstallerJobsListResult,
+  PortalInstallerWizardValidateResult,
   PortalPaymentProviderTestResult,
   PortalSectionData,
   PortalSectionWritePayload,
@@ -1346,6 +1350,86 @@ export async function managePortalCloudflareRuntimeAdmin(
       method: "POST",
       auth: true,
       body: JSON.stringify({ action }),
+    },
+  );
+}
+
+export async function validateInstallerWizardAdmin(
+  payload: Partial<PortalInstallerDraftPayload>,
+): Promise<PortalInstallerWizardValidateResult> {
+  return requestJson<PortalInstallerWizardValidateResult>(
+    "/api/v1/portal/admin/config/installer-wizard-validate/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ payload }),
+    },
+  );
+}
+
+export async function saveInstallerWizardAdmin(payload: {
+  payload: Partial<PortalInstallerDraftPayload>;
+  completedStep: string;
+}): Promise<PortalConfigData> {
+  return requestJson<PortalConfigData>(
+    "/api/v1/portal/admin/config/installer-wizard-save/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({
+        payload: payload.payload,
+        completed_step: payload.completedStep,
+      }),
+    },
+  );
+}
+
+export async function startInstallerJobAdmin(
+  payload: Partial<PortalInstallerDraftPayload>,
+): Promise<PortalInstallerJobResult> {
+  return requestJson<PortalInstallerJobResult>(
+    "/api/v1/portal/admin/config/installer-jobs/start/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ payload }),
+    },
+  );
+}
+
+export async function getInstallerJobStatusAdmin(
+  jobId: string,
+): Promise<PortalInstallerJobResult> {
+  return requestJson<PortalInstallerJobResult>(
+    `/api/v1/portal/admin/config/installer-jobs/${jobId}/status/`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function cancelInstallerJobAdmin(
+  jobId: string,
+): Promise<PortalInstallerJobResult> {
+  return requestJson<PortalInstallerJobResult>(
+    `/api/v1/portal/admin/config/installer-jobs/${jobId}/cancel/`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({}),
+    },
+  );
+}
+
+export async function listInstallerJobsAdmin(): Promise<PortalInstallerJobsListResult> {
+  return requestJson<PortalInstallerJobsListResult>(
+    "/api/v1/portal/admin/config/installer-jobs/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
     },
   );
 }

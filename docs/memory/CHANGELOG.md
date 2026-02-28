@@ -1,5 +1,20 @@
 # Changelog (por sprint)
 
+## 28/02/2026
+- T9.2.7-A3 (backend/portal): `PortalConfig` evoluiu com `installer_settings` (migration `0010`) para persistir workflow do assistente de instalacao/deploy.
+- T9.2.7-A3 (backend/portal): novos endpoints admin publicados para o wizard de instalacao:
+  - `POST /api/v1/portal/admin/config/installer-wizard-validate/`
+  - `POST /api/v1/portal/admin/config/installer-wizard-save/`
+  - `POST /api/v1/portal/admin/config/installer-jobs/start/`
+  - `GET /api/v1/portal/admin/config/installer-jobs/<job_id>/status/`
+  - `POST /api/v1/portal/admin/config/installer-jobs/<job_id>/cancel/`
+  - `GET /api/v1/portal/admin/config/installer-jobs/`
+- T9.2.7-A3 (backend/runtime): adicionada orquestracao de jobs de instalacao com persistencia de status/log em `.runtime/install/jobs`.
+- T9.2.7-A3 (web admin): novo painel `Assistente de instalacao` em `/modulos/administracao-servidor/assistente-instalacao`, com wizard guiado (7 etapas), validacao por passo, autosave de draft e monitoramento de execucao.
+- T9.2.7-A3 (workflow): novo guard rail `scripts/check_installer_workflow.sh` integrado em `scripts/sync_memory.sh`, `scripts/quality_gate_all.sh`, `scripts/session.sh` e `scripts/commit_sync.sh`.
+- T9.2.7-A3 (qa backend): testes ampliados em `tests/test_portal_api.py` para cobrir endpoints do assistente (validate/save/start/status/cancel/list).
+- T9.2.7-A3 (qa executado): `python manage.py check`, `make lint`, `pytest tests/test_portal_api.py tests/test_portal_services.py`, `npm run lint` e `npm run build` no `web/admin`.
+
 ## 27/02/2026
 - T9.2.1-A2-HF5 (accounts/auth): login JWT de contas `CLIENTE` passou a exigir `email_verified_at`; quando pendente, o backend retorna bloqueio com instrucao para validar e-mail.
 - T9.2.1-A2-HF5 (accounts/email): template de confirmacao evoluiu para HTML com identidade visual (logo do Web Client) e dados dinâmicos da empresa vindos do CMS (`PortalConfig` + secao `footer`).

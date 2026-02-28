@@ -44,6 +44,9 @@ ensure_nvm_lts() {
 
 activate_backend_venv
 
+echo "[quality_gate] Installer workflow: check"
+(cd "$ROOT_DIR" && bash scripts/check_installer_workflow.sh --check)
+
 echo "[quality_gate] Backend: python manage.py check"
 (cd "$ROOT_DIR/workspaces/backend" && python manage.py check)
 

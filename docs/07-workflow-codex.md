@@ -26,6 +26,7 @@ Seed, smoke e sync:
 ./scripts/seed_demo.sh
 ./scripts/smoke_stack_dev.sh
 ./scripts/smoke_client_dev.sh
+bash scripts/check_installer_workflow.sh --check
 bash scripts/sync_memory.sh --check
 bash scripts/quality_gate_all.sh
 ```
@@ -69,6 +70,7 @@ bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa
 ## Regra Global de Sincronizacao
 - Sempre rodar quality gate antes de commit final.
 - Sempre rodar `bash scripts/sync_memory.sh --check` antes de commit.
+- Sempre rodar `bash scripts/check_installer_workflow.sh --check` quando houver mudancas em trilhas de instalacao/deploy.
 - Toda mudanca em backend/frontend/scripts deve refletir docs/memory e `.agent`.
 - Nunca armazenar segredos em git (`.env` real, tokens, chaves, senhas).
 

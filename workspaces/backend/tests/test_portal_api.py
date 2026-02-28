@@ -412,3 +412,106 @@ def test_portal_admin_cloudflare_runtime_action(client, monkeypatch):
     refresh_payload = refresh_response.json()
     assert refresh_payload["action"] == "refresh"
     assert refresh_payload["runtime"]["state"] == "active"
+
+
+@pytest.mark.django_db
+def test_portal_admin_installer_wizard_endpoints(client, monkeypatch):
+    config = ensure_portal_config()
+
+    monkeypatch.setattr(
+        "apps.portal.views.validate_installer_wizard_payload",
+        lambda *, payload: {
+            "ok": True,
+            "normalized_payload": payload,
+            "warnings": [],
+            "workflow_version": "2026.02.28",
+            "validated_at": "2026-02-28T00:00:00Z",
+        },
+    )
+    monkeypatch.setattr(
+        "apps.portal.views.save_installer_wizard_settings",
+        lambda *, payload, completed_step: config,
+    )
+    monkeypatch.setattr(
+        "apps.portal.views.start_installer_job",
+        lambda *, payload, initiated_by: (
+            config,
+            {
+                "job_id": "job-1",
+                "status": "running",
+                "target": "local",
+                "mode": "dev",
+                "stack": "vm",
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "apps.portal.views.get_installer_job_status",
+        lambda *, job_id: (
+            config,
+            {
+                "job_id": job_id,
+                "status": "running",
+                "last_log_lines": ["ok"],
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "apps.portal.views.cancel_installer_job",
+        lambda *, job_id: (
+            config,
+            {
+                "job_id": job_id,
+                "status": "canceled",
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "apps.portal.views.list_installer_jobs",
+        lambda *, limit=20: [{"job_id": "job-1", "status": "running"}],
+    )
+
+    validate_response = client.post(
+        "/api/v1/portal/admin/config/installer-wizard-validate/",
+        data={"payload": {"mode": "dev", "stack": "vm", "target": "local"}},
+        format="json",
+    )
+    assert validate_response.status_code == 200
+    assert validate_response.json()["ok"] is True
+
+    save_response = client.post(
+        "/api/v1/portal/admin/config/installer-wizard-save/",
+        data={
+            "payload": {"mode": "dev", "stack": "vm", "target": "local"},
+            "completed_step": "review",
+        },
+        format="json",
+    )
+    assert save_response.status_code == 200
+    assert "installer_settings" in save_response.json()
+
+    start_response = client.post(
+        "/api/v1/portal/admin/config/installer-jobs/start/",
+        data={"payload": {"mode": "dev", "stack": "vm", "target": "local"}},
+        format="json",
+    )
+    assert start_response.status_code == 200
+    assert start_response.json()["job"]["job_id"] == "job-1"
+
+    status_response = client.get(
+        "/api/v1/portal/admin/config/installer-jobs/job-1/status/"
+    )
+    assert status_response.status_code == 200
+    assert status_response.json()["job"]["job_id"] == "job-1"
+
+    cancel_response = client.post(
+        "/api/v1/portal/admin/config/installer-jobs/job-1/cancel/",
+        data={},
+        format="json",
+    )
+    assert cancel_response.status_code == 200
+    assert cancel_response.json()["job"]["status"] == "canceled"
+
+    list_response = client.get("/api/v1/portal/admin/config/installer-jobs/")
+    assert list_response.status_code == 200
+    assert list_response.json()["results"][0]["job_id"] == "job-1"
