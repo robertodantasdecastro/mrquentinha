@@ -12,7 +12,7 @@ export default function AdministracaoServidorModulePage() {
     <AdminSessionGate>
       <ModulePageShell
         title="Administracao do servidor"
-        description="Gerencie e-mail, conectividade/dominio, instalacao operacional e build/release."
+        description="Gerencie e-mail, conectividade/dominio e build/release do ecossistema."
         statusLabel="Ativo"
         statusTone="success"
         menuItems={SERVER_ADMIN_MENU_ITEMS}

@@ -3088,12 +3088,234 @@ def _sync_installer_job_in_config(config: PortalConfig, job_payload: dict) -> No
     config.save(update_fields=["installer_settings", "updated_at"])
 
 
+def _sync_installer_deployment_with_server_config(
+    *, config: PortalConfig, normalized_payload: dict
+) -> dict:
+    deployment = normalized_payload.get("deployment")
+    if not isinstance(deployment, dict):
+        deployment = {}
+
+    server_mapping = {
+        "store_name": str(config.site_name or "").strip(),
+        "root_domain": str(config.root_domain or "").strip(),
+        "portal_domain": str(config.portal_domain or "").strip(),
+        "client_domain": str(config.client_domain or "").strip(),
+        "admin_domain": str(config.admin_domain or "").strip(),
+        "api_domain": str(config.api_domain or "").strip(),
+    }
+    for field_name, value in server_mapping.items():
+        if value:
+            deployment[field_name] = value
+
+    normalized_payload["deployment"] = deployment
+    return normalized_payload
+
+
+def _is_payment_provider_configured(
+    *, provider_name: str, payment_settings: dict
+) -> bool:
+    normalized_provider = str(provider_name or "").strip().lower()
+    if normalized_provider == "mercadopago":
+        provider_settings = payment_settings.get("mercadopago", {})
+        return bool(str(provider_settings.get("access_token", "")).strip())
+    if normalized_provider == "efi":
+        provider_settings = payment_settings.get("efi", {})
+        return bool(
+            str(provider_settings.get("client_id", "")).strip()
+            and str(provider_settings.get("client_secret", "")).strip()
+        )
+    if normalized_provider == "asaas":
+        provider_settings = payment_settings.get("asaas", {})
+        return bool(str(provider_settings.get("api_key", "")).strip())
+    return False
+
+
+def _build_installer_prerequisites(
+    *, config: PortalConfig, normalized_payload: dict
+) -> dict:
+    mode = str(normalized_payload.get("mode", "dev")).strip().lower()
+    categories: list[dict] = []
+
+    if mode != "prod":
+        return {
+            "mode": mode,
+            "ready": True,
+            "missing_count": 0,
+            "categories": categories,
+            "blocking_errors": [],
+        }
+
+    dns_missing_fields: list[dict] = []
+    dns_required_fields = [
+        ("root_domain", "Dominio raiz"),
+        ("portal_domain", "Dominio do portal web"),
+        ("client_domain", "Dominio do web client"),
+        ("admin_domain", "Dominio do web admin"),
+        ("api_domain", "Dominio da API"),
+    ]
+    for field_name, label in dns_required_fields:
+        current_value = str(getattr(config, field_name, "") or "").strip()
+        if current_value:
+            continue
+        dns_missing_fields.append(
+            {
+                "path": field_name,
+                "label": label,
+                "message": f"Preencha '{label}' nas configuracoes de servidor.",
+            }
+        )
+
+    categories.append(
+        {
+            "key": "server_dns",
+            "label": "Configuracao de servidor e DNS",
+            "description": (
+                "Obrigatorio para deploy em producao com portal, client, admin e API."
+            ),
+            "ready": len(dns_missing_fields) == 0,
+            "missing_fields": dns_missing_fields,
+        }
+    )
+
+    payment_missing_fields: list[dict] = []
+    payment_settings = _normalize_payment_providers(config.payment_providers)
+    receiver = payment_settings.get("receiver", {})
+    receiver_person_type = str(receiver.get("person_type", "")).strip().upper()
+    receiver_document = str(receiver.get("document", "")).strip()
+    receiver_name = str(receiver.get("name", "")).strip()
+    receiver_email = str(receiver.get("email", "")).strip()
+
+    if receiver_person_type not in {"CPF", "CNPJ"}:
+        payment_missing_fields.append(
+            {
+                "path": "payment_providers.receiver.person_type",
+                "label": "Tipo de recebedor (CPF/CNPJ)",
+                "message": "Configure CPF ou CNPJ para recebimento em producao.",
+            }
+        )
+    if not receiver_document:
+        payment_missing_fields.append(
+            {
+                "path": "payment_providers.receiver.document",
+                "label": "Documento do recebedor",
+                "message": "Informe CPF/CNPJ do recebedor para pagamentos.",
+            }
+        )
+    if not receiver_name:
+        payment_missing_fields.append(
+            {
+                "path": "payment_providers.receiver.name",
+                "label": "Nome do recebedor",
+                "message": "Informe nome/razao social do recebedor.",
+            }
+        )
+    if not receiver_email:
+        payment_missing_fields.append(
+            {
+                "path": "payment_providers.receiver.email",
+                "label": "E-mail do recebedor",
+                "message": "Informe e-mail de recebimento para conciliacao.",
+            }
+        )
+
+    enabled_providers_raw = payment_settings.get("enabled_providers", [])
+    enabled_providers = {
+        str(item).strip().lower() for item in enabled_providers_raw if str(item).strip()
+    }
+    frontend_provider = payment_settings.get("frontend_provider", {})
+
+    for channel in ("web", "mobile"):
+        channel_label = "web client" if channel == "web" else "app mobile"
+        provider_name = str(frontend_provider.get(channel, "")).strip().lower()
+        if provider_name not in {"mercadopago", "efi", "asaas"}:
+            payment_missing_fields.append(
+                {
+                    "path": f"payment_providers.frontend_provider.{channel}",
+                    "label": f"Provider do {channel_label}",
+                    "message": (
+                        "Selecione Mercado Pago, Efi ou Asaas para "
+                        f"{channel_label} em producao."
+                    ),
+                }
+            )
+            continue
+        if provider_name not in enabled_providers:
+            payment_missing_fields.append(
+                {
+                    "path": f"payment_providers.enabled_providers.{provider_name}",
+                    "label": f"Provider habilitado ({provider_name})",
+                    "message": f"Habilite {provider_name} para uso no {channel_label}.",
+                }
+            )
+            continue
+        if not _is_payment_provider_configured(
+            provider_name=provider_name,
+            payment_settings=payment_settings,
+        ):
+            payment_missing_fields.append(
+                {
+                    "path": f"payment_providers.{provider_name}",
+                    "label": f"Credenciais do provider ({provider_name})",
+                    "message": (
+                        "Configure credenciais validas de "
+                        f"{provider_name} para {channel_label}."
+                    ),
+                }
+            )
+
+    categories.append(
+        {
+            "key": "payment_gateway",
+            "label": "Gateway de pagamento",
+            "description": (
+                "Obrigatorio em producao para checkout web/mobile e "
+                "conciliacao de recebimentos."
+            ),
+            "ready": len(payment_missing_fields) == 0,
+            "missing_fields": payment_missing_fields,
+        }
+    )
+
+    missing_count = sum(
+        len(category.get("missing_fields", [])) for category in categories
+    )
+    blocking_errors = [
+        item.get("message", "")
+        for category in categories
+        for item in category.get("missing_fields", [])
+        if str(item.get("message", "")).strip()
+    ]
+
+    return {
+        "mode": mode,
+        "ready": missing_count == 0,
+        "missing_count": missing_count,
+        "categories": categories,
+        "blocking_errors": blocking_errors,
+    }
+
+
 def validate_installer_wizard_payload(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
     normalized_payload, warnings = _normalize_installer_wizard_payload(payload)
+    normalized_payload = _sync_installer_deployment_with_server_config(
+        config=config,
+        normalized_payload=normalized_payload,
+    )
+    prerequisites = _build_installer_prerequisites(
+        config=config,
+        normalized_payload=normalized_payload,
+    )
+    if normalized_payload.get("mode") == "prod" and not prerequisites.get("ready"):
+        warnings.append(
+            "Pre-requisitos de producao pendentes. Resolva DNS/servidor e "
+            "gateway de pagamento."
+        )
     return {
         "ok": True,
         "normalized_payload": normalized_payload,
         "warnings": warnings,
+        "prerequisites": prerequisites,
         "workflow_version": INSTALLER_WORKFLOW_VERSION,
         "validated_at": timezone.now().isoformat(),
     }
@@ -3107,6 +3329,10 @@ def save_installer_wizard_settings(
 ) -> PortalConfig:
     config = ensure_portal_config()
     normalized_payload, _warnings = _normalize_installer_wizard_payload(payload)
+    normalized_payload = _sync_installer_deployment_with_server_config(
+        config=config,
+        normalized_payload=normalized_payload,
+    )
     installer_settings = _normalize_installer_settings(config.installer_settings)
     wizard = installer_settings.get("wizard", {})
     wizard["draft"] = normalized_payload
@@ -3145,6 +3371,24 @@ def start_installer_job(
 ) -> tuple[PortalConfig, dict]:
     config = ensure_portal_config()
     normalized_payload, warnings = _normalize_installer_wizard_payload(payload)
+    normalized_payload = _sync_installer_deployment_with_server_config(
+        config=config,
+        normalized_payload=normalized_payload,
+    )
+    prerequisites = _build_installer_prerequisites(
+        config=config,
+        normalized_payload=normalized_payload,
+    )
+    if normalized_payload.get("mode") == "prod" and not prerequisites.get("ready"):
+        blocking_errors = prerequisites.get("blocking_errors", [])
+        summary = "; ".join(
+            str(item).strip() for item in blocking_errors if str(item).strip()
+        )
+        if not summary:
+            summary = (
+                "Pre-requisitos de producao pendentes. Revise DNS/servidor e gateway."
+            )
+        raise ValidationError(summary)
     _ensure_installer_runtime_dirs()
 
     target = normalized_payload["target"]

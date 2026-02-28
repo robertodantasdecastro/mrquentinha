@@ -16,6 +16,11 @@
 - T9.2.7-A3 (qa executado): `python manage.py check`, `make lint`, `pytest tests/test_portal_api.py tests/test_portal_services.py`, `npm run lint` e `npm run build` no `web/admin`.
 - T9.2.7-A3 (qa regression): testes de `orders`/`exports` atualizados para criar cliente autenticado (role `CLIENTE`) nos cenarios de service que exigem ownership do pedido.
 - T9.2.7-A3 (smoke): `scripts/smoke_stack_dev.sh` ajustado para aceitar `404` em `/api/v1/catalog/menus/today/` quando nao houver cardapio do dia, mantendo validacao de conectividade do endpoint.
+- T9.2.8-A1 (web admin/modulos): assistente de instalacao/deploy removido do modulo `Administracao do servidor` e migrado para novo modulo independente `Instalacao / Deploy` (`/modulos/instalacao-deploy`), com navegacao e rotas dedicadas.
+- T9.2.8-A1 (web admin/ux): assistente ganhou fluxo de pre-requisitos de producao com modal inline para corrigir DNS/servidor e gateway de pagamento sem sair do wizard.
+- T9.2.8-A1 (backend/portal): `validate_installer_wizard_payload` agora retorna diagnostico estruturado de pre-requisitos (`server_dns`, `payment_gateway`) e sincroniza `deployment` com dados de servidor (`PortalConfig`).
+- T9.2.8-A1 (backend/portal): `start_installer_job` passa a bloquear execucao em `mode=prod` quando pre-requisitos obrigatorios de DNS/pagamento estiverem pendentes.
+- T9.2.8-A1 (qa): `ruff check` backend e `npm run lint && npm run build` no `web/admin` executados com sucesso; `pytest` do backend ficou bloqueado nesta sessao por indisponibilidade de conexao com PostgreSQL local.
 
 ## 27/02/2026
 - T9.2.1-A2-HF5 (accounts/auth): login JWT de contas `CLIENTE` passou a exigir `email_verified_at`; quando pendente, o backend retorna bloqueio com instrucao para validar e-mail.

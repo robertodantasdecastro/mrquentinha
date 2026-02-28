@@ -566,3 +566,81 @@ def test_cloudflare_runtime_status_dev_sincroniza_urls_quando_rotacionar(monkeyp
     )
     assert updated_config.api_base_url == "https://new-api.trycloudflare.com"
     assert updated_config.portal_base_url == "https://new-portal.trycloudflare.com"
+
+
+@pytest.mark.django_db
+def test_validate_installer_wizard_retorna_pre_requisitos_em_prod():
+    config = ensure_portal_config()
+
+    result = portal_services.validate_installer_wizard_payload(
+        payload={"mode": "prod", "stack": "vm", "target": "local"}
+    )
+
+    assert result["ok"] is True
+    assert result["prerequisites"]["mode"] == "prod"
+    assert result["prerequisites"]["ready"] is False
+    assert result["prerequisites"]["missing_count"] > 0
+    assert any(
+        category["key"] == "payment_gateway"
+        for category in result["prerequisites"]["categories"]
+    )
+    assert (
+        result["normalized_payload"]["deployment"]["root_domain"] == config.root_domain
+    )
+
+
+@pytest.mark.django_db
+def test_start_installer_job_bloqueia_prod_sem_pre_requisitos():
+    with pytest.raises(ValidationError):
+        portal_services.start_installer_job(
+            payload={"mode": "prod", "stack": "vm", "target": "local"},
+            initiated_by="qa",
+        )
+
+
+@pytest.mark.django_db
+def test_start_installer_job_prod_ssh_permite_quando_pre_requisitos_ok():
+    config = ensure_portal_config()
+    save_portal_config(
+        instance=config,
+        payload={
+            "payment_providers": {
+                "default_provider": "asaas",
+                "enabled_providers": ["asaas"],
+                "frontend_provider": {
+                    "web": "asaas",
+                    "mobile": "asaas",
+                },
+                "receiver": {
+                    "person_type": "CNPJ",
+                    "document": "12345678000190",
+                    "name": "Mr Quentinha LTDA",
+                    "email": "financeiro@mrquentinha.com.br",
+                },
+                "asaas": {
+                    "enabled": True,
+                    "api_key": "asaas-prod-key",
+                },
+            }
+        },
+    )
+
+    updated_config, job_payload = portal_services.start_installer_job(
+        payload={
+            "mode": "prod",
+            "stack": "vm",
+            "target": "ssh",
+            "ssh": {
+                "host": "10.0.0.20",
+                "port": 22,
+                "user": "ubuntu",
+                "auth_mode": "key",
+                "key_path": "~/.ssh/id_ed25519",
+            },
+        },
+        initiated_by="qa",
+    )
+
+    assert updated_config.id == config.id
+    assert job_payload["status"] == "planned"
+    assert job_payload["target"] == "ssh"

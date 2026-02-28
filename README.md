@@ -319,8 +319,9 @@ Monitoramento no Admin:
 - modulo `Monitoramento` em `/modulos/monitoramento`
 
 Assistente de instalacao no Admin:
-- modulo `Administracao do servidor` em `/modulos/administracao-servidor/assistente-instalacao`
+- modulo `Instalacao / Deploy` em `/modulos/instalacao-deploy/assistente`
 - wizard guiado com validacao por etapa, autosave de draft e monitoramento de jobs.
+- modo `prod` com pre-requisitos obrigatorios (DNS/servidor + gateway de pagamento) e correcao via modal no proprio assistente.
 
 ## Qualidade
 

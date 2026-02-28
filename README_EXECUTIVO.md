@@ -34,7 +34,7 @@ O Mr Quentinha unifica essa operacao em uma plataforma unica, com rastreabilidad
   - modo DEV por URLs aleatorias (`trycloudflare`);
   - modo operacional por dominio oficial (deploy tipico);
   - automacao equivalente por terminal (`scripts/cloudflare_admin.sh`).
-- Assistente de instalacao/deploy no Web Admin com wizard guiado e monitoramento de jobs.
+- Assistente de instalacao/deploy no Web Admin com wizard guiado, monitoramento de jobs e pre-requisitos de producao.
 - Workflow continuo de atualizacao do instalador com guard rail dedicado (`scripts/check_installer_workflow.sh`).
 
 ## Estado atual (28/02/2026)
@@ -42,7 +42,7 @@ O Mr Quentinha unifica essa operacao em uma plataforma unica, com rastreabilidad
 - Trilha de pagamentos avancada implementada ate `T7.2.4-A3`.
 - Cloudflare com operacao completa em DEV e PRODUCAO, incluindo sincronizacao de endpoints para os frontends.
 - Validacao funcional Cloudflare DEV concluida em `27/02/2026`: frontends publicados em `trycloudflare` comunicando com a API com sucesso.
-- Assistente de instalacao/deploy publicado no modulo `Administracao do servidor` (wizard + autosave + jobs).
+- Assistente de instalacao/deploy publicado no modulo independente `Instalacao / Deploy` (wizard + autosave + jobs).
 - Proxima etapa: `T7.2.4-A4` (homologacao externa oficial dos gateways).
 - Plano manual E2E institucionalizado em `T9.2.1`.
 

@@ -1090,8 +1090,31 @@ export type PortalInstallerWizardValidateResult = {
   ok: boolean;
   normalized_payload: PortalInstallerDraftPayload;
   warnings: string[];
+  prerequisites?: PortalInstallerPrerequisites;
   workflow_version: string;
   validated_at: string;
+};
+
+export type PortalInstallerPrerequisiteField = {
+  path: string;
+  label: string;
+  message: string;
+};
+
+export type PortalInstallerPrerequisiteCategory = {
+  key: string;
+  label: string;
+  description: string;
+  ready: boolean;
+  missing_fields: PortalInstallerPrerequisiteField[];
+};
+
+export type PortalInstallerPrerequisites = {
+  mode: "dev" | "prod";
+  ready: boolean;
+  missing_count: number;
+  categories: PortalInstallerPrerequisiteCategory[];
+  blocking_errors: string[];
 };
 
 export type PortalInstallerJobData = {

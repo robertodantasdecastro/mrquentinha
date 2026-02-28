@@ -176,6 +176,8 @@ Referencia de atualizacao: 28/02/2026.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A3`): modulo `Administracao do servidor` ganhou o painel `Assistente de instalacao` com wizard guiado por etapas (modo, destino, infraestrutura, deploy, workflow continuo, revisao e execucao), autosave e monitoramento de jobs.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A3`): backend `portal` passou a expor `installer_settings` no `PortalConfig` e endpoints administrativos do assistente em `/api/v1/portal/admin/config/installer-*`.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A3`): fluxo de atualizacao continua do instalador padronizado via `scripts/check_installer_workflow.sh`, integrado ao `sync_memory`, `quality_gate_all` e `session`.
+- Atualizacao concluida em 28/02/2026 (`T9.2.8-A1`): assistente de instalacao/deploy migrado para modulo independente `/modulos/instalacao-deploy`, removido de `Administracao do servidor`.
+- Atualizacao concluida em 28/02/2026 (`T9.2.8-A1`): wizard passou a validar e bloquear producao sem pre-requisitos obrigatorios (DNS/servidor + gateway de pagamento), com modal de correcao inline no Web Admin.
 - Workspace ativo: `workspaces/web/admin`.
 - Hotfix `T6.3.2-A14-HF1` implementado: resolucao automatica de `api_base_url` em runtime aplicada nos frontends `admin/client/portal` para acessos via dominios dinamicos `trycloudflare`.
 - Status de validacao externa do fluxo Cloudflare DEV: concluido em `27/02/2026 15:04` (Portal/Client/Admin/API online, health 200, comunicacao frontend <-> API validada no teste funcional).
@@ -298,5 +300,6 @@ Referencia de atualizacao: 28/02/2026.
 - T9.2.1-A2-HF6 concluida (gestao de e-mail SMTP no Web Admin + refinamento da regra de login: validacao de e-mail obrigatoria apenas para contas cliente, sem bloquear perfis administrativos/gestao).
 - T9.2.7-A1 concluida (modulo completo de gestao de clientes no Web Admin + governanca LGPD/KYC + bloqueio de checkout por status de conta no backend).
 - T9.2.7-A2 concluida (novo modulo `Administracao do servidor` com realocacao dos paineis operacionais do `Portal CMS` sem duplicacao de logica).
+- T9.2.8-A1 concluida (novo modulo `Instalacao / Deploy` + pre-requisitos de producao no assistente com validacao de DNS/servidor e gateway).
 - Proxima subetapa unica: executar `T7.2.4-A4` (homologacao externa dos tres gateways com credenciais reais, assinatura de webhook por provider e validacao fim a fim de webhook/status).
 - Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T8.2.3` (hardening backend) e `T9.2.1` (qualidade operacional manual).

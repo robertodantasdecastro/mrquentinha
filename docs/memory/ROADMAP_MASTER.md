@@ -213,7 +213,7 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `workspaces/web/admin/src/app/modulos/clientes/`
 
 #### T9.2.7-A2 - Administracao do servidor no Web Admin [CONCLUIDA]
-- Objetivo: separar a operacao de infraestrutura do `Portal CMS`, centralizando e-mail, conectividade/dominio, assistente de instalacao e build/release em modulo proprio.
+- Objetivo: separar a operacao de infraestrutura do `Portal CMS`, centralizando e-mail, conectividade/dominio e build/release em modulo proprio.
 - Escopo: web admin (rotas/modulos/navegacao) + documentacao.
 - Status: concluida em 27/02/2026.
 - Evidencia:
@@ -222,7 +222,7 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `workspaces/web/admin/src/lib/adminModules.ts`
 
 #### T9.2.7-A3 - Assistente de instalacao/deploy + workflow continuo [CONCLUIDA]
-- Objetivo: implementar wizard guiado no modulo `Administracao do servidor` e institucionalizar fluxo de atualizacao continua do instalador.
+- Objetivo: implementar wizard guiado de instalacao/deploy e institucionalizar fluxo de atualizacao continua do instalador.
 - Escopo: backend `portal` (estado + endpoints + jobs), web admin (wizard/monitoramento), scripts de governanca operacional e memoria.
 - Status: concluida em 28/02/2026.
 - Evidencia:
@@ -231,6 +231,16 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `workspaces/backend/src/apps/portal/views.py` (actions `installer-*`)
   - `workspaces/web/admin/src/components/modules/InstallAssistantPanel.tsx`
   - `scripts/check_installer_workflow.sh` (integrado em `sync_memory`, `quality_gate_all` e `session`)
+
+#### T9.2.8-A1 - Modulo independente Instalacao/Deploy + pre-requisitos [CONCLUIDA]
+- Objetivo: mover o assistente para um modulo proprio (`/modulos/instalacao-deploy`) e bloquear producao sem DNS/servidor e gateway de pagamento completos.
+- Escopo: web admin (modulo/rotas/menu + modal de pre-requisitos no wizard), backend `portal` (diagnostico estruturado de pre-requisitos + bloqueio de execucao prod).
+- Status: concluida em 28/02/2026.
+- Evidencia:
+  - `workspaces/web/admin/src/app/modulos/instalacao-deploy/`
+  - `workspaces/web/admin/src/components/modules/InstallAssistantPanel.tsx`
+  - `workspaces/web/admin/src/app/modulos/portal/sections.tsx` (assistente removido do `server-admin`)
+  - `workspaces/backend/src/apps/portal/services.py` (`validate_installer_wizard_payload` + `start_installer_job`)
 
 ### P2 (roadmap)
 

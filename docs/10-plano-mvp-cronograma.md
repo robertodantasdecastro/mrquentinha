@@ -32,6 +32,7 @@ Data de referencia: 28/02/2026.
 - Etapa 9.2.7-A1 (gestao de clientes no Web Admin + compliance LGPD/KYC): concluida em 27/02/2026
 - Etapa 9.2.7-A2 (novo modulo Administracao do servidor e reorganizacao do Portal CMS): concluida em 27/02/2026
 - Etapa 9.2.7-A3 (assistente de instalacao/deploy com workflow continuo do instalador): concluida em 28/02/2026
+- Etapa 9.2.8-A1 (modulo independente `Instalacao / Deploy` + pre-requisitos de producao no wizard): concluida em 28/02/2026
 - Etapa 6.3.2-A9 (exposicao online Cloudflare com toggle 1 clique no Portal CMS): concluida em 27/02/2026
 - Etapa 6.3.2-A10 (runtime cloudflared + monitoramento realtime do tunnel): concluida em 27/02/2026
 - Etapa 6.3.2-A11 (modo DEV Cloudflare com dominios aleatorios trycloudflare): concluida em 27/02/2026
@@ -64,8 +65,9 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase de governanca de identidade no Admin Web: `T9.2.6-A1` (cadastro completo de perfil, documentos e biometria por foto do usuario logado)
 - Fase de qualidade de dados em formularios: `T9.2.6-A2` (formatacao e validacao global para CPF/CNPJ/CEP/email/senha/datas nos frontends web + reforco backend)
 - Fase de governanca de clientes no ecommerce: `T9.2.7-A1` (modulo administrativo de clientes com status de conta, KYC, consentimentos e solicitacoes LGPD)
-- Fase de governanca operacional de infraestrutura no Admin Web: `T9.2.7-A2` (modulo dedicado para e-mail, conectividade/dominio, assistente de instalacao e build/release)
-- Fase de governanca operacional de infraestrutura no Admin Web (evolucao): `T9.2.7-A3` (wizard de instalacao/deploy no modulo `Administracao do servidor` + guard rail de atualizacao continua do instalador).
+- Fase de governanca operacional de infraestrutura no Admin Web: `T9.2.7-A2` (modulo dedicado para e-mail, conectividade/dominio e build/release)
+- Fase de governanca operacional de infraestrutura no Admin Web (evolucao): `T9.2.7-A3` (wizard de instalacao/deploy + guard rail de atualizacao continua do instalador)
+- Fase de instalacao/deploy dedicada: `T9.2.8-A1` (novo modulo `Instalacao / Deploy` com validacao de pre-requisitos de DNS/servidor e gateway de pagamento).
 - Fase de conectividade DEV online: `T6.3.2-A11` (Cloudflare em modo desenvolvimento com URLs aleatorias por servico e sem dependencia de dominio real)
 - Fase de automacao operacional cloud: `T6.3.2-A12` (scripts de terminal para operar Cloudflare DEV/PROD e sincronizar URLs de API dos frontends)
 - Fase de observabilidade cloud em DEV: `T6.3.2-A13` (monitoramento de conectividade por servico e refresh de dominios aleatorios no Web Admin)

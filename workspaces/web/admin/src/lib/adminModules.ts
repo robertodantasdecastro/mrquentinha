@@ -99,10 +99,18 @@ export const ADMIN_MODULES: AdminModule[] = [
   {
     slug: "administracao-servidor",
     title: "Administracao do servidor",
-    description: "Gestao de e-mail, conectividade/dominio, instalacao operacional e build mobile.",
+    description: "Gestao de e-mail, conectividade/dominio e build mobile.",
     stage: "T9.2.7",
     status: "ativo",
     path: "/modulos/administracao-servidor",
+  },
+  {
+    slug: "instalacao-deploy",
+    title: "Instalacao / Deploy",
+    description: "Assistente de instalacao e deploy com pre-requisitos de DNS e pagamentos para producao.",
+    stage: "T9.2.8",
+    status: "ativo",
+    path: "/modulos/instalacao-deploy",
   },
   {
     slug: "monitoramento",
