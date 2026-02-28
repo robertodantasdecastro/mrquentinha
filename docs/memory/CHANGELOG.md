@@ -1035,3 +1035,16 @@
   - validacao executada:
     - `npm run lint` (web/admin) -> OK;
     - `npm run build` (web/admin) -> OK.
+
+- T9.2.7-A1-HF1 (27/02/2026): correcao de `HTTP 500` no modulo Clientes e backfill de usuarios legados
+  - problema corrigido:
+    - endpoint de clientes no Web Admin retornava `HTTP 500` quando a migration de governanca de clientes/LGPD ainda nao estava aplicada no banco;
+    - clientes antigos sem role `CLIENTE` nao apareciam no painel.
+  - ajuste aplicado:
+    - migration de dados `accounts.0005_backfill_cliente_role_for_legacy_users` adicionada para atribuir role `CLIENTE` a contas legadas nao administrativas sem roles;
+    - migration e idempotente e garante compatibilidade com cadastros antigos.
+  - validacao executada:
+    - `python manage.py migrate accounts` -> OK;
+    - `python manage.py check` -> OK;
+    - `python manage.py makemigrations --check` -> OK;
+    - `pytest tests/test_customers_admin_api.py tests/test_accounts_api.py` -> OK (`25 passed`).
