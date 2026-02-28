@@ -62,7 +62,7 @@ def _create_menu_item(
 
 
 @pytest.mark.django_db
-def test_create_order_calcula_total_e_snapshot_unit_price():
+def test_create_order_calcula_total_e_snapshot_unit_price(create_user_with_roles):
     delivery_date = date(2026, 3, 5)
     menu_item_1 = _create_menu_item(
         menu_date=delivery_date,
@@ -77,8 +77,12 @@ def test_create_order_calcula_total_e_snapshot_unit_price():
         ingredient_name="Ingrediente Feijao",
     )
 
+    customer = create_user_with_roles(
+        username="customer_snapshot_price", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[
             {"menu_item": menu_item_1, "qty": 2},
@@ -103,7 +107,9 @@ def test_create_order_calcula_total_e_snapshot_unit_price():
 
 
 @pytest.mark.django_db
-def test_create_order_cria_ar_automaticamente_e_idempotente_por_referencia():
+def test_create_order_cria_ar_automaticamente_e_idempotente_por_referencia(
+    create_user_with_roles,
+):
     delivery_date = date(2026, 3, 6)
     menu_item = _create_menu_item(
         menu_date=delivery_date,
@@ -112,8 +118,12 @@ def test_create_order_cria_ar_automaticamente_e_idempotente_por_referencia():
         ingredient_name="Ingrediente AR",
     )
 
+    customer = create_user_with_roles(
+        username="customer_ar_idempotencia", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 2}],
     )
@@ -140,7 +150,9 @@ def test_create_order_cria_ar_automaticamente_e_idempotente_por_referencia():
 
 
 @pytest.mark.django_db
-def test_update_payment_status_paid_recebe_ar_e_cria_caixa_sem_duplicar():
+def test_update_payment_status_paid_recebe_ar_e_cria_caixa_sem_duplicar(
+    create_user_with_roles,
+):
     delivery_date = date(2026, 3, 7)
     menu_item = _create_menu_item(
         menu_date=delivery_date,
@@ -149,8 +161,12 @@ def test_update_payment_status_paid_recebe_ar_e_cria_caixa_sem_duplicar():
         ingredient_name="Ingrediente Caixa",
     )
 
+    customer = create_user_with_roles(
+        username="customer_cash_reconcile", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 2}],
     )
@@ -199,7 +215,7 @@ def test_update_payment_status_paid_recebe_ar_e_cria_caixa_sem_duplicar():
 
 
 @pytest.mark.django_db
-def test_create_order_bloqueia_menu_item_de_outra_data():
+def test_create_order_bloqueia_menu_item_de_outra_data(create_user_with_roles):
     requested_date = date(2026, 3, 6)
     other_date = date(2026, 3, 7)
 
@@ -212,16 +228,20 @@ def test_create_order_bloqueia_menu_item_de_outra_data():
         ingredient_name="Ingrediente Outra Data",
     )
 
+    customer = create_user_with_roles(
+        username="customer_data_invalida", role_codes=[SystemRole.CLIENTE]
+    )
+
     with pytest.raises(ValidationError):
         create_order(
-            customer=None,
+            customer=customer,
             delivery_date=requested_date,
             items_payload=[{"menu_item": menu_item, "qty": 1}],
         )
 
 
 @pytest.mark.django_db
-def test_update_order_status_transicao_invalida_falha():
+def test_update_order_status_transicao_invalida_falha(create_user_with_roles):
     delivery_date = date(2026, 3, 8)
     menu_item = _create_menu_item(
         menu_date=delivery_date,
@@ -229,8 +249,12 @@ def test_update_order_status_transicao_invalida_falha():
         dish_name="Prato Status",
         ingredient_name="Ingrediente Status",
     )
+    customer = create_user_with_roles(
+        username="customer_status_invalido", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 1}],
     )
@@ -376,7 +400,7 @@ def test_update_payment_status_permite_papel_gestao_em_pagamento_de_terceiro(
 
 
 @pytest.mark.django_db
-def test_create_or_get_payment_intent_replay_idempotente():
+def test_create_or_get_payment_intent_replay_idempotente(create_user_with_roles):
     from apps.orders.models import PaymentIntentStatus
     from apps.orders.services import create_or_get_payment_intent
 
@@ -388,8 +412,12 @@ def test_create_or_get_payment_intent_replay_idempotente():
         ingredient_name="Ingrediente Intent Replay",
     )
 
+    customer = create_user_with_roles(
+        username="customer_intent_replay", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 1}],
     )
@@ -411,7 +439,9 @@ def test_create_or_get_payment_intent_replay_idempotente():
 
 
 @pytest.mark.django_db
-def test_create_or_get_payment_intent_bloqueia_segundo_intent_ativo_com_outra_chave():
+def test_create_or_get_payment_intent_bloqueia_segundo_intent_ativo_com_outra_chave(
+    create_user_with_roles,
+):
     from apps.orders.services import (
         PaymentIntentConflictError,
         create_or_get_payment_intent,
@@ -425,8 +455,12 @@ def test_create_or_get_payment_intent_bloqueia_segundo_intent_ativo_com_outra_ch
         ingredient_name="Ingrediente Intent Conflito",
     )
 
+    customer = create_user_with_roles(
+        username="customer_intent_conflict", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 1}],
     )
@@ -445,7 +479,9 @@ def test_create_or_get_payment_intent_bloqueia_segundo_intent_ativo_com_outra_ch
 
 
 @pytest.mark.django_db
-def test_create_or_get_payment_intent_bloqueia_pagamento_ja_pago():
+def test_create_or_get_payment_intent_bloqueia_pagamento_ja_pago(
+    create_user_with_roles,
+):
     from apps.orders.services import (
         PaymentIntentConflictError,
         create_or_get_payment_intent,
@@ -459,8 +495,12 @@ def test_create_or_get_payment_intent_bloqueia_pagamento_ja_pago():
         ingredient_name="Ingrediente Intent Pago",
     )
 
+    customer = create_user_with_roles(
+        username="customer_intent_paid", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 1}],
     )
@@ -476,7 +516,7 @@ def test_create_or_get_payment_intent_bloqueia_pagamento_ja_pago():
 
 
 @pytest.mark.django_db
-def test_create_or_get_payment_intent_bloqueia_metodo_cash():
+def test_create_or_get_payment_intent_bloqueia_metodo_cash(create_user_with_roles):
     from apps.orders.models import PaymentMethod
     from apps.orders.services import create_or_get_payment_intent
 
@@ -488,8 +528,12 @@ def test_create_or_get_payment_intent_bloqueia_metodo_cash():
         ingredient_name="Ingrediente Intent Cash",
     )
 
+    customer = create_user_with_roles(
+        username="customer_intent_cash", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 1}],
     )
@@ -505,7 +549,7 @@ def test_create_or_get_payment_intent_bloqueia_metodo_cash():
 
 
 @pytest.mark.django_db
-def test_create_order_aceita_payment_method_card():
+def test_create_order_aceita_payment_method_card(create_user_with_roles):
     delivery_date = date(2026, 3, 22)
     menu_item = _create_menu_item(
         menu_date=delivery_date,
@@ -514,8 +558,12 @@ def test_create_order_aceita_payment_method_card():
         ingredient_name="Ingrediente Checkout Card",
     )
 
+    customer = create_user_with_roles(
+        username="customer_checkout_card", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 1}],
         payment_method=PaymentMethod.CARD,
@@ -526,7 +574,7 @@ def test_create_order_aceita_payment_method_card():
 
 
 @pytest.mark.django_db
-def test_create_order_rejeita_payment_method_invalido():
+def test_create_order_rejeita_payment_method_invalido(create_user_with_roles):
     delivery_date = date(2026, 3, 23)
     menu_item = _create_menu_item(
         menu_date=delivery_date,
@@ -535,9 +583,13 @@ def test_create_order_rejeita_payment_method_invalido():
         ingredient_name="Ingrediente Metodo Invalido",
     )
 
+    customer = create_user_with_roles(
+        username="customer_checkout_invalido", role_codes=[SystemRole.CLIENTE]
+    )
+
     with pytest.raises(ValidationError, match="Metodo de pagamento invalido"):
         create_order(
-            customer=None,
+            customer=customer,
             delivery_date=delivery_date,
             items_payload=[{"menu_item": menu_item, "qty": 1}],
             payment_method="BOLETO",

@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import pytest
 
+from apps.accounts.services import SystemRole
 from apps.catalog.models import (
     Dish,
     DishIngredient,
@@ -44,7 +45,7 @@ def _csv_lines(response) -> list[str]:
 
 
 @pytest.mark.django_db
-def test_export_pedidos_csv_retorna_header_em_pt_br(client):
+def test_export_pedidos_csv_retorna_header_em_pt_br(client, create_user_with_roles):
     delivery_date = date(2026, 3, 20)
     menu_item = _create_menu_item(
         menu_date=delivery_date,
@@ -52,8 +53,12 @@ def test_export_pedidos_csv_retorna_header_em_pt_br(client):
         ingredient_name="Ingrediente Export Pedido",
     )
 
+    customer = create_user_with_roles(
+        username="customer_export_orders", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 1}],
         payment_method="PIX",
@@ -155,7 +160,7 @@ def test_export_producao_csv_retorna_lotes(client):
 
 
 @pytest.mark.django_db
-def test_export_financeiro_csv_fluxo_caixa_e_dre(client):
+def test_export_financeiro_csv_fluxo_caixa_e_dre(client, create_user_with_roles):
     delivery_date = date(2026, 3, 22)
     menu_item = _create_menu_item(
         menu_date=delivery_date,
@@ -163,8 +168,12 @@ def test_export_financeiro_csv_fluxo_caixa_e_dre(client):
         ingredient_name="Ingrediente Export Finance",
     )
 
+    customer = create_user_with_roles(
+        username="customer_export_finance", role_codes=[SystemRole.CLIENTE]
+    )
+
     order = create_order(
-        customer=None,
+        customer=customer,
         delivery_date=delivery_date,
         items_payload=[{"menu_item": menu_item, "qty": 1}],
         payment_method="PIX",

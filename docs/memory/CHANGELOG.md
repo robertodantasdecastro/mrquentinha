@@ -14,6 +14,8 @@
 - T9.2.7-A3 (workflow): novo guard rail `scripts/check_installer_workflow.sh` integrado em `scripts/sync_memory.sh`, `scripts/quality_gate_all.sh`, `scripts/session.sh` e `scripts/commit_sync.sh`.
 - T9.2.7-A3 (qa backend): testes ampliados em `tests/test_portal_api.py` para cobrir endpoints do assistente (validate/save/start/status/cancel/list).
 - T9.2.7-A3 (qa executado): `python manage.py check`, `make lint`, `pytest tests/test_portal_api.py tests/test_portal_services.py`, `npm run lint` e `npm run build` no `web/admin`.
+- T9.2.7-A3 (qa regression): testes de `orders`/`exports` atualizados para criar cliente autenticado (role `CLIENTE`) nos cenarios de service que exigem ownership do pedido.
+- T9.2.7-A3 (smoke): `scripts/smoke_stack_dev.sh` ajustado para aceitar `404` em `/api/v1/catalog/menus/today/` quando nao houver cardapio do dia, mantendo validacao de conectividade do endpoint.
 
 ## 27/02/2026
 - T9.2.1-A2-HF5 (accounts/auth): login JWT de contas `CLIENTE` passou a exigir `email_verified_at`; quando pendente, o backend retorna bloqueio com instrucao para validar e-mail.

@@ -212,14 +212,18 @@ health_body="$(curl -sS "$BACKEND_BASE_URL/api/v1/health")"
 assert_contains "$health_body" '"status"[[:space:]]*:[[:space:]]*"ok"' "backend /api/v1/health"
 
 today_menu_status="$(curl -sS -o /dev/null -w "%{http_code}" "$BACKEND_BASE_URL/api/v1/catalog/menus/today/")"
-if [[ "$today_menu_status" != "200" ]]; then
+if [[ "$today_menu_status" != "200" && "$today_menu_status" != "404" ]]; then
   echo "[smoke] Backend /api/v1/catalog/menus/today/ retornou status $today_menu_status" >&2
   echo "[smoke] Resposta: $(curl -sS "$BACKEND_BASE_URL/api/v1/catalog/menus/today/" || true)" >&2
   exit 1
 fi
 
 today_menu_body="$(curl -sS "$BACKEND_BASE_URL/api/v1/catalog/menus/today/")"
-assert_contains "$today_menu_body" '"menu_date"|"detail"' "backend /api/v1/catalog/menus/today/"
+if [[ "$today_menu_status" == "200" ]]; then
+  assert_contains "$today_menu_body" '"menu_date"' "backend /api/v1/catalog/menus/today/"
+else
+  assert_contains "$today_menu_body" '"detail"' "backend /api/v1/catalog/menus/today/"
+fi
 
 portal_cardapio_status="$(curl -sS -o /dev/null -w "%{http_code}" "$PORTAL_BASE_URL/cardapio")"
 if [[ "$portal_cardapio_status" != "200" ]]; then
