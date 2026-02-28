@@ -28,6 +28,7 @@ def api_index_view(_request):
                 "portal": "/api/v1/portal",
                 "mobile_release_latest": "/api/v1/portal/mobile/releases/latest/",
                 "personal_finance": "/api/v1/personal-finance",
+                "admin_audit": "/api/v1/admin-audit/admin-activity/",
             },
         }
     )
@@ -58,6 +59,7 @@ urlpatterns = [
     path("api/v1/ocr/", include("apps.ocr_ai.urls")),
     path("api/v1/portal/", include("apps.portal.urls")),
     path("api/v1/personal-finance/", include("apps.personal_finance.urls")),
+    path("api/v1/admin-audit/", include("apps.admin_audit.urls")),
 ]
 
 if settings.DEBUG:

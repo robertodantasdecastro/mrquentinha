@@ -14,6 +14,7 @@ const SECTION_KEYS: ServerAdminSectionKey[] = [
   "all",
   "email",
   "conectividade",
+  "auditoria",
   "mobile-build",
 ];
 

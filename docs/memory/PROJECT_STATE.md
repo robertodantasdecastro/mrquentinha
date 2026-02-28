@@ -3,7 +3,7 @@
 Referencia de atualizacao: 28/02/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.7-A1`, `9.2.7-A2`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.7-A1`, `9.2.7-A2`, `9.2.7-A4`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
 - Status atual de execucao manual: `T9.2.1-A2` iniciado em 27/02/2026, com relatorio operacional aberto em `docs/memory/T9_2_1_A2_RELATORIO_EXECUCAO_2026-02-27.md`.
@@ -102,6 +102,10 @@ Referencia de atualizacao: 28/02/2026.
   - backend `dev` passou a aceitar `*.trycloudflare.com` em `ALLOWED_HOSTS`.
   - script `scripts/install_cloudflared_local.sh` publicado para setup local do binario.
   - hotfix `T6.3.2-A14-HF3` aplicado: parser de URL dos logs dev endurecido para ignorar `api.trycloudflare.com`, auto-apply parcial de rotas por servico e CORS regex para `https://*.trycloudflare.com`.
+- Atualizacao concluida em 28/02/2026 (`T9.2.7-A4`):
+  - novo app `admin_audit` no backend com trilha administrativa (`AdminActivityLog`) e endpoint paginado `GET /api/v1/admin-audit/admin-activity/`.
+  - middleware de auditoria com sanitizacao de payload/query sensivel e exclusao do endpoint de auto-consulta para evitar ruido.
+  - configuracao Cloudflare DEV evoluida com `dev_url_mode` (`random`/`manual`) e `dev_manual_urls` para estabilidade de enderecamento em homologacao.
 - Financas pessoais (`T8.1.1`):
   - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
   - ownership estrito por usuario em querysets e validacoes.
@@ -178,6 +182,8 @@ Referencia de atualizacao: 28/02/2026.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A3`): fluxo de atualizacao continua do instalador padronizado via `scripts/check_installer_workflow.sh`, integrado ao `sync_memory`, `quality_gate_all` e `session`.
 - Atualizacao concluida em 28/02/2026 (`T9.2.8-A1`): assistente de instalacao/deploy migrado para modulo independente `/modulos/instalacao-deploy`, removido de `Administracao do servidor`.
 - Atualizacao concluida em 28/02/2026 (`T9.2.8-A1`): wizard passou a validar e bloquear producao sem pre-requisitos obrigatorios (DNS/servidor + gateway de pagamento), com modal de correcao inline no Web Admin.
+- Atualizacao concluida em 28/02/2026 (`T9.2.7-A4`): `Administracao do servidor` ganhou secao `Auditoria de atividade` com filtros, paginacao e historico completo de operacoes por usuario/data/hora.
+- Atualizacao concluida em 28/02/2026 (`T9.2.7-A4`): secao `Conectividade e dominio` ganhou controle de origem de URL DEV (`random`/`manual`) e URLs manuais editaveis para `portal/client/admin/api`.
 - Workspace ativo: `workspaces/web/admin`.
 - Hotfix `T6.3.2-A14-HF1` implementado: resolucao automatica de `api_base_url` em runtime aplicada nos frontends `admin/client/portal` para acessos via dominios dinamicos `trycloudflare`.
 - Status de validacao externa do fluxo Cloudflare DEV: concluido em `27/02/2026 15:04` (Portal/Client/Admin/API online, health 200, comunicacao frontend <-> API validada no teste funcional).
@@ -253,6 +259,8 @@ Referencia de atualizacao: 28/02/2026.
   - `GET /api/v1/portal/admin/config/installer-jobs/<job_id>/status/`
   - `POST /api/v1/portal/admin/config/installer-jobs/<job_id>/cancel/`
   - `GET /api/v1/portal/admin/config/installer-jobs/`
+- Auditoria administrativa:
+  - `GET /api/v1/admin-audit/admin-activity/`
 - Financas pessoais:
   - `GET/POST /api/v1/personal-finance/accounts/`
   - `GET/POST /api/v1/personal-finance/categories/`

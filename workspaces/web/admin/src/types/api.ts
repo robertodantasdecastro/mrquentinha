@@ -907,6 +907,7 @@ export type PortalEmailTestResult = {
 };
 
 export type PortalCloudflareMode = "local_only" | "cloudflare_only" | "hybrid";
+export type PortalCloudflareDevUrlMode = "random" | "manual";
 
 export type PortalCloudflareSubdomains = {
   portal: string;
@@ -934,6 +935,7 @@ export type PortalCloudflareConfig = {
   enabled: boolean;
   mode: PortalCloudflareMode;
   dev_mode: boolean;
+  dev_url_mode: PortalCloudflareDevUrlMode;
   scheme: "http" | "https";
   root_domain: string;
   subdomains: PortalCloudflareSubdomains;
@@ -948,12 +950,15 @@ export type PortalCloudflareConfig = {
   last_status_message: string;
   runtime: PortalCloudflareRuntime;
   dev_urls: PortalCloudflareDevUrls;
+  dev_manual_urls: PortalCloudflareDevUrls;
   local_snapshot: Record<string, unknown>;
 };
 
 export type PortalCloudflarePreviewData = {
   mode: PortalCloudflareMode;
   dev_mode?: boolean;
+  dev_url_mode?: PortalCloudflareDevUrlMode;
+  dev_manual_urls?: PortalCloudflareDevUrls;
   scheme: string;
   root_domain: string;
   domains: {
@@ -997,13 +1002,17 @@ export type PortalCloudflareRuntimeData = {
   run_command: string;
   last_log_lines: string[];
   dev_mode?: boolean;
+  dev_url_mode?: PortalCloudflareDevUrlMode;
   dev_urls?: PortalCloudflareDevUrls;
+  dev_manual_urls?: PortalCloudflareDevUrls;
+  observed_dev_urls?: PortalCloudflareDevUrls;
   dev_services?: Array<{
     key: string;
     name: string;
     port: number;
     pid: number | null;
     url: string;
+    observed_url?: string;
     log_file: string;
     running: boolean;
     connectivity?: "online" | "offline" | "unknown";
@@ -1019,6 +1028,38 @@ export type PortalCloudflareRuntimeResult = {
   config: PortalConfigData;
   runtime: PortalCloudflareRuntimeData;
   action: "start" | "stop" | "status" | "refresh";
+};
+
+export type AdminActivityLogData = {
+  id: number;
+  request_id: string;
+  created_at: string;
+  actor_id: number | null;
+  actor_username: string;
+  actor_is_staff: boolean;
+  actor_is_superuser: boolean;
+  channel: string;
+  method: string;
+  path: string;
+  query_string: string;
+  action_group: string;
+  resource: string;
+  http_status: number;
+  is_success: boolean;
+  duration_ms: number;
+  ip_address: string | null;
+  origin: string;
+  referer: string;
+  user_agent: string;
+  metadata: Record<string, unknown>;
+};
+
+export type AdminActivityLogListResult = {
+  count: number;
+  offset: number;
+  limit: number;
+  next_offset: number | null;
+  results: AdminActivityLogData[];
 };
 
 export type PortalInstallerLifecycleConfig = {

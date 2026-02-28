@@ -1,6 +1,12 @@
 # Changelog (por sprint)
 
 ## 28/02/2026
+- T9.2.7-A4 (backend/admin_audit): novo app `admin_audit` com modelo `AdminActivityLog`, middleware de trilha administrativa em `/api/v1/*` e endpoint paginado `GET /api/v1/admin-audit/admin-activity/`.
+- T9.2.7-A4 (backend/security): sanitizacao de payload/query sensivel na auditoria (`password`, `token`, `secret`, etc.) e exclusao do endpoint da propria auditoria para evitar auto-ruido.
+- T9.2.7-A4 (backend/cloudflare): `cloudflare_settings` evoluiu com `dev_url_mode` (`random`/`manual`) e `dev_manual_urls` por canal (`portal/client/admin/api`), com aplicacao automatica no roteamento DEV quando modo manual estiver completo.
+- T9.2.7-A4 (web admin/server): `Administracao do servidor` ganhou secao `Auditoria de atividade` com filtros, paginação e tabela operacional (ator, acao, rota, status e latencia).
+- T9.2.7-A4 (web admin/cloudflare): secao `Conectividade e dominio` passou a permitir configuracao editavel de URLs DEV manuais e selecao de origem ativa (`random` vs `manual`) para compatibilizar homologacoes longas/mobile.
+- T9.2.7-A4 (qa): validado com `python manage.py check`, `ruff check`, `pytest tests/test_admin_audit_api.py tests/test_portal_services.py tests/test_portal_api.py` (`42 passed`), `npm run lint`, `npx tsc --noEmit` e `npm run build` no `web/admin`.
 - T9.2.7-A3 (backend/portal): `PortalConfig` evoluiu com `installer_settings` (migration `0010`) para persistir workflow do assistente de instalacao/deploy.
 - T9.2.7-A3 (backend/portal): novos endpoints admin publicados para o wizard de instalacao:
   - `POST /api/v1/portal/admin/config/installer-wizard-validate/`

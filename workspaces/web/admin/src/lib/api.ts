@@ -6,6 +6,7 @@ import {
 } from "@/lib/storage";
 import { trackNetworkRequest } from "@/lib/networkPreloader";
 import type {
+  AdminActivityLogListResult,
   AuthTokens,
   AuthUserProfile,
   UserProfileData,
@@ -1352,6 +1353,57 @@ export async function managePortalCloudflareRuntimeAdmin(
       body: JSON.stringify({ action }),
     },
   );
+}
+
+export async function listAdminActivityLogsAdmin(params?: {
+  search?: string;
+  actor?: string;
+  channel?: string;
+  method?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminActivityLogListResult> {
+  const queryParams = new URLSearchParams();
+  if (params?.search) {
+    queryParams.set("search", params.search);
+  }
+  if (params?.actor) {
+    queryParams.set("actor", params.actor);
+  }
+  if (params?.channel) {
+    queryParams.set("channel", params.channel);
+  }
+  if (params?.method) {
+    queryParams.set("method", params.method);
+  }
+  if (params?.status) {
+    queryParams.set("status", params.status);
+  }
+  if (params?.date_from) {
+    queryParams.set("date_from", params.date_from);
+  }
+  if (params?.date_to) {
+    queryParams.set("date_to", params.date_to);
+  }
+  if (typeof params?.limit === "number") {
+    queryParams.set("limit", String(params.limit));
+  }
+  if (typeof params?.offset === "number") {
+    queryParams.set("offset", String(params.offset));
+  }
+
+  const query = queryParams.toString();
+  const path = query
+    ? `/api/v1/admin-audit/admin-activity/?${query}`
+    : "/api/v1/admin-audit/admin-activity/";
+  return requestJson<AdminActivityLogListResult>(path, {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
 }
 
 export async function validateInstallerWizardAdmin(

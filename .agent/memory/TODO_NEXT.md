@@ -40,4 +40,5 @@ Fila atual:
 35. [x] T9.2.1-A2-HF6 Gestao de e-mail no Web Admin (SMTP + teste) e correção da regra de login para bloquear validacao de e-mail apenas no fluxo cliente - concluida em 27/02/2026.
 36. [x] T9.2.7-A3 Assistente de instalacao/deploy no modulo Administracao do servidor + workflow continuo de atualizacao do instalador - concluida em 28/02/2026.
 37. [x] T9.2.8-A1 Assistente migrado para modulo independente `Instalacao / Deploy` + pre-requisitos obrigatorios de producao (DNS/servidor e gateway) com modal de correcao no wizard - concluida em 28/02/2026.
-38. [ ] T9.2.7-A4 Evoluir execucao remota do assistente (SSH/AWS/GCP) com automacao completa de provisionamento e validacoes de conectividade.
+38. [x] T9.2.7-A4 Auditoria administrativa do Web Admin + Cloudflare DEV com `dev_url_mode` (`random`/`manual`) e URLs manuais editaveis - concluida em 28/02/2026.
+39. [ ] T9.2.7-A5 Evoluir execucao remota do assistente (SSH/AWS/GCP) com automacao completa de provisionamento e validacoes de conectividade.

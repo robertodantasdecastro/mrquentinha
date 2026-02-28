@@ -375,6 +375,35 @@ Observacao de seguranca:
 
 ---
 
+## Auditoria administrativa (Web Admin)
+
+### `admin_audit_adminactivitylog`
+- `id` (PK)
+- `request_id` (UUID, index)
+- `actor_id` (FK opcional -> `accounts_user`)
+- `actor_username` (snapshot textual do usuario no momento da acao)
+- `actor_is_staff`, `actor_is_superuser`
+- `channel` (ex.: `web-admin`, `admin-authenticated`)
+- `method`, `path`, `query_string`
+- `action_group`, `resource`
+- `http_status`, `is_success`, `duration_ms`
+- `ip_address`, `origin`, `referer`, `user_agent`
+- `metadata` (JSON com payload/query sanitizados)
+- `created_at`
+
+Indices recomendados/implementados:
+- (`-created_at`, `id`)
+- (`actor_id`, `-created_at`)
+- (`channel`, `-created_at`)
+- (`action_group`, `-created_at`)
+- (`http_status`, `-created_at`)
+
+Observacao de seguranca:
+- dados sensiveis de payload/query (`password`, `token`, `secret`, `authorization`, etc.) sao mascarados antes da persistencia.
+- o endpoint de consulta da propria auditoria e excluido da trilha para evitar ruído de auto-registro.
+
+---
+
 ## Custos (ligacao entre compras -> ingredientes -> pratos)
 No MVP, o calculo pode ser **derivado**:
 - custo medio do ingrediente = soma compras / quantidade

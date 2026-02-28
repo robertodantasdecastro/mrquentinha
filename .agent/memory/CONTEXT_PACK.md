@@ -13,6 +13,8 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 28/02/2026 (`T9.2.7-A4`): backend ganhou app `admin_audit` com trilha de atividade administrativa e endpoint `GET /api/v1/admin-audit/admin-activity/`; Web Admin ganhou secao `Auditoria de atividade` em `Administracao do servidor`.
+- Atualizacao em 28/02/2026 (`T9.2.7-A4`): conectividade Cloudflare DEV evoluiu com `dev_url_mode` (`random`/`manual`) e `dev_manual_urls` editaveis para `portal/client/admin/api`, permitindo enderecamento DEV estavel para homologacoes longas/mobile.
 - Atualizacao em 28/02/2026 (`T9.2.7-A3`): `Administracao do servidor` ganhou painel `Assistente de instalacao` com wizard guiado, validacao por etapa, autosave e monitoramento de jobs via backend (`installer_settings` + endpoints `installer-*`).
 - Atualizacao em 28/02/2026 (`T9.2.7-A3`): workflow continuo do instalador padronizado com `scripts/check_installer_workflow.sh`, integrado no `session`, `sync_memory` e `quality_gate_all`.
 - Atualizacao em 27/02/2026 (`T9.2.1-A2-HF6`): Web Admin ganhou gestao de e-mail (SMTP + teste de envio) no modulo Portal CMS; regra de login foi refinada para exigir validacao de e-mail somente para contas cliente, sem bloquear perfis administrativos/gestao.

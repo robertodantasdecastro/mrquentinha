@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.ocr_ai.apps.OcrAiConfig",
     "apps.portal.apps.PortalConfig",
     "apps.personal_finance.apps.PersonalFinanceConfig",
+    "apps.admin_audit.apps.AdminAuditConfig",
 ]
 
 MIDDLEWARE = [
@@ -40,6 +41,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.admin_audit.middleware.AdminActivityLogMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

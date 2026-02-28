@@ -386,6 +386,34 @@ def test_cloudflare_preview_dev_mode_retorna_urls_trycloudflare():
     assert "trycloudflare.com" in preview["coexistence_note"]
 
 
+@pytest.mark.django_db
+def test_cloudflare_preview_dev_manual_usa_urls_configuradas():
+    preview = build_cloudflare_preview(
+        overrides={
+            "mode": "hybrid",
+            "dev_mode": True,
+            "dev_url_mode": "manual",
+            "dev_manual_urls": {
+                "portal": "https://portal-mrquentinha.trycloudflare.com",
+                "client": "https://cliente-mrquentinha.trycloudflare.com",
+                "admin": "https://admin-mrquentinha.trycloudflare.com",
+                "api": "https://api-mrquentinha.trycloudflare.com",
+            },
+        }
+    )
+
+    assert preview["dev_mode"] is True
+    assert preview["dev_url_mode"] == "manual"
+    assert (
+        preview["urls"]["portal_base_url"]
+        == "https://portal-mrquentinha.trycloudflare.com"
+    )
+    assert (
+        preview["urls"]["api_base_url"] == "https://api-mrquentinha.trycloudflare.com"
+    )
+    assert preview["coexistence_note"].startswith("Modo dev usando URLs manuais")
+
+
 def test_read_cloudflare_dev_url_from_log_ignora_endpoint_interno(tmp_path):
     log_file = tmp_path / "cloudflare-dev-api.log"
     log_file.write_text(
@@ -473,6 +501,42 @@ def test_toggle_cloudflare_dev_mode_com_urls_aplica_enderecos():
     assert updated_config.api_base_url == "https://api-dev.trycloudflare.com"
     assert updated_config.portal_base_url == "https://portal-dev.trycloudflare.com"
     assert "https://portal-dev.trycloudflare.com" in updated_config.cors_allowed_origins
+
+
+@pytest.mark.django_db
+def test_toggle_cloudflare_dev_mode_manual_aplica_enderecos_fixos():
+    updated_config, preview = toggle_cloudflare_mode(
+        enabled=True,
+        overrides={
+            "mode": "hybrid",
+            "dev_mode": True,
+            "dev_url_mode": "manual",
+            "auto_apply_routes": True,
+            "dev_manual_urls": {
+                "portal": "https://portal-mrquentinha.trycloudflare.com",
+                "client": "https://cliente-mrquentinha.trycloudflare.com",
+                "admin": "https://admin-mrquentinha.trycloudflare.com",
+                "api": "https://api-mrquentinha.trycloudflare.com",
+            },
+            "dev_urls": {
+                "portal": "https://random-portal.trycloudflare.com",
+                "client": "https://random-client.trycloudflare.com",
+                "admin": "https://random-admin.trycloudflare.com",
+                "api": "https://random-api.trycloudflare.com",
+            },
+        },
+    )
+
+    assert updated_config.cloudflare_settings["enabled"] is True
+    assert updated_config.cloudflare_settings["dev_mode"] is True
+    assert updated_config.cloudflare_settings["dev_url_mode"] == "manual"
+    assert updated_config.api_base_url == "https://api-mrquentinha.trycloudflare.com"
+    assert (
+        updated_config.portal_base_url == "https://portal-mrquentinha.trycloudflare.com"
+    )
+    assert (
+        preview["urls"]["api_base_url"] == "https://api-mrquentinha.trycloudflare.com"
+    )
 
 
 @pytest.mark.django_db

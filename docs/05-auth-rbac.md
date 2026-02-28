@@ -67,6 +67,9 @@
 - RBAC via `Role`/`UserRole` com permission classes por modulo e acao.
 - Ownership obrigatorio em dados de cliente/pessoal.
 - Auditoria em endpoints sensiveis (especialmente financeiro e dados pessoais).
+- Auditoria administrativa dedicada para operacoes do Web Admin:
+  - `GET /api/v1/admin-audit/admin-activity/` (somente perfis administrativos).
+  - trilha inclui ator, rota, status, latencia e metadata sanitizada.
 
 ## Endpoint de perfil do usuario logado (Admin Web)
 - Endpoint: `GET/PATCH /api/v1/accounts/me/profile/`

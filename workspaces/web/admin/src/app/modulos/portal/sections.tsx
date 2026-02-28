@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
 import { InlinePreloader } from "@/components/InlinePreloader";
+import { AdminActivityAuditPanel } from "@/components/modules/AdminActivityAuditPanel";
 
 import {
   ApiError,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/api";
 import type {
   PortalCloudflareConfig,
+  PortalCloudflareDevUrlMode,
   PortalCloudflareMode,
   PortalCloudflarePreviewData,
   PortalCloudflareRuntimeData,
@@ -70,6 +72,11 @@ export const SERVER_ADMIN_MENU_ITEMS = [
     href: `${SERVER_ADMIN_BASE_PATH}/conectividade#conectividade`,
   },
   {
+    key: "auditoria",
+    label: "Auditoria de atividade",
+    href: `${SERVER_ADMIN_BASE_PATH}/auditoria#auditoria`,
+  },
+  {
     key: "mobile-build",
     label: "Build e release",
     href: `${SERVER_ADMIN_BASE_PATH}/mobile-build#mobile-build`,
@@ -88,6 +95,7 @@ export type ServerAdminSectionKey =
   | "all"
   | "email"
   | "conectividade"
+  | "auditoria"
   | "mobile-build";
 
 type PortalSectionsMode = "portal" | "server-admin";
@@ -516,6 +524,7 @@ function getDefaultCloudflareSettings(): PortalCloudflareConfig {
     enabled: false,
     mode: "hybrid",
     dev_mode: false,
+    dev_url_mode: "random",
     scheme: "https",
     root_domain: "mrquentinha.com.br",
     subdomains: {
@@ -546,6 +555,12 @@ function getDefaultCloudflareSettings(): PortalCloudflareConfig {
       admin: "",
       api: "",
     },
+    dev_manual_urls: {
+      portal: "https://portal-mrquentinha.trycloudflare.com",
+      client: "https://cliente-mrquentinha.trycloudflare.com",
+      admin: "https://admin-mrquentinha.trycloudflare.com",
+      api: "https://api-mrquentinha.trycloudflare.com",
+    },
     local_snapshot: {},
   };
 }
@@ -562,11 +577,16 @@ function normalizeCloudflareSettings(
       : defaults.mode;
   const normalizedScheme =
     value?.scheme === "http" || value?.scheme === "https" ? value.scheme : defaults.scheme;
+  const normalizedDevUrlMode =
+    value?.dev_url_mode === "manual" || value?.dev_url_mode === "random"
+      ? value.dev_url_mode
+      : defaults.dev_url_mode;
 
   return {
     ...defaults,
     ...(value ?? {}),
     mode: normalizedMode,
+    dev_url_mode: normalizedDevUrlMode,
     scheme: normalizedScheme,
     subdomains: {
       ...defaults.subdomains,
@@ -579,6 +599,10 @@ function normalizeCloudflareSettings(
     dev_urls: {
       ...defaults.dev_urls,
       ...(value?.dev_urls ?? {}),
+    },
+    dev_manual_urls: {
+      ...defaults.dev_manual_urls,
+      ...(value?.dev_manual_urls ?? {}),
     },
     local_snapshot: value?.local_snapshot ?? {},
   };
@@ -617,6 +641,8 @@ export function PortalSections({
   const [cloudflareEnabledDraft, setCloudflareEnabledDraft] = useState(false);
   const [cloudflareModeDraft, setCloudflareModeDraft] = useState<PortalCloudflareMode>("hybrid");
   const [cloudflareDevModeDraft, setCloudflareDevModeDraft] = useState(false);
+  const [cloudflareDevUrlModeDraft, setCloudflareDevUrlModeDraft] =
+    useState<PortalCloudflareDevUrlMode>("random");
   const [cloudflareSchemeDraft, setCloudflareSchemeDraft] = useState<"http" | "https">("https");
   const [cloudflareRootDomainDraft, setCloudflareRootDomainDraft] = useState("mrquentinha.com.br");
   const [cloudflarePortalSubdomainDraft, setCloudflarePortalSubdomainDraft] = useState("www");
@@ -630,6 +656,10 @@ export function PortalSections({
   const [cloudflareZoneIdDraft, setCloudflareZoneIdDraft] = useState("");
   const [cloudflareApiTokenDraft, setCloudflareApiTokenDraft] = useState("");
   const [cloudflareAutoApplyRoutesDraft, setCloudflareAutoApplyRoutesDraft] = useState(true);
+  const [cloudflarePortalDevUrlDraft, setCloudflarePortalDevUrlDraft] = useState("");
+  const [cloudflareClientDevUrlDraft, setCloudflareClientDevUrlDraft] = useState("");
+  const [cloudflareAdminDevUrlDraft, setCloudflareAdminDevUrlDraft] = useState("");
+  const [cloudflareApiDevUrlDraft, setCloudflareApiDevUrlDraft] = useState("");
   const [cloudflarePreview, setCloudflarePreview] = useState<PortalCloudflarePreviewData | null>(
     null,
   );
@@ -893,6 +923,7 @@ export function PortalSections({
       enabled: cloudflareEnabledDraft,
       mode: cloudflareModeDraft,
       dev_mode: cloudflareDevModeDraft,
+      dev_url_mode: cloudflareDevUrlModeDraft,
       scheme: cloudflareSchemeDraft,
       root_domain: cloudflareRootDomainDraft.trim(),
       subdomains: {
@@ -908,6 +939,12 @@ export function PortalSections({
       zone_id: cloudflareZoneIdDraft.trim(),
       api_token: cloudflareApiTokenDraft.trim(),
       auto_apply_routes: cloudflareAutoApplyRoutesDraft,
+      dev_manual_urls: {
+        portal: cloudflarePortalDevUrlDraft.trim(),
+        client: cloudflareClientDevUrlDraft.trim(),
+        admin: cloudflareAdminDevUrlDraft.trim(),
+        api: cloudflareApiDevUrlDraft.trim(),
+      },
     };
   }
 
@@ -991,6 +1028,7 @@ export function PortalSections({
         setCloudflareEnabledDraft(cloudflareSettings.enabled);
         setCloudflareModeDraft(cloudflareSettings.mode);
         setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
+        setCloudflareDevUrlModeDraft(cloudflareSettings.dev_url_mode);
         setCloudflareSchemeDraft(cloudflareSettings.scheme);
         setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
         setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
@@ -1004,6 +1042,10 @@ export function PortalSections({
         setCloudflareZoneIdDraft(cloudflareSettings.zone_id);
         setCloudflareApiTokenDraft(cloudflareSettings.api_token);
         setCloudflareAutoApplyRoutesDraft(cloudflareSettings.auto_apply_routes);
+        setCloudflarePortalDevUrlDraft(cloudflareSettings.dev_manual_urls.portal);
+        setCloudflareClientDevUrlDraft(cloudflareSettings.dev_manual_urls.client);
+        setCloudflareAdminDevUrlDraft(cloudflareSettings.dev_manual_urls.admin);
+        setCloudflareApiDevUrlDraft(cloudflareSettings.dev_manual_urls.api);
         setCloudflareRuntime({
           state: cloudflareSettings.runtime.state,
           pid: null,
@@ -1014,7 +1056,10 @@ export function PortalSections({
           run_command: cloudflareSettings.runtime.run_command,
           last_log_lines: [],
           dev_mode: cloudflareSettings.dev_mode,
+          dev_url_mode: cloudflareSettings.dev_url_mode,
           dev_urls: cloudflareSettings.dev_urls,
+          dev_manual_urls: cloudflareSettings.dev_manual_urls,
+          observed_dev_urls: cloudflareSettings.dev_urls,
           dev_services: [],
         });
         const authProviders = normalizeAuthProviders(configPayload.auth_providers);
@@ -1566,6 +1611,7 @@ export function PortalSections({
       setCloudflareEnabledDraft(cloudflareSettings.enabled);
       setCloudflareModeDraft(cloudflareSettings.mode);
       setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
+      setCloudflareDevUrlModeDraft(cloudflareSettings.dev_url_mode);
       setCloudflareSchemeDraft(cloudflareSettings.scheme);
       setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
       setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
@@ -1579,6 +1625,10 @@ export function PortalSections({
       setCloudflareZoneIdDraft(cloudflareSettings.zone_id);
       setCloudflareApiTokenDraft(cloudflareSettings.api_token);
       setCloudflareAutoApplyRoutesDraft(cloudflareSettings.auto_apply_routes);
+      setCloudflarePortalDevUrlDraft(cloudflareSettings.dev_manual_urls.portal);
+      setCloudflareClientDevUrlDraft(cloudflareSettings.dev_manual_urls.client);
+      setCloudflareAdminDevUrlDraft(cloudflareSettings.dev_manual_urls.admin);
+      setCloudflareApiDevUrlDraft(cloudflareSettings.dev_manual_urls.api);
       setCloudflareRuntime({
         state: cloudflareSettings.runtime.state,
         pid: null,
@@ -1589,7 +1639,10 @@ export function PortalSections({
         run_command: cloudflareSettings.runtime.run_command,
         last_log_lines: [],
         dev_mode: cloudflareSettings.dev_mode,
+        dev_url_mode: cloudflareSettings.dev_url_mode,
         dev_urls: cloudflareSettings.dev_urls,
+        dev_manual_urls: cloudflareSettings.dev_manual_urls,
+        observed_dev_urls: cloudflareSettings.dev_urls,
         dev_services: [],
       });
       setSuccessMessage("Conectividade entre aplicacoes atualizada com sucesso.");
@@ -1655,6 +1708,7 @@ export function PortalSections({
       setCloudflareEnabledDraft(cloudflareSettings.enabled);
       setCloudflareModeDraft(cloudflareSettings.mode);
       setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
+      setCloudflareDevUrlModeDraft(cloudflareSettings.dev_url_mode);
       setCloudflareSchemeDraft(cloudflareSettings.scheme);
       setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
       setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
@@ -1668,6 +1722,10 @@ export function PortalSections({
       setCloudflareZoneIdDraft(cloudflareSettings.zone_id);
       setCloudflareApiTokenDraft(cloudflareSettings.api_token);
       setCloudflareAutoApplyRoutesDraft(cloudflareSettings.auto_apply_routes);
+      setCloudflarePortalDevUrlDraft(cloudflareSettings.dev_manual_urls.portal);
+      setCloudflareClientDevUrlDraft(cloudflareSettings.dev_manual_urls.client);
+      setCloudflareAdminDevUrlDraft(cloudflareSettings.dev_manual_urls.admin);
+      setCloudflareApiDevUrlDraft(cloudflareSettings.dev_manual_urls.api);
       setCloudflareRuntime({
         state: cloudflareSettings.runtime.state,
         pid: null,
@@ -1678,7 +1736,10 @@ export function PortalSections({
         run_command: cloudflareSettings.runtime.run_command,
         last_log_lines: [],
         dev_mode: cloudflareSettings.dev_mode,
+        dev_url_mode: cloudflareSettings.dev_url_mode,
         dev_urls: cloudflareSettings.dev_urls,
+        dev_manual_urls: cloudflareSettings.dev_manual_urls,
+        observed_dev_urls: cloudflareSettings.dev_urls,
         dev_services: [],
       });
       setCloudflarePreview(payload.preview);
@@ -1726,6 +1787,7 @@ export function PortalSections({
       setCloudflareEnabledDraft(cloudflareSettings.enabled);
       setCloudflareModeDraft(cloudflareSettings.mode);
       setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
+      setCloudflareDevUrlModeDraft(cloudflareSettings.dev_url_mode);
       setCloudflareSchemeDraft(cloudflareSettings.scheme);
       setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
       setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
@@ -1739,6 +1801,10 @@ export function PortalSections({
       setCloudflareZoneIdDraft(cloudflareSettings.zone_id);
       setCloudflareApiTokenDraft(cloudflareSettings.api_token);
       setCloudflareAutoApplyRoutesDraft(cloudflareSettings.auto_apply_routes);
+      setCloudflarePortalDevUrlDraft(cloudflareSettings.dev_manual_urls.portal);
+      setCloudflareClientDevUrlDraft(cloudflareSettings.dev_manual_urls.client);
+      setCloudflareAdminDevUrlDraft(cloudflareSettings.dev_manual_urls.admin);
+      setCloudflareApiDevUrlDraft(cloudflareSettings.dev_manual_urls.api);
       setCloudflareRuntime(payload.runtime);
       if (action === "refresh") {
         setSuccessMessage(
@@ -2907,7 +2973,72 @@ export function PortalSections({
                 Quando ativo, o runtime gera URLs publicas temporarias para Portal/Client/Admin/API
                 sem depender do dominio oficial. Ideal para homologacao em desenvolvimento.
               </p>
+              {cloudflareDevModeDraft && (
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <label className="grid gap-1 text-sm text-muted">
+                    Origem das URLs DEV
+                    <select
+                      value={cloudflareDevUrlModeDraft}
+                      onChange={(event) =>
+                        setCloudflareDevUrlModeDraft(
+                          event.currentTarget.value as PortalCloudflareDevUrlMode,
+                        )
+                      }
+                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    >
+                      <option value="random">Aleatorias (runtime cloudflared)</option>
+                      <option value="manual">Padrao fixo (editavel)</option>
+                    </select>
+                  </label>
+                  <p className="rounded-md border border-border bg-bg px-3 py-2 text-xs text-muted">
+                    Em <strong>manual</strong>, as URLs abaixo viram referencia ativa para
+                    roteamento/API dos frontends no modo DEV. Em <strong>random</strong>, o sistema
+                    usa os dominios gerados pelo runtime.
+                  </p>
+                </div>
+              )}
             </div>
+
+            {cloudflareDevModeDraft && (
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <label className="grid gap-1 text-sm text-muted">
+                  DEV Portal URL
+                  <input
+                    value={cloudflarePortalDevUrlDraft}
+                    onChange={(event) => setCloudflarePortalDevUrlDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="https://portal-mrquentinha.trycloudflare.com"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  DEV Client URL
+                  <input
+                    value={cloudflareClientDevUrlDraft}
+                    onChange={(event) => setCloudflareClientDevUrlDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="https://cliente-mrquentinha.trycloudflare.com"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  DEV Admin URL
+                  <input
+                    value={cloudflareAdminDevUrlDraft}
+                    onChange={(event) => setCloudflareAdminDevUrlDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="https://admin-mrquentinha.trycloudflare.com"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm text-muted">
+                  DEV API URL
+                  <input
+                    value={cloudflareApiDevUrlDraft}
+                    onChange={(event) => setCloudflareApiDevUrlDraft(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="https://api-mrquentinha.trycloudflare.com"
+                  />
+                </label>
+              </div>
+            )}
 
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <label className="grid gap-1 text-sm text-muted">
@@ -3075,6 +3206,12 @@ export function PortalSections({
               <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-xs text-muted">
                 <p className="font-semibold text-text">Preview Cloudflare</p>
                 <p className="mt-1">Modo: {cloudflarePreview.mode}</p>
+                {cloudflarePreview.dev_mode && (
+                  <p className="mt-1">
+                    Origem URLs DEV:{" "}
+                    <strong className="text-text">{cloudflarePreview.dev_url_mode || "random"}</strong>
+                  </p>
+                )}
                 <p className="mt-1">
                   Portal: <ExternalUrl value={cloudflarePreview.urls.portal_base_url} />
                 </p>
@@ -3111,6 +3248,12 @@ export function PortalSections({
                 </p>
                 <p className="mt-1">Ultimo start: {cloudflareRuntime.last_started_at || "-"}</p>
                 <p className="mt-1">Ultimo stop: {cloudflareRuntime.last_stopped_at || "-"}</p>
+                {cloudflareRuntime.dev_mode && (
+                  <p className="mt-1">
+                    Origem URLs DEV:{" "}
+                    <strong className="text-text">{cloudflareRuntime.dev_url_mode || "random"}</strong>
+                  </p>
+                )}
                 {cloudflareRuntime.run_command && (
                   <p className="mt-1">
                     Comando ativo: <code>{cloudflareRuntime.run_command}</code>
@@ -3118,7 +3261,7 @@ export function PortalSections({
                 )}
                 {cloudflareRuntime.dev_mode && cloudflareRuntime.dev_urls && (
                   <div className="mt-2 rounded-md border border-border bg-bg px-2 py-2">
-                    <p className="font-semibold text-text">URLs DEV geradas</p>
+                    <p className="font-semibold text-text">URLs DEV ativas</p>
                     <p className="mt-1">
                       Portal: <ExternalUrl value={cloudflareRuntime.dev_urls.portal} />
                     </p>
@@ -3130,6 +3273,23 @@ export function PortalSections({
                     </p>
                     <p className="mt-1">
                       API: <ExternalUrl value={cloudflareRuntime.dev_urls.api} />
+                    </p>
+                  </div>
+                )}
+                {cloudflareRuntime.dev_mode && cloudflareRuntime.dev_manual_urls && (
+                  <div className="mt-2 rounded-md border border-border bg-bg px-2 py-2">
+                    <p className="font-semibold text-text">Padrao manual configurado</p>
+                    <p className="mt-1">
+                      Portal: <ExternalUrl value={cloudflareRuntime.dev_manual_urls.portal} />
+                    </p>
+                    <p className="mt-1">
+                      Client: <ExternalUrl value={cloudflareRuntime.dev_manual_urls.client} />
+                    </p>
+                    <p className="mt-1">
+                      Admin: <ExternalUrl value={cloudflareRuntime.dev_manual_urls.admin} />
+                    </p>
+                    <p className="mt-1">
+                      API: <ExternalUrl value={cloudflareRuntime.dev_manual_urls.api} />
                     </p>
                   </div>
                 )}
@@ -3159,6 +3319,12 @@ export function PortalSections({
                             <p className="mt-1">
                               URL: <ExternalUrl value={service.url} />
                             </p>
+                            {service.observed_url && service.observed_url !== service.url && (
+                              <p className="mt-1">
+                                URL observada no runtime:{" "}
+                                <ExternalUrl value={service.observed_url} />
+                              </p>
+                            )}
                             <p className="mt-1">
                               PID: <strong className="text-text">{service.pid ?? "-"}</strong> ·
                               HTTP:{" "}
@@ -3324,6 +3490,8 @@ export function PortalSections({
           </div>
         </section>
       )}
+
+      {shouldRenderSection("auditoria", "server-admin") && <AdminActivityAuditPanel />}
 
       {shouldRenderSection("mobile-build", "server-admin") && (
         <section

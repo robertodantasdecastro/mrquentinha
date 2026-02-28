@@ -27,6 +27,7 @@
 - `orders`: pedidos, itens, pagamentos e transicoes de status
 - `finance`: contas, despesas, AP/AR, caixa, conciliacao
 - `personal_finance`: contas/categorias/lancamentos pessoais por usuario (escopo privado), com recorrencia, resumo mensal e importacao CSV assistida
+- `admin_audit`: auditoria de atividade administrativa (quem fez, quando, rota, status, latencia e metadata sanitizada)
 - `ocr_ai`: captura/extracao (fase 2)
 
 ## Modulo Orders (Etapa 4)

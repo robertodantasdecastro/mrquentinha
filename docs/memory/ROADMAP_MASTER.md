@@ -1,6 +1,6 @@
 # Roadmap Master
 
-Referencia: 27/02/2026.
+Referencia: 28/02/2026.
 Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) com foco em execucao controlada entre Codex e Antigravity.
 
 ## 1) Implementado
@@ -241,6 +241,16 @@ Escopo: planejamento mestre consolidado (implementado, em progresso e pendente) 
   - `workspaces/web/admin/src/components/modules/InstallAssistantPanel.tsx`
   - `workspaces/web/admin/src/app/modulos/portal/sections.tsx` (assistente removido do `server-admin`)
   - `workspaces/backend/src/apps/portal/services.py` (`validate_installer_wizard_payload` + `start_installer_job`)
+
+#### T9.2.7-A4 - Auditoria administrativa + Cloudflare DEV URL mode [CONCLUIDA]
+- Objetivo: registrar historico completo de uso do Web Admin e adicionar controle de origem das URLs DEV do Cloudflare (`random`/`manual`) para homologacao longa/mobile.
+- Escopo: backend (`admin_audit` + `portal`), web admin (secao de auditoria e conectividade), documentacao e testes.
+- Status: concluida em 28/02/2026.
+- Evidencia:
+  - `workspaces/backend/src/apps/admin_audit/`
+  - `workspaces/backend/src/apps/portal/services.py` (`dev_url_mode`, `dev_manual_urls`)
+  - `workspaces/web/admin/src/components/modules/AdminActivityAuditPanel.tsx`
+  - `workspaces/web/admin/src/app/modulos/portal/sections.tsx`
 
 ### P2 (roadmap)
 

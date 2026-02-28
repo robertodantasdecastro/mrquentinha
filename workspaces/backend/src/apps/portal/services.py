@@ -219,6 +219,13 @@ DEFAULT_CLOUDFLARE_SETTINGS = {
         "admin": "",
         "api": "",
     },
+    "dev_url_mode": "random",
+    "dev_manual_urls": {
+        "portal": "https://portal-mrquentinha.trycloudflare.com",
+        "client": "https://cliente-mrquentinha.trycloudflare.com",
+        "admin": "https://admin-mrquentinha.trycloudflare.com",
+        "api": "https://api-mrquentinha.trycloudflare.com",
+    },
     "local_snapshot": {},
 }
 
@@ -1136,6 +1143,30 @@ def _normalize_cloudflare_mode(value: object) -> str:
     return "hybrid"
 
 
+def _normalize_cloudflare_dev_url_mode(value: object) -> str:
+    normalized = str(value or "").strip().lower()
+    if normalized in {"random", "manual"}:
+        return normalized
+    return "random"
+
+
+def _normalize_cloudflare_manual_dev_urls(raw_value: object | None) -> dict[str, str]:
+    output: dict[str, str] = {
+        "portal": "",
+        "client": "",
+        "admin": "",
+        "api": "",
+    }
+    if not isinstance(raw_value, dict):
+        return output
+
+    for channel in output:
+        raw_url = str(raw_value.get(channel, "")).strip().rstrip("/")
+        if raw_url.startswith("http://") or raw_url.startswith("https://"):
+            output[channel] = raw_url
+    return output
+
+
 def _normalize_cloudflare_settings(raw_value: object | None) -> dict:
     normalized = _default_cloudflare_settings_payload()
     if not isinstance(raw_value, dict):
@@ -1158,6 +1189,9 @@ def _normalize_cloudflare_settings(raw_value: object | None) -> dict:
     normalized["zone_id"] = str(raw_value.get("zone_id", "")).strip()
     normalized["api_token"] = str(raw_value.get("api_token", "")).strip()
     normalized["auto_apply_routes"] = bool(raw_value.get("auto_apply_routes", True))
+    normalized["dev_url_mode"] = _normalize_cloudflare_dev_url_mode(
+        raw_value.get("dev_url_mode")
+    )
     normalized["last_action_at"] = str(raw_value.get("last_action_at", "")).strip()
     normalized["last_status_message"] = (
         str(raw_value.get("last_status_message", "")).strip()
@@ -1187,6 +1221,12 @@ def _normalize_cloudflare_settings(raw_value: object | None) -> dict:
         for channel in ("portal", "client", "admin", "api"):
             normalized["dev_urls"][channel] = str(
                 source_dev_urls.get(channel, "")
+            ).strip()
+    source_manual_dev_urls = raw_value.get("dev_manual_urls")
+    if isinstance(source_manual_dev_urls, dict):
+        for channel in ("portal", "client", "admin", "api"):
+            normalized["dev_manual_urls"][channel] = str(
+                source_manual_dev_urls.get(channel, "")
             ).strip()
 
     source_snapshot = raw_value.get("local_snapshot")
@@ -1233,6 +1273,16 @@ def _normalize_cloudflare_dev_urls(settings: dict) -> dict[str, str]:
     return output
 
 
+def _resolve_cloudflare_active_dev_urls(settings: dict) -> dict[str, str]:
+    manual_urls = _normalize_cloudflare_manual_dev_urls(settings.get("dev_manual_urls"))
+    if (
+        _normalize_cloudflare_dev_url_mode(settings.get("dev_url_mode")) == "manual"
+        and _has_complete_cloudflare_dev_urls(manual_urls)
+    ):
+        return manual_urls
+    return _normalize_cloudflare_dev_urls(settings)
+
+
 def _has_complete_cloudflare_dev_urls(dev_urls: dict[str, str]) -> bool:
     return all(bool(dev_urls.get(channel, "").strip()) for channel in dev_urls)
 
@@ -1240,7 +1290,9 @@ def _has_complete_cloudflare_dev_urls(dev_urls: dict[str, str]) -> bool:
 def _extract_cloudflare_dev_urls_from_runtime_payload(
     runtime_payload: dict,
 ) -> dict[str, str]:
-    source_urls = runtime_payload.get("dev_urls")
+    source_urls = runtime_payload.get("observed_dev_urls")
+    if not isinstance(source_urls, dict):
+        source_urls = runtime_payload.get("dev_urls")
     normalized = {
         "portal": "",
         "client": "",
@@ -1258,12 +1310,13 @@ def _extract_cloudflare_dev_urls_from_runtime_payload(
 def _build_cloudflare_preview_payload(config: PortalConfig, settings: dict) -> dict:
     normalized = _normalize_cloudflare_settings(settings)
     dev_mode = bool(normalized.get("dev_mode", False))
+    dev_url_mode = _normalize_cloudflare_dev_url_mode(normalized.get("dev_url_mode"))
     scheme = normalized["scheme"]
     root_domain = normalized["root_domain"]
     subdomains = normalized["subdomains"]
 
     if dev_mode:
-        dev_urls = _normalize_cloudflare_dev_urls(normalized)
+        dev_urls = _resolve_cloudflare_active_dev_urls(normalized)
         portal_base_url = dev_urls["portal"]
         client_base_url = dev_urls["client"]
         admin_base_url = dev_urls["admin"]
@@ -1321,6 +1374,10 @@ def _build_cloudflare_preview_payload(config: PortalConfig, settings: dict) -> d
     return {
         "mode": normalized["mode"],
         "dev_mode": dev_mode,
+        "dev_url_mode": dev_url_mode,
+        "dev_manual_urls": _normalize_cloudflare_manual_dev_urls(
+            normalized.get("dev_manual_urls")
+        ),
         "scheme": scheme,
         "root_domain": root_domain,
         "domains": {
@@ -1348,7 +1405,11 @@ def _build_cloudflare_preview_payload(config: PortalConfig, settings: dict) -> d
         "coexistence_note": (
             "Modo hybrid permite acesso local e Cloudflare ao mesmo tempo."
             if not dev_mode
-            else "Modo dev usa dominios aleatorios trycloudflare.com por servico."
+            else (
+                "Modo dev usando URLs manuais/estaveis definidas pelo operador."
+                if dev_url_mode == "manual"
+                else "Modo dev usa dominios aleatorios trycloudflare.com por servico."
+            )
         ),
         "generated_at": timezone.now().isoformat(),
     }
@@ -1361,6 +1422,9 @@ def _build_public_cloudflare_settings(config: PortalConfig) -> dict:
         "enabled": normalized["enabled"],
         "mode": normalized["mode"],
         "dev_mode": bool(normalized.get("dev_mode", False)),
+        "dev_url_mode": _normalize_cloudflare_dev_url_mode(
+            normalized.get("dev_url_mode")
+        ),
         "scheme": normalized["scheme"],
         "root_domain": normalized["root_domain"],
         "subdomains": normalized["subdomains"],
@@ -1378,6 +1442,9 @@ def _build_public_cloudflare_settings(config: PortalConfig) -> dict:
             "last_error": str(normalized["runtime"].get("last_error", "")).strip(),
         },
         "dev_urls": _normalize_cloudflare_dev_urls(normalized),
+        "dev_manual_urls": _normalize_cloudflare_manual_dev_urls(
+            normalized.get("dev_manual_urls")
+        ),
         "domains": preview["domains"],
         "urls": preview["urls"],
         "coexistence_supported": True,
@@ -1575,7 +1642,12 @@ def _check_cloudflare_dev_service_connectivity(*, key: str, base_url: str) -> di
 def _build_cloudflare_dev_runtime_payload(settings: dict) -> dict:
     normalized = _normalize_cloudflare_settings(settings)
     services: list[dict] = []
-    dev_urls = _normalize_cloudflare_dev_urls(normalized)
+    observed_dev_urls = _normalize_cloudflare_dev_urls(normalized)
+    active_dev_urls = _resolve_cloudflare_active_dev_urls(normalized)
+    manual_dev_urls = _normalize_cloudflare_manual_dev_urls(
+        normalized.get("dev_manual_urls")
+    )
+    dev_url_mode = _normalize_cloudflare_dev_url_mode(normalized.get("dev_url_mode"))
 
     states: list[str] = []
     aggregated_log_lines: list[str] = []
@@ -1586,8 +1658,14 @@ def _build_cloudflare_dev_runtime_payload(settings: dict) -> dict:
         pid_file = _cloudflare_dev_pid_file(key)
         log_file = _cloudflare_dev_log_file(key)
         pid = _read_pid_from_file(pid_file)
-        url = _read_cloudflare_dev_url_from_log(log_file) or dev_urls.get(key, "")
-        connectivity = _check_cloudflare_dev_service_connectivity(key=key, base_url=url)
+        observed_url = _read_cloudflare_dev_url_from_log(log_file) or observed_dev_urls.get(
+            key, ""
+        )
+        display_url = observed_url or active_dev_urls.get(key, "")
+        observed_dev_urls[key] = observed_url
+        connectivity = _check_cloudflare_dev_service_connectivity(
+            key=key, base_url=display_url
+        )
         running = pid is not None
         if first_pid is None and pid is not None:
             first_pid = pid
@@ -1603,7 +1681,8 @@ def _build_cloudflare_dev_runtime_payload(settings: dict) -> dict:
                 "name": service["name"],
                 "port": service["port"],
                 "pid": pid,
-                "url": url,
+                "url": display_url,
+                "observed_url": observed_url,
                 "log_file": str(log_file),
                 "running": running,
                 "connectivity": connectivity["connectivity"],
@@ -1636,7 +1715,10 @@ def _build_cloudflare_dev_runtime_payload(settings: dict) -> dict:
         "run_command": str(runtime.get("run_command", "")).strip(),
         "last_log_lines": aggregated_log_lines[-40:],
         "dev_mode": True,
-        "dev_urls": {item["key"]: item["url"] for item in services},
+        "dev_url_mode": dev_url_mode,
+        "dev_manual_urls": manual_dev_urls,
+        "dev_urls": active_dev_urls,
+        "observed_dev_urls": observed_dev_urls,
         "dev_services": services,
     }
 
@@ -2423,7 +2505,7 @@ def toggle_cloudflare_mode(
             settings["runtime"][
                 "run_command"
             ] = _build_cloudflare_dev_run_command_display()
-            dev_urls = _normalize_cloudflare_dev_urls(settings)
+            dev_urls = _resolve_cloudflare_active_dev_urls(settings)
             if settings.get("auto_apply_routes", True):
                 update_fields.extend(
                     _apply_cloudflare_dev_urls_to_config(
@@ -2663,11 +2745,12 @@ def manage_cloudflare_runtime(
                 if settings.get("enabled", False) and settings.get(
                     "auto_apply_routes", True
                 ):
+                    routing_dev_urls = _resolve_cloudflare_active_dev_urls(settings)
                     update_fields.extend(
                         _apply_cloudflare_dev_urls_to_config(
                             config=config,
                             settings=settings,
-                            dev_urls=_normalize_cloudflare_dev_urls(settings),
+                            dev_urls=routing_dev_urls,
                         )
                     )
                 settings["enabled"] = True
@@ -2724,11 +2807,12 @@ def manage_cloudflare_runtime(
             if settings.get("enabled", False) and settings.get(
                 "auto_apply_routes", True
             ):
+                routing_dev_urls = _resolve_cloudflare_active_dev_urls(settings)
                 update_fields.extend(
                     _apply_cloudflare_dev_urls_to_config(
                         config=config,
                         settings=settings,
-                        dev_urls=observed_dev_urls,
+                        dev_urls=routing_dev_urls,
                     )
                 )
 

@@ -33,6 +33,7 @@ Data de referencia: 28/02/2026.
 - Etapa 9.2.7-A2 (novo modulo Administracao do servidor e reorganizacao do Portal CMS): concluida em 27/02/2026
 - Etapa 9.2.7-A3 (assistente de instalacao/deploy com workflow continuo do instalador): concluida em 28/02/2026
 - Etapa 9.2.8-A1 (modulo independente `Instalacao / Deploy` + pre-requisitos de producao no wizard): concluida em 28/02/2026
+- Etapa 9.2.7-A4 (auditoria administrativa + Cloudflare DEV com URL mode manual/random): concluida em 28/02/2026
 - Etapa 6.3.2-A9 (exposicao online Cloudflare com toggle 1 clique no Portal CMS): concluida em 27/02/2026
 - Etapa 6.3.2-A10 (runtime cloudflared + monitoramento realtime do tunnel): concluida em 27/02/2026
 - Etapa 6.3.2-A11 (modo DEV Cloudflare com dominios aleatorios trycloudflare): concluida em 27/02/2026
@@ -67,6 +68,7 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase de governanca de clientes no ecommerce: `T9.2.7-A1` (modulo administrativo de clientes com status de conta, KYC, consentimentos e solicitacoes LGPD)
 - Fase de governanca operacional de infraestrutura no Admin Web: `T9.2.7-A2` (modulo dedicado para e-mail, conectividade/dominio e build/release)
 - Fase de governanca operacional de infraestrutura no Admin Web (evolucao): `T9.2.7-A3` (wizard de instalacao/deploy + guard rail de atualizacao continua do instalador)
+- Fase de governanca operacional de infraestrutura no Admin Web (evolucao): `T9.2.7-A4` (auditoria completa de atividade administrativa + estabilidade de enderecamento Cloudflare DEV por URL mode manual/random)
 - Fase de instalacao/deploy dedicada: `T9.2.8-A1` (novo modulo `Instalacao / Deploy` com validacao de pre-requisitos de DNS/servidor e gateway de pagamento).
 - Fase de conectividade DEV online: `T6.3.2-A11` (Cloudflare em modo desenvolvimento com URLs aleatorias por servico e sem dependencia de dominio real)
 - Fase de automacao operacional cloud: `T6.3.2-A12` (scripts de terminal para operar Cloudflare DEV/PROD e sincronizar URLs de API dos frontends)
@@ -114,6 +116,7 @@ Dependencias:
 - Hotfix `T6.3.2-A14-HF1` implementado em 27/02/2026 (frontend -> API em dominios dinamicos Cloudflare): resolucao automatica de `api_base_url` em runtime concluida para `portal/client/admin`; validacao externa ficou pendente porque os dominios informados retornaram `Cloudflare 530 (Error 1033)` no momento do teste.
 - Hotfix `T6.3.2-A14-HF2` implementado em 27/02/2026 (prioridade rede local): frontends em acesso local (`10.x/localhost`) passaram a usar API local `http://<host>:8000` em runtime e o Portal teve ajuste de links dinamicos sem mismatch de hidratacao.
 - Resultado complementar mais recente: `T9.2.7-A1` concluida em 27/02/2026 com novo modulo `/modulos/clientes`, API administrativa de ciclo de vida do cliente e integracao de elegibilidade de checkout no backend.
+- Resultado complementar mais recente: `T9.2.7-A4` concluida em 28/02/2026 com novo painel de auditoria em `/modulos/administracao-servidor/auditoria`, backend `admin_audit` e suporte a `dev_url_mode` (`random`/`manual`) + `dev_manual_urls` no Cloudflare DEV.
 
 ## Regra de execucao continua
 Cada nova fase deve manter:

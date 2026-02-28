@@ -101,6 +101,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - operadores nao tecnicos passam a configurar e iniciar o fluxo com menor friccao.
   - a automacao cloud/SSH pode evoluir por fases sem quebrar o contrato do wizard ja publicado.
 
+## 28/02/2026 - Auditoria administrativa e URL mode do Cloudflare DEV
+- Decisao:
+  - criar app dedicado `admin_audit` no backend para trilha de uso do Web Admin com endpoint de consulta paginada.
+  - registrar operacoes administrativas com sanitizacao de payload/query sensivel e sem auto-registro do endpoint da propria auditoria.
+  - evoluir `cloudflare_settings` com `dev_url_mode` (`random`/`manual`) e `dev_manual_urls` editaveis no painel de conectividade.
+- Consequencia:
+  - operacao passa a ter historico rastreavel de quem fez o que e quando no Web Admin.
+  - homologacoes longas (inclusive build mobile) podem usar enderecamento DEV fixo/manual sem perder opcao de dominios aleatorios.
+  - sincronizacao de URLs de API/frontends no modo DEV permanece automatica e centralizada no backend.
+
 ## 27/02/2026 - Confirmacao de e-mail com URL dinamica por ambiente
 - Decisao:
   - tornar e-mail obrigatorio no cadastro do cliente (`/api/v1/accounts/register/`) e disparar confirmacao por token.
