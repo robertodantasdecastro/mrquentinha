@@ -111,6 +111,45 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - homologacoes longas (inclusive build mobile) podem usar enderecamento DEV fixo/manual sem perder opcao de dominios aleatorios.
   - sincronizacao de URLs de API/frontends no modo DEV permanece automatica e centralizada no backend.
 
+## 01/03/2026 - Execucao remota do instalador (A5-A1)
+- Decisao:
+  - habilitar execucao remota real via SSH no `start_installer_job`, mantendo o mesmo script oficial `scripts/install_mrquentinha.sh`.
+  - bloquear inicio de plano cloud (`aws`/`gcp`) sem validacao de conectividade/credencial de CLI no servidor backend.
+  - sanitizar `ssh.password` em persistencia de `installer_settings` e payload de job.
+- Consequencia:
+  - fluxo remoto passa de "planejado" para "executavel" em SSH com monitoramento em background.
+  - evita sinal verde falso em AWS/GCP quando o ambiente operador nao esta preparado.
+  - reduz risco de vazamento de segredo em estado persistido do assistente.
+
+## 01/03/2026 - Governanca completa de usuarios internos no Web Admin
+- Decisao:
+  - evoluir `Usuarios e RBAC` para administracao completa de contas (criacao/edicao), papeis e tarefas operacionais por categoria.
+  - adicionar catalogo de tarefas no backend (`UserTaskCategory`, `UserTask`, `UserTaskAssignment`) e endpoints administrativos dedicados.
+  - bloquear modulos tecnicos (`Portal CMS`, `Administracao do servidor`, `Instalacao / Deploy`, `Usuarios e RBAC`) para perfis sem `ADMIN`.
+- Consequencia:
+  - perfis operacionais ficam restritos ao escopo necessario da rotina diaria.
+  - atribuicao de funcao administrativa continua centralizada em administradores.
+  - base pronta para evoluir compliance operacional por tarefa e responsabilidade.
+
+## 01/03/2026 - Priorizacao cloud AWS com paridade futura GCP
+- Decisao:
+  - iniciar trilha cloud automatica pelo AWS no assistente de instalacao/deploy.
+  - manter paridade funcional planejada para Google Cloud na etapa seguinte.
+  - explicitar custos por etapa no Web Admin (estimativa e consumo real quando disponivel).
+- Consequencia:
+  - fluxo cloud passa a ter caminho de implantacao incremental e auditavel.
+  - backlog futuro ja orientado para replicacao em GCP e testes operacionais guiados fim a fim.
+
+## 01/03/2026 - Auditoria administrativa como modulo proprio do Web Admin
+- Decisao:
+  - remover a secao de auditoria de `Administracao do servidor`.
+  - criar modulo dedicado `Auditoria de atividade` com dashboard/KPIs, filtros, seguranca e tendencias.
+  - evoluir API `admin_audit` com endpoint de overview para agregacoes de analise operacional.
+- Consequencia:
+  - governanca de auditoria passa a ter identidade funcional propria e UX mais objetiva.
+  - administracao de servidor volta a foco exclusivo de infraestrutura (email, conectividade e release).
+  - base pronta para evoluir alertas e compliance operacional.
+
 ## 27/02/2026 - Confirmacao de e-mail com URL dinamica por ambiente
 - Decisao:
   - tornar e-mail obrigatorio no cadastro do cliente (`/api/v1/accounts/register/`) e disparar confirmacao por token.

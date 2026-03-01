@@ -13,6 +13,12 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`): auditoria de atividade foi separada de `Administracao do servidor` e ganhou modulo proprio `/modulos/auditoria-atividade` com dashboard/KPIs, filtros e analise de seguranca/tendencias.
+- Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`): backend `admin_audit` evoluiu com endpoint `GET /api/v1/admin-audit/admin-activity/overview/` para agregacoes operacionais da trilha administrativa.
+- Atualizacao em 01/03/2026 (`T9.2.7-RBAC-HF1`): modulo `Usuarios e RBAC` evoluiu para gestao completa de usuarios internos no Web Admin (criar/editar conta, atribuir papeis e tarefas por categoria), com novos endpoints em `accounts` e cobertura de testes no backend.
+- Atualizacao em 01/03/2026 (`T9.2.7-RBAC-HF1`): modulos tecnicos do Admin (`Portal CMS`, `Administracao do servidor`, `Instalacao / Deploy`, `Usuarios e RBAC`) passaram a ter bloqueio explicito para perfis sem `ADMIN`.
+- Atualizacao em 01/03/2026 (`T9.2.7-A5-A2/planejamento`): plano formal AWS-first publicado em `docs/11-plano-cloud-aws-google-e-testes-operacionais.md`, incluindo backlog de paridade Google Cloud e campanha de testes operacionais guiados.
+- Atualizacao em 01/03/2026 (`T9.2.7-A5-A1`): assistente de instalacao evoluiu com execucao remota real via SSH (probe de conectividade + job em background + logs/exit code) e validacao de conectividade cloud para `aws/gcp` antes de aceitar plano de deploy.
 - Atualizacao em 28/02/2026 (`T9.2.7-A4`): backend ganhou app `admin_audit` com trilha de atividade administrativa e endpoint `GET /api/v1/admin-audit/admin-activity/`; Web Admin ganhou secao `Auditoria de atividade` em `Administracao do servidor`.
 - Atualizacao em 28/02/2026 (`T9.2.7-A4`): conectividade Cloudflare DEV evoluiu com `dev_url_mode` (`random`/`manual`) e `dev_manual_urls` editaveis para `portal/client/admin/api`, permitindo enderecamento DEV estavel para homologacoes longas/mobile.
 - Atualizacao em 28/02/2026 (`T9.2.7-A3`): `Administracao do servidor` ganhou painel `Assistente de instalacao` com wizard guiado, validacao por etapa, autosave e monitoramento de jobs via backend (`installer_settings` + endpoints `installer-*`).

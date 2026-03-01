@@ -1,16 +1,21 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Role, UserProfile
+from .models import Role, UserProfile, UserTask, UserTaskCategory
 from .services import (
     SystemRole,
     assign_roles_to_user,
+    assign_tasks_to_user,
     build_user_account_compliance,
+    get_allowed_admin_module_slugs,
     get_user_role_codes,
+    get_user_task_category_codes,
+    get_user_task_codes,
     register_user_with_default_role,
 )
 
@@ -41,6 +46,8 @@ class MeSerializer(serializers.Serializer):
     email_verified_at = serializers.SerializerMethodField()
     essential_profile_complete = serializers.SerializerMethodField()
     missing_essential_profile_fields = serializers.SerializerMethodField()
+    allowed_admin_module_slugs = serializers.SerializerMethodField()
+    can_access_technical_admin = serializers.SerializerMethodField()
 
     def get_roles(self, obj):
         return sorted(get_user_role_codes(obj))
@@ -65,6 +72,12 @@ class MeSerializer(serializers.Serializer):
     def get_missing_essential_profile_fields(self, obj):
         return self._compliance_payload(obj)["missing_essential_profile_fields"]
 
+    def get_allowed_admin_module_slugs(self, obj):
+        return get_allowed_admin_module_slugs(obj)
+
+    def get_can_access_technical_admin(self, obj):
+        return "usuarios-rbac" in set(get_allowed_admin_module_slugs(obj))
+
 
 class UserAdminSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
@@ -81,6 +94,10 @@ class UserAdminSerializer(serializers.Serializer):
     email_verification_last_sent_at = serializers.SerializerMethodField()
     essential_profile_complete = serializers.SerializerMethodField()
     missing_essential_profile_fields = serializers.SerializerMethodField()
+    task_codes = serializers.SerializerMethodField()
+    task_category_codes = serializers.SerializerMethodField()
+    allowed_admin_module_slugs = serializers.SerializerMethodField()
+    can_access_technical_admin = serializers.SerializerMethodField()
 
     def get_roles(self, obj):
         return sorted(get_user_role_codes(obj))
@@ -107,6 +124,18 @@ class UserAdminSerializer(serializers.Serializer):
 
     def get_missing_essential_profile_fields(self, obj):
         return self._compliance_payload(obj)["missing_essential_profile_fields"]
+
+    def get_task_codes(self, obj):
+        return sorted(get_user_task_codes(obj))
+
+    def get_task_category_codes(self, obj):
+        return sorted(get_user_task_category_codes(obj))
+
+    def get_allowed_admin_module_slugs(self, obj):
+        return get_allowed_admin_module_slugs(obj)
+
+    def get_can_access_technical_admin(self, obj):
+        return "usuarios-rbac" in set(get_allowed_admin_module_slugs(obj))
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -213,6 +242,232 @@ class AssignRolesSerializer(serializers.Serializer):
             )
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.messages) from exc
+
+
+class AssignTasksSerializer(serializers.Serializer):
+    task_codes = serializers.ListField(
+        child=serializers.CharField(max_length=64),
+        allow_empty=True,
+    )
+    replace = serializers.BooleanField(required=False, default=True)
+
+    def validate_task_codes(self, value: list[str]) -> list[str]:
+        normalized_codes: list[str] = []
+        for code in value:
+            normalized_code = str(code or "").strip().upper()
+            if not normalized_code:
+                continue
+            if normalized_code not in normalized_codes:
+                normalized_codes.append(normalized_code)
+        return normalized_codes
+
+    def apply(self, *, user, assigned_by=None):
+        try:
+            return assign_tasks_to_user(
+                user=user,
+                task_codes=self.validated_data["task_codes"],
+                replace=self.validated_data.get("replace", True),
+                assigned_by=assigned_by,
+            )
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from exc
+
+
+class AdminUserCreateSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(min_length=8, write_only=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    is_active = serializers.BooleanField(required=False, default=True)
+    is_staff = serializers.BooleanField(required=False, default=False)
+    role_codes = serializers.ListField(
+        child=serializers.ChoiceField(choices=SystemRole.ALL),
+        allow_empty=False,
+    )
+    task_codes = serializers.ListField(
+        child=serializers.CharField(max_length=64),
+        allow_empty=True,
+        required=False,
+        default=list,
+    )
+
+    def validate_username(self, value: str) -> str:
+        User = get_user_model()
+        username = str(value or "").strip()
+        if not username:
+            raise serializers.ValidationError("Informe um nome de usuario valido.")
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError("Nome de usuario ja cadastrado.")
+        return username
+
+    def validate_password(self, value: str) -> str:
+        password = value or ""
+        if len(password) < 8:
+            raise serializers.ValidationError("Senha deve ter ao menos 8 caracteres.")
+
+        has_lower = any(char.islower() for char in password)
+        has_upper = any(char.isupper() for char in password)
+        has_digit = any(char.isdigit() for char in password)
+        if not (has_lower and has_upper and has_digit):
+            raise serializers.ValidationError(
+                "Senha deve conter letra maiuscula, minuscula e numero."
+            )
+        return password
+
+    def validate_role_codes(self, value: list[str]) -> list[str]:
+        normalized_codes: list[str] = []
+        for code in value:
+            normalized_code = str(code or "").strip().upper()
+            if normalized_code and normalized_code not in normalized_codes:
+                normalized_codes.append(normalized_code)
+        if not normalized_codes:
+            raise serializers.ValidationError("Informe ao menos um papel.")
+        return normalized_codes
+
+    def validate_task_codes(self, value: list[str]) -> list[str]:
+        normalized_codes: list[str] = []
+        for code in value:
+            normalized_code = str(code or "").strip().upper()
+            if normalized_code and normalized_code not in normalized_codes:
+                normalized_codes.append(normalized_code)
+        return normalized_codes
+
+    def create(self, validated_data):
+        User = get_user_model()
+
+        role_codes = validated_data.pop("role_codes", [])
+        task_codes = validated_data.pop("task_codes", [])
+        password = validated_data.pop("password")
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=validated_data["username"],
+                    password=password,
+                    email=str(validated_data.get("email", "") or "").strip(),
+                    first_name=str(validated_data.get("first_name", "") or "").strip(),
+                    last_name=str(validated_data.get("last_name", "") or "").strip(),
+                    is_active=bool(validated_data.get("is_active", True)),
+                    is_staff=bool(validated_data.get("is_staff", False)),
+                )
+                assign_roles_to_user(user=user, role_codes=role_codes, replace=True)
+                assign_tasks_to_user(user=user, task_codes=task_codes, replace=True)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from exc
+        return user
+
+
+class AdminUserUpdateSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150, required=False)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    is_active = serializers.BooleanField(required=False)
+    is_staff = serializers.BooleanField(required=False)
+    password = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
+    def validate_username(self, value: str) -> str:
+        username = str(value or "").strip()
+        if not username:
+            raise serializers.ValidationError("Informe um nome de usuario valido.")
+
+        user = self.context.get("user")
+        User = get_user_model()
+        qs = User.objects.filter(username=username)
+        if user is not None:
+            qs = qs.exclude(pk=user.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Nome de usuario ja cadastrado.")
+        return username
+
+    def validate_password(self, value: str) -> str:
+        password = str(value or "")
+        if not password:
+            return ""
+        if len(password) < 8:
+            raise serializers.ValidationError("Senha deve ter ao menos 8 caracteres.")
+        has_lower = any(char.islower() for char in password)
+        has_upper = any(char.isupper() for char in password)
+        has_digit = any(char.isdigit() for char in password)
+        if not (has_lower and has_upper and has_digit):
+            raise serializers.ValidationError(
+                "Senha deve conter letra maiuscula, minuscula e numero."
+            )
+        return password
+
+    def apply(self, *, user):
+        updates: list[str] = []
+        for field_name in (
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "is_active",
+            "is_staff",
+        ):
+            if field_name not in self.validated_data:
+                continue
+            value = self.validated_data[field_name]
+            if isinstance(value, str):
+                value = value.strip()
+            if getattr(user, field_name) == value:
+                continue
+            setattr(user, field_name, value)
+            updates.append(field_name)
+
+        password = self.validated_data.get("password", None)
+        if isinstance(password, str) and password:
+            user.set_password(password)
+            updates.append("password")
+
+        if updates:
+            if "password" in updates:
+                user.save()
+            else:
+                user.save(update_fields=updates)
+
+        return user
+
+
+class UserTaskSerializer(serializers.ModelSerializer):
+    category_code = serializers.CharField(source="category.code", read_only=True)
+    category_name = serializers.CharField(source="category.name", read_only=True)
+
+    class Meta:
+        model = UserTask
+        fields = [
+            "id",
+            "code",
+            "name",
+            "description",
+            "is_active",
+            "technical_scope",
+            "related_module_slug",
+            "category_code",
+            "category_name",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class UserTaskCategorySerializer(serializers.ModelSerializer):
+    tasks = UserTaskSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = UserTaskCategory
+        fields = [
+            "id",
+            "code",
+            "name",
+            "description",
+            "is_active",
+            "technical_scope",
+            "tasks",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
 
 
 def _normalize_digits(value: str) -> str:

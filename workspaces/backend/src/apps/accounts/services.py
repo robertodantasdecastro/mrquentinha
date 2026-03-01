@@ -13,7 +13,14 @@ from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Role, UserProfile, UserRole
+from .models import (
+    Role,
+    UserProfile,
+    UserRole,
+    UserTask,
+    UserTaskAssignment,
+    UserTaskCategory,
+)
 
 
 class SystemRole:
@@ -51,6 +58,179 @@ DEFAULT_ROLE_METADATA = {
     SystemRole.CLIENTE: {
         "name": "Cliente",
         "description": "Usuario final para pedidos.",
+    },
+}
+
+ADMIN_WEB_MODULE_SLUGS = {
+    "fluxo-operacional",
+    "pedidos",
+    "financeiro",
+    "estoque",
+    "cardapio",
+    "compras",
+    "producao",
+    "usuarios-rbac",
+    "clientes",
+    "relatorios",
+    "portal",
+    "auditoria-atividade",
+    "administracao-servidor",
+    "instalacao-deploy",
+    "monitoramento",
+}
+TECHNICAL_ADMIN_MODULE_SLUGS = {
+    "usuarios-rbac",
+    "portal",
+    "auditoria-atividade",
+    "administracao-servidor",
+    "instalacao-deploy",
+}
+ROLE_ADMIN_MODULE_ACCESS = {
+    SystemRole.ADMIN: set(ADMIN_WEB_MODULE_SLUGS),
+    SystemRole.FINANCEIRO: {
+        "fluxo-operacional",
+        "pedidos",
+        "financeiro",
+        "clientes",
+        "relatorios",
+        "monitoramento",
+    },
+    SystemRole.COZINHA: {
+        "fluxo-operacional",
+        "cardapio",
+        "producao",
+        "pedidos",
+        "estoque",
+        "compras",
+        "clientes",
+        "monitoramento",
+    },
+    SystemRole.COMPRAS: {
+        "fluxo-operacional",
+        "compras",
+        "estoque",
+        "producao",
+        "pedidos",
+        "clientes",
+        "monitoramento",
+        "relatorios",
+    },
+    SystemRole.ESTOQUE: {
+        "fluxo-operacional",
+        "estoque",
+        "compras",
+        "producao",
+        "pedidos",
+        "monitoramento",
+    },
+    SystemRole.CLIENTE: set(),
+}
+
+DEFAULT_TASK_CATEGORY_METADATA = {
+    "OPERACAO_PRODUCAO": {
+        "name": "Operacao de producao",
+        "description": "Execucao de cozinha, preparo e controle operacional.",
+        "technical_scope": False,
+    },
+    "SUPRIMENTOS_LOGISTICA": {
+        "name": "Suprimentos e logistica",
+        "description": "Compras, estoque e abastecimento.",
+        "technical_scope": False,
+    },
+    "FINANCEIRO_CONTROLADORIA": {
+        "name": "Financeiro e controladoria",
+        "description": "Caixa, contas e acompanhamento de resultados.",
+        "technical_scope": False,
+    },
+    "ATENDIMENTO_CLIENTE": {
+        "name": "Atendimento e pedidos",
+        "description": "Relacionamento com clientes e operacao de pedidos.",
+        "technical_scope": False,
+    },
+    "ADMINISTRACAO_TECNICA": {
+        "name": "Administracao tecnica",
+        "description": "Portal, servidor, deploy e configuracoes da plataforma.",
+        "technical_scope": True,
+    },
+}
+
+DEFAULT_TASK_METADATA = {
+    "PRODUCAO_PLANEJAMENTO": {
+        "category_code": "OPERACAO_PRODUCAO",
+        "name": "Planejamento de producao",
+        "description": "Planeja lotes, cronograma e capacidade diaria.",
+        "technical_scope": False,
+        "related_module_slug": "producao",
+    },
+    "PRODUCAO_EXECUCAO": {
+        "category_code": "OPERACAO_PRODUCAO",
+        "name": "Execucao de cozinha",
+        "description": "Executa preparo e controla etapas de producao.",
+        "technical_scope": False,
+        "related_module_slug": "producao",
+    },
+    "ESTOQUE_OPERACAO": {
+        "category_code": "SUPRIMENTOS_LOGISTICA",
+        "name": "Operacao de estoque",
+        "description": "Controla entradas, saidas e ajustes de inventario.",
+        "technical_scope": False,
+        "related_module_slug": "estoque",
+    },
+    "COMPRAS_ABASTECIMENTO": {
+        "category_code": "SUPRIMENTOS_LOGISTICA",
+        "name": "Compras e abastecimento",
+        "description": "Gera requisicoes e acompanha compras.",
+        "technical_scope": False,
+        "related_module_slug": "compras",
+    },
+    "FINANCEIRO_CAIXA": {
+        "category_code": "FINANCEIRO_CONTROLADORIA",
+        "name": "Caixa e conciliacao",
+        "description": "Opera fluxo de caixa, conciliacao e pagamentos.",
+        "technical_scope": False,
+        "related_module_slug": "financeiro",
+    },
+    "FINANCEIRO_RELATORIOS": {
+        "category_code": "FINANCEIRO_CONTROLADORIA",
+        "name": "Relatorios gerenciais",
+        "description": "Analisa indicadores e resultados financeiros.",
+        "technical_scope": False,
+        "related_module_slug": "relatorios",
+    },
+    "PEDIDOS_ATENDIMENTO": {
+        "category_code": "ATENDIMENTO_CLIENTE",
+        "name": "Atendimento de pedidos",
+        "description": "Acompanha pedidos e atendimento ao cliente.",
+        "technical_scope": False,
+        "related_module_slug": "pedidos",
+    },
+    "CLIENTES_GESTAO": {
+        "category_code": "ATENDIMENTO_CLIENTE",
+        "name": "Gestao de clientes",
+        "description": "Gerencia cadastro, status e governanca de clientes.",
+        "technical_scope": False,
+        "related_module_slug": "clientes",
+    },
+    "PORTAL_CMS_ADMIN": {
+        "category_code": "ADMINISTRACAO_TECNICA",
+        "name": "Administracao do Portal CMS",
+        "description": "Configura templates, autenticacao social e publicacao.",
+        "technical_scope": True,
+        "related_module_slug": "portal",
+    },
+    "SERVIDOR_ADMIN": {
+        "category_code": "ADMINISTRACAO_TECNICA",
+        "name": "Administracao de servidor",
+        "description": "Configura conectividade, DNS e servicos do servidor.",
+        "technical_scope": True,
+        "related_module_slug": "administracao-servidor",
+    },
+    "DEPLOY_RELEASE": {
+        "category_code": "ADMINISTRACAO_TECNICA",
+        "name": "Instalacao e deploy",
+        "description": "Opera assistente de instalacao e releases.",
+        "technical_scope": True,
+        "related_module_slug": "instalacao-deploy",
     },
 }
 
@@ -543,6 +723,88 @@ def ensure_default_roles() -> dict[str, Role]:
     return roles
 
 
+def ensure_default_task_catalog() -> (
+    tuple[dict[str, UserTaskCategory], dict[str, UserTask]]
+):
+    categories: dict[str, UserTaskCategory] = {}
+    tasks: dict[str, UserTask] = {}
+
+    for code, metadata in DEFAULT_TASK_CATEGORY_METADATA.items():
+        category, _ = UserTaskCategory.objects.get_or_create(
+            code=code,
+            defaults={
+                "name": metadata["name"],
+                "description": metadata["description"],
+                "is_active": True,
+                "technical_scope": bool(metadata["technical_scope"]),
+            },
+        )
+
+        updates: list[str] = []
+        if category.name != metadata["name"]:
+            category.name = metadata["name"]
+            updates.append("name")
+        if category.description != metadata["description"]:
+            category.description = metadata["description"]
+            updates.append("description")
+        if category.technical_scope != bool(metadata["technical_scope"]):
+            category.technical_scope = bool(metadata["technical_scope"])
+            updates.append("technical_scope")
+        if not category.is_active:
+            category.is_active = True
+            updates.append("is_active")
+
+        if updates:
+            updates.append("updated_at")
+            category.save(update_fields=updates)
+
+        categories[code] = category
+
+    for code, metadata in DEFAULT_TASK_METADATA.items():
+        category_code = str(metadata["category_code"])
+        category = categories[category_code]
+        related_module_slug = str(metadata.get("related_module_slug", "")).strip()
+        task, _ = UserTask.objects.get_or_create(
+            code=code,
+            defaults={
+                "category": category,
+                "name": metadata["name"],
+                "description": metadata["description"],
+                "is_active": True,
+                "technical_scope": bool(metadata["technical_scope"]),
+                "related_module_slug": related_module_slug,
+            },
+        )
+
+        updates: list[str] = []
+        if task.category_id != category.id:
+            task.category = category
+            updates.append("category")
+        if task.name != metadata["name"]:
+            task.name = metadata["name"]
+            updates.append("name")
+        if task.description != metadata["description"]:
+            task.description = metadata["description"]
+            updates.append("description")
+        if task.technical_scope != bool(metadata["technical_scope"]):
+            task.technical_scope = bool(metadata["technical_scope"])
+            updates.append("technical_scope")
+        if task.related_module_slug != related_module_slug:
+            task.related_module_slug = related_module_slug
+            updates.append("related_module_slug")
+        if not task.is_active:
+            task.is_active = True
+            updates.append("is_active")
+
+        if updates:
+            updates.append("updated_at")
+            task.save(update_fields=updates)
+
+        tasks[code] = task
+
+    return categories, tasks
+
+
 @transaction.atomic
 def assign_roles_to_user(
     *,
@@ -577,6 +839,56 @@ def assign_roles_to_user(
     return normalized_codes
 
 
+@transaction.atomic
+def assign_tasks_to_user(
+    *,
+    user,
+    task_codes: list[str],
+    replace: bool = True,
+    assigned_by=None,
+) -> list[str]:
+    if not user or not getattr(user, "pk", None):
+        raise ValidationError("Usuario invalido para atribuicao de tarefas.")
+
+    ensure_default_task_catalog()
+    normalized_codes = sorted(
+        {str(code or "").strip().upper() for code in task_codes if code}
+    )
+
+    available_codes = set(
+        UserTask.objects.filter(is_active=True).values_list("code", flat=True)
+    )
+    invalid_codes = [code for code in normalized_codes if code not in available_codes]
+    if invalid_codes:
+        raise ValidationError(f"Tarefas invalidas: {', '.join(invalid_codes)}")
+
+    if replace:
+        UserTaskAssignment.objects.filter(user=user).exclude(
+            task__code__in=normalized_codes
+        ).delete()
+
+    if normalized_codes:
+        task_map = {
+            task.code: task
+            for task in UserTask.objects.filter(
+                code__in=normalized_codes
+            ).select_related("category")
+        }
+        for code in normalized_codes:
+            UserTaskAssignment.objects.get_or_create(
+                user=user,
+                task=task_map[code],
+                defaults={"assigned_by": assigned_by},
+            )
+
+    if hasattr(user, "_rbac_task_codes"):
+        delattr(user, "_rbac_task_codes")
+    if hasattr(user, "_rbac_task_category_codes"):
+        delattr(user, "_rbac_task_category_codes")
+
+    return normalized_codes
+
+
 def get_user_role_codes(user) -> set[str]:
     if not user or not getattr(user, "is_authenticated", False):
         return set()
@@ -595,6 +907,70 @@ def get_user_role_codes(user) -> set[str]:
     )
     user._rbac_role_codes = role_codes
     return role_codes
+
+
+def get_user_task_codes(user) -> set[str]:
+    if not user or not getattr(user, "is_authenticated", False):
+        return set()
+
+    cached_codes = getattr(user, "_rbac_task_codes", None)
+    if cached_codes is not None:
+        return cached_codes
+
+    ensure_default_task_catalog()
+    task_codes = set(
+        UserTaskAssignment.objects.filter(user=user, task__is_active=True).values_list(
+            "task__code", flat=True
+        )
+    )
+    user._rbac_task_codes = task_codes
+    return task_codes
+
+
+def get_user_task_category_codes(user) -> set[str]:
+    if not user or not getattr(user, "is_authenticated", False):
+        return set()
+
+    cached_codes = getattr(user, "_rbac_task_category_codes", None)
+    if cached_codes is not None:
+        return cached_codes
+
+    ensure_default_task_catalog()
+    category_codes = set(
+        UserTaskAssignment.objects.filter(user=user, task__is_active=True).values_list(
+            "task__category__code", flat=True
+        )
+    )
+    user._rbac_task_category_codes = category_codes
+    return category_codes
+
+
+def get_allowed_admin_module_slugs(user) -> list[str]:
+    if not user or not getattr(user, "is_authenticated", False):
+        return []
+
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return sorted(ADMIN_WEB_MODULE_SLUGS)
+
+    role_codes = get_user_role_codes(user)
+    if SystemRole.ADMIN in role_codes:
+        return sorted(ADMIN_WEB_MODULE_SLUGS)
+
+    allowed_modules: set[str] = set()
+    for role_code in role_codes:
+        allowed_modules.update(ROLE_ADMIN_MODULE_ACCESS.get(role_code, set()))
+
+    return sorted(allowed_modules.difference(TECHNICAL_ADMIN_MODULE_SLUGS))
+
+
+def user_can_access_technical_admin(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+
+    return SystemRole.ADMIN in get_user_role_codes(user)
 
 
 def user_has_any_role(user, role_codes: set[str] | list[str] | tuple[str, ...]) -> bool:

@@ -153,3 +153,29 @@
 - Integracao:
   - envio de confirmacao de e-mail em `accounts` tenta usar a configuracao SMTP do Portal;
   - em caso de falha/inexistencia da configuracao, aplica fallback seguro para backend de e-mail padrao do Django.
+
+## Governanca de usuarios internos (01/03/2026)
+- O modulo `Usuarios e RBAC` passou a cobrir administracao completa de contas internas:
+  - criacao de usuario (`POST /api/v1/accounts/users/`);
+  - edicao de usuario (`PATCH /api/v1/accounts/users/<id>/`);
+  - atribuicao de papeis (`POST /api/v1/accounts/users/<id>/roles/`);
+  - atribuicao de tarefas (`POST /api/v1/accounts/users/<id>/tasks/`).
+- Todas as operacoes acima sao restritas a `ADMIN` (ou superuser).
+- O backend agora possui catalogo de categorias/tarefas operacionais:
+  - `GET /api/v1/accounts/task-categories/`
+  - `GET /api/v1/accounts/tasks/`
+- Payload administrativo de usuario inclui:
+  - `task_codes`, `task_category_codes`
+  - `allowed_admin_module_slugs`
+  - `can_access_technical_admin`
+
+## Bloqueio de areas tecnicas no Web Admin (01/03/2026)
+- Usuarios sem papel `ADMIN` nao podem acessar modulos tecnicos:
+  - `Portal CMS`
+  - `Auditoria de atividade`
+  - `Administracao do servidor`
+  - `Instalacao / Deploy`
+  - `Usuarios e RBAC`
+- Regra operacional:
+  - perfis de operacao (cozinha, compras, estoque, financeiro) acessam somente modulos necessarios da rotina.
+  - atribuicao de papel `ADMIN` nao e padrao e permanece sob responsabilidade exclusiva de administradores.

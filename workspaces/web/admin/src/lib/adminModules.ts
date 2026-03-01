@@ -67,10 +67,18 @@ export const ADMIN_MODULES: AdminModule[] = [
   {
     slug: "usuarios-rbac",
     title: "Usuários/RBAC",
-    description: "Gestão de papéis, permissões e trilha de auditoria básica.",
+    description: "Gestão de papéis, permissões e categorias/tarefas operacionais.",
     stage: "T9.1.1",
     status: "ativo (baseline)",
     path: "/modulos/usuarios-rbac",
+  },
+  {
+    slug: "auditoria-atividade",
+    title: "Auditoria de atividade",
+    description: "Trilha completa do Web Admin com KPIs, segurança e investigação de eventos.",
+    stage: "T9.2.7",
+    status: "ativo",
+    path: "/modulos/auditoria-atividade",
   },
   {
     slug: "clientes",

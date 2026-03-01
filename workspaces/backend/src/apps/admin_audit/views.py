@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.services import SystemRole, user_has_any_role
 
-from .selectors import filter_admin_activity_logs
+from .selectors import build_admin_activity_overview, filter_admin_activity_logs
 from .serializers import AdminActivityLogSerializer
 
 
@@ -67,3 +67,20 @@ class AdminActivityLogListAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class AdminActivityOverviewAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated, AdminAuditPermission]
+
+    def get(self, request):
+        query = request.query_params
+        payload = build_admin_activity_overview(
+            search=str(query.get("search", "") or ""),
+            actor=str(query.get("actor", "") or ""),
+            channel=str(query.get("channel", "") or ""),
+            method=str(query.get("method", "") or ""),
+            status=str(query.get("status", "") or ""),
+            date_from=str(query.get("date_from", "") or ""),
+            date_to=str(query.get("date_to", "") or ""),
+        )
+        return Response(payload, status=status.HTTP_200_OK)

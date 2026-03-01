@@ -17,11 +17,18 @@ from .views import (
     TokenObtainPairEmailVerifiedView,
     UserAdminViewSet,
     UserRoleAssignmentAPIView,
+    UserTaskAssignmentAPIView,
+    UserTaskCategoryViewSet,
+    UserTaskViewSet,
 )
 
 router = DefaultRouter()
 router.register(r"roles", RoleViewSet, basename="accounts-roles")
 router.register(r"users", UserAdminViewSet, basename="accounts-users")
+router.register(
+    r"task-categories", UserTaskCategoryViewSet, basename="accounts-task-categories"
+)
+router.register(r"tasks", UserTaskViewSet, basename="accounts-tasks")
 router.register(r"customers", CustomerAdminViewSet, basename="accounts-customers")
 
 urlpatterns = [
@@ -54,6 +61,11 @@ urlpatterns = [
         "users/<int:user_id>/roles/",
         UserRoleAssignmentAPIView.as_view(),
         name="accounts-user-roles",
+    ),
+    path(
+        "users/<int:user_id>/tasks/",
+        UserTaskAssignmentAPIView.as_view(),
+        name="accounts-user-tasks",
     ),
     path("", include(router.urls)),
 ]

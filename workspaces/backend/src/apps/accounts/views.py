@@ -12,9 +12,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import UserProfile
 from .permissions import RoleMatrixPermission
-from .selectors import list_roles
+from .selectors import list_roles, list_task_categories, list_tasks
 from .serializers import (
+    AdminUserCreateSerializer,
+    AdminUserUpdateSerializer,
     AssignRolesSerializer,
+    AssignTasksSerializer,
     EmailVerificationConfirmSerializer,
     EmailVerificationResendSerializer,
     MeSerializer,
@@ -23,6 +26,8 @@ from .serializers import (
     TokenObtainPairEmailVerifiedSerializer,
     UserAdminSerializer,
     UserProfileSerializer,
+    UserTaskCategorySerializer,
+    UserTaskSerializer,
 )
 from .services import (
     SystemRole,
@@ -130,8 +135,10 @@ class RoleViewSet(
 
 
 class UserAdminViewSet(
+    mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
     serializer_class = UserAdminSerializer
@@ -143,8 +150,36 @@ class UserAdminViewSet(
         return (
             User.objects.order_by("id")
             .prefetch_related("user_roles__role")
+            .prefetch_related("task_assignments__task__category")
             .select_related("profile")
         )
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return AdminUserCreateSerializer
+        if self.action in {"update", "partial_update"}:
+            return AdminUserUpdateSerializer
+        return UserAdminSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        output = UserAdminSerializer(user)
+        return Response(output.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        user = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            partial=partial,
+            context={"user": user},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.apply(user=user)
+        output = UserAdminSerializer(user)
+        return Response(output.data, status=status.HTTP_200_OK)
 
 
 class UserRoleAssignmentAPIView(APIView):
@@ -168,6 +203,54 @@ class UserRoleAssignmentAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class UserTaskAssignmentAPIView(APIView):
+    permission_classes = [RoleMatrixPermission]
+    required_roles = (SystemRole.ADMIN,)
+
+    def post(self, request, user_id: int):
+        User = get_user_model()
+        user = get_object_or_404(User, pk=user_id)
+
+        serializer = AssignTasksSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        task_codes = serializer.apply(user=user, assigned_by=request.user)
+        return Response(
+            {
+                "user_id": user.id,
+                "username": user.username,
+                "task_codes": sorted(task_codes),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class UserTaskCategoryViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = UserTaskCategorySerializer
+    permission_classes = [RoleMatrixPermission]
+    required_roles = (SystemRole.ADMIN,)
+
+    def get_queryset(self):
+        return list_task_categories()
+
+
+class UserTaskViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = UserTaskSerializer
+    permission_classes = [RoleMatrixPermission]
+    required_roles = (SystemRole.ADMIN,)
+
+    def get_queryset(self):
+        return list_tasks()
 
 
 class EmailVerificationConfirmAPIView(APIView):

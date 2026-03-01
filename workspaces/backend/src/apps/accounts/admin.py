@@ -6,6 +6,9 @@ from .models import (
     Role,
     UserProfile,
     UserRole,
+    UserTask,
+    UserTaskAssignment,
+    UserTaskCategory,
 )
 
 
@@ -21,6 +24,40 @@ class UserRoleAdmin(admin.ModelAdmin):
     list_display = ("user", "role", "created_at")
     list_filter = ("role",)
     search_fields = ("user__username", "user__email", "role__code")
+
+
+@admin.register(UserTaskCategory)
+class UserTaskCategoryAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "technical_scope", "is_active", "updated_at")
+    list_filter = ("technical_scope", "is_active")
+    search_fields = ("code", "name", "description")
+
+
+@admin.register(UserTask)
+class UserTaskAdmin(admin.ModelAdmin):
+    list_display = (
+        "code",
+        "name",
+        "category",
+        "technical_scope",
+        "related_module_slug",
+        "is_active",
+    )
+    list_filter = ("category", "technical_scope", "is_active")
+    search_fields = ("code", "name", "description", "related_module_slug")
+
+
+@admin.register(UserTaskAssignment)
+class UserTaskAssignmentAdmin(admin.ModelAdmin):
+    list_display = ("user", "task", "assigned_by", "created_at")
+    list_filter = ("task__category", "task")
+    search_fields = (
+        "user__username",
+        "user__email",
+        "task__code",
+        "task__name",
+        "assigned_by__username",
+    )
 
 
 @admin.register(UserProfile)

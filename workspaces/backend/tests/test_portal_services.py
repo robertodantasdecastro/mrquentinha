@@ -663,7 +663,7 @@ def test_start_installer_job_bloqueia_prod_sem_pre_requisitos():
 
 
 @pytest.mark.django_db
-def test_start_installer_job_prod_ssh_permite_quando_pre_requisitos_ok():
+def test_start_installer_job_prod_ssh_permite_quando_pre_requisitos_ok(monkeypatch):
     config = ensure_portal_config()
     save_portal_config(
         instance=config,
@@ -689,6 +689,28 @@ def test_start_installer_job_prod_ssh_permite_quando_pre_requisitos_ok():
         },
     )
 
+    monkeypatch.setattr(
+        "apps.portal.services.os.path.exists",
+        lambda path: True,
+    )
+    monkeypatch.setattr(
+        "apps.portal.services._run_ssh_connectivity_probe",
+        lambda *, ssh_settings: {
+            "name": "ssh_connectivity",
+            "status": "ok",
+            "detail": "ok",
+            "checked_at": "2026-03-01T00:00:00Z",
+        },
+    )
+
+    class DummyProcess:
+        pid = 43210
+
+    monkeypatch.setattr(
+        "apps.portal.services.subprocess.Popen",
+        lambda *args, **kwargs: DummyProcess(),
+    )
+
     updated_config, job_payload = portal_services.start_installer_job(
         payload={
             "mode": "prod",
@@ -700,11 +722,83 @@ def test_start_installer_job_prod_ssh_permite_quando_pre_requisitos_ok():
                 "user": "ubuntu",
                 "auth_mode": "key",
                 "key_path": "~/.ssh/id_ed25519",
+                "repo_path": "$HOME/mrquentinha",
             },
         },
         initiated_by="qa",
     )
 
     assert updated_config.id == config.id
-    assert job_payload["status"] == "planned"
+    assert job_payload["status"] == "running"
     assert job_payload["target"] == "ssh"
+    assert job_payload["pid"] == 43210
+    assert job_payload["connectivity_checks"][0]["name"] == "ssh_connectivity"
+    assert "password" in job_payload["payload"]["ssh"]
+    assert job_payload["payload"]["ssh"]["password"] == ""
+
+
+@pytest.mark.django_db
+def test_start_installer_job_aws_exige_conectividade_valida(monkeypatch):
+    config = ensure_portal_config()
+    save_portal_config(
+        instance=config,
+        payload={
+            "payment_providers": {
+                "default_provider": "asaas",
+                "enabled_providers": ["asaas"],
+                "frontend_provider": {"web": "asaas", "mobile": "asaas"},
+                "receiver": {
+                    "person_type": "CNPJ",
+                    "document": "12345678000190",
+                    "name": "Mr Quentinha LTDA",
+                    "email": "financeiro@mrquentinha.com.br",
+                },
+                "asaas": {
+                    "enabled": True,
+                    "api_key": "asaas-prod-key",
+                },
+            }
+        },
+    )
+
+    monkeypatch.setattr(
+        "apps.portal.services.shutil.which",
+        lambda cmd: None if cmd == "aws" else "/usr/bin/true",
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        portal_services.start_installer_job(
+            payload={
+                "mode": "prod",
+                "stack": "vm",
+                "target": "aws",
+                "cloud": {
+                    "provider": "aws",
+                    "region": "sa-east-1",
+                },
+            },
+            initiated_by="qa",
+        )
+
+    assert "AWS: CLI nao encontrada" in str(exc_info.value)
+
+
+@pytest.mark.django_db
+def test_validate_installer_wizard_ssh_password_sem_senha_falha():
+    with pytest.raises(ValidationError) as exc_info:
+        portal_services.validate_installer_wizard_payload(
+            payload={
+                "mode": "dev",
+                "stack": "vm",
+                "target": "ssh",
+                "ssh": {
+                    "host": "10.0.0.20",
+                    "port": 22,
+                    "user": "ubuntu",
+                    "auth_mode": "password",
+                    "password": "",
+                },
+            }
+        )
+
+    assert "SSH: informe a senha" in str(exc_info.value)

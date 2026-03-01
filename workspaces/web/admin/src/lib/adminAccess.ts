@@ -1,0 +1,54 @@
+import type { AuthUserProfile } from "@/types/api";
+
+const TECHNICAL_ADMIN_MODULE_SLUGS = new Set([
+  "usuarios-rbac",
+  "portal",
+  "auditoria-atividade",
+  "administracao-servidor",
+  "instalacao-deploy",
+]);
+
+function hasAdminRole(user: AuthUserProfile | null): boolean {
+  if (!user) {
+    return false;
+  }
+
+  const roleCodes = new Set((user.roles || []).map((role) => role.toUpperCase()));
+  return roleCodes.has("ADMIN");
+}
+
+export function isTechnicalAdminModule(moduleSlug: string): boolean {
+  return TECHNICAL_ADMIN_MODULE_SLUGS.has(moduleSlug);
+}
+
+export function canAccessAdminModule(
+  user: AuthUserProfile | null,
+  moduleSlug: string,
+): boolean {
+  if (!user) {
+    return false;
+  }
+
+  if (hasAdminRole(user)) {
+    return true;
+  }
+
+  const explicitAllowed = user.allowed_admin_module_slugs || [];
+  if (explicitAllowed.length > 0) {
+    return explicitAllowed.includes(moduleSlug);
+  }
+
+  return !isTechnicalAdminModule(moduleSlug);
+}
+
+export function canAccessTechnicalAdmin(user: AuthUserProfile | null): boolean {
+  if (!user) {
+    return false;
+  }
+
+  if (typeof user.can_access_technical_admin === "boolean") {
+    return user.can_access_technical_admin;
+  }
+
+  return hasAdminRole(user);
+}

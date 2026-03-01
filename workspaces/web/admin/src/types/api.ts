@@ -14,6 +14,8 @@ export type AuthUserProfile = {
   email_verified_at?: string | null;
   essential_profile_complete?: boolean;
   missing_essential_profile_fields?: string[];
+  allowed_admin_module_slugs?: string[];
+  can_access_technical_admin?: boolean;
 };
 
 export type UserDocumentType =
@@ -121,6 +123,10 @@ export type AdminUserData = {
   email_verification_last_sent_at: string | null;
   essential_profile_complete: boolean;
   missing_essential_profile_fields: string[];
+  task_codes: string[];
+  task_category_codes: string[];
+  allowed_admin_module_slugs: string[];
+  can_access_technical_admin: boolean;
 };
 
 export type AssignUserRolesPayload = {
@@ -133,6 +139,65 @@ export type AssignUserRolesResultData = {
   username: string;
   role_codes: string[];
 };
+
+export type AssignUserTasksPayload = {
+  task_codes: string[];
+  replace?: boolean;
+};
+
+export type AssignUserTasksResultData = {
+  user_id: number;
+  username: string;
+  task_codes: string[];
+};
+
+export type TaskData = {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  technical_scope: boolean;
+  related_module_slug: string;
+  category_code: string;
+  category_name: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TaskCategoryData = {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  technical_scope: boolean;
+  tasks: TaskData[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateAdminUserPayload = {
+  username: string;
+  password: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  is_active?: boolean;
+  is_staff?: boolean;
+  role_codes: string[];
+  task_codes?: string[];
+};
+
+export type UpdateAdminUserPayload = Partial<{
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  is_active: boolean;
+  is_staff: boolean;
+  password: string;
+}>;
 
 export type CustomerAccountStatus =
   | "ACTIVE"
@@ -1062,6 +1127,62 @@ export type AdminActivityLogListResult = {
   results: AdminActivityLogData[];
 };
 
+export type AdminActivityOverviewBucket = {
+  key: string;
+  count: number;
+};
+
+export type AdminActivityHourlyPoint = {
+  hour: string;
+  events: number;
+  successes: number;
+  errors: number;
+};
+
+export type AdminActivityFailedEvent = {
+  id: number;
+  request_id: string;
+  created_at: string;
+  actor_username: string;
+  channel: string;
+  method: string;
+  path: string;
+  http_status: number;
+  duration_ms: number;
+  action_group: string;
+  resource: string;
+};
+
+export type AdminActivityOverviewData = {
+  generated_at: string;
+  totals: {
+    events: number;
+    success_count: number;
+    error_count: number;
+    client_error_count: number;
+    server_error_count: number;
+    success_rate_percent: number;
+    error_rate_percent: number;
+    avg_duration_ms: number;
+    p95_duration_ms: number;
+    max_duration_ms: number;
+    unique_actors: number;
+    unique_ips: number;
+  };
+  security: {
+    unauthorized_count: number;
+    forbidden_count: number;
+    anonymous_count: number;
+    failed_events: AdminActivityFailedEvent[];
+  };
+  by_method: AdminActivityOverviewBucket[];
+  by_channel: AdminActivityOverviewBucket[];
+  by_action_group: AdminActivityOverviewBucket[];
+  top_actors: AdminActivityOverviewBucket[];
+  top_paths: AdminActivityOverviewBucket[];
+  hourly_series_last_24h: AdminActivityHourlyPoint[];
+};
+
 export type PortalInstallerLifecycleConfig = {
   enforce_sync_memory: boolean;
   enforce_quality_gate: boolean;
@@ -1075,6 +1196,10 @@ export type PortalInstallerSshConfig = {
   auth_mode: "key" | "password";
   key_path: string;
   password: string;
+  repo_path: string;
+  auto_clone_repo: boolean;
+  git_remote_url: string;
+  git_branch: string;
 };
 
 export type PortalInstallerCloudConfig = {
@@ -1175,6 +1300,13 @@ export type PortalInstallerJobData = {
   exit_code_file: string;
   summary: string;
   command_preview: string;
+  connectivity_checks?: Array<{
+    name: string;
+    status: string;
+    detail: string;
+    checked_at: string;
+    [key: string]: unknown;
+  }>;
   last_log_lines?: string[];
   running?: boolean;
 };

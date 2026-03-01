@@ -215,6 +215,10 @@ function getDefaultDraft(): PortalInstallerDraftPayload {
       auth_mode: "key",
       key_path: "",
       password: "",
+      repo_path: "$HOME/mrquentinha",
+      auto_clone_repo: false,
+      git_remote_url: "",
+      git_branch: "main",
     },
     cloud: {
       provider: "aws",
@@ -630,6 +634,18 @@ export function InstallAssistantPanel({
       if (!draft.ssh.user.trim()) {
         return "Informe o usuario remoto para instalacao via SSH.";
       }
+      if (!draft.ssh.repo_path.trim()) {
+        return "Informe o repo_path remoto para instalar via SSH.";
+      }
+      if (draft.ssh.auth_mode === "key" && !draft.ssh.key_path.trim()) {
+        return "Informe o caminho da chave privada para SSH por chave.";
+      }
+      if (draft.ssh.auth_mode === "password" && !draft.ssh.password.trim()) {
+        return "Informe a senha para SSH em modo password.";
+      }
+      if (draft.ssh.auto_clone_repo && !draft.ssh.git_remote_url.trim()) {
+        return "Informe a URL do repositório para auto clone no SSH.";
+      }
     }
 
     if (currentStep.id === "infra" && (draft.target === "aws" || draft.target === "gcp")) {
@@ -1017,6 +1033,47 @@ export function InstallAssistantPanel({
                       disabled={draft.ssh.auth_mode !== "password"}
                     />
                   </label>
+                  <label className="grid gap-1 text-sm text-muted md:col-span-2 xl:col-span-2">
+                    Caminho remoto do repositorio
+                    <input
+                      value={draft.ssh.repo_path}
+                      onChange={(event) => updateSshDraft({ repo_path: event.currentTarget.value })}
+                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      placeholder="$HOME/mrquentinha"
+                    />
+                  </label>
+                  <label className="mt-6 inline-flex items-center gap-2 text-sm text-text">
+                    <input
+                      type="checkbox"
+                      checked={draft.ssh.auto_clone_repo}
+                      onChange={(event) =>
+                        updateSshDraft({ auto_clone_repo: event.currentTarget.checked })
+                      }
+                      className="h-4 w-4 rounded border-border text-primary"
+                    />
+                    Clonar/sincronizar repositorio automaticamente
+                  </label>
+                  <label className="grid gap-1 text-sm text-muted md:col-span-2 xl:col-span-2">
+                    URL Git remota
+                    <input
+                      value={draft.ssh.git_remote_url}
+                      onChange={(event) =>
+                        updateSshDraft({ git_remote_url: event.currentTarget.value })
+                      }
+                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      placeholder="git@github.com:org/mrquentinha.git"
+                      disabled={!draft.ssh.auto_clone_repo}
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm text-muted">
+                    Branch Git
+                    <input
+                      value={draft.ssh.git_branch}
+                      onChange={(event) => updateSshDraft({ git_branch: event.currentTarget.value })}
+                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      placeholder="main"
+                    />
+                  </label>
                 </div>
               ) : (
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1209,6 +1266,23 @@ export function InstallAssistantPanel({
                 <strong className="text-text">Seed:</strong>{" "}
                 {draft.deployment.seed_mode === "examples" ? "com exemplos" : "limpo"}
               </p>
+              {draft.target === "ssh" && (
+                <>
+                  <p>
+                    <strong className="text-text">SSH destino:</strong> {draft.ssh.user}@
+                    {draft.ssh.host}:{draft.ssh.port}
+                  </p>
+                  <p>
+                    <strong className="text-text">Repo remoto:</strong> {draft.ssh.repo_path}
+                  </p>
+                </>
+              )}
+              {(draft.target === "aws" || draft.target === "gcp") && (
+                <p>
+                  <strong className="text-text">Cloud:</strong> {draft.cloud.provider.toUpperCase()} (
+                  {draft.cloud.region || "regiao nao informada"})
+                </p>
+              )}
             </div>
           )}
 
@@ -1257,6 +1331,17 @@ export function InstallAssistantPanel({
                       Comando: <code>{activeJob.command_preview}</code>
                     </p>
                   )}
+                  {activeJob.connectivity_checks &&
+                    activeJob.connectivity_checks.length > 0 && (
+                      <div className="mt-2 rounded-md border border-border bg-surface p-2">
+                        <p className="font-semibold text-text">Validacoes de conectividade</p>
+                        {activeJob.connectivity_checks.map((check, index) => (
+                          <p key={`${check.name}-${index}`} className="mt-1">
+                            [{check.status}] {check.name}: {check.detail}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                   {activeJob.last_log_lines && activeJob.last_log_lines.length > 0 && (
                     <div className="mt-2 max-h-48 overflow-auto rounded-md border border-border bg-surface p-2 font-mono">
                       {activeJob.last_log_lines.map((line, index) => (

@@ -1,6 +1,6 @@
 # Plano do MVP e cronograma
 
-Data de referencia: 28/02/2026.
+Data de referencia: 01/03/2026.
 
 ## Status atual do roadmap
 - Etapa 0: concluida
@@ -34,6 +34,7 @@ Data de referencia: 28/02/2026.
 - Etapa 9.2.7-A3 (assistente de instalacao/deploy com workflow continuo do instalador): concluida em 28/02/2026
 - Etapa 9.2.8-A1 (modulo independente `Instalacao / Deploy` + pre-requisitos de producao no wizard): concluida em 28/02/2026
 - Etapa 9.2.7-A4 (auditoria administrativa + Cloudflare DEV com URL mode manual/random): concluida em 28/02/2026
+- Etapa 9.2.7-A5-A1 (execucao remota real via SSH + validacao cloud AWS/GCP no assistente): concluida em 01/03/2026
 - Etapa 6.3.2-A9 (exposicao online Cloudflare com toggle 1 clique no Portal CMS): concluida em 27/02/2026
 - Etapa 6.3.2-A10 (runtime cloudflared + monitoramento realtime do tunnel): concluida em 27/02/2026
 - Etapa 6.3.2-A11 (modo DEV Cloudflare com dominios aleatorios trycloudflare): concluida em 27/02/2026
@@ -94,6 +95,15 @@ Dependencias:
 - seed idempotente executada para garantir massa de dados representativa
 - checklist unificado publicado em `docs/memory/PLANO_T9_2_1_TESTES_MANUAIS_E2E.md`
 
+### 9.2.7-A5-A2 Cloud automatico (AWS primeiro)
+Dependencias:
+- conta AWS com IAM e faturamento ativo;
+- politicas minimas para STS/IAM/EC2/Route53/CodeDeploy;
+- definicao de regiao, dominio e limite de custo mensal.
+
+Referencia de execucao:
+- `docs/11-plano-cloud-aws-google-e-testes-operacionais.md`
+
 ### 7.2.4 Pagamentos multigateway (Mercado Pago, Efi e Asaas)
 Dependencias:
 - credenciais de homologacao/producao de cada provider cadastradas no Portal CMS
@@ -101,9 +111,10 @@ Dependencias:
 - validacao fim a fim no client web e no app mobile com polling/status em tempo real
 
 ## Passo atual do cronograma
-- Etapa ativa recomendada: `T7.2.4-A4` (homologacao real dos gateways Mercado Pago/Efi/Asaas com credenciais oficiais, assinatura de webhook por provider e validacao externa).
+- Etapa ativa recomendada: `T9.2.7-A5-A2` (cloud automatico no Web Admin com AWS primeiro, custos e pre-requisitos guiados).
 - Trilha de qualidade paralela: `T9.2.1-A2` (rodada manual E2E completa do ecossistema, incluindo matrix de pagamentos por provider).
 - Trilha tecnica paralela: `T8.2.3` (hardening pos-MVP de financas pessoais).
+- Trilha futura relacionada: paridade Google Cloud e execucao de testes operacionais guiados em todos os processos cloud.
 - Trilha de experiencia operacional: `T9.2.3` concluida com template `admin-adminkit` e fluxo guiado do ciclo operacional no Web Admin.
 - Resultado do passo anterior: `T7.2.4-A2` e `T7.2.4-A3` concluidas em 26/02/2026 com provider unico por canal (`web/mobile`), campos adaptativos por provider no Admin e monitoramento realtime em `/api/v1/orders/ops/realtime/` + modulo `/modulos/monitoramento`.
 - Resultado complementar mais recente: `T9.2.6-A1` concluida em 27/02/2026 com nova area `/perfil` no Web Admin (todos os templates), endpoint `GET/PATCH /api/v1/accounts/me/profile/` e suporte a upload/digitalizacao de foto/documentos/biometria.

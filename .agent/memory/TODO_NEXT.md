@@ -41,4 +41,8 @@ Fila atual:
 36. [x] T9.2.7-A3 Assistente de instalacao/deploy no modulo Administracao do servidor + workflow continuo de atualizacao do instalador - concluida em 28/02/2026.
 37. [x] T9.2.8-A1 Assistente migrado para modulo independente `Instalacao / Deploy` + pre-requisitos obrigatorios de producao (DNS/servidor e gateway) com modal de correcao no wizard - concluida em 28/02/2026.
 38. [x] T9.2.7-A4 Auditoria administrativa do Web Admin + Cloudflare DEV com `dev_url_mode` (`random`/`manual`) e URLs manuais editaveis - concluida em 28/02/2026.
-39. [ ] T9.2.7-A5 Evoluir execucao remota do assistente (SSH/AWS/GCP) com automacao completa de provisionamento e validacoes de conectividade.
+39. [ ] T9.2.7-A5 Evoluir execucao remota do assistente (SSH/AWS/GCP) com automacao completa de provisionamento e validacoes de conectividade.  
+   - Progresso 01/03/2026 (`A1`): execucao remota real via SSH implementada (probe + job em background + logs), validacao de conectividade para AWS/GCP adicionada.
+   - Progresso 01/03/2026 (`A2/planejamento`): plano detalhado da trilha AWS + backlog de paridade Google Cloud + testes operacionais guiados publicado em `docs/11-plano-cloud-aws-google-e-testes-operacionais.md`.
+40. [x] T9.2.7-RBAC-HF1 Gestao completa de usuarios no Web Admin (criar/editar conta, papeis, categorias/tarefas e bloqueio de areas tecnicas para nao-admin) - concluida em 01/03/2026.
+41. [x] T9.2.7-A4-HF2 Criar modulo dedicado `Auditoria de atividade` (separado de `Administracao do servidor`) com dashboard/KPIs, filtros e analise de seguranca - concluida em 01/03/2026.

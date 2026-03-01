@@ -3,6 +3,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import signal
 import subprocess
 import time
@@ -239,6 +240,9 @@ INSTALLER_ALLOWED_STACKS = {"vm", "docker"}
 INSTALLER_ALLOWED_ENVS = {"dev", "prod"}
 INSTALLER_ALLOWED_TARGETS = {"local", "ssh", "aws", "gcp"}
 INSTALLER_ALLOWED_SSH_AUTH_MODES = {"key", "password"}
+INSTALLER_ALLOWED_CLOUD_PROVIDERS = {"aws", "gcp"}
+INSTALLER_SAFE_REMOTE_PATH_RE = re.compile(r"^[A-Za-z0-9_./$-]+$")
+INSTALLER_SAFE_GIT_REF_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 INSTALLER_RUNTIME_DIR = PROJECT_ROOT / ".runtime" / "install"
 INSTALLER_JOBS_DIR = INSTALLER_RUNTIME_DIR / "jobs"
 
@@ -1275,10 +1279,9 @@ def _normalize_cloudflare_dev_urls(settings: dict) -> dict[str, str]:
 
 def _resolve_cloudflare_active_dev_urls(settings: dict) -> dict[str, str]:
     manual_urls = _normalize_cloudflare_manual_dev_urls(settings.get("dev_manual_urls"))
-    if (
-        _normalize_cloudflare_dev_url_mode(settings.get("dev_url_mode")) == "manual"
-        and _has_complete_cloudflare_dev_urls(manual_urls)
-    ):
+    if _normalize_cloudflare_dev_url_mode(
+        settings.get("dev_url_mode")
+    ) == "manual" and _has_complete_cloudflare_dev_urls(manual_urls):
         return manual_urls
     return _normalize_cloudflare_dev_urls(settings)
 
@@ -1658,9 +1661,9 @@ def _build_cloudflare_dev_runtime_payload(settings: dict) -> dict:
         pid_file = _cloudflare_dev_pid_file(key)
         log_file = _cloudflare_dev_log_file(key)
         pid = _read_pid_from_file(pid_file)
-        observed_url = _read_cloudflare_dev_url_from_log(log_file) or observed_dev_urls.get(
-            key, ""
-        )
+        observed_url = _read_cloudflare_dev_url_from_log(
+            log_file
+        ) or observed_dev_urls.get(key, "")
         display_url = observed_url or active_dev_urls.get(key, "")
         observed_dev_urls[key] = observed_url
         connectivity = _check_cloudflare_dev_service_connectivity(
@@ -3040,12 +3043,26 @@ def _normalize_installer_wizard_payload(
         "auth_mode": "key",
         "key_path": "",
         "password": "",
+        "repo_path": "$HOME/mrquentinha",
+        "auto_clone_repo": False,
+        "git_remote_url": "",
+        "git_branch": "main",
     }
     if isinstance(ssh, dict):
         normalized_ssh["host"] = str(ssh.get("host", "")).strip()
         normalized_ssh["user"] = str(ssh.get("user", "")).strip()
         normalized_ssh["key_path"] = str(ssh.get("key_path", "")).strip()
         normalized_ssh["password"] = str(ssh.get("password", "")).strip()
+        repo_path = str(ssh.get("repo_path", "$HOME/mrquentinha")).strip()
+        if repo_path.startswith("~/"):
+            repo_path = "$HOME/" + repo_path[2:]
+        elif repo_path == "~":
+            repo_path = "$HOME"
+        normalized_ssh["repo_path"] = repo_path or "$HOME/mrquentinha"
+        normalized_ssh["auto_clone_repo"] = bool(ssh.get("auto_clone_repo", False))
+        normalized_ssh["git_remote_url"] = str(ssh.get("git_remote_url", "")).strip()
+        git_branch = str(ssh.get("git_branch", "main")).strip()
+        normalized_ssh["git_branch"] = git_branch or "main"
         try:
             port = int(ssh.get("port", 22))
         except (TypeError, ValueError):
@@ -3068,7 +3085,7 @@ def _normalize_installer_wizard_payload(
     }
     if isinstance(cloud, dict):
         provider = str(cloud.get("provider", "aws")).strip().lower()
-        if provider not in {"aws", "gcp"}:
+        if provider not in INSTALLER_ALLOWED_CLOUD_PROVIDERS:
             provider = "aws"
         normalized_cloud["provider"] = provider
         normalized_cloud["region"] = str(cloud.get("region", "")).strip()
@@ -3076,6 +3093,8 @@ def _normalize_installer_wizard_payload(
         normalized_cloud["ami"] = str(cloud.get("ami", "")).strip()
         normalized_cloud["key_pair_name"] = str(cloud.get("key_pair_name", "")).strip()
         normalized_cloud["use_elastic_ip"] = bool(cloud.get("use_elastic_ip", True))
+    if target in INSTALLER_ALLOWED_CLOUD_PROVIDERS:
+        normalized_cloud["provider"] = target
     normalized["cloud"] = normalized_cloud
 
     deployment = raw_payload.get("deployment")
@@ -3123,10 +3142,26 @@ def _normalize_installer_wizard_payload(
             raise ValidationError("SSH: informe o host remoto.")
         if not normalized_ssh["user"]:
             raise ValidationError("SSH: informe o usuario remoto.")
+        if not normalized_ssh[
+            "repo_path"
+        ] or not INSTALLER_SAFE_REMOTE_PATH_RE.fullmatch(normalized_ssh["repo_path"]):
+            raise ValidationError(
+                "SSH: repo_path invalido. Use apenas letras, numeros, ., /, _, -, $."
+            )
         if normalized_ssh["auth_mode"] == "key" and not normalized_ssh["key_path"]:
             warnings.append(
                 "SSH por chave selecionado sem key_path. "
                 "Valide o caminho da chave privada."
+            )
+        if normalized_ssh["auth_mode"] == "password" and not normalized_ssh["password"]:
+            raise ValidationError("SSH: informe a senha quando auth_mode=password.")
+        if normalized_ssh["auto_clone_repo"] and not normalized_ssh["git_remote_url"]:
+            raise ValidationError(
+                "SSH: informe git_remote_url para auto_clone_repo=true."
+            )
+        if not INSTALLER_SAFE_GIT_REF_RE.fullmatch(normalized_ssh["git_branch"]):
+            raise ValidationError(
+                "SSH: git_branch invalida. Use apenas letras, numeros, ., _, -, /."
             )
 
     if target in {"aws", "gcp"} and not normalized_cloud["region"]:
@@ -3152,6 +3187,305 @@ def _build_local_installer_command(
     if start_after:
         command.append("--start")
     return command
+
+
+def _sanitize_installer_payload(payload: dict) -> dict:
+    sanitized = deepcopy(payload)
+    ssh_settings = sanitized.get("ssh")
+    if isinstance(ssh_settings, dict):
+        if "password" in ssh_settings:
+            ssh_settings["password"] = ""
+    return sanitized
+
+
+def _build_ssh_destination(ssh_settings: dict) -> str:
+    host = str(ssh_settings.get("host", "")).strip()
+    user = str(ssh_settings.get("user", "")).strip()
+    return f"{user}@{host}"
+
+
+def _resolve_ssh_key_path(ssh_settings: dict) -> str:
+    raw_path = str(ssh_settings.get("key_path", "")).strip()
+    if not raw_path:
+        return ""
+    return os.path.expanduser(raw_path)
+
+
+def _build_ssh_base_command(
+    *, ssh_settings: dict, mask_sensitive: bool = False
+) -> list[str]:
+    auth_mode = str(ssh_settings.get("auth_mode", "key")).strip().lower()
+    port = int(ssh_settings.get("port", 22) or 22)
+    base_ssh = [
+        "ssh",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ServerAliveInterval=30",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        "-p",
+        str(port),
+    ]
+
+    if auth_mode == "password":
+        password = str(ssh_settings.get("password", "")).strip()
+        if not password:
+            raise ValidationError("SSH: senha nao informada para auth_mode=password.")
+        sshpass_bin = shutil.which("sshpass")
+        if not sshpass_bin:
+            raise ValidationError(
+                "SSH com senha requer 'sshpass' instalado no servidor do backend."
+            )
+        sanitized_password = "***" if mask_sensitive else password
+        return [
+            sshpass_bin,
+            "-p",
+            sanitized_password,
+            *base_ssh,
+            "-o",
+            "PreferredAuthentications=password",
+            "-o",
+            "PubkeyAuthentication=no",
+        ]
+
+    key_path = _resolve_ssh_key_path(ssh_settings)
+    if key_path:
+        base_ssh.extend(["-i", key_path])
+    base_ssh.extend(["-o", "BatchMode=yes"])
+    return base_ssh
+
+
+def _build_ssh_exec_command(
+    *, ssh_settings: dict, remote_shell_script: str, mask_sensitive: bool = False
+) -> list[str]:
+    command = _build_ssh_base_command(
+        ssh_settings=ssh_settings,
+        mask_sensitive=mask_sensitive,
+    )
+    command.append(_build_ssh_destination(ssh_settings))
+    command.append(f"bash -lc {shlex.quote(remote_shell_script)}")
+    return command
+
+
+def _render_command_preview(command: list[str]) -> str:
+    return " ".join(shlex.quote(part) for part in command)
+
+
+def _run_ssh_connectivity_probe(*, ssh_settings: dict) -> dict:
+    probe_script = "set -euo pipefail; echo MQ_SSH_CONNECTIVITY_OK"
+    probe_command = _build_ssh_exec_command(
+        ssh_settings=ssh_settings,
+        remote_shell_script=probe_script,
+        mask_sensitive=False,
+    )
+    preview_command = _build_ssh_exec_command(
+        ssh_settings=ssh_settings,
+        remote_shell_script=probe_script,
+        mask_sensitive=True,
+    )
+
+    try:
+        result = subprocess.run(
+            probe_command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValidationError(
+            "SSH: timeout ao validar conectividade com o host remoto."
+        ) from exc
+    except OSError as exc:
+        raise ValidationError(
+            "SSH: falha ao executar cliente SSH no servidor do backend."
+        ) from exc
+
+    stdout = str(result.stdout or "").strip()
+    stderr = str(result.stderr or "").strip()
+
+    if result.returncode != 0:
+        detail = stderr or stdout or "sem detalhe"
+        raise ValidationError(
+            "SSH: conexao rejeitada. "
+            f"Comando: { _render_command_preview(preview_command) }. "
+            f"Detalhe: {detail}"
+        )
+
+    return {
+        "name": "ssh_connectivity",
+        "status": "ok",
+        "detail": "Conectividade SSH validada com sucesso.",
+        "checked_at": timezone.now().isoformat(),
+        "target": _build_ssh_destination(ssh_settings),
+        "command_preview": _render_command_preview(preview_command),
+    }
+
+
+def _build_remote_installer_shell_script(*, payload: dict) -> str:
+    ssh_settings = payload.get("ssh", {})
+    repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+    if repo_path.startswith("~/"):
+        repo_path = "$HOME/" + repo_path[2:]
+    elif repo_path == "~":
+        repo_path = "$HOME"
+    if not repo_path:
+        repo_path = "$HOME/mrquentinha"
+
+    if not INSTALLER_SAFE_REMOTE_PATH_RE.fullmatch(repo_path):
+        raise ValidationError(
+            "SSH: repo_path invalido. Use apenas letras, numeros, ., /, _, -, $."
+        )
+
+    auto_clone_repo = bool(ssh_settings.get("auto_clone_repo", False))
+    git_remote_url = str(ssh_settings.get("git_remote_url", "")).strip()
+    git_branch = str(ssh_settings.get("git_branch", "main")).strip() or "main"
+    if not INSTALLER_SAFE_GIT_REF_RE.fullmatch(git_branch):
+        raise ValidationError(
+            "SSH: git_branch invalida. Use apenas letras, numeros, ., _, -, /."
+        )
+    if auto_clone_repo and not git_remote_url:
+        raise ValidationError("SSH: git_remote_url obrigatoria para auto_clone_repo.")
+
+    stack = str(payload.get("stack", "vm")).strip().lower() or "vm"
+    env_name = str(payload.get("mode", "dev")).strip().lower() or "dev"
+    start_after = bool(payload.get("start_after_install", False))
+    start_flag = " --start" if start_after else ""
+
+    clone_or_check_lines: list[str] = []
+    if auto_clone_repo:
+        safe_git_url = shlex.quote(git_remote_url)
+        safe_branch = shlex.quote(git_branch)
+        clone_or_check_lines.extend(
+            [
+                f'mkdir -p "{repo_path}"',
+                f'if [ ! -d "{repo_path}/.git" ]; then',
+                (
+                    f"  git clone --branch {safe_branch} --single-branch "
+                    f'{safe_git_url} "{repo_path}"'
+                ),
+                "else",
+                f'  cd "{repo_path}"',
+                "  git fetch --all --prune",
+                f"  git checkout {safe_branch}",
+                f"  git pull --ff-only origin {safe_branch}",
+                "fi",
+            ]
+        )
+    else:
+        clone_or_check_lines.extend(
+            [
+                f'if [ ! -d "{repo_path}" ]; then',
+                f'  echo "Repositorio remoto nao encontrado em {repo_path}" >&2',
+                "  exit 21",
+                "fi",
+            ]
+        )
+
+    install_command = (
+        "bash scripts/install_mrquentinha.sh "
+        f"--stack {shlex.quote(stack)} --env {shlex.quote(env_name)} --yes{start_flag}"
+    )
+
+    script_lines = [
+        "set -euo pipefail",
+        *clone_or_check_lines,
+        f'cd "{repo_path}"',
+        'if [ ! -f "scripts/install_mrquentinha.sh" ]; then',
+        '  echo "Instalador nao encontrado em scripts/install_mrquentinha.sh" >&2',
+        "  exit 22",
+        "fi",
+        install_command,
+    ]
+    return "; ".join(script_lines)
+
+
+def _run_cloud_connectivity_probe(*, payload: dict) -> dict:
+    cloud = payload.get("cloud", {})
+    provider = str(cloud.get("provider", "aws")).strip().lower()
+
+    if provider == "aws":
+        aws_bin = shutil.which("aws")
+        if not aws_bin:
+            raise ValidationError(
+                "AWS: CLI nao encontrada. Instale awscli para validar conectividade."
+            )
+        result = subprocess.run(
+            [aws_bin, "sts", "get-caller-identity", "--output", "json"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if result.returncode != 0:
+            detail = str(result.stderr or result.stdout or "").strip() or "sem detalhe"
+            raise ValidationError(
+                f"AWS: falha ao validar credenciais/conectividade ({detail})."
+            )
+        account_id = ""
+        arn = ""
+        try:
+            parsed = json.loads(result.stdout or "{}")
+            account_id = str(parsed.get("Account", "")).strip()
+            arn = str(parsed.get("Arn", "")).strip()
+        except json.JSONDecodeError:
+            pass
+        return {
+            "name": "aws_connectivity",
+            "status": "ok",
+            "detail": "AWS STS validado com sucesso.",
+            "checked_at": timezone.now().isoformat(),
+            "account_id": account_id,
+            "arn": arn,
+        }
+
+    if provider == "gcp":
+        gcloud_bin = shutil.which("gcloud")
+        if not gcloud_bin:
+            raise ValidationError(
+                "GCP: CLI gcloud nao encontrada. Instale o Google Cloud SDK."
+            )
+        account_result = subprocess.run(
+            [
+                gcloud_bin,
+                "auth",
+                "list",
+                "--filter=status:ACTIVE",
+                "--format=value(account)",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        active_account = str(account_result.stdout or "").strip()
+        if account_result.returncode != 0 or not active_account:
+            detail = (
+                str(account_result.stderr or account_result.stdout or "").strip()
+                or "sem detalhe"
+            )
+            raise ValidationError(
+                f"GCP: falha ao validar autenticacao ativa no gcloud ({detail})."
+            )
+        project_result = subprocess.run(
+            [gcloud_bin, "config", "get-value", "project"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        project_id = str(project_result.stdout or "").strip()
+        return {
+            "name": "gcp_connectivity",
+            "status": "ok",
+            "detail": "Google Cloud SDK validado com sucesso.",
+            "checked_at": timezone.now().isoformat(),
+            "account": active_account,
+            "project": project_id,
+        }
+
+    raise ValidationError("Cloud: provider invalido para validacao de conectividade.")
 
 
 def _sync_installer_job_in_config(config: PortalConfig, job_payload: dict) -> None:
@@ -3419,7 +3753,7 @@ def save_installer_wizard_settings(
     )
     installer_settings = _normalize_installer_settings(config.installer_settings)
     wizard = installer_settings.get("wizard", {})
-    wizard["draft"] = normalized_payload
+    wizard["draft"] = _sanitize_installer_payload(normalized_payload)
     wizard["last_completed_step"] = str(completed_step or "mode").strip() or "mode"
     installer_settings["wizard"] = wizard
     installer_settings["workflow_version"] = INSTALLER_WORKFLOW_VERSION
@@ -3502,6 +3836,7 @@ def start_installer_job(
         "exit_code_file": str(exit_code_file),
         "summary": "",
         "command_preview": "",
+        "connectivity_checks": [],
     }
 
     if target == "local":
@@ -3542,22 +3877,81 @@ def start_installer_job(
         job_payload["pid"] = process.pid
         job_payload["status"] = "running"
         job_payload["summary"] = "Instalador local iniciado em background."
+    elif target == "ssh":
+        ssh_settings = normalized_payload.get("ssh", {})
+        auth_mode = str(ssh_settings.get("auth_mode", "key")).strip().lower()
+        if auth_mode == "key":
+            key_path = _resolve_ssh_key_path(ssh_settings)
+            if not key_path:
+                raise ValidationError("SSH: key_path obrigatorio para auth_mode=key.")
+            if not os.path.exists(key_path):
+                raise ValidationError(
+                    f"SSH: chave privada nao encontrada em '{key_path}'."
+                )
+
+        connectivity_check = _run_ssh_connectivity_probe(ssh_settings=ssh_settings)
+        job_payload["connectivity_checks"] = [connectivity_check]
+
+        remote_script = _build_remote_installer_shell_script(payload=normalized_payload)
+        ssh_command = _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=remote_script,
+            mask_sensitive=False,
+        )
+        ssh_command_preview = _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=remote_script,
+            mask_sensitive=True,
+        )
+
+        command_for_execution = _render_command_preview(ssh_command)
+        job_payload["command_preview"] = _render_command_preview(ssh_command_preview)
+        wrapper_command = (
+            f"{command_for_execution}; "
+            f"rc=$?; echo $rc > {shlex.quote(str(exit_code_file))}; exit $rc"
+        )
+
+        try:
+            log_handle = open(log_file, "w", encoding="utf-8")
+        except OSError as exc:
+            raise ValidationError("Falha ao criar log do job SSH.") from exc
+
+        try:
+            process = subprocess.Popen(
+                ["bash", "-lc", wrapper_command],
+                cwd=PROJECT_ROOT,
+                stdout=log_handle,
+                stderr=log_handle,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError as exc:
+            log_handle.close()
+            raise ValidationError("Falha ao iniciar job remoto via SSH.") from exc
+        finally:
+            log_handle.close()
+
+        job_payload["pid"] = process.pid
+        job_payload["status"] = "running"
+        job_payload["summary"] = (
+            "Instalador remoto via SSH iniciado em background apos probe OK."
+        )
+    elif target in {"aws", "gcp"}:
+        cloud_check = _run_cloud_connectivity_probe(payload=normalized_payload)
+        job_payload["connectivity_checks"] = [cloud_check]
+        provider = str(
+            normalized_payload.get("cloud", {}).get("provider", "aws")
+        ).upper()
+        region = str(normalized_payload.get("cloud", {}).get("region", "")).strip()
+        region_label = f"regiao={region}" if region else "regiao=nao-informada"
+        job_payload["summary"] = (
+            f"Plano {provider} validado ({region_label}). "
+            "Provisionamento automatico completo segue na proxima fase cloud."
+        )
     else:
-        if target == "ssh":
-            job_payload["summary"] = (
-                "Plano SSH preparado. Validacao de conexao e execucao remota "
-                "serao aplicadas nas proximas fases."
-            )
-        elif target == "aws":
-            job_payload["summary"] = (
-                "Plano AWS preparado. Provisionamento automatizado avancado "
-                "segue no roadmap da fase cloud."
-            )
-        else:
-            job_payload["summary"] = (
-                "Plano GCP preparado. Provisionamento automatizado avancado "
-                "segue no roadmap da fase cloud."
-            )
+        raise ValidationError("Target de instalacao invalido.")
+
+    job_payload["payload"] = _sanitize_installer_payload(normalized_payload)
 
     saved_job = _write_installer_job(job_payload)
     _sync_installer_job_in_config(config, saved_job)

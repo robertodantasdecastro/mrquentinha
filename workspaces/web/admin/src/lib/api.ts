@@ -7,11 +7,14 @@ import {
 import { trackNetworkRequest } from "@/lib/networkPreloader";
 import type {
   AdminActivityLogListResult,
+  AdminActivityOverviewData,
   AuthTokens,
   AuthUserProfile,
   UserProfileData,
   UpdateUserProfilePayload,
   AdminUserData,
+  AssignUserTasksPayload,
+  AssignUserTasksResultData,
   AssignUserRolesPayload,
   AssignUserRolesResultData,
   CreateCustomerLgpdRequestPayload,
@@ -63,6 +66,7 @@ import type {
   PurchaseRequestData,
   PurchaseRequestFromMenuResultData,
   ProcurementRequestStatus,
+  TaskCategoryData,
   RoleData,
   StockItemData,
   StockMovementData,
@@ -71,6 +75,8 @@ import type {
   UpsertMenuDayPayload,
   UpdateDishPayload,
   UpdateIngredientPayload,
+  CreateAdminUserPayload,
+  UpdateAdminUserPayload,
 } from "@/types/api";
 
 export class ApiError extends Error {
@@ -542,6 +548,27 @@ export async function listUsersAdmin(): Promise<AdminUserData[]> {
   return normalizeListPayload(payload);
 }
 
+export async function createUserAdmin(
+  payload: CreateAdminUserPayload,
+): Promise<AdminUserData> {
+  return requestJson<AdminUserData>("/api/v1/accounts/users/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateUserAdmin(
+  userId: number,
+  payload: UpdateAdminUserPayload,
+): Promise<AdminUserData> {
+  return requestJson<AdminUserData>(`/api/v1/accounts/users/${userId}/`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function listRolesAdmin(): Promise<RoleData[]> {
   const payload = await requestJson<RoleData[] | { results?: RoleData[] }>(
     "/api/v1/accounts/roles/",
@@ -555,6 +582,18 @@ export async function listRolesAdmin(): Promise<RoleData[]> {
   return normalizeListPayload(payload);
 }
 
+export async function listTaskCategoriesAdmin(): Promise<TaskCategoryData[]> {
+  const payload = await requestJson<
+    TaskCategoryData[] | { results?: TaskCategoryData[] }
+  >("/api/v1/accounts/task-categories/", {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+
+  return normalizeListPayload(payload);
+}
+
 export async function assignUserRolesAdmin(
   userId: number,
   payload: AssignUserRolesPayload,
@@ -564,6 +603,20 @@ export async function assignUserRolesAdmin(
     auth: true,
     body: JSON.stringify(payload),
   });
+}
+
+export async function assignUserTasksAdmin(
+  userId: number,
+  payload: AssignUserTasksPayload,
+): Promise<AssignUserTasksResultData> {
+  return requestJson<AssignUserTasksResultData>(
+    `/api/v1/accounts/users/${userId}/tasks/`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function listCustomersAdmin(params?: {
@@ -1400,6 +1453,49 @@ export async function listAdminActivityLogsAdmin(params?: {
     ? `/api/v1/admin-audit/admin-activity/?${query}`
     : "/api/v1/admin-audit/admin-activity/";
   return requestJson<AdminActivityLogListResult>(path, {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+}
+
+export async function fetchAdminActivityOverviewAdmin(params?: {
+  search?: string;
+  actor?: string;
+  channel?: string;
+  method?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+}): Promise<AdminActivityOverviewData> {
+  const queryParams = new URLSearchParams();
+  if (params?.search) {
+    queryParams.set("search", params.search);
+  }
+  if (params?.actor) {
+    queryParams.set("actor", params.actor);
+  }
+  if (params?.channel) {
+    queryParams.set("channel", params.channel);
+  }
+  if (params?.method) {
+    queryParams.set("method", params.method);
+  }
+  if (params?.status) {
+    queryParams.set("status", params.status);
+  }
+  if (params?.date_from) {
+    queryParams.set("date_from", params.date_from);
+  }
+  if (params?.date_to) {
+    queryParams.set("date_to", params.date_to);
+  }
+
+  const query = queryParams.toString();
+  const path = query
+    ? `/api/v1/admin-audit/admin-activity/overview/?${query}`
+    : "/api/v1/admin-audit/admin-activity/overview/";
+  return requestJson<AdminActivityOverviewData>(path, {
     method: "GET",
     auth: true,
     cache: "no-store",

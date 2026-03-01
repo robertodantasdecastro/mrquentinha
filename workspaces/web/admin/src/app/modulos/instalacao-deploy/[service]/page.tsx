@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 
 import { AdminSessionGate } from "@/components/AdminSessionGate";
+import { ModuleAccessGuard } from "@/components/ModuleAccessGuard";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import {
   INSTALL_DEPLOY_MENU_ITEMS,
@@ -30,16 +31,18 @@ export default function InstalacaoDeployServicePage() {
 
   return (
     <AdminSessionGate>
-      <ModulePageShell
-        title="Instalacao / Deploy"
-        description="Assistente guiado para instalacao local/remota e deploy com DNS, dominios e pre-requisitos de producao."
-        statusLabel="Ativo"
-        statusTone="success"
-        menuItems={INSTALL_DEPLOY_MENU_ITEMS}
-        activeKey={service}
-      >
-        <InstallDeploySections activeSection={service} />
-      </ModulePageShell>
+      <ModuleAccessGuard moduleSlug="instalacao-deploy" moduleLabel="Instalacao / Deploy">
+        <ModulePageShell
+          title="Instalacao / Deploy"
+          description="Assistente guiado para instalacao local/remota e deploy com DNS, dominios e pre-requisitos de producao."
+          statusLabel="Ativo"
+          statusTone="success"
+          menuItems={INSTALL_DEPLOY_MENU_ITEMS}
+          activeKey={service}
+        >
+          <InstallDeploySections activeSection={service} />
+        </ModulePageShell>
+      </ModuleAccessGuard>
     </AdminSessionGate>
   );
 }

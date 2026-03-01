@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.utils import timezone
 
-from apps.accounts.models import UserProfile, UserRole
+from apps.accounts.models import UserProfile, UserRole, UserTaskAssignment
 from apps.accounts.services import (
     SystemRole,
     assign_roles_to_user,
@@ -402,6 +402,174 @@ def test_accounts_users_retrieve_retorna_roles(client):
     assert payload["id"] == target_user.id
     assert payload["username"] == "estoquista_1"
     assert set(payload["roles"]) == {SystemRole.ESTOQUE, SystemRole.COMPRAS}
+
+
+@pytest.mark.django_db
+def test_accounts_users_create_admin_com_roles_e_tarefas(client):
+    response = client.post(
+        "/api/v1/accounts/users/",
+        {
+            "username": "cozinha_lider",
+            "password": "Senha_Forte_987",
+            "email": "cozinha_lider@example.com",
+            "first_name": "Lider",
+            "last_name": "Cozinha",
+            "role_codes": [SystemRole.COZINHA],
+            "task_codes": ["PRODUCAO_EXECUCAO", "PRODUCAO_PLANEJAMENTO"],
+            "is_active": True,
+            "is_staff": False,
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["username"] == "cozinha_lider"
+    assert set(payload["roles"]) == {SystemRole.COZINHA}
+    assert set(payload["task_codes"]) == {"PRODUCAO_EXECUCAO", "PRODUCAO_PLANEJAMENTO"}
+
+    User = get_user_model()
+    created_user = User.objects.get(username="cozinha_lider")
+    assert created_user.check_password("Senha_Forte_987")
+    assert (
+        UserTaskAssignment.objects.filter(
+            user=created_user, task__code="PRODUCAO_EXECUCAO"
+        ).exists()
+        is True
+    )
+
+
+@pytest.mark.django_db
+def test_accounts_users_update_admin_altera_status_e_senha(client):
+    User = get_user_model()
+    target_user = User.objects.create_user(
+        username="operador_update",
+        password="Senha_Antiga_123",
+        email="operador_update@example.com",
+        first_name="Operador",
+        last_name="Antigo",
+    )
+    ensure_default_roles()
+    assign_roles_to_user(
+        user=target_user, role_codes=[SystemRole.ESTOQUE], replace=True
+    )
+
+    response = client.patch(
+        f"/api/v1/accounts/users/{target_user.id}/",
+        {
+            "first_name": "Operador Novo",
+            "last_name": "Sobrenome Novo",
+            "is_active": False,
+            "password": "Senha_Nova_123",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["first_name"] == "Operador Novo"
+    assert payload["is_active"] is False
+
+    target_user.refresh_from_db()
+    assert target_user.first_name == "Operador Novo"
+    assert target_user.last_name == "Sobrenome Novo"
+    assert target_user.is_active is False
+    assert target_user.check_password("Senha_Nova_123")
+
+
+@pytest.mark.django_db
+def test_accounts_users_assign_tasks_exige_admin(client, anonymous_client):
+    User = get_user_model()
+
+    target_user = User.objects.create_user(
+        username="usuario_com_tarefas",
+        password="usuario_com_tarefas_123",
+    )
+    operador_cozinha = User.objects.create_user(
+        username="operador_sem_admin",
+        password="operador_sem_admin_123",
+    )
+    ensure_default_roles()
+    assign_roles_to_user(
+        user=operador_cozinha,
+        role_codes=[SystemRole.COZINHA],
+        replace=True,
+    )
+
+    anonymous_client.force_authenticate(user=operador_cozinha)
+    forbidden_response = anonymous_client.post(
+        f"/api/v1/accounts/users/{target_user.id}/tasks/",
+        {
+            "task_codes": ["PRODUCAO_EXECUCAO"],
+            "replace": True,
+        },
+        format="json",
+    )
+    assert forbidden_response.status_code == 403
+
+    allowed_response = client.post(
+        f"/api/v1/accounts/users/{target_user.id}/tasks/",
+        {
+            "task_codes": ["PRODUCAO_EXECUCAO", "ESTOQUE_OPERACAO"],
+            "replace": True,
+        },
+        format="json",
+    )
+
+    assert allowed_response.status_code == 200
+    assert set(allowed_response.json()["task_codes"]) == {
+        "PRODUCAO_EXECUCAO",
+        "ESTOQUE_OPERACAO",
+    }
+
+
+@pytest.mark.django_db
+def test_accounts_task_categories_list_requer_admin(client, anonymous_client):
+    allowed_response = client.get("/api/v1/accounts/task-categories/")
+    assert allowed_response.status_code == 200
+    payload = allowed_response.json()
+    assert isinstance(payload, list)
+    assert any(item["code"] == "OPERACAO_PRODUCAO" for item in payload)
+    categoria_producao = next(
+        item for item in payload if item["code"] == "OPERACAO_PRODUCAO"
+    )
+    assert any(
+        task["code"] == "PRODUCAO_EXECUCAO" for task in categoria_producao["tasks"]
+    )
+
+    User = get_user_model()
+    operador = User.objects.create_user(
+        username="operador_sem_permissao",
+        password="operador_sem_permissao_123",
+    )
+    ensure_default_roles()
+    assign_roles_to_user(user=operador, role_codes=[SystemRole.COZINHA], replace=True)
+    anonymous_client.force_authenticate(user=operador)
+    forbidden_response = anonymous_client.get("/api/v1/accounts/task-categories/")
+    assert forbidden_response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_accounts_me_retorna_modulos_permitidos_sem_areas_tecnicas_para_nao_admin(
+    anonymous_client,
+):
+    User = get_user_model()
+    user = User.objects.create_user(
+        username="cozinha_acesso",
+        password="cozinha_acesso_123",
+        email="cozinha_acesso@example.com",
+    )
+    ensure_default_roles()
+    assign_roles_to_user(user=user, role_codes=[SystemRole.COZINHA], replace=True)
+    anonymous_client.force_authenticate(user=user)
+
+    response = anonymous_client.get("/api/v1/accounts/me/")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["can_access_technical_admin"] is False
+    assert "portal" not in payload["allowed_admin_module_slugs"]
+    assert "instalacao-deploy" not in payload["allowed_admin_module_slugs"]
+    assert "pedidos" in payload["allowed_admin_module_slugs"]
 
 
 VALID_GIF_BYTES = (

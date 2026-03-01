@@ -107,3 +107,115 @@ def test_admin_activity_endpoint_nao_gera_log_de_auto_consulta(client, admin_use
 
     assert response.status_code == 200
     assert AdminActivityLog.objects.count() == before_count
+
+
+@pytest.mark.django_db
+def test_admin_activity_overview_endpoint_retorna_kpis(client, admin_user):
+    AdminActivityLog.objects.create(
+        actor=admin_user,
+        actor_username="admin_test",
+        actor_is_staff=False,
+        actor_is_superuser=False,
+        channel="web-admin",
+        method="GET",
+        path="/api/v1/orders/",
+        action_group="orders",
+        resource="",
+        http_status=200,
+        is_success=True,
+        duration_ms=35,
+    )
+    AdminActivityLog.objects.create(
+        actor=admin_user,
+        actor_username="admin_test",
+        actor_is_staff=False,
+        actor_is_superuser=False,
+        channel="web-admin",
+        method="POST",
+        path="/api/v1/orders/",
+        action_group="orders",
+        resource="",
+        http_status=201,
+        is_success=True,
+        duration_ms=97,
+    )
+    AdminActivityLog.objects.create(
+        actor=admin_user,
+        actor_username="admin_test",
+        actor_is_staff=False,
+        actor_is_superuser=False,
+        channel="web-admin",
+        method="PATCH",
+        path="/api/v1/portal/admin/config/",
+        action_group="portal",
+        resource="config",
+        http_status=403,
+        is_success=False,
+        duration_ms=66,
+    )
+
+    response = client.get("/api/v1/admin-audit/admin-activity/overview/")
+    assert response.status_code == 200
+
+    payload = response.json()
+    totals = payload["totals"]
+    assert totals["events"] >= 3
+    assert totals["success_count"] >= 2
+    assert totals["error_count"] >= 1
+    assert totals["client_error_count"] >= 1
+    assert isinstance(payload["by_method"], list)
+    assert any(item["key"] == "GET" for item in payload["by_method"])
+    assert len(payload["hourly_series_last_24h"]) == 24
+    assert "failed_events" in payload["security"]
+
+
+@pytest.mark.django_db
+def test_admin_activity_endpoint_aceita_filtro_status_por_classe(client, admin_user):
+    AdminActivityLog.objects.create(
+        actor=admin_user,
+        actor_username="admin_test",
+        actor_is_staff=False,
+        actor_is_superuser=False,
+        channel="web-admin",
+        method="GET",
+        path="/api/v1/orders/",
+        action_group="orders",
+        resource="",
+        http_status=200,
+        is_success=True,
+        duration_ms=20,
+    )
+    AdminActivityLog.objects.create(
+        actor=admin_user,
+        actor_username="admin_test",
+        actor_is_staff=False,
+        actor_is_superuser=False,
+        channel="web-admin",
+        method="PATCH",
+        path="/api/v1/portal/admin/config/",
+        action_group="portal",
+        resource="config",
+        http_status=403,
+        is_success=False,
+        duration_ms=42,
+    )
+
+    response = client.get("/api/v1/admin-audit/admin-activity/?status=4xx&limit=20")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] >= 1
+    assert all(400 <= row["http_status"] < 500 for row in payload["results"])
+
+
+@pytest.mark.django_db
+def test_admin_activity_overview_endpoint_requer_admin(
+    anonymous_client,
+    create_user_with_roles,
+):
+    operador = create_user_with_roles(
+        username="operador_auditoria",
+        role_codes=[],
+    )
+    anonymous_client.force_authenticate(user=operador)
+    response = anonymous_client.get("/api/v1/admin-audit/admin-activity/overview/")
+    assert response.status_code == 403

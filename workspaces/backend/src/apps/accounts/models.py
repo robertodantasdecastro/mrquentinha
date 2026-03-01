@@ -48,6 +48,72 @@ class UserRole(TimeStampedModel):
         return f"{self.user_id}:{self.role.code}"
 
 
+class UserTaskCategory(TimeStampedModel):
+    code = models.CharField(max_length=48, unique=True)
+    name = models.CharField(max_length=96)
+    description = models.CharField(max_length=255, blank=True)
+    is_active = models.BooleanField(default=True)
+    technical_scope = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["code"]
+
+    def __str__(self) -> str:
+        return self.code
+
+
+class UserTask(TimeStampedModel):
+    category = models.ForeignKey(
+        UserTaskCategory,
+        on_delete=models.CASCADE,
+        related_name="tasks",
+    )
+    code = models.CharField(max_length=64, unique=True)
+    name = models.CharField(max_length=120)
+    description = models.CharField(max_length=255, blank=True)
+    is_active = models.BooleanField(default=True)
+    technical_scope = models.BooleanField(default=False)
+    related_module_slug = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        ordering = ["category__code", "code"]
+
+    def __str__(self) -> str:
+        return self.code
+
+
+class UserTaskAssignment(TimeStampedModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="task_assignments",
+    )
+    task = models.ForeignKey(
+        UserTask,
+        on_delete=models.CASCADE,
+        related_name="user_assignments",
+    )
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="task_assignments_granted",
+    )
+
+    class Meta:
+        ordering = ["user_id", "task__category__code", "task__code"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "task"],
+                name="accounts_usertaskassignment_user_task_unique",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.task.code}"
+
+
 class UserProfile(TimeStampedModel):
     class DocumentType(models.TextChoices):
         CPF = "CPF", "CPF"

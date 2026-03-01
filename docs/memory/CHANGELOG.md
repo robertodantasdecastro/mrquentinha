@@ -1,5 +1,28 @@
 # Changelog (por sprint)
 
+## 01/03/2026
+- T9.2.7-A4-HF2 (web admin/auditoria): auditoria de atividade removida do modulo `Administracao do servidor` e migrada para novo modulo dedicado `/modulos/auditoria-atividade`, com navegacao propria em todos os templates do Admin.
+- T9.2.7-A4-HF2 (web admin/auditoria): novo dashboard de auditoria com KPIs de eventos, taxa de sucesso/erro, latencia media/p95, distribuicao por metodo/canal, segurança (401/403/anonimos/falhas) e tendencias (top atores/rotas/grupos de acao).
+- T9.2.7-A4-HF2 (backend/admin_audit): novo endpoint `GET /api/v1/admin-audit/admin-activity/overview/` com agregacoes seguras para dashboard (series 24h, top listas, contadores de seguranca e latencia).
+- T9.2.7-A4-HF2 (backend/admin_audit): filtro de status evoluido para aceitar classes HTTP (`2xx`, `4xx`, `5xx`) alem de codigo exato.
+- T9.2.7-A4-HF2 (docs/adr): ADR `0015-modulo-dedicado-auditoria-atividade-web-admin.md` criada para registrar separacao arquitetural da auditoria.
+- T9.2.7-A4-HF2 (qa): validado com `pytest tests/test_admin_audit_api.py tests/test_api_index.py`, `npm run lint` e `npm run build` no `web/admin`.
+- T9.2.7-A5-PLAN (docs/cloud): criado plano formal de implementacao cloud com prioridade AWS em `docs/11-plano-cloud-aws-google-e-testes-operacionais.md`, incluindo backlog futuro para paridade Google Cloud e campanha de testes operacionais guiados.
+- T9.2.7-A5-PLAN (docs/cronograma): `docs/10-plano-mvp-cronograma.md` atualizado para marcar `T9.2.7-A5-A2` como etapa ativa recomendada.
+- T9.2.7-RBAC-HF1 (backend/accounts): modulo de usuarios evoluiu para gestao completa com criacao/edicao de contas administrativas, catalogo de categorias/tarefas (`UserTaskCategory`, `UserTask`, `UserTaskAssignment`) e atribuicao de tarefas por usuario.
+- T9.2.7-RBAC-HF1 (backend/accounts): payload de usuario (`/api/v1/accounts/me/` e `/api/v1/accounts/users/`) passou a incluir `task_codes`, `task_category_codes`, `allowed_admin_module_slugs` e `can_access_technical_admin`.
+- T9.2.7-RBAC-HF1 (web admin): painel `/modulos/usuarios-rbac` agora cobre criacao de usuario, edicao de conta, atribuicao de papeis e atribuicao de tarefas por categoria diretamente no Web Admin.
+- T9.2.7-RBAC-HF1 (web admin/security): bloqueio de acesso por perfil aplicado em modulos tecnicos (`Portal CMS`, `Administracao do servidor`, `Instalacao / Deploy` e `Usuarios e RBAC`) para usuarios sem papel `ADMIN`.
+- T9.2.7-RBAC-HF1 (docs/adr): ADR `0014-governanca-usuarios-rbac-tarefas-e-acesso-tecnico.md` criada para registrar a decisao arquitetural.
+- T9.2.7-RBAC-HF1 (qa): validado com `python manage.py check`, `ruff check`, `pytest tests/test_accounts_api.py`, `npm run lint` e `npm run build` no `web/admin`.
+- T9.2.7-A4-HF1 (web admin/cloudflare): secao `Conectividade e dominio` evoluida para controle explicito de `Hosts personalizados (DEV)` com acao de habilitar/desabilitar, exibicao de status atual e bloqueio de edicao dos campos `dev_manual_urls` quando o modo ativo for `random`.
+- T9.2.7-A4-HF1 (qa): retomada de sessao validada com `bash scripts/gemini_check.sh`, `bash scripts/branch_guard.sh --agent codex --strict ...`, `bash scripts/smoke_stack_dev.sh`, `bash scripts/smoke_client_dev.sh`, `npm run lint` e `npm run build` no `workspaces/web/admin`.
+- T9.2.7-A5-A1 (backend/portal): assistente de instalacao evoluido com execucao remota real via SSH (probe de conectividade + start em background + log/exit code) e sanitizacao de segredos em jobs/drafts (`password` nao persiste em `installer_settings` nem em payload de job).
+- T9.2.7-A5-A1 (backend/portal): validacao de conectividade cloud adicionada para `target=aws|gcp` antes de aceitar o job (`aws sts get-caller-identity` e `gcloud auth list`), com erro bloqueante quando CLI/credenciais nao estiverem prontas.
+- T9.2.7-A5-A1 (web admin/instalacao): painel `Instalacao / Deploy` ganhou campos operacionais SSH (`repo_path`, `auto_clone_repo`, `git_remote_url`, `git_branch`) e exibicao de `connectivity_checks` no card do job ativo.
+- T9.2.7-A5-A1 (qa): validado com `python manage.py check`, `ruff check`, `black`, `pytest tests/test_portal_services.py tests/test_portal_api.py`, `npm run lint` e `npm run build` no `web/admin`.
+- T9.2.7-A5-A1 (qa/hardening): contrato de `GET /` atualizado em `tests/test_api_index.py` para refletir endpoint administrativo de auditoria (`admin_audit`) ja exposto no index da API.
+
 ## 28/02/2026
 - T9.2.7-A4 (backend/admin_audit): novo app `admin_audit` com modelo `AdminActivityLog`, middleware de trilha administrativa em `/api/v1/*` e endpoint paginado `GET /api/v1/admin-audit/admin-activity/`.
 - T9.2.7-A4 (backend/security): sanitizacao de payload/query sensivel na auditoria (`password`, `token`, `secret`, etc.) e exclusao do endpoint da propria auditoria para evitar auto-ruido.

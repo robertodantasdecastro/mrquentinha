@@ -29,6 +29,7 @@ def api_index_view(_request):
                 "mobile_release_latest": "/api/v1/portal/mobile/releases/latest/",
                 "personal_finance": "/api/v1/personal-finance",
                 "admin_audit": "/api/v1/admin-audit/admin-activity/",
+                "admin_audit_overview": "/api/v1/admin-audit/admin-activity/overview/",
             },
         }
     )

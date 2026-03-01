@@ -1,6 +1,6 @@
 # Project State (dev)
 
-Referencia de atualizacao: 28/02/2026.
+Referencia de atualizacao: 01/03/2026.
 
 ## Etapas
 - Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.7-A1`, `9.2.7-A2`, `9.2.7-A4`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
@@ -106,6 +106,20 @@ Referencia de atualizacao: 28/02/2026.
   - novo app `admin_audit` no backend com trilha administrativa (`AdminActivityLog`) e endpoint paginado `GET /api/v1/admin-audit/admin-activity/`.
   - middleware de auditoria com sanitizacao de payload/query sensivel e exclusao do endpoint de auto-consulta para evitar ruido.
   - configuracao Cloudflare DEV evoluida com `dev_url_mode` (`random`/`manual`) e `dev_manual_urls` para estabilidade de enderecamento em homologacao.
+- Atualizacao em 01/03/2026 (`T9.2.7-A4-HF1`):
+  - painel Cloudflare no Web Admin passou a ter controle explicito de `Hosts personalizados (DEV)` (habilitar/desabilitar) com status visual do modo ativo.
+  - inputs de `dev_manual_urls` agora ficam bloqueados quando o modo estiver `random`, reduzindo edicoes acidentais em homologacao DEV.
+- Atualizacao em 01/03/2026 (`T9.2.7-A5-A1`):
+  - `start_installer_job` passou a executar instalacao remota real via SSH (probe de conectividade, comando remoto em background, logs e codigo de saida no runtime de jobs).
+  - modo cloud (`aws`/`gcp`) passou a exigir validacao de conectividade/credencial de CLI antes de aceitar job de deploy.
+  - payload sensivel do assistente (`ssh.password`) passou a ser sanitizado em persistencia de draft/job.
+- Atualizacao em 01/03/2026 (`T9.2.7-RBAC-HF1`):
+  - backend `accounts` passou a suportar administracao completa de usuarios internos (criar/editar conta), com vinculacao de categorias/tarefas operacionais por usuario.
+  - novos modelos de governanca adicionados: `UserTaskCategory`, `UserTask`, `UserTaskAssignment`.
+  - payload de usuario admin/me evoluiu com `task_codes`, `task_category_codes`, `allowed_admin_module_slugs` e `can_access_technical_admin`.
+- Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`):
+  - auditoria de atividade foi separada do modulo `Administracao do servidor` e publicada em modulo dedicado `/modulos/auditoria-atividade`.
+  - API administrativa de auditoria evoluiu com endpoint de overview (`/api/v1/admin-audit/admin-activity/overview/`) para KPIs e tendencias.
 - Financas pessoais (`T8.1.1`):
   - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
   - ownership estrito por usuario em querysets e validacoes.
@@ -184,6 +198,9 @@ Referencia de atualizacao: 28/02/2026.
 - Atualizacao concluida em 28/02/2026 (`T9.2.8-A1`): wizard passou a validar e bloquear producao sem pre-requisitos obrigatorios (DNS/servidor + gateway de pagamento), com modal de correcao inline no Web Admin.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A4`): `Administracao do servidor` ganhou secao `Auditoria de atividade` com filtros, paginacao e historico completo de operacoes por usuario/data/hora.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A4`): secao `Conectividade e dominio` ganhou controle de origem de URL DEV (`random`/`manual`) e URLs manuais editaveis para `portal/client/admin/api`.
+- Atualizacao em 01/03/2026 (`T9.2.7-A5-A1`): modulo `Instalacao / Deploy` ganhou parametros SSH de repositorio remoto (`repo_path`, `auto_clone_repo`, `git_remote_url`, `git_branch`) e exibicao de validacoes de conectividade no acompanhamento do job.
+- Atualizacao em 01/03/2026 (`T9.2.7-RBAC-HF1`): modulo `/modulos/usuarios-rbac` evoluiu para gestao completa (criacao de conta, edicao de conta, papeis e tarefas por categoria) e recebeu bloqueio explicito de acesso tecnico para perfis sem `ADMIN`.
+- Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`): novo modulo `/modulos/auditoria-atividade` com dashboard de indicadores, filtros avancados, investigacao de eventos e secoes de seguranca/tendencias em todos os templates do Admin.
 - Workspace ativo: `workspaces/web/admin`.
 - Hotfix `T6.3.2-A14-HF1` implementado: resolucao automatica de `api_base_url` em runtime aplicada nos frontends `admin/client/portal` para acessos via dominios dinamicos `trycloudflare`.
 - Status de validacao externa do fluxo Cloudflare DEV: concluido em `27/02/2026 15:04` (Portal/Client/Admin/API online, health 200, comunicacao frontend <-> API validada no teste funcional).
@@ -217,8 +234,15 @@ Referencia de atualizacao: 28/02/2026.
 - `POST /api/v1/accounts/email-verification/resend/`
 - `GET /api/v1/accounts/roles/`
 - `GET /api/v1/accounts/users/`
+- `POST /api/v1/accounts/users/`
 - `GET /api/v1/accounts/users/<id>/`
+- `PATCH /api/v1/accounts/users/<id>/`
 - `POST /api/v1/accounts/users/<id>/roles/`
+- `POST /api/v1/accounts/users/<id>/tasks/`
+- `GET /api/v1/accounts/task-categories/`
+- `GET /api/v1/accounts/tasks/`
+- `GET /api/v1/admin-audit/admin-activity/`
+- `GET /api/v1/admin-audit/admin-activity/overview/`
 - `GET /api/v1/accounts/customers/`
 - `GET /api/v1/accounts/customers/<id>/`
 - `PATCH /api/v1/accounts/customers/<id>/profile/`

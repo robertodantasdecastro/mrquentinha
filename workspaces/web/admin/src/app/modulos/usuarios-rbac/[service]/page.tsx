@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 
 import { AdminSessionGate } from "@/components/AdminSessionGate";
+import { ModuleAccessGuard } from "@/components/ModuleAccessGuard";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import {
   USUARIOS_RBAC_MENU_ITEMS,
@@ -26,16 +27,18 @@ export default function UsuariosRbacServicePage() {
 
   return (
     <AdminSessionGate>
-      <ModulePageShell
-        title="Usuários e RBAC"
-        description="Gestão de papéis, permissões e trilha básica de auditoria."
-        statusLabel="Baseline ativo"
-        statusTone="info"
-        menuItems={USUARIOS_RBAC_MENU_ITEMS}
-        activeKey={service}
-      >
-        <UsuariosRbacSections activeSection={service} />
-      </ModulePageShell>
+      <ModuleAccessGuard moduleSlug="usuarios-rbac" moduleLabel="Usuários e RBAC">
+        <ModulePageShell
+          title="Usuários e RBAC"
+          description="Gestão de papéis, permissões e trilha básica de auditoria."
+          statusLabel="Baseline ativo"
+          statusTone="info"
+          menuItems={USUARIOS_RBAC_MENU_ITEMS}
+          activeKey={service}
+        >
+          <UsuariosRbacSections activeSection={service} />
+        </ModulePageShell>
+      </ModuleAccessGuard>
     </AdminSessionGate>
   );
 }

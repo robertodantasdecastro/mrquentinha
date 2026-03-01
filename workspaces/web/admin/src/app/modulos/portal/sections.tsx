@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
 import { InlinePreloader } from "@/components/InlinePreloader";
-import { AdminActivityAuditPanel } from "@/components/modules/AdminActivityAuditPanel";
 
 import {
   ApiError,
@@ -72,11 +71,6 @@ export const SERVER_ADMIN_MENU_ITEMS = [
     href: `${SERVER_ADMIN_BASE_PATH}/conectividade#conectividade`,
   },
   {
-    key: "auditoria",
-    label: "Auditoria de atividade",
-    href: `${SERVER_ADMIN_BASE_PATH}/auditoria#auditoria`,
-  },
-  {
     key: "mobile-build",
     label: "Build e release",
     href: `${SERVER_ADMIN_BASE_PATH}/mobile-build#mobile-build`,
@@ -95,7 +89,6 @@ export type ServerAdminSectionKey =
   | "all"
   | "email"
   | "conectividade"
-  | "auditoria"
   | "mobile-build";
 
 type PortalSectionsMode = "portal" | "server-admin";
@@ -904,6 +897,7 @@ export function PortalSections({
     () => resolveHostFromApiBaseUrl(apiBaseUrlDraft),
     [apiBaseUrlDraft],
   );
+  const customDevHostsEnabled = cloudflareDevUrlModeDraft === "manual";
   const selectedFrontendProviders = useMemo(
     () =>
       new Set(
@@ -2975,21 +2969,28 @@ export function PortalSections({
               </p>
               {cloudflareDevModeDraft && (
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <label className="grid gap-1 text-sm text-muted">
-                    Origem das URLs DEV
-                    <select
-                      value={cloudflareDevUrlModeDraft}
-                      onChange={(event) =>
+                  <div className="grid gap-2 text-sm text-muted">
+                    <p className="font-medium text-text">Hosts personalizados (DEV)</p>
+                    <button
+                      type="button"
+                      onClick={() =>
                         setCloudflareDevUrlModeDraft(
-                          event.currentTarget.value as PortalCloudflareDevUrlMode,
+                          customDevHostsEnabled ? "random" : "manual",
                         )
                       }
-                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      className="w-fit rounded-md border border-border bg-bg px-3 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
                     >
-                      <option value="random">Aleatorias (runtime cloudflared)</option>
-                      <option value="manual">Padrao fixo (editavel)</option>
-                    </select>
-                  </label>
+                      {customDevHostsEnabled
+                        ? "Desabilitar hosts personalizados"
+                        : "Habilitar hosts personalizados"}
+                    </button>
+                    <p className="text-xs">
+                      Status atual:{" "}
+                      <strong className="text-text">
+                        {customDevHostsEnabled ? "habilitado" : "desabilitado"}
+                      </strong>
+                    </p>
+                  </div>
                   <p className="rounded-md border border-border bg-bg px-3 py-2 text-xs text-muted">
                     Em <strong>manual</strong>, as URLs abaixo viram referencia ativa para
                     roteamento/API dos frontends no modo DEV. Em <strong>random</strong>, o sistema
@@ -3006,6 +3007,7 @@ export function PortalSections({
                   <input
                     value={cloudflarePortalDevUrlDraft}
                     onChange={(event) => setCloudflarePortalDevUrlDraft(event.currentTarget.value)}
+                    disabled={!customDevHostsEnabled}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                     placeholder="https://portal-mrquentinha.trycloudflare.com"
                   />
@@ -3015,6 +3017,7 @@ export function PortalSections({
                   <input
                     value={cloudflareClientDevUrlDraft}
                     onChange={(event) => setCloudflareClientDevUrlDraft(event.currentTarget.value)}
+                    disabled={!customDevHostsEnabled}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                     placeholder="https://cliente-mrquentinha.trycloudflare.com"
                   />
@@ -3024,6 +3027,7 @@ export function PortalSections({
                   <input
                     value={cloudflareAdminDevUrlDraft}
                     onChange={(event) => setCloudflareAdminDevUrlDraft(event.currentTarget.value)}
+                    disabled={!customDevHostsEnabled}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                     placeholder="https://admin-mrquentinha.trycloudflare.com"
                   />
@@ -3033,6 +3037,7 @@ export function PortalSections({
                   <input
                     value={cloudflareApiDevUrlDraft}
                     onChange={(event) => setCloudflareApiDevUrlDraft(event.currentTarget.value)}
+                    disabled={!customDevHostsEnabled}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                     placeholder="https://api-mrquentinha.trycloudflare.com"
                   />
@@ -3490,8 +3495,6 @@ export function PortalSections({
           </div>
         </section>
       )}
-
-      {shouldRenderSection("auditoria", "server-admin") && <AdminActivityAuditPanel />}
 
       {shouldRenderSection("mobile-build", "server-admin") && (
         <section
