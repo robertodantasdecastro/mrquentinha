@@ -516,3 +516,23 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - evita regressao de acesso no Web Admin.
   - reduz dependencia de ajuste manual de `.env` para operacao de e-mail.
   - mantem compliance no canal cliente sem impactar operacao interna.
+
+## 01/03/2026 - Validacao AWS segura no assistente de instalacao (T9.2.7-A5-A2)
+- Status: aceito.
+- Decisao:
+  - adicionar endpoint dedicado de validacao AWS no modulo `Instalacao / Deploy`:
+    - `POST /api/v1/portal/admin/config/installer-cloud/aws/validate/`;
+  - validar credenciais AWS por dois modos:
+    - `profile` (role/perfil local),
+    - `access_key` (chaves temporarias/em runtime);
+  - nunca persistir `secret_access_key` e `session_token` no `PortalConfig`/jobs.
+  - incluir no retorno da validacao:
+    - conectividade (`STS`/`IAM`),
+    - checks de infraestrutura (`Route53`, `EC2`, `Elastic IP`, `CodeDeploy`),
+    - custos estimados e snapshot MTD via Cost Explorer (quando habilitado).
+- Consequencia:
+  - operador ganha visibilidade tecnica e financeira antes do provisionamento cloud.
+  - fluxo AWS fica mais seguro por reduzir persistencia de segredos.
+  - automacao completa de provisionamento/deploy permanece na proxima iteracao.
+- Referencia:
+  - ADR `docs/adr/0016-installer-aws-validacao-segura-e-custos.md`.

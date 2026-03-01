@@ -38,6 +38,7 @@ from .services import (
     send_portal_test_email,
     start_installer_job,
     toggle_cloudflare_mode,
+    validate_installer_aws_setup,
     validate_installer_wizard_payload,
 )
 
@@ -221,6 +222,19 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
             raise DRFValidationError(["Campo payload precisa ser um objeto JSON."])
         try:
             result = validate_installer_wizard_payload(payload=payload)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        return Response(result, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="installer-cloud/aws/validate")
+    def installer_cloud_aws_validate(self, request):
+        payload = request.data.get("payload", {})
+        if payload is None:
+            payload = {}
+        if not isinstance(payload, dict):
+            raise DRFValidationError(["Campo payload precisa ser um objeto JSON."])
+        try:
+            result = validate_installer_aws_setup(payload=payload)
         except DjangoValidationError as exc:
             raise DRFValidationError(exc.messages) from exc
         return Response(result, status=status.HTTP_200_OK)

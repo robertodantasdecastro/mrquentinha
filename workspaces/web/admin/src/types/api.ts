@@ -1204,11 +1204,23 @@ export type PortalInstallerSshConfig = {
 
 export type PortalInstallerCloudConfig = {
   provider: "aws" | "gcp";
+  auth_mode: "profile" | "access_key";
+  profile_name: string;
+  access_key_id: string;
+  secret_access_key: string;
+  session_token: string;
   region: string;
   instance_type: string;
   ami: string;
   key_pair_name: string;
+  ebs_gb: number;
+  route53_hosted_zone_id: string;
+  ec2_instance_id: string;
+  elastic_ip_allocation_id: string;
   use_elastic_ip: boolean;
+  use_codedeploy: boolean;
+  codedeploy_application_name: string;
+  codedeploy_deployment_group: string;
 };
 
 export type PortalInstallerDeploymentConfig = {
@@ -1261,6 +1273,64 @@ export type PortalInstallerWizardValidateResult = {
   validated_at: string;
 };
 
+export type PortalInstallerAwsValidationCheck = {
+  name: string;
+  status: string;
+  detail: string;
+  [key: string]: unknown;
+};
+
+export type PortalInstallerAwsCostBreakdownItem = {
+  service: string;
+  estimate_monthly_usd: number;
+  detail: string;
+};
+
+export type PortalInstallerAwsCostSnapshot = {
+  available: boolean;
+  detail: string;
+  month_start: string;
+  month_end_exclusive: string;
+  total_mtd_usd: number;
+  top_services: Array<{
+    service: string;
+    mtd_usd: number;
+  }>;
+};
+
+export type PortalInstallerAwsCostEstimate = {
+  currency: "USD";
+  estimated_monthly_total_usd: number;
+  estimated_monthly_range_usd: {
+    min: number;
+    max: number;
+  };
+  breakdown: PortalInstallerAwsCostBreakdownItem[];
+  current_month_cost: PortalInstallerAwsCostSnapshot;
+  notes: string[];
+};
+
+export type PortalInstallerAwsCloudValidation = {
+  provider: "aws";
+  checked_at: string;
+  connectivity: PortalInstallerAwsValidationCheck;
+  prerequisites: {
+    checks: PortalInstallerAwsValidationCheck[];
+    warnings: string[];
+  };
+  costs: PortalInstallerAwsCostEstimate;
+  warnings: string[];
+};
+
+export type PortalInstallerAwsValidateResult = {
+  ok: boolean;
+  workflow_version: string;
+  validated_at: string;
+  normalized_payload: PortalInstallerDraftPayload;
+  warnings: string[];
+  cloud_validation: PortalInstallerAwsCloudValidation;
+};
+
 export type PortalInstallerPrerequisiteField = {
   path: string;
   label: string;
@@ -1307,6 +1377,7 @@ export type PortalInstallerJobData = {
     checked_at: string;
     [key: string]: unknown;
   }>;
+  cloud_validation?: PortalInstallerAwsCloudValidation;
   last_log_lines?: string[];
   running?: boolean;
 };

@@ -784,6 +784,149 @@ def test_start_installer_job_aws_exige_conectividade_valida(monkeypatch):
 
 
 @pytest.mark.django_db
+def test_validate_installer_aws_setup_sanitiza_segredos(monkeypatch):
+    monkeypatch.setattr(
+        portal_services,
+        "_build_aws_cloud_report",
+        lambda *, payload, include_costs=True: {
+            "provider": "aws",
+            "checked_at": "2026-03-01T00:00:00Z",
+            "connectivity": {
+                "name": "aws_connectivity",
+                "status": "ok",
+                "detail": "ok",
+            },
+            "prerequisites": {"checks": [], "warnings": []},
+            "costs": {
+                "currency": "USD",
+                "estimated_monthly_total_usd": 77.7,
+                "estimated_monthly_range_usd": {"min": 60.0, "max": 95.0},
+                "breakdown": [],
+                "current_month_cost": {
+                    "available": False,
+                    "detail": "no access",
+                    "month_start": "",
+                    "month_end_exclusive": "",
+                    "total_mtd_usd": 0.0,
+                    "top_services": [],
+                },
+                "notes": [],
+            },
+            "warnings": [],
+        },
+    )
+
+    result = portal_services.validate_installer_aws_setup(
+        payload={
+            "mode": "dev",
+            "stack": "vm",
+            "target": "aws",
+            "cloud": {
+                "provider": "aws",
+                "auth_mode": "access_key",
+                "access_key_id": "AKIA123456789TEST",
+                "secret_access_key": "super-secret-key",
+                "region": "sa-east-1",
+            },
+        }
+    )
+
+    assert result["ok"] is True
+    assert result["cloud_validation"]["provider"] == "aws"
+    assert result["normalized_payload"]["cloud"]["secret_access_key"] == ""
+    assert result["normalized_payload"]["cloud"]["session_token"] == ""
+
+
+@pytest.mark.django_db
+def test_start_installer_job_aws_sanitiza_secret_e_expoe_cloud_validation(monkeypatch):
+    config = ensure_portal_config()
+    save_portal_config(
+        instance=config,
+        payload={
+            "payment_providers": {
+                "default_provider": "asaas",
+                "enabled_providers": ["asaas"],
+                "frontend_provider": {"web": "asaas", "mobile": "asaas"},
+                "receiver": {
+                    "person_type": "CNPJ",
+                    "document": "12345678000190",
+                    "name": "Mr Quentinha LTDA",
+                    "email": "financeiro@mrquentinha.com.br",
+                },
+                "asaas": {
+                    "enabled": True,
+                    "api_key": "asaas-prod-key",
+                },
+            }
+        },
+    )
+
+    monkeypatch.setattr(
+        portal_services,
+        "_build_aws_cloud_report",
+        lambda *, payload, include_costs=True: {
+            "provider": "aws",
+            "checked_at": "2026-03-01T00:00:00Z",
+            "connectivity": {
+                "name": "aws_connectivity",
+                "status": "ok",
+                "detail": "ok",
+                "region": payload.get("cloud", {}).get("region", ""),
+            },
+            "prerequisites": {
+                "checks": [
+                    {
+                        "name": "aws_ec2_instance",
+                        "status": "ok",
+                        "detail": "instancia valida",
+                    }
+                ],
+                "warnings": [],
+            },
+            "costs": {
+                "currency": "USD",
+                "estimated_monthly_total_usd": 89.9,
+                "estimated_monthly_range_usd": {"min": 72.0, "max": 108.0},
+                "breakdown": [],
+                "current_month_cost": {
+                    "available": False,
+                    "detail": "no access",
+                    "month_start": "",
+                    "month_end_exclusive": "",
+                    "total_mtd_usd": 0.0,
+                    "top_services": [],
+                },
+                "notes": [],
+            },
+            "warnings": [],
+        },
+    )
+
+    _updated_config, job_payload = portal_services.start_installer_job(
+        payload={
+            "mode": "prod",
+            "stack": "vm",
+            "target": "aws",
+            "cloud": {
+                "provider": "aws",
+                "auth_mode": "access_key",
+                "access_key_id": "AKIA123456789TEST",
+                "secret_access_key": "very-secret",
+                "region": "sa-east-1",
+                "instance_type": "t3.small",
+            },
+        },
+        initiated_by="qa",
+    )
+
+    assert job_payload["status"] == "planned"
+    assert job_payload["target"] == "aws"
+    assert job_payload["cloud_validation"]["provider"] == "aws"
+    assert job_payload["payload"]["cloud"]["secret_access_key"] == ""
+    assert job_payload["summary"].startswith("Plano AWS validado")
+
+
+@pytest.mark.django_db
 def test_validate_installer_wizard_ssh_password_sem_senha_falha():
     with pytest.raises(ValidationError) as exc_info:
         portal_services.validate_installer_wizard_payload(

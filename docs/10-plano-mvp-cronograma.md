@@ -35,6 +35,7 @@ Data de referencia: 01/03/2026.
 - Etapa 9.2.8-A1 (modulo independente `Instalacao / Deploy` + pre-requisitos de producao no wizard): concluida em 28/02/2026
 - Etapa 9.2.7-A4 (auditoria administrativa + Cloudflare DEV com URL mode manual/random): concluida em 28/02/2026
 - Etapa 9.2.7-A5-A1 (execucao remota real via SSH + validacao cloud AWS/GCP no assistente): concluida em 01/03/2026
+- Etapa 9.2.7-A5-A2 (AWS credenciais seguras + checks de infraestrutura + custos no wizard): primeira entrega concluida em 01/03/2026
 - Etapa 6.3.2-A9 (exposicao online Cloudflare com toggle 1 clique no Portal CMS): concluida em 27/02/2026
 - Etapa 6.3.2-A10 (runtime cloudflared + monitoramento realtime do tunnel): concluida em 27/02/2026
 - Etapa 6.3.2-A11 (modo DEV Cloudflare com dominios aleatorios trycloudflare): concluida em 27/02/2026
@@ -128,6 +129,7 @@ Dependencias:
 - Hotfix `T6.3.2-A14-HF2` implementado em 27/02/2026 (prioridade rede local): frontends em acesso local (`10.x/localhost`) passaram a usar API local `http://<host>:8000` em runtime e o Portal teve ajuste de links dinamicos sem mismatch de hidratacao.
 - Resultado complementar mais recente: `T9.2.7-A1` concluida em 27/02/2026 com novo modulo `/modulos/clientes`, API administrativa de ciclo de vida do cliente e integracao de elegibilidade de checkout no backend.
 - Resultado complementar mais recente: `T9.2.7-A4` concluida em 28/02/2026 com novo painel de auditoria em `/modulos/administracao-servidor/auditoria`, backend `admin_audit` e suporte a `dev_url_mode` (`random`/`manual`) + `dev_manual_urls` no Cloudflare DEV.
+- Resultado complementar mais recente: `T9.2.7-A5-A2` evoluida em 01/03/2026 com endpoint `installer-cloud/aws/validate`, painel AWS no wizard (`profile`/`access_key`, Route53/EC2/EIP/CodeDeploy) e custo estimado + snapshot MTD do Cost Explorer no Web Admin.
 
 ## Regra de execucao continua
 Cada nova fase deve manter:

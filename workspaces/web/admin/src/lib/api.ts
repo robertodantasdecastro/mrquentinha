@@ -47,6 +47,7 @@ import type {
   PortalCloudflareRuntimeResult,
   PortalCloudflareToggleResult,
   PortalEmailTestResult,
+  PortalInstallerAwsValidateResult,
   PortalInstallerDraftPayload,
   PortalInstallerJobResult,
   PortalInstallerJobsListResult,
@@ -1507,6 +1508,19 @@ export async function validateInstallerWizardAdmin(
 ): Promise<PortalInstallerWizardValidateResult> {
   return requestJson<PortalInstallerWizardValidateResult>(
     "/api/v1/portal/admin/config/installer-wizard-validate/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ payload }),
+    },
+  );
+}
+
+export async function validateInstallerAwsCloudAdmin(
+  payload: Partial<PortalInstallerDraftPayload>,
+): Promise<PortalInstallerAwsValidateResult> {
+  return requestJson<PortalInstallerAwsValidateResult>(
+    "/api/v1/portal/admin/config/installer-cloud/aws/validate/",
     {
       method: "POST",
       auth: true,

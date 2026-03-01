@@ -44,5 +44,6 @@ Fila atual:
 39. [ ] T9.2.7-A5 Evoluir execucao remota do assistente (SSH/AWS/GCP) com automacao completa de provisionamento e validacoes de conectividade.  
    - Progresso 01/03/2026 (`A1`): execucao remota real via SSH implementada (probe + job em background + logs), validacao de conectividade para AWS/GCP adicionada.
    - Progresso 01/03/2026 (`A2/planejamento`): plano detalhado da trilha AWS + backlog de paridade Google Cloud + testes operacionais guiados publicado em `docs/11-plano-cloud-aws-google-e-testes-operacionais.md`.
+   - Progresso 01/03/2026 (`A2/implementacao inicial`): wizard ganhou trilha AWS com validacao segura (`profile`/`access_key`), endpoint `installer-cloud/aws/validate`, checks de infraestrutura (Route53/EC2/EIP/CodeDeploy) e painel de custos (estimativa + MTD via Cost Explorer quando disponivel).
 40. [x] T9.2.7-RBAC-HF1 Gestao completa de usuarios no Web Admin (criar/editar conta, papeis, categorias/tarefas e bloqueio de areas tecnicas para nao-admin) - concluida em 01/03/2026.
 41. [x] T9.2.7-A4-HF2 Criar modulo dedicado `Auditoria de atividade` (separado de `Administracao do servidor`) com dashboard/KPIs, filtros e analise de seguranca - concluida em 01/03/2026.

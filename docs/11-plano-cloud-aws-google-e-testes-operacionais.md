@@ -1,7 +1,7 @@
 # Plano de implementacao cloud (AWS primeiro)
 
 Data: 01/03/2026  
-Status: planejado para execucao incremental
+Status: em execucao incremental
 
 ## 1. Objetivo
 Implementar no Web Admin um fluxo guiado de instalacao/deploy em cloud, com foco inicial em AWS, incluindo:
@@ -149,3 +149,23 @@ Sem esses itens, conseguimos implementar a estrutura tecnica, validacoes e dry-r
 3. Primeira versao de painel de custos (estimativa) no Web Admin.
 4. Backlog tecnico estruturado para Google Cloud.
 5. Suite de testes operacionais guiados para a trilha cloud.
+
+## 9. Progresso atual (01/03/2026)
+Implementado nesta rodada (`T9.2.7-A5-A2 / AWS-A1+A2 inicial`):
+- endpoint dedicado de validacao AWS no backend:
+  - `POST /api/v1/portal/admin/config/installer-cloud/aws/validate/`;
+- validacoes AWS no assistente:
+  - credenciais por `profile` ou `access_key`,
+  - conectividade `STS` e alias via `IAM`,
+  - checks de `Route53`, `EC2`, `Elastic IP` e `CodeDeploy`;
+- painel de custo no Web Admin:
+  - estimativa mensal por servico (EC2/EBS/EIP/Route53/transferencia),
+  - faixa projetada,
+  - snapshot de custo real MTD via Cost Explorer (quando permitido na conta);
+- seguranca:
+  - `secret_access_key` e `session_token` usados apenas em runtime e sanitizados antes de persistencia.
+
+Pendencias da proxima rodada:
+- provisionamento automatico completo de recursos AWS;
+- orquestracao de deploy com CodeDeploy de ponta a ponta e rollback automatizado;
+- paridade funcional completa com Google Cloud.

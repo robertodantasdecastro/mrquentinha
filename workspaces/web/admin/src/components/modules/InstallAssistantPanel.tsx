@@ -12,10 +12,12 @@ import {
   saveInstallerWizardAdmin,
   startInstallerJobAdmin,
   updatePortalConfigAdmin,
+  validateInstallerAwsCloudAdmin,
   validateInstallerWizardAdmin,
 } from "@/lib/api";
 import type {
   PortalConfigData,
+  PortalInstallerAwsCloudValidation,
   PortalInstallerDraftPayload,
   PortalInstallerJobData,
   PortalInstallerPrerequisites,
@@ -222,11 +224,23 @@ function getDefaultDraft(): PortalInstallerDraftPayload {
     },
     cloud: {
       provider: "aws",
+      auth_mode: "profile",
+      profile_name: "",
+      access_key_id: "",
+      secret_access_key: "",
+      session_token: "",
       region: "",
       instance_type: "",
       ami: "",
       key_pair_name: "",
+      ebs_gb: 20,
+      route53_hosted_zone_id: "",
+      ec2_instance_id: "",
+      elastic_ip_allocation_id: "",
       use_elastic_ip: true,
+      use_codedeploy: false,
+      codedeploy_application_name: "",
+      codedeploy_deployment_group: "",
     },
     deployment: {
       store_name: "Mr Quentinha",
@@ -342,6 +356,22 @@ function getJobTone(status: string): "success" | "warning" | "danger" | "info" |
   return "neutral";
 }
 
+function getCheckTone(status: string): "success" | "warning" | "danger" | "info" | "neutral" {
+  if (status === "ok") {
+    return "success";
+  }
+  if (status === "warning") {
+    return "warning";
+  }
+  if (status === "error") {
+    return "danger";
+  }
+  if (status === "pending") {
+    return "info";
+  }
+  return "neutral";
+}
+
 export function InstallAssistantPanel({
   config,
   onConfigUpdated,
@@ -363,7 +393,13 @@ export function InstallAssistantPanel({
   const [saving, setSaving] = useState(false);
   const [starting, setStarting] = useState(false);
   const [canceling, setCanceling] = useState(false);
+  const [awsValidating, setAwsValidating] = useState(false);
   const [savingPrerequisites, setSavingPrerequisites] = useState(false);
+  const [awsSecretAccessKey, setAwsSecretAccessKey] = useState("");
+  const [awsSessionToken, setAwsSessionToken] = useState("");
+  const [awsValidation, setAwsValidation] = useState<PortalInstallerAwsCloudValidation | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -398,6 +434,13 @@ export function InstallAssistantPanel({
       setCurrentStepIndex(savedStepIndex);
     }
   }, [config]);
+
+  useEffect(() => {
+    if (draft.cloud.provider !== "aws" || draft.cloud.auth_mode !== "access_key") {
+      setAwsSecretAccessKey("");
+      setAwsSessionToken("");
+    }
+  }, [draft.cloud.auth_mode, draft.cloud.provider]);
 
   useEffect(() => {
     if (!config || showPrerequisitesModal) {
@@ -497,6 +540,7 @@ export function InstallAssistantPanel({
   }
 
   function updateCloudDraft(nextCloud: Partial<PortalInstallerDraftPayload["cloud"]>) {
+    setAwsValidation(null);
     setDraft((current) => ({
       ...current,
       cloud: {
@@ -528,6 +572,45 @@ export function InstallAssistantPanel({
         ...nextLifecycle,
       },
     }));
+  }
+
+  function buildDraftForSave(
+    baseDraft: PortalInstallerDraftPayload,
+  ): PortalInstallerDraftPayload {
+    return {
+      ...baseDraft,
+      cloud: {
+        ...baseDraft.cloud,
+        secret_access_key: "",
+        session_token: "",
+      },
+    };
+  }
+
+  function buildDraftForRuntime(
+    baseDraft: PortalInstallerDraftPayload,
+  ): PortalInstallerDraftPayload {
+    if (baseDraft.cloud.provider !== "aws") {
+      return buildDraftForSave(baseDraft);
+    }
+    if (baseDraft.cloud.auth_mode !== "access_key") {
+      return {
+        ...baseDraft,
+        cloud: {
+          ...baseDraft.cloud,
+          secret_access_key: "",
+          session_token: "",
+        },
+      };
+    }
+    return {
+      ...baseDraft,
+      cloud: {
+        ...baseDraft.cloud,
+        secret_access_key: awsSecretAccessKey.trim(),
+        session_token: awsSessionToken.trim(),
+      },
+    };
   }
 
   function openPrerequisitesModal() {
@@ -608,7 +691,7 @@ export function InstallAssistantPanel({
       });
       onConfigUpdated?.(updatedConfig);
 
-      const validation = await validateInstallerWizardAdmin(draft);
+      const validation = await validateInstallerWizardAdmin(buildDraftForSave(draft));
       applyValidationResult(validation);
 
       if (validation.prerequisites?.ready) {
@@ -652,6 +735,20 @@ export function InstallAssistantPanel({
       if (!draft.cloud.region.trim()) {
         return "Informe a regiao da cloud para continuar.";
       }
+      if (
+        draft.target === "aws" &&
+        draft.cloud.auth_mode === "access_key" &&
+        !draft.cloud.access_key_id.trim()
+      ) {
+        return "Informe o AWS access key id para continuar.";
+      }
+      if (
+        draft.target === "aws" &&
+        draft.cloud.auth_mode === "access_key" &&
+        !awsSecretAccessKey.trim()
+      ) {
+        return "Informe o AWS secret access key para continuar.";
+      }
     }
 
     if (currentStep.id === "deployment") {
@@ -671,7 +768,7 @@ export function InstallAssistantPanel({
     setErrorMessage("");
     setSuccessMessage("");
     try {
-      const result = await validateInstallerWizardAdmin(draft);
+      const result = await validateInstallerWizardAdmin(buildDraftForSave(draft));
       applyValidationResult(result);
       if (result.prerequisites && result.prerequisites.mode === "prod" && !result.prerequisites.ready) {
         setErrorMessage(
@@ -687,13 +784,40 @@ export function InstallAssistantPanel({
     }
   }
 
+  async function handleValidateAwsCloud() {
+    setAwsValidating(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      const runtimePayload = buildDraftForRuntime({
+        ...draft,
+        target: "aws",
+        cloud: {
+          ...draft.cloud,
+          provider: "aws",
+        },
+      });
+      const result = await validateInstallerAwsCloudAdmin(runtimePayload);
+      setWarnings(result.warnings ?? []);
+      setAwsValidation(result.cloud_validation);
+      setSuccessMessage(
+        "AWS validada com sucesso. Revise conectividade, infraestrutura e estimativa de custo.",
+      );
+    } catch (error) {
+      setAwsValidation(null);
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setAwsValidating(false);
+    }
+  }
+
   async function handleSaveDraft(nextStepId: string) {
     setSaving(true);
     setErrorMessage("");
     setSuccessMessage("");
     try {
       const updatedConfig = await saveInstallerWizardAdmin({
-        payload: draft,
+        payload: buildDraftForSave(draft),
         completedStep: nextStepId,
       });
       onConfigUpdated?.(updatedConfig);
@@ -732,7 +856,7 @@ export function InstallAssistantPanel({
     setErrorMessage("");
     setSuccessMessage("");
     try {
-      const validation = await validateInstallerWizardAdmin(draft);
+      const validation = await validateInstallerWizardAdmin(buildDraftForSave(draft));
       applyValidationResult(validation);
       if (validation.prerequisites?.mode === "prod" && !validation.prerequisites.ready) {
         setErrorMessage(
@@ -742,7 +866,9 @@ export function InstallAssistantPanel({
         return;
       }
 
-      const payload = await startInstallerJobAdmin(validation.normalized_payload);
+      const payload = await startInstallerJobAdmin(
+        buildDraftForRuntime(validation.normalized_payload),
+      );
       setActiveJob(payload.job);
       onConfigUpdated?.(payload.config);
       setSuccessMessage("Job do instalador iniciado.");
@@ -813,7 +939,7 @@ export function InstallAssistantPanel({
         </div>
       </div>
 
-      {(validating || saving || starting || canceling) && (
+      {(validating || saving || starting || canceling || awsValidating) && (
         <InlinePreloader message="Processando assistente..." />
       )}
 
@@ -1076,65 +1202,356 @@ export function InstallAssistantPanel({
                   </label>
                 </div>
               ) : (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <label className="grid gap-1 text-sm text-muted">
-                    Provider cloud
-                    <select
-                      value={draft.cloud.provider}
-                      onChange={(event) =>
-                        updateCloudDraft({ provider: event.currentTarget.value as PortalInstallerDraftPayload["cloud"]["provider"] })
-                      }
-                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-                    >
-                      <option value="aws">AWS</option>
-                      <option value="gcp">Google Cloud</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1 text-sm text-muted">
-                    Regiao
-                    <input
-                      value={draft.cloud.region}
-                      onChange={(event) => updateCloudDraft({ region: event.currentTarget.value })}
-                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-                      placeholder="sa-east-1"
-                    />
-                  </label>
-                  <label className="grid gap-1 text-sm text-muted">
-                    Tipo de instancia
-                    <input
-                      value={draft.cloud.instance_type}
-                      onChange={(event) => updateCloudDraft({ instance_type: event.currentTarget.value })}
-                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-                      placeholder="t3.medium"
-                    />
-                  </label>
-                  <label className="grid gap-1 text-sm text-muted">
-                    AMI / imagem base
-                    <input
-                      value={draft.cloud.ami}
-                      onChange={(event) => updateCloudDraft({ ami: event.currentTarget.value })}
-                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-                      placeholder="ami-xxxxxxxx"
-                    />
-                  </label>
-                  <label className="grid gap-1 text-sm text-muted">
-                    Key pair
-                    <input
-                      value={draft.cloud.key_pair_name}
-                      onChange={(event) => updateCloudDraft({ key_pair_name: event.currentTarget.value })}
-                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-                      placeholder="mrquentinha-key"
-                    />
-                  </label>
-                  <label className="mt-6 inline-flex items-center gap-2 text-sm text-text">
-                    <input
-                      type="checkbox"
-                      checked={draft.cloud.use_elastic_ip}
-                      onChange={(event) => updateCloudDraft({ use_elastic_ip: event.currentTarget.checked })}
-                      className="h-4 w-4 rounded border-border text-primary"
-                    />
-                    Reservar IP elastico/fixo
-                  </label>
+                <div className="grid gap-4">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <label className="grid gap-1 text-sm text-muted">
+                      Provider cloud
+                      <select
+                        value={draft.cloud.provider}
+                        onChange={(event) =>
+                          updateCloudDraft({ provider: event.currentTarget.value as PortalInstallerDraftPayload["cloud"]["provider"] })
+                        }
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      >
+                        <option value="aws">AWS</option>
+                        <option value="gcp">Google Cloud</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-sm text-muted">
+                      Regiao
+                      <input
+                        value={draft.cloud.region}
+                        onChange={(event) => updateCloudDraft({ region: event.currentTarget.value })}
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                        placeholder="sa-east-1"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm text-muted">
+                      Tipo de instancia
+                      <input
+                        value={draft.cloud.instance_type}
+                        onChange={(event) =>
+                          updateCloudDraft({ instance_type: event.currentTarget.value })
+                        }
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                        placeholder="t3.medium"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm text-muted">
+                      AMI / imagem base
+                      <input
+                        value={draft.cloud.ami}
+                        onChange={(event) => updateCloudDraft({ ami: event.currentTarget.value })}
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                        placeholder="ami-xxxxxxxx"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm text-muted">
+                      Key pair
+                      <input
+                        value={draft.cloud.key_pair_name}
+                        onChange={(event) =>
+                          updateCloudDraft({ key_pair_name: event.currentTarget.value })
+                        }
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                        placeholder="mrquentinha-key"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm text-muted">
+                      EBS (GB)
+                      <input
+                        type="number"
+                        min={8}
+                        max={1024}
+                        value={draft.cloud.ebs_gb}
+                        onChange={(event) =>
+                          updateCloudDraft({
+                            ebs_gb:
+                              Number.parseInt(event.currentTarget.value || "20", 10) || 20,
+                          })
+                        }
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      />
+                    </label>
+                    <label className="mt-6 inline-flex items-center gap-2 text-sm text-text">
+                      <input
+                        type="checkbox"
+                        checked={draft.cloud.use_elastic_ip}
+                        onChange={(event) =>
+                          updateCloudDraft({ use_elastic_ip: event.currentTarget.checked })
+                        }
+                        className="h-4 w-4 rounded border-border text-primary"
+                      />
+                      Reservar IP elastico/fixo
+                    </label>
+                  </div>
+
+                  {draft.cloud.provider === "aws" ? (
+                    <>
+                      <article className="rounded-lg border border-border bg-bg p-3">
+                        <p className="text-sm font-semibold text-text">
+                          Credenciais AWS (seguras, sem persistir segredo)
+                        </p>
+                        <p className="mt-1 text-xs text-muted">
+                          O `secret_access_key` e o `session_token` sao usados apenas em runtime para validacao/execucao.
+                        </p>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                          <label className="grid gap-1 text-sm text-muted">
+                            Modo de autenticacao
+                            <select
+                              value={draft.cloud.auth_mode}
+                              onChange={(event) =>
+                                updateCloudDraft({
+                                  auth_mode: event.currentTarget.value as "profile" | "access_key",
+                                })
+                              }
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                            >
+                              <option value="profile">Profile/role da maquina</option>
+                              <option value="access_key">Access key + secret</option>
+                            </select>
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Profile AWS
+                            <input
+                              value={draft.cloud.profile_name}
+                              onChange={(event) =>
+                                updateCloudDraft({ profile_name: event.currentTarget.value })
+                              }
+                              disabled={draft.cloud.auth_mode !== "profile"}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="default"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Access key id
+                            <input
+                              value={draft.cloud.access_key_id}
+                              onChange={(event) =>
+                                updateCloudDraft({ access_key_id: event.currentTarget.value })
+                              }
+                              disabled={draft.cloud.auth_mode !== "access_key"}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="AKIA..."
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Secret access key
+                            <input
+                              type="password"
+                              value={awsSecretAccessKey}
+                              onChange={(event) => setAwsSecretAccessKey(event.currentTarget.value)}
+                              disabled={draft.cloud.auth_mode !== "access_key"}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="Nao sera salvo"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted md:col-span-2 xl:col-span-2">
+                            Session token (opcional)
+                            <input
+                              type="password"
+                              value={awsSessionToken}
+                              onChange={(event) => setAwsSessionToken(event.currentTarget.value)}
+                              disabled={draft.cloud.auth_mode !== "access_key"}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="Token temporario STS"
+                            />
+                          </label>
+                        </div>
+                      </article>
+
+                      <article className="rounded-lg border border-border bg-bg p-3">
+                        <p className="text-sm font-semibold text-text">
+                          DNS, EC2, Elastic IP e CodeDeploy
+                        </p>
+                        <p className="mt-1 text-xs text-muted">
+                          Preencha para o assistente verificar o estado atual da infraestrutura e custo projetado.
+                        </p>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                          <label className="grid gap-1 text-sm text-muted">
+                            Route53 hosted zone id
+                            <input
+                              value={draft.cloud.route53_hosted_zone_id}
+                              onChange={(event) =>
+                                updateCloudDraft({
+                                  route53_hosted_zone_id: event.currentTarget.value,
+                                })
+                              }
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="/hostedzone/Z123..."
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            EC2 instance id
+                            <input
+                              value={draft.cloud.ec2_instance_id}
+                              onChange={(event) =>
+                                updateCloudDraft({ ec2_instance_id: event.currentTarget.value })
+                              }
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="i-0abcd1234"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Elastic IP allocation id
+                            <input
+                              value={draft.cloud.elastic_ip_allocation_id}
+                              onChange={(event) =>
+                                updateCloudDraft({
+                                  elastic_ip_allocation_id: event.currentTarget.value,
+                                })
+                              }
+                              disabled={!draft.cloud.use_elastic_ip}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="eipalloc-1234abcd"
+                            />
+                          </label>
+                          <label className="mt-6 inline-flex items-center gap-2 text-sm text-text">
+                            <input
+                              type="checkbox"
+                              checked={draft.cloud.use_codedeploy}
+                              onChange={(event) =>
+                                updateCloudDraft({ use_codedeploy: event.currentTarget.checked })
+                              }
+                              className="h-4 w-4 rounded border-border text-primary"
+                            />
+                            Usar CodeDeploy
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            CodeDeploy application
+                            <input
+                              value={draft.cloud.codedeploy_application_name}
+                              onChange={(event) =>
+                                updateCloudDraft({
+                                  codedeploy_application_name: event.currentTarget.value,
+                                })
+                              }
+                              disabled={!draft.cloud.use_codedeploy}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="mrquentinha-app"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Deployment group
+                            <input
+                              value={draft.cloud.codedeploy_deployment_group}
+                              onChange={(event) =>
+                                updateCloudDraft({
+                                  codedeploy_deployment_group: event.currentTarget.value,
+                                })
+                              }
+                              disabled={!draft.cloud.use_codedeploy}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="production-group"
+                            />
+                          </label>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void handleValidateAwsCloud()}
+                            disabled={awsValidating}
+                            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {awsValidating
+                              ? "Validando AWS..."
+                              : "Validar AWS (credenciais, infraestrutura e custos)"}
+                          </button>
+                        </div>
+                      </article>
+
+                      {awsValidation && (
+                        <article className="rounded-lg border border-border bg-bg p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-text">
+                              Resultado da validacao AWS
+                            </p>
+                            <StatusPill tone={getCheckTone(awsValidation.connectivity.status)}>
+                              {awsValidation.connectivity.status}
+                            </StatusPill>
+                          </div>
+                          <p className="mt-1 text-xs text-muted">
+                            Conta:{" "}
+                            <strong className="text-text">
+                              {String(awsValidation.connectivity.account_id || "-")}
+                            </strong>{" "}
+                            | Regiao:{" "}
+                            <strong className="text-text">
+                              {String(awsValidation.connectivity.region || "-")}
+                            </strong>
+                          </p>
+                          <p className="mt-1 text-xs text-muted">
+                            {String(awsValidation.connectivity.detail || "-")}
+                          </p>
+
+                          <div className="mt-3 grid gap-2">
+                            {awsValidation.prerequisites.checks.map((check) => (
+                              <div
+                                key={`${check.name}-${String(check.detail)}`}
+                                className="rounded-md border border-border bg-surface px-3 py-2 text-xs text-muted"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="font-semibold text-text">{check.name}</p>
+                                  <StatusPill tone={getCheckTone(String(check.status || ""))}>
+                                    {String(check.status || "unknown")}
+                                  </StatusPill>
+                                </div>
+                                <p className="mt-1">{String(check.detail || "-")}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="mt-4 rounded-md border border-border bg-surface p-3 text-xs text-muted">
+                            <p className="font-semibold text-text">
+                              Custo mensal estimado: USD{" "}
+                              {awsValidation.costs.estimated_monthly_total_usd.toFixed(2)}
+                            </p>
+                            <p className="mt-1">
+                              Faixa: USD {awsValidation.costs.estimated_monthly_range_usd.min.toFixed(2)}{" "}
+                              ate USD {awsValidation.costs.estimated_monthly_range_usd.max.toFixed(2)}
+                            </p>
+                            <div className="mt-2 grid gap-1">
+                              {awsValidation.costs.breakdown.map((item) => (
+                                <p key={`${item.service}-${item.detail}`}>
+                                  {item.service}: USD {item.estimate_monthly_usd.toFixed(2)} ({item.detail})
+                                </p>
+                              ))}
+                            </div>
+                            <p className="mt-2">
+                              Custo real MTD:{" "}
+                              <strong className="text-text">
+                                USD {awsValidation.costs.current_month_cost.total_mtd_usd.toFixed(2)}
+                              </strong>{" "}
+                              {awsValidation.costs.current_month_cost.available
+                                ? "(via Cost Explorer)"
+                                : "(indisponivel)"}
+                            </p>
+                            {awsValidation.costs.current_month_cost.top_services.length > 0 && (
+                              <div className="mt-2 grid gap-1">
+                                {awsValidation.costs.current_month_cost.top_services.map((service) => (
+                                  <p key={service.service}>
+                                    {service.service}: USD {service.mtd_usd.toFixed(2)}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                            {awsValidation.costs.notes.length > 0 && (
+                              <div className="mt-2 grid gap-1">
+                                {awsValidation.costs.notes.map((note) => (
+                                  <p key={note}>- {note}</p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </article>
+                      )}
+                    </>
+                  ) : (
+                    <article className="rounded-lg border border-border bg-bg p-3 text-xs text-muted">
+                      Trilha Google Cloud segue no backlog de paridade. Nesta fase, a automacao detalhada esta ativa para AWS.
+                    </article>
+                  )}
                 </div>
               )}
             </>

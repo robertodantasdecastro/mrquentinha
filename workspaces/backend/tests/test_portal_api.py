@@ -433,6 +433,42 @@ def test_portal_admin_installer_wizard_endpoints(client, monkeypatch):
         lambda *, payload, completed_step: config,
     )
     monkeypatch.setattr(
+        "apps.portal.views.validate_installer_aws_setup",
+        lambda *, payload: {
+            "ok": True,
+            "workflow_version": "2026.02.28",
+            "validated_at": "2026-03-01T00:00:00Z",
+            "normalized_payload": payload,
+            "warnings": [],
+            "cloud_validation": {
+                "provider": "aws",
+                "checked_at": "2026-03-01T00:00:00Z",
+                "connectivity": {
+                    "name": "aws_connectivity",
+                    "status": "ok",
+                    "detail": "ok",
+                },
+                "prerequisites": {"checks": [], "warnings": []},
+                "costs": {
+                    "currency": "USD",
+                    "estimated_monthly_total_usd": 50.0,
+                    "estimated_monthly_range_usd": {"min": 40.0, "max": 60.0},
+                    "breakdown": [],
+                    "current_month_cost": {
+                        "available": False,
+                        "detail": "indisponivel",
+                        "month_start": "",
+                        "month_end_exclusive": "",
+                        "total_mtd_usd": 0.0,
+                        "top_services": [],
+                    },
+                    "notes": [],
+                },
+                "warnings": [],
+            },
+        },
+    )
+    monkeypatch.setattr(
         "apps.portal.views.start_installer_job",
         lambda *, payload, initiated_by: (
             config,
@@ -478,6 +514,21 @@ def test_portal_admin_installer_wizard_endpoints(client, monkeypatch):
     )
     assert validate_response.status_code == 200
     assert validate_response.json()["ok"] is True
+
+    aws_validate_response = client.post(
+        "/api/v1/portal/admin/config/installer-cloud/aws/validate/",
+        data={
+            "payload": {
+                "mode": "dev",
+                "stack": "vm",
+                "target": "aws",
+                "cloud": {"provider": "aws", "region": "sa-east-1"},
+            }
+        },
+        format="json",
+    )
+    assert aws_validate_response.status_code == 200
+    assert aws_validate_response.json()["cloud_validation"]["provider"] == "aws"
 
     save_response = client.post(
         "/api/v1/portal/admin/config/installer-wizard-save/",

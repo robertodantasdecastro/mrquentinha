@@ -113,6 +113,14 @@ Referencia de atualizacao: 01/03/2026.
   - `start_installer_job` passou a executar instalacao remota real via SSH (probe de conectividade, comando remoto em background, logs e codigo de saida no runtime de jobs).
   - modo cloud (`aws`/`gcp`) passou a exigir validacao de conectividade/credencial de CLI antes de aceitar job de deploy.
   - payload sensivel do assistente (`ssh.password`) passou a ser sanitizado em persistencia de draft/job.
+- Atualizacao em 01/03/2026 (`T9.2.7-A5-A2`):
+  - assistente `Instalacao / Deploy` ganhou validacao AWS dedicada com credenciais seguras (`profile` ou `access_key`) e sanitizacao de segredo em persistencia.
+  - endpoint novo no backend:
+    - `POST /api/v1/portal/admin/config/installer-cloud/aws/validate/`.
+  - validacao AWS passou a cobrir:
+    - conectividade (`STS` + alias via `IAM`),
+    - checks de `Route53`, `EC2`, `Elastic IP` e `CodeDeploy`,
+    - estimativa mensal de custo + snapshot MTD (Cost Explorer quando disponivel).
 - Atualizacao em 01/03/2026 (`T9.2.7-RBAC-HF1`):
   - backend `accounts` passou a suportar administracao completa de usuarios internos (criar/editar conta), com vinculacao de categorias/tarefas operacionais por usuario.
   - novos modelos de governanca adicionados: `UserTaskCategory`, `UserTask`, `UserTaskAssignment`.
@@ -199,6 +207,7 @@ Referencia de atualizacao: 01/03/2026.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A4`): `Administracao do servidor` ganhou secao `Auditoria de atividade` com filtros, paginacao e historico completo de operacoes por usuario/data/hora.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A4`): secao `Conectividade e dominio` ganhou controle de origem de URL DEV (`random`/`manual`) e URLs manuais editaveis para `portal/client/admin/api`.
 - Atualizacao em 01/03/2026 (`T9.2.7-A5-A1`): modulo `Instalacao / Deploy` ganhou parametros SSH de repositorio remoto (`repo_path`, `auto_clone_repo`, `git_remote_url`, `git_branch`) e exibicao de validacoes de conectividade no acompanhamento do job.
+- Atualizacao em 01/03/2026 (`T9.2.7-A5-A2`): modulo `Instalacao / Deploy` ganhou trilha AWS com autenticacao segura (`profile`/`access_key`), validacao de infraestrutura e painel de custos no passo `Infraestrutura`.
 - Atualizacao em 01/03/2026 (`T9.2.7-RBAC-HF1`): modulo `/modulos/usuarios-rbac` evoluiu para gestao completa (criacao de conta, edicao de conta, papeis e tarefas por categoria) e recebeu bloqueio explicito de acesso tecnico para perfis sem `ADMIN`.
 - Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`): novo modulo `/modulos/auditoria-atividade` com dashboard de indicadores, filtros avancados, investigacao de eventos e secoes de seguranca/tendencias em todos os templates do Admin.
 - Workspace ativo: `workspaces/web/admin`.
@@ -278,6 +287,7 @@ Referencia de atualizacao: 01/03/2026.
   - `POST /api/v1/portal/admin/config/cloudflare-toggle/`
   - `POST /api/v1/portal/admin/config/cloudflare-runtime/`
   - `POST /api/v1/portal/admin/config/installer-wizard-validate/`
+  - `POST /api/v1/portal/admin/config/installer-cloud/aws/validate/`
   - `POST /api/v1/portal/admin/config/installer-wizard-save/`
   - `POST /api/v1/portal/admin/config/installer-jobs/start/`
   - `GET /api/v1/portal/admin/config/installer-jobs/<job_id>/status/`

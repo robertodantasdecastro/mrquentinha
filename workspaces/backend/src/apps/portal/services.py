@@ -9,7 +9,7 @@ import subprocess
 import time
 import uuid
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
 from urllib import error as urllib_error
@@ -241,10 +241,29 @@ INSTALLER_ALLOWED_ENVS = {"dev", "prod"}
 INSTALLER_ALLOWED_TARGETS = {"local", "ssh", "aws", "gcp"}
 INSTALLER_ALLOWED_SSH_AUTH_MODES = {"key", "password"}
 INSTALLER_ALLOWED_CLOUD_PROVIDERS = {"aws", "gcp"}
+INSTALLER_ALLOWED_AWS_AUTH_MODES = {"profile", "access_key"}
 INSTALLER_SAFE_REMOTE_PATH_RE = re.compile(r"^[A-Za-z0-9_./$-]+$")
 INSTALLER_SAFE_GIT_REF_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 INSTALLER_RUNTIME_DIR = PROJECT_ROOT / ".runtime" / "install"
 INSTALLER_JOBS_DIR = INSTALLER_RUNTIME_DIR / "jobs"
+AWS_COST_DEFAULT_EC2_HOURLY_USD = 0.0416
+AWS_COST_EBS_GB_MONTH_USD = 0.10
+AWS_COST_EIP_MONTH_USD = 3.60
+AWS_COST_ROUTE53_HOSTED_ZONE_MONTH_USD = 0.50
+AWS_COST_ROUTE53_QUERIES_MONTH_USD = 0.40
+AWS_COST_DATA_TRANSFER_MONTH_USD = 5.00
+AWS_COST_EC2_HOURLY_BY_INSTANCE = {
+    "t3.nano": 0.0052,
+    "t3.micro": 0.0104,
+    "t3.small": 0.0208,
+    "t3.medium": 0.0416,
+    "t3.large": 0.0832,
+    "t4g.nano": 0.0042,
+    "t4g.micro": 0.0084,
+    "t4g.small": 0.0168,
+    "t4g.medium": 0.0336,
+    "t4g.large": 0.0672,
+}
 
 DEFAULT_INSTALLER_SETTINGS = {
     "workflow_version": INSTALLER_WORKFLOW_VERSION,
@@ -3077,24 +3096,79 @@ def _normalize_installer_wizard_payload(
     cloud = raw_payload.get("cloud")
     normalized_cloud = {
         "provider": "aws",
+        "auth_mode": "profile",
+        "profile_name": "",
+        "access_key_id": "",
+        "secret_access_key": "",
+        "session_token": "",
         "region": "",
         "instance_type": "",
         "ami": "",
         "key_pair_name": "",
+        "ebs_gb": 20,
+        "route53_hosted_zone_id": "",
+        "ec2_instance_id": "",
+        "elastic_ip_allocation_id": "",
         "use_elastic_ip": True,
+        "use_codedeploy": False,
+        "codedeploy_application_name": "",
+        "codedeploy_deployment_group": "",
     }
     if isinstance(cloud, dict):
         provider = str(cloud.get("provider", "aws")).strip().lower()
         if provider not in INSTALLER_ALLOWED_CLOUD_PROVIDERS:
             provider = "aws"
+        auth_mode = str(cloud.get("auth_mode", "profile")).strip().lower()
+        if auth_mode not in INSTALLER_ALLOWED_AWS_AUTH_MODES:
+            auth_mode = "profile"
         normalized_cloud["provider"] = provider
+        normalized_cloud["auth_mode"] = auth_mode
+        normalized_cloud["profile_name"] = str(cloud.get("profile_name", "")).strip()
+        normalized_cloud["access_key_id"] = str(cloud.get("access_key_id", "")).strip()
+        normalized_cloud["secret_access_key"] = str(
+            cloud.get("secret_access_key", "")
+        ).strip()
+        normalized_cloud["session_token"] = str(cloud.get("session_token", "")).strip()
         normalized_cloud["region"] = str(cloud.get("region", "")).strip()
         normalized_cloud["instance_type"] = str(cloud.get("instance_type", "")).strip()
         normalized_cloud["ami"] = str(cloud.get("ami", "")).strip()
         normalized_cloud["key_pair_name"] = str(cloud.get("key_pair_name", "")).strip()
+        normalized_cloud["route53_hosted_zone_id"] = str(
+            cloud.get("route53_hosted_zone_id", "")
+        ).strip()
+        normalized_cloud["ec2_instance_id"] = str(
+            cloud.get("ec2_instance_id", "")
+        ).strip()
+        normalized_cloud["elastic_ip_allocation_id"] = str(
+            cloud.get("elastic_ip_allocation_id", "")
+        ).strip()
         normalized_cloud["use_elastic_ip"] = bool(cloud.get("use_elastic_ip", True))
+        normalized_cloud["use_codedeploy"] = bool(cloud.get("use_codedeploy", False))
+        normalized_cloud["codedeploy_application_name"] = str(
+            cloud.get("codedeploy_application_name", "")
+        ).strip()
+        normalized_cloud["codedeploy_deployment_group"] = str(
+            cloud.get("codedeploy_deployment_group", "")
+        ).strip()
+        try:
+            ebs_gb = int(cloud.get("ebs_gb", 20))
+        except (TypeError, ValueError):
+            ebs_gb = 20
+        normalized_cloud["ebs_gb"] = max(8, min(ebs_gb, 1024))
     if target in INSTALLER_ALLOWED_CLOUD_PROVIDERS:
         normalized_cloud["provider"] = target
+    if normalized_cloud["provider"] != "aws":
+        normalized_cloud["auth_mode"] = "profile"
+        normalized_cloud["profile_name"] = ""
+        normalized_cloud["access_key_id"] = ""
+        normalized_cloud["secret_access_key"] = ""
+        normalized_cloud["session_token"] = ""
+        normalized_cloud["route53_hosted_zone_id"] = ""
+        normalized_cloud["ec2_instance_id"] = ""
+        normalized_cloud["elastic_ip_allocation_id"] = ""
+        normalized_cloud["use_codedeploy"] = False
+        normalized_cloud["codedeploy_application_name"] = ""
+        normalized_cloud["codedeploy_deployment_group"] = ""
     normalized["cloud"] = normalized_cloud
 
     deployment = raw_payload.get("deployment")
@@ -3168,6 +3242,23 @@ def _normalize_installer_wizard_payload(
         warnings.append(
             "Cloud sem regiao definida. O assistente vai exigir antes da execucao."
         )
+    if (
+        target == "aws"
+        and normalized_cloud["auth_mode"] == "access_key"
+        and not normalized_cloud["access_key_id"]
+    ):
+        warnings.append(
+            "AWS auth_mode=access_key sem access_key_id. Informe a chave para validar."
+        )
+    if (
+        target == "aws"
+        and normalized_cloud["auth_mode"] == "access_key"
+        and not normalized_cloud["secret_access_key"]
+    ):
+        warnings.append(
+            "AWS auth_mode=access_key sem secret_access_key. "
+            "Informe a chave secreta para validar."
+        )
 
     return normalized, warnings
 
@@ -3195,6 +3286,12 @@ def _sanitize_installer_payload(payload: dict) -> dict:
     if isinstance(ssh_settings, dict):
         if "password" in ssh_settings:
             ssh_settings["password"] = ""
+    cloud_settings = sanitized.get("cloud")
+    if isinstance(cloud_settings, dict):
+        if "secret_access_key" in cloud_settings:
+            cloud_settings["secret_access_key"] = ""
+        if "session_token" in cloud_settings:
+            cloud_settings["session_token"] = ""
     return sanitized
 
 
@@ -3401,44 +3498,688 @@ def _build_remote_installer_shell_script(*, payload: dict) -> str:
     return "; ".join(script_lines)
 
 
+def _resolve_aws_auth_mode(cloud: dict) -> str:
+    auth_mode = str(cloud.get("auth_mode", "profile")).strip().lower()
+    if auth_mode not in INSTALLER_ALLOWED_AWS_AUTH_MODES:
+        return "profile"
+    return auth_mode
+
+
+def _mask_sensitive_token(raw_value: str) -> str:
+    value = str(raw_value or "").strip()
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "***"
+    return f"{value[:4]}***{value[-4:]}"
+
+
+def _build_aws_cli_execution_env(
+    *, cloud: dict, force_region: str | None = None
+) -> dict:
+    env = os.environ.copy()
+    for env_key in (
+        "AWS_PROFILE",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+    ):
+        env.pop(env_key, None)
+
+    region = force_region or str(cloud.get("region", "")).strip()
+    if region:
+        env["AWS_REGION"] = region
+        env["AWS_DEFAULT_REGION"] = region
+
+    auth_mode = _resolve_aws_auth_mode(cloud)
+    if auth_mode == "profile":
+        profile_name = str(cloud.get("profile_name", "")).strip()
+        if profile_name:
+            env["AWS_PROFILE"] = profile_name
+        return env
+
+    access_key_id = str(cloud.get("access_key_id", "")).strip()
+    secret_access_key = str(cloud.get("secret_access_key", "")).strip()
+    if not access_key_id or not secret_access_key:
+        raise ValidationError(
+            "AWS: auth_mode=access_key requer access_key_id e secret_access_key."
+        )
+    env["AWS_ACCESS_KEY_ID"] = access_key_id
+    env["AWS_SECRET_ACCESS_KEY"] = secret_access_key
+    session_token = str(cloud.get("session_token", "")).strip()
+    if session_token:
+        env["AWS_SESSION_TOKEN"] = session_token
+    return env
+
+
+def _run_aws_cli_json(
+    *,
+    aws_bin: str,
+    args: list[str],
+    cloud: dict,
+    timeout: int = 20,
+    allow_failure: bool = False,
+    force_region: str | None = None,
+    error_label: str = "AWS CLI",
+) -> tuple[dict | None, str]:
+    command = [aws_bin, *args]
+    try:
+        env = _build_aws_cli_execution_env(cloud=cloud, force_region=force_region)
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as exc:
+        message = f"{error_label}: timeout ao executar comando AWS."
+        if allow_failure:
+            return None, message
+        raise ValidationError(message) from exc
+    except OSError as exc:
+        message = f"{error_label}: falha ao executar comando AWS local."
+        if allow_failure:
+            return None, message
+        raise ValidationError(message) from exc
+
+    if result.returncode != 0:
+        detail = str(result.stderr or result.stdout or "").strip() or "sem detalhe"
+        message = f"{error_label}: {detail}"
+        if allow_failure:
+            return None, message
+        raise ValidationError(message) from None
+
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        message = f"{error_label}: resposta JSON invalida do AWS CLI."
+        if allow_failure:
+            return None, message
+        raise ValidationError(message) from None
+
+    if not isinstance(payload, dict):
+        payload = {}
+    return payload, ""
+
+
+def _run_aws_cli_text(
+    *,
+    aws_bin: str,
+    args: list[str],
+    cloud: dict,
+    timeout: int = 20,
+    allow_failure: bool = False,
+    force_region: str | None = None,
+    error_label: str = "AWS CLI",
+) -> tuple[str, str]:
+    command = [aws_bin, *args]
+    try:
+        env = _build_aws_cli_execution_env(cloud=cloud, force_region=force_region)
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as exc:
+        message = f"{error_label}: timeout ao executar comando AWS."
+        if allow_failure:
+            return "", message
+        raise ValidationError(message) from exc
+    except OSError as exc:
+        message = f"{error_label}: falha ao executar comando AWS local."
+        if allow_failure:
+            return "", message
+        raise ValidationError(message) from exc
+
+    if result.returncode != 0:
+        detail = str(result.stderr or result.stdout or "").strip() or "sem detalhe"
+        message = f"{error_label}: {detail}"
+        if allow_failure:
+            return "", message
+        raise ValidationError(message)
+
+    return str(result.stdout or "").strip(), ""
+
+
+def _coerce_float(raw_value: object) -> float:
+    try:
+        return float(str(raw_value or "0").strip())
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _collect_aws_monthly_cost_snapshot(*, aws_bin: str, cloud: dict) -> dict:
+    now = timezone.now().date()
+    month_start = now.replace(day=1)
+    month_end = now + timedelta(days=1)
+    payload, error_detail = _run_aws_cli_json(
+        aws_bin=aws_bin,
+        args=[
+            "ce",
+            "get-cost-and-usage",
+            "--time-period",
+            f"Start={month_start.isoformat()},End={month_end.isoformat()}",
+            "--granularity",
+            "MONTHLY",
+            "--metrics",
+            "UnblendedCost",
+            "--group-by",
+            "Type=DIMENSION,Key=SERVICE",
+            "--output",
+            "json",
+        ],
+        cloud=cloud,
+        allow_failure=True,
+        force_region="us-east-1",
+        error_label="AWS Cost Explorer",
+    )
+    if payload is None:
+        return {
+            "available": False,
+            "detail": error_detail,
+            "month_start": month_start.isoformat(),
+            "month_end_exclusive": month_end.isoformat(),
+            "total_mtd_usd": 0.0,
+            "top_services": [],
+        }
+
+    results = payload.get("ResultsByTime", [])
+    result_bucket = results[0] if isinstance(results, list) and results else {}
+    groups = result_bucket.get("Groups", [])
+    service_costs: list[dict] = []
+    total_mtd_usd = 0.0
+    if isinstance(groups, list):
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            keys = group.get("Keys", [])
+            service_name = ""
+            if isinstance(keys, list) and keys:
+                service_name = str(keys[0]).strip()
+            amount = _coerce_float(
+                group.get("Metrics", {}).get("UnblendedCost", {}).get("Amount", "0")
+            )
+            if amount <= 0:
+                continue
+            total_mtd_usd += amount
+            service_costs.append(
+                {
+                    "service": service_name or "UNKNOWN",
+                    "mtd_usd": round(amount, 2),
+                }
+            )
+
+    service_costs.sort(key=lambda item: item["mtd_usd"], reverse=True)
+    return {
+        "available": True,
+        "detail": "Cost Explorer consultado com sucesso.",
+        "month_start": month_start.isoformat(),
+        "month_end_exclusive": month_end.isoformat(),
+        "total_mtd_usd": round(total_mtd_usd, 2),
+        "top_services": service_costs[:6],
+    }
+
+
+def _build_aws_cost_estimate_payload(*, payload: dict, aws_cost_snapshot: dict) -> dict:
+    cloud = payload.get("cloud", {})
+    deployment = payload.get("deployment", {})
+    instance_type = str(cloud.get("instance_type", "")).strip().lower()
+    ec2_hourly = AWS_COST_EC2_HOURLY_BY_INSTANCE.get(
+        instance_type, AWS_COST_DEFAULT_EC2_HOURLY_USD
+    )
+    hours_per_month = 730
+    try:
+        ebs_gb_value = int(cloud.get("ebs_gb", 20) or 20)
+    except (TypeError, ValueError):
+        ebs_gb_value = 20
+    ebs_gb = max(8, min(ebs_gb_value, 1024))
+    use_elastic_ip = bool(cloud.get("use_elastic_ip", True))
+    has_dns = bool(
+        str(cloud.get("route53_hosted_zone_id", "")).strip()
+        or str(deployment.get("root_domain", "")).strip()
+    )
+
+    ec2_month = round(ec2_hourly * hours_per_month, 2)
+    ebs_month = round(ebs_gb * AWS_COST_EBS_GB_MONTH_USD, 2)
+    eip_month = AWS_COST_EIP_MONTH_USD if use_elastic_ip else 0.0
+    route53_month = (
+        AWS_COST_ROUTE53_HOSTED_ZONE_MONTH_USD + AWS_COST_ROUTE53_QUERIES_MONTH_USD
+        if has_dns
+        else 0.0
+    )
+    data_transfer_month = AWS_COST_DATA_TRANSFER_MONTH_USD
+    codedeploy_month = 0.0
+    total = round(
+        ec2_month
+        + ebs_month
+        + eip_month
+        + route53_month
+        + data_transfer_month
+        + codedeploy_month,
+        2,
+    )
+
+    range_min = round(total * 0.8, 2)
+    range_max = round(total * 1.2, 2)
+
+    notes = [
+        "Estimativa inicial para cenario ate 20 clientes e crescimento gradual.",
+        "Valores reais variam por regiao, classe de instancia, "
+        "trafego e descontos da conta.",
+    ]
+    if not aws_cost_snapshot.get("available"):
+        notes.append(
+            "Consumo real via Cost Explorer indisponivel. "
+            "Verifique permissao ce:GetCostAndUsage."
+        )
+
+    return {
+        "currency": "USD",
+        "estimated_monthly_total_usd": total,
+        "estimated_monthly_range_usd": {
+            "min": range_min,
+            "max": range_max,
+        },
+        "breakdown": [
+            {
+                "service": "EC2",
+                "estimate_monthly_usd": ec2_month,
+                "detail": (
+                    f"instance_type={instance_type or 'nao-informado'} | "
+                    f"{hours_per_month}h/mes"
+                ),
+            },
+            {
+                "service": "EBS",
+                "estimate_monthly_usd": ebs_month,
+                "detail": f"ebs_gb={ebs_gb}",
+            },
+            {
+                "service": "Elastic IP",
+                "estimate_monthly_usd": round(eip_month, 2),
+                "detail": "IP estatico habilitado" if use_elastic_ip else "IP dinamico",
+            },
+            {
+                "service": "Route53",
+                "estimate_monthly_usd": round(route53_month, 2),
+                "detail": "zona + consultas basicas" if has_dns else "nao estimado",
+            },
+            {
+                "service": "Transferencia de dados",
+                "estimate_monthly_usd": round(data_transfer_month, 2),
+                "detail": "estimativa inicial de egress",
+            },
+            {
+                "service": "CodeDeploy",
+                "estimate_monthly_usd": round(codedeploy_month, 2),
+                "detail": "deploy em EC2 (custo estimado zero do servico)",
+            },
+        ],
+        "current_month_cost": aws_cost_snapshot,
+        "notes": notes,
+    }
+
+
+def _run_aws_prerequisite_checks(*, aws_bin: str, payload: dict) -> dict:
+    cloud = payload.get("cloud", {})
+    deployment = payload.get("deployment", {})
+    checks: list[dict] = []
+    warnings: list[str] = []
+
+    route53_zone_id = str(cloud.get("route53_hosted_zone_id", "")).strip()
+    root_domain = str(deployment.get("root_domain", "")).strip().lower().rstrip(".")
+    route53_check = {
+        "name": "aws_route53",
+        "status": "pending",
+        "detail": "Informe hosted zone ou dominio raiz para validar DNS no Route53.",
+    }
+    if route53_zone_id:
+        payload_zone, error_detail = _run_aws_cli_json(
+            aws_bin=aws_bin,
+            args=[
+                "route53",
+                "get-hosted-zone",
+                "--id",
+                route53_zone_id,
+                "--output",
+                "json",
+            ],
+            cloud=cloud,
+            allow_failure=True,
+            error_label="AWS Route53",
+        )
+        if payload_zone is None:
+            route53_check["status"] = "error"
+            route53_check["detail"] = error_detail
+        else:
+            zone_name = (
+                str(payload_zone.get("HostedZone", {}).get("Name", ""))
+                .strip()
+                .rstrip(".")
+            )
+            route53_check["status"] = "ok"
+            route53_check["detail"] = (
+                f"Hosted zone encontrada ({zone_name or route53_zone_id})."
+            )
+            route53_check["zone_name"] = zone_name
+    elif root_domain:
+        payload_zone, error_detail = _run_aws_cli_json(
+            aws_bin=aws_bin,
+            args=[
+                "route53",
+                "list-hosted-zones-by-name",
+                "--dns-name",
+                root_domain,
+                "--max-items",
+                "1",
+                "--output",
+                "json",
+            ],
+            cloud=cloud,
+            allow_failure=True,
+            error_label="AWS Route53",
+        )
+        if payload_zone is None:
+            route53_check["status"] = "error"
+            route53_check["detail"] = error_detail
+        else:
+            hosted_zones = payload_zone.get("HostedZones", [])
+            first_zone = (
+                hosted_zones[0]
+                if isinstance(hosted_zones, list) and hosted_zones
+                else {}
+            )
+            zone_name = str(first_zone.get("Name", "")).strip().rstrip(".")
+            if zone_name and zone_name == root_domain:
+                route53_check["status"] = "ok"
+                route53_check["detail"] = (
+                    f"Dominio {root_domain} encontrado no Route53."
+                )
+                route53_check["zone_name"] = zone_name
+                route53_check["zone_id"] = str(first_zone.get("Id", "")).strip()
+            else:
+                route53_check["status"] = "warning"
+                route53_check["detail"] = (
+                    f"Dominio {root_domain} nao localizado na conta AWS atual."
+                )
+    checks.append(route53_check)
+
+    ec2_instance_id = str(cloud.get("ec2_instance_id", "")).strip()
+    ec2_check = {
+        "name": "aws_ec2_instance",
+        "status": "pending",
+        "detail": "Informe ec2_instance_id para validar instancia alvo.",
+    }
+    if ec2_instance_id:
+        payload_instance, error_detail = _run_aws_cli_json(
+            aws_bin=aws_bin,
+            args=[
+                "ec2",
+                "describe-instances",
+                "--instance-ids",
+                ec2_instance_id,
+                "--output",
+                "json",
+            ],
+            cloud=cloud,
+            allow_failure=True,
+            error_label="AWS EC2",
+        )
+        if payload_instance is None:
+            ec2_check["status"] = "error"
+            ec2_check["detail"] = error_detail
+        else:
+            reservations = payload_instance.get("Reservations", [])
+            instances = (
+                reservations[0].get("Instances", [])
+                if isinstance(reservations, list) and reservations
+                else []
+            )
+            instance = instances[0] if isinstance(instances, list) and instances else {}
+            state = str(instance.get("State", {}).get("Name", "")).strip()
+            public_ip = str(instance.get("PublicIpAddress", "")).strip()
+            private_ip = str(instance.get("PrivateIpAddress", "")).strip()
+            ec2_check["status"] = "ok" if instance else "warning"
+            ec2_check["detail"] = (
+                f"Instancia {ec2_instance_id} validada "
+                f"(state={state or 'desconhecido'})."
+                if instance
+                else f"Instancia {ec2_instance_id} nao encontrada."
+            )
+            ec2_check["state"] = state
+            ec2_check["public_ip"] = public_ip
+            ec2_check["private_ip"] = private_ip
+    checks.append(ec2_check)
+
+    use_elastic_ip = bool(cloud.get("use_elastic_ip", True))
+    allocation_id = str(cloud.get("elastic_ip_allocation_id", "")).strip()
+    eip_check = {
+        "name": "aws_elastic_ip",
+        "status": "skipped" if not use_elastic_ip else "pending",
+        "detail": (
+            "Elastic IP desabilitado. Operacao seguira com IP dinamico."
+            if not use_elastic_ip
+            else "Informe allocation id para validar Elastic IP."
+        ),
+    }
+    if use_elastic_ip and allocation_id:
+        payload_eip, error_detail = _run_aws_cli_json(
+            aws_bin=aws_bin,
+            args=[
+                "ec2",
+                "describe-addresses",
+                "--allocation-ids",
+                allocation_id,
+                "--output",
+                "json",
+            ],
+            cloud=cloud,
+            allow_failure=True,
+            error_label="AWS Elastic IP",
+        )
+        if payload_eip is None:
+            eip_check["status"] = "error"
+            eip_check["detail"] = error_detail
+        else:
+            addresses = payload_eip.get("Addresses", [])
+            address = addresses[0] if isinstance(addresses, list) and addresses else {}
+            public_ip = str(address.get("PublicIp", "")).strip()
+            associated_instance_id = str(address.get("InstanceId", "")).strip()
+            eip_check["status"] = "ok" if address else "warning"
+            eip_check["detail"] = (
+                f"Elastic IP {allocation_id} validado ({public_ip or '-'})."
+                if address
+                else f"Elastic IP {allocation_id} nao encontrado."
+            )
+            eip_check["public_ip"] = public_ip
+            eip_check["associated_instance_id"] = associated_instance_id
+    checks.append(eip_check)
+
+    use_codedeploy = bool(cloud.get("use_codedeploy", False))
+    app_name = str(cloud.get("codedeploy_application_name", "")).strip()
+    deployment_group_name = str(cloud.get("codedeploy_deployment_group", "")).strip()
+    codedeploy_check = {
+        "name": "aws_codedeploy",
+        "status": "skipped" if not use_codedeploy else "pending",
+        "detail": (
+            "CodeDeploy desabilitado. Assistente usara fluxo de provisionamento base."
+            if not use_codedeploy
+            else "Informe nome da aplicacao CodeDeploy para validar."
+        ),
+    }
+    if use_codedeploy and app_name:
+        payload_app, error_detail = _run_aws_cli_json(
+            aws_bin=aws_bin,
+            args=[
+                "deploy",
+                "get-application",
+                "--application-name",
+                app_name,
+                "--output",
+                "json",
+            ],
+            cloud=cloud,
+            allow_failure=True,
+            error_label="AWS CodeDeploy",
+        )
+        if payload_app is None:
+            codedeploy_check["status"] = "error"
+            codedeploy_check["detail"] = error_detail
+        else:
+            codedeploy_check["status"] = "ok"
+            codedeploy_check["detail"] = (
+                f"CodeDeploy application '{app_name}' localizada."
+            )
+            codedeploy_check["application_name"] = app_name
+            if deployment_group_name:
+                payload_group, group_error = _run_aws_cli_json(
+                    aws_bin=aws_bin,
+                    args=[
+                        "deploy",
+                        "get-deployment-group",
+                        "--application-name",
+                        app_name,
+                        "--deployment-group-name",
+                        deployment_group_name,
+                        "--output",
+                        "json",
+                    ],
+                    cloud=cloud,
+                    allow_failure=True,
+                    error_label="AWS CodeDeploy",
+                )
+                if payload_group is None:
+                    codedeploy_check["status"] = "warning"
+                    codedeploy_check["detail"] = (
+                        "Aplicacao encontrada, mas deployment group invalido "
+                        f"({group_error})."
+                    )
+                else:
+                    codedeploy_check["deployment_group_name"] = deployment_group_name
+    elif use_codedeploy and not app_name:
+        warnings.append(
+            "CodeDeploy habilitado sem codedeploy_application_name definido."
+        )
+    checks.append(codedeploy_check)
+
+    return {
+        "checks": checks,
+        "warnings": warnings,
+    }
+
+
+def _build_aws_cloud_report(*, payload: dict, include_costs: bool = True) -> dict:
+    cloud = payload.get("cloud", {})
+    aws_bin = shutil.which("aws")
+    if not aws_bin:
+        raise ValidationError(
+            "AWS: CLI nao encontrada. Instale awscli no servidor do backend "
+            "(ex.: curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip)."
+        )
+
+    auth_mode = _resolve_aws_auth_mode(cloud)
+    profile_name = str(cloud.get("profile_name", "")).strip()
+    access_key_id = str(cloud.get("access_key_id", "")).strip()
+    cli_version, _ = _run_aws_cli_text(
+        aws_bin=aws_bin,
+        args=["--version"],
+        cloud=cloud,
+        allow_failure=True,
+        error_label="AWS CLI version",
+    )
+
+    identity_payload, _identity_error = _run_aws_cli_json(
+        aws_bin=aws_bin,
+        args=["sts", "get-caller-identity", "--output", "json"],
+        cloud=cloud,
+        error_label="AWS STS",
+    )
+    if identity_payload is None:
+        identity_payload = {}
+
+    account_id = str(identity_payload.get("Account", "")).strip()
+    arn = str(identity_payload.get("Arn", "")).strip()
+    user_id = str(identity_payload.get("UserId", "")).strip()
+
+    aliases_payload, alias_error = _run_aws_cli_json(
+        aws_bin=aws_bin,
+        args=["iam", "list-account-aliases", "--output", "json"],
+        cloud=cloud,
+        allow_failure=True,
+        error_label="AWS IAM",
+    )
+    account_alias = ""
+    if aliases_payload:
+        aliases = aliases_payload.get("AccountAliases", [])
+        if isinstance(aliases, list) and aliases:
+            account_alias = str(aliases[0]).strip()
+
+    connectivity_check = {
+        "name": "aws_connectivity",
+        "status": "ok",
+        "detail": "AWS STS validado com sucesso.",
+        "checked_at": timezone.now().isoformat(),
+        "cli_installed": True,
+        "cli_version": cli_version,
+        "account_id": account_id,
+        "arn": arn,
+        "user_id": user_id,
+        "account_alias": account_alias,
+        "region": str(cloud.get("region", "")).strip(),
+        "auth_mode": auth_mode,
+        "profile_name": profile_name,
+        "access_key_hint": _mask_sensitive_token(access_key_id),
+    }
+    if alias_error:
+        connectivity_check["alias_warning"] = alias_error
+
+    prerequisites = _run_aws_prerequisite_checks(aws_bin=aws_bin, payload=payload)
+    cost_snapshot = (
+        _collect_aws_monthly_cost_snapshot(aws_bin=aws_bin, cloud=cloud)
+        if include_costs
+        else {
+            "available": False,
+            "detail": "Snapshot de custo nao solicitado.",
+            "month_start": "",
+            "month_end_exclusive": "",
+            "total_mtd_usd": 0.0,
+            "top_services": [],
+        }
+    )
+    costs = _build_aws_cost_estimate_payload(
+        payload=payload,
+        aws_cost_snapshot=cost_snapshot,
+    )
+
+    warnings: list[str] = []
+    warnings.extend(prerequisites.get("warnings", []))
+    if alias_error:
+        warnings.append(alias_error)
+
+    return {
+        "provider": "aws",
+        "checked_at": timezone.now().isoformat(),
+        "connectivity": connectivity_check,
+        "prerequisites": prerequisites,
+        "costs": costs,
+        "warnings": warnings,
+    }
+
+
 def _run_cloud_connectivity_probe(*, payload: dict) -> dict:
     cloud = payload.get("cloud", {})
     provider = str(cloud.get("provider", "aws")).strip().lower()
 
     if provider == "aws":
-        aws_bin = shutil.which("aws")
-        if not aws_bin:
-            raise ValidationError(
-                "AWS: CLI nao encontrada. Instale awscli para validar conectividade."
-            )
-        result = subprocess.run(
-            [aws_bin, "sts", "get-caller-identity", "--output", "json"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
-        if result.returncode != 0:
-            detail = str(result.stderr or result.stdout or "").strip() or "sem detalhe"
-            raise ValidationError(
-                f"AWS: falha ao validar credenciais/conectividade ({detail})."
-            )
-        account_id = ""
-        arn = ""
-        try:
-            parsed = json.loads(result.stdout or "{}")
-            account_id = str(parsed.get("Account", "")).strip()
-            arn = str(parsed.get("Arn", "")).strip()
-        except json.JSONDecodeError:
-            pass
-        return {
-            "name": "aws_connectivity",
-            "status": "ok",
-            "detail": "AWS STS validado com sucesso.",
-            "checked_at": timezone.now().isoformat(),
-            "account_id": account_id,
-            "arn": arn,
-        }
+        aws_report = _build_aws_cloud_report(payload=payload, include_costs=False)
+        connectivity = aws_report.get("connectivity", {})
+        if isinstance(connectivity, dict):
+            return connectivity
 
     if provider == "gcp":
         gcloud_bin = shutil.which("gcloud")
@@ -3739,6 +4480,39 @@ def validate_installer_wizard_payload(*, payload: dict | None) -> dict:
     }
 
 
+def validate_installer_aws_setup(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    normalized_payload, warnings = _normalize_installer_wizard_payload(payload)
+    normalized_payload = _sync_installer_deployment_with_server_config(
+        config=config,
+        normalized_payload=normalized_payload,
+    )
+    normalized_payload["target"] = "aws"
+    cloud = normalized_payload.get("cloud", {})
+    if not isinstance(cloud, dict):
+        cloud = {}
+    cloud["provider"] = "aws"
+    normalized_payload["cloud"] = cloud
+
+    aws_report = _build_aws_cloud_report(payload=normalized_payload, include_costs=True)
+    warnings.extend(
+        [
+            str(item).strip()
+            for item in aws_report.get("warnings", [])
+            if str(item).strip()
+        ]
+    )
+
+    return {
+        "ok": True,
+        "workflow_version": INSTALLER_WORKFLOW_VERSION,
+        "validated_at": timezone.now().isoformat(),
+        "normalized_payload": _sanitize_installer_payload(normalized_payload),
+        "warnings": warnings,
+        "cloud_validation": aws_report,
+    }
+
+
 @transaction.atomic
 def save_installer_wizard_settings(
     *,
@@ -3937,17 +4711,58 @@ def start_installer_job(
             "Instalador remoto via SSH iniciado em background apos probe OK."
         )
     elif target in {"aws", "gcp"}:
-        cloud_check = _run_cloud_connectivity_probe(payload=normalized_payload)
-        job_payload["connectivity_checks"] = [cloud_check]
-        provider = str(
-            normalized_payload.get("cloud", {}).get("provider", "aws")
-        ).upper()
-        region = str(normalized_payload.get("cloud", {}).get("region", "")).strip()
-        region_label = f"regiao={region}" if region else "regiao=nao-informada"
-        job_payload["summary"] = (
-            f"Plano {provider} validado ({region_label}). "
-            "Provisionamento automatico completo segue na proxima fase cloud."
+        provider = (
+            str(normalized_payload.get("cloud", {}).get("provider", "aws"))
+            .strip()
+            .lower()
         )
+        if provider == "aws":
+            aws_report = _build_aws_cloud_report(
+                payload=normalized_payload,
+                include_costs=True,
+            )
+            connectivity = aws_report.get("connectivity", {})
+            prerequisite_checks = (
+                aws_report.get("prerequisites", {}).get("checks", [])
+                if isinstance(aws_report.get("prerequisites", {}), dict)
+                else []
+            )
+            checks: list[dict] = []
+            if isinstance(connectivity, dict):
+                checks.append(connectivity)
+            if isinstance(prerequisite_checks, list):
+                checks.extend(
+                    item for item in prerequisite_checks if isinstance(item, dict)
+                )
+            job_payload["connectivity_checks"] = checks
+            job_payload["cloud_validation"] = aws_report
+            estimated_monthly = _coerce_float(
+                aws_report.get("costs", {}).get("estimated_monthly_total_usd", 0)
+            )
+            region = str(normalized_payload.get("cloud", {}).get("region", "")).strip()
+            region_label = f"regiao={region}" if region else "regiao=nao-informada"
+            job_payload["summary"] = (
+                "Plano AWS validado com sucesso "
+                f"({region_label}). Custo estimado mensal: USD {estimated_monthly:.2f}."
+            )
+            warnings.extend(
+                [
+                    str(item).strip()
+                    for item in aws_report.get("warnings", [])
+                    if str(item).strip()
+                ]
+            )
+            job_payload["warnings"] = warnings
+        else:
+            cloud_check = _run_cloud_connectivity_probe(payload=normalized_payload)
+            job_payload["connectivity_checks"] = [cloud_check]
+            provider_label = provider.upper()
+            region = str(normalized_payload.get("cloud", {}).get("region", "")).strip()
+            region_label = f"regiao={region}" if region else "regiao=nao-informada"
+            job_payload["summary"] = (
+                f"Plano {provider_label} validado ({region_label}). "
+                "Provisionamento automatico completo segue na proxima fase cloud."
+            )
     else:
         raise ValidationError("Target de instalacao invalido.")
 

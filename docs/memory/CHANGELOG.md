@@ -1120,3 +1120,36 @@
   - validacao executada:
     - `npm run lint` (web/admin) -> OK;
     - `npm run build` (web/admin) -> OK.
+
+- T9.2.7-A5-A2 (01/03/2026): AWS no assistente de instalacao com validacao segura e custos
+  - backend/portal:
+    - expandido contrato `installer.cloud` com parametros AWS (auth mode, credenciais runtime, EC2/Route53/EIP/CodeDeploy/EBS);
+    - novo endpoint admin:
+      - `POST /api/v1/portal/admin/config/installer-cloud/aws/validate/`;
+    - validacao AWS com:
+      - `STS GetCallerIdentity`,
+      - alias de conta via `IAM ListAccountAliases`,
+      - checks de pre-requisito (`Route53`, `EC2`, `Elastic IP`, `CodeDeploy`);
+    - painel de custo no payload:
+      - estimativa mensal por servico (EC2/EBS/EIP/Route53/transferencia),
+      - faixa projetada,
+      - snapshot de custo MTD via Cost Explorer quando a conta permite;
+    - seguranca:
+      - `secret_access_key` e `session_token` sanitizados antes de persistencia em draft/jobs.
+  - web admin (`Instalacao / Deploy`):
+    - passo `Infraestrutura` ganhou area AWS dedicada:
+      - autenticacao por `profile` ou `access_key`,
+      - campos de Route53/EC2/EIP/CodeDeploy,
+      - botao de validacao AWS em runtime;
+    - dashboard inline de validacao com:
+      - conectividade,
+      - status por check de infraestrutura,
+      - custos estimados e custo real MTD (quando disponivel).
+  - documentacao:
+    - ADR novo `docs/adr/0016-installer-aws-validacao-segura-e-custos.md`;
+    - plano cloud atualizado em `docs/11-plano-cloud-aws-google-e-testes-operacionais.md`.
+  - validacao executada:
+    - `source .venv/bin/activate && ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_services.py tests/test_portal_api.py` -> OK;
+    - `source .venv/bin/activate && pytest tests/test_portal_services.py tests/test_portal_api.py` -> OK (`42 passed`);
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK.
