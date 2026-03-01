@@ -48,3 +48,4 @@ Fila atual:
    - Progresso 01/03/2026 (`A2/HF1`): `Portal CMS` passou a exibir links de onboarding para OAuth social e gateways; guia de teste manual do instalador por cenarios publicado em `docs/12-guia-testes-instalacao-manual.md`.
 40. [x] T9.2.7-RBAC-HF1 Gestao completa de usuarios no Web Admin (criar/editar conta, papeis, categorias/tarefas e bloqueio de areas tecnicas para nao-admin) - concluida em 01/03/2026.
 41. [x] T9.2.7-A4-HF2 Criar modulo dedicado `Auditoria de atividade` (separado de `Administracao do servidor`) com dashboard/KPIs, filtros e analise de seguranca - concluida em 01/03/2026.
+42. [x] T9.2.6-A3 Padronizacao global de formularios: CEP Correios com autopreenchimento, mascara/validacao de telefone + checkbox WhatsApp e validacao de CPF/CNPJ por DV no backend - concluida em 01/03/2026.

@@ -75,6 +75,7 @@
 - Endpoint: `GET/PATCH /api/v1/accounts/me/profile/`
 - Autenticacao: JWT obrigatorio.
 - Atualizacao textual: payload JSON parcial (`PATCH`) com dados pessoais, endereco e documentos.
+- Campo operacional adicional: `phone_is_whatsapp` (opcional) para identificar telefone principal com WhatsApp.
 - Upload de arquivos: `PATCH multipart/form-data` para:
   - `profile_photo`
   - `document_front_image`

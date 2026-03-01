@@ -85,6 +85,7 @@ const LGPD_STATUS_OPTIONS: Array<{ value: CustomerLgpdRequestStatus; label: stri
 type ProfileDraft = {
   full_name: string;
   phone: string;
+  phone_is_whatsapp: boolean;
   cpf: string;
   cnpj: string;
   postal_code: string;
@@ -99,6 +100,7 @@ type ProfileDraft = {
 const EMPTY_PROFILE_DRAFT: ProfileDraft = {
   full_name: "",
   phone: "",
+  phone_is_whatsapp: false,
   cpf: "",
   cnpj: "",
   postal_code: "",
@@ -163,6 +165,7 @@ export function CustomersManagementPanel() {
     setProfileDraft({
       full_name: detail.profile?.full_name ?? detail.full_name ?? "",
       phone: detail.profile?.phone ?? detail.phone ?? "",
+      phone_is_whatsapp: Boolean(detail.profile?.phone_is_whatsapp),
       cpf: detail.profile?.cpf ?? detail.cpf ?? "",
       cnpj: detail.profile?.cnpj ?? detail.cnpj ?? "",
       postal_code: detail.profile?.postal_code ?? "",
@@ -642,6 +645,7 @@ export function CustomersManagementPanel() {
                     <h5 className="text-sm font-semibold text-text">Cadastro essencial</h5>
                     <div className="mt-2 grid gap-2 md:grid-cols-2">
                       <input
+                        name="full_name"
                         value={profileDraft.full_name}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, full_name: event.currentTarget.value }))
@@ -649,15 +653,33 @@ export function CustomersManagementPanel() {
                         placeholder="Nome completo"
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       />
+                      <div className="space-y-1">
+                        <input
+                          name="phone"
+                          value={profileDraft.phone}
+                          onChange={(event) =>
+                            setProfileDraft((current) => ({ ...current, phone: event.currentTarget.value }))
+                          }
+                          placeholder="Telefone"
+                          className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                        />
+                        <label className="inline-flex items-center gap-2 text-xs text-muted">
+                          <input
+                            name="phone_is_whatsapp"
+                            type="checkbox"
+                            checked={profileDraft.phone_is_whatsapp}
+                            onChange={(event) =>
+                              setProfileDraft((current) => ({
+                                ...current,
+                                phone_is_whatsapp: event.currentTarget.checked,
+                              }))
+                            }
+                          />
+                          WhatsApp (opcional)
+                        </label>
+                      </div>
                       <input
-                        value={profileDraft.phone}
-                        onChange={(event) =>
-                          setProfileDraft((current) => ({ ...current, phone: event.currentTarget.value }))
-                        }
-                        placeholder="Telefone"
-                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
-                      />
-                      <input
+                        name="cpf"
                         value={profileDraft.cpf}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, cpf: event.currentTarget.value }))
@@ -666,6 +688,7 @@ export function CustomersManagementPanel() {
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       />
                       <input
+                        name="cnpj"
                         value={profileDraft.cnpj}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, cnpj: event.currentTarget.value }))
@@ -674,6 +697,7 @@ export function CustomersManagementPanel() {
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       />
                       <input
+                        name="postal_code"
                         value={profileDraft.postal_code}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, postal_code: event.currentTarget.value }))
@@ -682,6 +706,7 @@ export function CustomersManagementPanel() {
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       />
                       <input
+                        name="street"
                         value={profileDraft.street}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, street: event.currentTarget.value }))
@@ -690,6 +715,7 @@ export function CustomersManagementPanel() {
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       />
                       <input
+                        name="street_number"
                         value={profileDraft.street_number}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, street_number: event.currentTarget.value }))
@@ -698,6 +724,7 @@ export function CustomersManagementPanel() {
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       />
                       <input
+                        name="neighborhood"
                         value={profileDraft.neighborhood}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, neighborhood: event.currentTarget.value }))
@@ -706,6 +733,7 @@ export function CustomersManagementPanel() {
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       />
                       <input
+                        name="city"
                         value={profileDraft.city}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, city: event.currentTarget.value }))
@@ -714,6 +742,7 @@ export function CustomersManagementPanel() {
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       />
                       <input
+                        name="state"
                         value={profileDraft.state}
                         onChange={(event) =>
                           setProfileDraft((current) => ({ ...current, state: event.currentTarget.value }))

@@ -8,6 +8,7 @@ from .customer_views import (
     CustomerLifecycleOverviewAPIView,
 )
 from .views import (
+    CepLookupAPIView,
     EmailVerificationConfirmAPIView,
     EmailVerificationResendAPIView,
     MeAPIView,
@@ -32,6 +33,7 @@ router.register(r"tasks", UserTaskViewSet, basename="accounts-tasks")
 router.register(r"customers", CustomerAdminViewSet, basename="accounts-customers")
 
 urlpatterns = [
+    path("lookup-cep/", CepLookupAPIView.as_view(), name="accounts-lookup-cep"),
     path("register/", RegisterAPIView.as_view(), name="accounts-register"),
     path(
         "email-verification/confirm/",

@@ -137,6 +137,7 @@ class UserProfile(TimeStampedModel):
     full_name = models.CharField(max_length=180, blank=True)
     preferred_name = models.CharField(max_length=120, blank=True)
     phone = models.CharField(max_length=32, blank=True)
+    phone_is_whatsapp = models.BooleanField(default=False)
     secondary_phone = models.CharField(max_length=32, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     cpf = models.CharField(max_length=14, blank=True)

@@ -41,7 +41,7 @@
 - `user_id` (FK unique -> accounts_user)
 - dados pessoais:
   - `full_name`, `preferred_name`
-  - `phone`, `secondary_phone`
+  - `phone`, `phone_is_whatsapp`, `secondary_phone`
   - `birth_date`
   - `cpf`, `cnpj`, `rg`
   - `occupation`

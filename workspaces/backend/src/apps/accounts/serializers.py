@@ -18,6 +18,14 @@ from .services import (
     get_user_task_codes,
     register_user_with_default_role,
 )
+from .validators import (
+    is_valid_cnpj_document,
+    is_valid_cpf_document,
+    is_valid_phone_document,
+    normalize_digits,
+    normalize_phone_digits,
+    normalize_postal_code,
+)
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -470,10 +478,6 @@ class UserTaskCategorySerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-def _normalize_digits(value: str) -> str:
-    return "".join(char for char in value if char.isdigit())
-
-
 class UserProfileSerializer(serializers.ModelSerializer):
     profile_photo_url = serializers.SerializerMethodField()
     document_front_image_url = serializers.SerializerMethodField()
@@ -489,6 +493,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "full_name",
             "preferred_name",
             "phone",
+            "phone_is_whatsapp",
             "secondary_phone",
             "birth_date",
             "cpf",
@@ -579,21 +584,42 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return self._build_file_url(obj.biometric_photo)
 
     def validate_cpf(self, value: str) -> str:
-        normalized = _normalize_digits(value)
-        if normalized and len(normalized) != 11:
-            raise serializers.ValidationError("CPF invalido. Informe 11 digitos.")
+        normalized = normalize_digits(value)
+        if normalized and not is_valid_cpf_document(normalized):
+            raise serializers.ValidationError(
+                "CPF invalido. Informe um documento valido (11 digitos com DV)."
+            )
         return normalized
 
     def validate_cnpj(self, value: str) -> str:
-        normalized = _normalize_digits(value)
-        if normalized and len(normalized) != 14:
-            raise serializers.ValidationError("CNPJ invalido. Informe 14 digitos.")
+        normalized = normalize_digits(value)
+        if normalized and not is_valid_cnpj_document(normalized):
+            raise serializers.ValidationError(
+                "CNPJ invalido. Informe um documento valido (14 digitos com DV)."
+            )
         return normalized
 
     def validate_postal_code(self, value: str) -> str:
-        normalized = _normalize_digits(value)
+        normalized = normalize_postal_code(value)
         if normalized and len(normalized) not in {8}:
             raise serializers.ValidationError("CEP invalido. Informe 8 digitos.")
+        return normalized
+
+    def validate_phone(self, value: str) -> str:
+        normalized = normalize_phone_digits(value)
+        if normalized and not is_valid_phone_document(normalized):
+            raise serializers.ValidationError(
+                "Telefone invalido. Informe DDD + numero com 10 ou 11 digitos."
+            )
+        return normalized
+
+    def validate_secondary_phone(self, value: str) -> str:
+        normalized = normalize_phone_digits(value)
+        if normalized and not is_valid_phone_document(normalized):
+            raise serializers.ValidationError(
+                "Telefone secundario invalido. "
+                "Informe DDD + numero com 10 ou 11 digitos."
+            )
         return normalized
 
     def update(self, instance: UserProfile, validated_data):
@@ -618,3 +644,13 @@ class EmailVerificationConfirmSerializer(serializers.Serializer):
 class EmailVerificationResendSerializer(serializers.Serializer):
     identifier = serializers.CharField(required=False, allow_blank=True, max_length=150)
     preferred_client_base_url = serializers.URLField(required=False, allow_blank=True)
+
+
+class CepLookupSerializer(serializers.Serializer):
+    cep = serializers.CharField(required=True, allow_blank=False, max_length=16)
+
+    def validate_cep(self, value: str) -> str:
+        normalized = normalize_postal_code(value)
+        if len(normalized) != 8:
+            raise serializers.ValidationError("CEP invalido. Informe 8 digitos.")
+        return normalized

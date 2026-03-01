@@ -10,6 +10,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .address_lookup import (
+    CepLookupNotFoundError,
+    CepLookupUnavailableError,
+    lookup_address_by_cep,
+)
 from .models import UserProfile
 from .permissions import RoleMatrixPermission
 from .selectors import list_roles, list_task_categories, list_tasks
@@ -18,6 +23,7 @@ from .serializers import (
     AdminUserUpdateSerializer,
     AssignRolesSerializer,
     AssignTasksSerializer,
+    CepLookupSerializer,
     EmailVerificationConfirmSerializer,
     EmailVerificationResendSerializer,
     MeSerializer,
@@ -119,6 +125,29 @@ class MeProfileAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CepLookupAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        serializer = CepLookupSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            payload = lookup_address_by_cep(cep=serializer.validated_data["cep"])
+        except CepLookupNotFoundError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except CepLookupUnavailableError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class RoleViewSet(

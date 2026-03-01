@@ -58,3 +58,26 @@ Padronizar formatacao e validacao de campos em todos os formularios dos frontend
 - Frontends:
   - `npm run lint` (admin/client/portal)
   - `npm run build` (admin/client/portal)
+
+## Evolucao (01/03/2026) - T9.2.6-A3
+
+### Novos comportamentos globais
+- Telefone:
+  - mascara em tempo real para DDD + numero;
+  - validacao em tempo real (10 ou 11 digitos);
+  - suporte ao checkbox opcional de WhatsApp nos formularios de perfil/cadastro operacional.
+- CEP:
+  - lookup automatico de endereco ao informar CEP valido;
+  - preenchimento assistido de `logradouro`, `bairro`, `cidade` e `uf`;
+  - link automatico para consulta manual no site oficial dos Correios.
+
+### Reforco backend adicional
+- Novo endpoint publico para CEP:
+  - `GET /api/v1/accounts/lookup-cep/?cep=<cep>`
+- Integracao principal com API Correios (com token/contrato configuravel por ambiente).
+- Fallback opcional para ViaCEP (controlado por `CORREIOS_CEP_ALLOW_VIACEP_FALLBACK`).
+- Validacao servidor-side de CPF/CNPJ por DV aplicada em:
+  - perfil do usuario (`accounts/me/profile`);
+  - perfil administrativo de clientes (`accounts/customers/<id>/profile`);
+  - documento de recebedor em `PortalConfig.payment_providers.receiver`.
+- Validacao/normalizacao servidor-side de telefone aplicada em perfis de usuario/cliente.

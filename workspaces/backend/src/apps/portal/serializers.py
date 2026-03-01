@@ -2,6 +2,12 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from rest_framework import serializers
 
+from apps.accounts.validators import (
+    is_valid_cnpj_document,
+    is_valid_cpf_document,
+    normalize_digits,
+)
+
 from .models import MobileRelease, PortalConfig, PortalPage, PortalSection
 
 
@@ -132,21 +138,25 @@ class PortalConfigAdminSerializer(serializers.ModelSerializer):
                 person_type = (
                     str(receiver.get("person_type", "CNPJ")).strip().upper() or "CNPJ"
                 )
-                document = "".join(
-                    char
-                    for char in str(receiver.get("document", "")).strip()
-                    if char.isdigit()
-                )
+                document = normalize_digits(str(receiver.get("document", "")).strip())
                 email = str(receiver.get("email", "")).strip()
 
-                if person_type == "CPF" and document and len(document) != 11:
+                if (
+                    person_type == "CPF"
+                    and document
+                    and not is_valid_cpf_document(document)
+                ):
                     raise serializers.ValidationError(
-                        "Documento do recebedor invalido para CPF (11 digitos)."
+                        "Documento do recebedor invalido para CPF (11 digitos com DV)."
                     )
 
-                if person_type == "CNPJ" and document and len(document) != 14:
+                if (
+                    person_type == "CNPJ"
+                    and document
+                    and not is_valid_cnpj_document(document)
+                ):
                     raise serializers.ValidationError(
-                        "Documento do recebedor invalido para CNPJ (14 digitos)."
+                        "Documento do recebedor invalido para CNPJ (14 digitos com DV)."
                     )
 
                 if email:

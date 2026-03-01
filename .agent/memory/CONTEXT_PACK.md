@@ -13,6 +13,8 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 01/03/2026 (`T9.2.6-A3`): padrao global de formularios evoluido com lookup automatico de CEP (Correios), autopreenchimento de endereco, mascara/validacao de telefone em tempo real e validacao servidor-side de CPF/CNPJ por DV.
+- Atualizacao em 01/03/2026 (`T9.2.6-A3`): backend ganhou endpoint publico `GET /api/v1/accounts/lookup-cep/?cep=...` e perfil de usuario passou a persistir `phone_is_whatsapp`.
 - Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`): auditoria de atividade foi separada de `Administracao do servidor` e ganhou modulo proprio `/modulos/auditoria-atividade` com dashboard/KPIs, filtros e analise de seguranca/tendencias.
 - Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`): backend `admin_audit` evoluiu com endpoint `GET /api/v1/admin-audit/admin-activity/overview/` para agregacoes operacionais da trilha administrativa.
 - Atualizacao em 01/03/2026 (`T9.2.7-RBAC-HF1`): modulo `Usuarios e RBAC` evoluiu para gestao completa de usuarios internos no Web Admin (criar/editar conta, atribuir papeis e tarefas por categoria), com novos endpoints em `accounts` e cobertura de testes no backend.

@@ -93,6 +93,65 @@ def test_customers_admin_atualiza_consents(client, create_user_with_roles):
 
 
 @pytest.mark.django_db
+def test_customers_admin_patch_profile_normaliza_telefone_e_whatsapp(
+    client, create_user_with_roles
+):
+    customer = create_user_with_roles(
+        username="cliente_profile_phone",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    response = client.patch(
+        f"/api/v1/accounts/customers/{customer.id}/profile/",
+        {
+            "phone": "(11) 97777-8888",
+            "phone_is_whatsapp": True,
+            "postal_code": "01001-000",
+            "cpf": "529.982.247-25",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phone"] == "11977778888"
+    assert payload["phone_is_whatsapp"] is True
+    assert payload["postal_code"] == "01001000"
+    assert payload["cpf"] == "52998224725"
+
+
+@pytest.mark.django_db
+def test_customers_admin_patch_profile_rejeita_cpf_invalido(
+    client, create_user_with_roles
+):
+    customer = create_user_with_roles(
+        username="cliente_profile_cpf_invalido",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    response = client.patch(
+        f"/api/v1/accounts/customers/{customer.id}/profile/",
+        {
+            "cpf": "111.111.111-11",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "cpf" in response.json()
+
+    sequencial_response = client.patch(
+        f"/api/v1/accounts/customers/{customer.id}/profile/",
+        {
+            "cpf": "123.456.789-09",
+        },
+        format="json",
+    )
+    assert sequencial_response.status_code == 400
+    assert "cpf" in sequencial_response.json()
+
+
+@pytest.mark.django_db
 def test_customers_admin_cria_e_finaliza_solicitacao_lgpd(
     client, create_user_with_roles
 ):

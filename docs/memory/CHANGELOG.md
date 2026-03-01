@@ -1,6 +1,13 @@
 # Changelog (por sprint)
 
 ## 01/03/2026
+- T9.2.6-A3 (ecosistema web/forms): `FormFieldGuard` evoluiu com mascara/validacao em tempo real de telefone, lookup automatico de CEP com autopreenchimento de endereco e link oficial dos Correios nos campos de CEP.
+- T9.2.6-A3 (backend/accounts): novo endpoint publico `GET /api/v1/accounts/lookup-cep/?cep=...` com integracao principal Correios e fallback opcional controlado por ambiente.
+- T9.2.6-A3 (backend/security): validacao de CPF/CNPJ por DV reforcada no backend (`accounts` e recebedor em `portal`), alem de normalizacao/validacao de telefone em perfis.
+- T9.2.6-A3 (backend/accounts): perfil de usuario passou a persistir `phone_is_whatsapp` (migration `0007_userprofile_phone_is_whatsapp`).
+- T9.2.6-A3 (web admin): formulario `Meu Perfil` e modulo `Clientes` atualizados com checkbox opcional de WhatsApp no telefone e semantica de campos para compatibilidade global do guard.
+- T9.2.6-A3 (docs/adr): ADR `0017-formularios-cep-correios-validacoes-tempo-real.md` criada para formalizar o padrao.
+- T9.2.6-A3 (qa): validado com `ruff check`, `python manage.py makemigrations --check`, `pytest tests/test_accounts_api.py tests/test_customers_admin_api.py tests/test_portal_api.py tests/test_portal_services.py` (79 passed), `npm run lint` e `npm run build` em `web/admin`, `web/client` e `web/portal`.
 - T9.2.7-A4-HF2 (web admin/auditoria): auditoria de atividade removida do modulo `Administracao do servidor` e migrada para novo modulo dedicado `/modulos/auditoria-atividade`, com navegacao propria em todos os templates do Admin.
 - T9.2.7-A4-HF2 (web admin/auditoria): novo dashboard de auditoria com KPIs de eventos, taxa de sucesso/erro, latencia media/p95, distribuicao por metodo/canal, segurança (401/403/anonimos/falhas) e tendencias (top atores/rotas/grupos de acao).
 - T9.2.7-A4-HF2 (backend/admin_audit): novo endpoint `GET /api/v1/admin-audit/admin-activity/overview/` com agregacoes seguras para dashboard (series 24h, top listas, contadores de seguranca e latencia).
@@ -1167,3 +1174,24 @@
     - `source .venv/bin/activate && pytest tests/test_portal_services.py tests/test_portal_api.py` -> OK (`42 passed`);
     - `npm run lint` (web/admin) -> OK;
     - `npm run build` (web/admin) -> OK.
+
+- T9.2.7-A6-HF1 (01/03/2026): correcao de validacao CPF/CEP no Perfil (Web Admin) + estabilidade cross-template
+  - web/ui:
+    - `FormFieldGuard` passou a consultar CEP via endpoint same-origin (`/api/runtime/lookup-cep`) para evitar falhas de ambiente/CORS ao chamar backend diretamente.
+    - validacao de CPF agora rejeita explicitamente o CPF sequencial `123.456.789-09`.
+    - blur dos campos passou a disparar `reportValidity()` para feedback imediato de validacao.
+  - web/admin, web/client, web/portal:
+    - novas rotas `GET /api/runtime/lookup-cep` para proxy seguro ao backend `GET /api/v1/accounts/lookup-cep/`.
+  - web/admin (`/perfil`):
+    - submit do formulario agora interrompe envio quando `form.checkValidity()` falha, exibindo `form.reportValidity()`.
+  - backend:
+    - validador de CPF endurecido para rejeitar `12345678909`.
+    - testes atualizados para usar CPF valido real em cenarios positivos.
+    - nova suite unitária de validadores em `tests/test_accounts_validators.py`.
+  - validacao executada:
+    - `source workspaces/backend/.venv/bin/activate && cd workspaces/backend && ruff check tests/test_accounts_validators.py tests/test_accounts_api.py tests/test_customers_admin_api.py src/apps/accounts/validators.py` -> OK;
+    - `source workspaces/backend/.venv/bin/activate && cd workspaces/backend && pytest tests/test_accounts_validators.py` -> OK (`13 passed`);
+    - `source workspaces/backend/.venv/bin/activate && cd workspaces/backend && python manage.py check` -> OK;
+    - `npm run lint` (web/admin, web/client, web/portal) -> OK;
+    - `npm run build` (web/admin, web/client, web/portal) -> OK;
+    - `cd workspaces/backend && .venv/bin/pytest tests/test_accounts_api.py tests/test_customers_admin_api.py tests/test_portal_api.py tests/test_portal_services.py` -> OK (`79 passed`).

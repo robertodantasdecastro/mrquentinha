@@ -5,6 +5,14 @@ from rest_framework import serializers
 
 from .models import CustomerGovernanceProfile, CustomerLgpdRequest, UserProfile
 from .services import build_user_account_compliance, get_user_role_codes
+from .validators import (
+    is_valid_cnpj_document,
+    is_valid_cpf_document,
+    is_valid_phone_document,
+    normalize_digits,
+    normalize_phone_digits,
+    normalize_postal_code,
+)
 
 
 class CustomerProfileAdminSerializer(serializers.ModelSerializer):
@@ -22,6 +30,7 @@ class CustomerProfileAdminSerializer(serializers.ModelSerializer):
             "full_name",
             "preferred_name",
             "phone",
+            "phone_is_whatsapp",
             "secondary_phone",
             "birth_date",
             "cpf",
@@ -107,6 +116,45 @@ class CustomerProfileAdminSerializer(serializers.ModelSerializer):
             validated_data["biometric_verified_at"] = None
 
         return super().update(instance, validated_data)
+
+    def validate_cpf(self, value: str) -> str:
+        normalized = normalize_digits(value)
+        if normalized and not is_valid_cpf_document(normalized):
+            raise serializers.ValidationError(
+                "CPF invalido. Informe um documento valido (11 digitos com DV)."
+            )
+        return normalized
+
+    def validate_cnpj(self, value: str) -> str:
+        normalized = normalize_digits(value)
+        if normalized and not is_valid_cnpj_document(normalized):
+            raise serializers.ValidationError(
+                "CNPJ invalido. Informe um documento valido (14 digitos com DV)."
+            )
+        return normalized
+
+    def validate_phone(self, value: str) -> str:
+        normalized = normalize_phone_digits(value)
+        if normalized and not is_valid_phone_document(normalized):
+            raise serializers.ValidationError(
+                "Telefone invalido. Informe DDD + numero com 10 ou 11 digitos."
+            )
+        return normalized
+
+    def validate_secondary_phone(self, value: str) -> str:
+        normalized = normalize_phone_digits(value)
+        if normalized and not is_valid_phone_document(normalized):
+            raise serializers.ValidationError(
+                "Telefone secundario invalido. "
+                "Informe DDD + numero com 10 ou 11 digitos."
+            )
+        return normalized
+
+    def validate_postal_code(self, value: str) -> str:
+        normalized = normalize_postal_code(value)
+        if normalized and len(normalized) != 8:
+            raise serializers.ValidationError("CEP invalido. Informe 8 digitos.")
+        return normalized
 
 
 class CustomerGovernanceSerializer(serializers.ModelSerializer):

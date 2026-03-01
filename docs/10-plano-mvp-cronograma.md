@@ -29,6 +29,7 @@ Data de referencia: 01/03/2026.
 - Etapa 9.2.5 (template AdminDek e refinacao visual do Web Admin): concluida em 26/02/2026
 - Etapa 9.2.6-A1 (perfil completo do usuario logado no Web Admin): concluida em 27/02/2026
 - Etapa 9.2.6-A2 (validadores/formatadores globais de formularios no ecossistema web): concluida em 27/02/2026
+- Etapa 9.2.6-A3 (CEP Correios + telefone/WhatsApp + validacao DV CPF/CNPJ em toda a stack): concluida em 01/03/2026
 - Etapa 9.2.7-A1 (gestao de clientes no Web Admin + compliance LGPD/KYC): concluida em 27/02/2026
 - Etapa 9.2.7-A2 (novo modulo Administracao do servidor e reorganizacao do Portal CMS): concluida em 27/02/2026
 - Etapa 9.2.7-A3 (assistente de instalacao/deploy com workflow continuo do instalador): concluida em 28/02/2026
@@ -67,6 +68,7 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase de qualidade operacional: `T9.2.1` (plano e campanha recorrente de testes manuais E2E)
 - Fase de governanca de identidade no Admin Web: `T9.2.6-A1` (cadastro completo de perfil, documentos e biometria por foto do usuario logado)
 - Fase de qualidade de dados em formularios: `T9.2.6-A2` (formatacao e validacao global para CPF/CNPJ/CEP/email/senha/datas nos frontends web + reforco backend)
+- Fase de qualidade de dados em formularios (evolucao): `T9.2.6-A3` (lookup CEP Correios com autopreenchimento de endereco, padrao telefone/WhatsApp e validacao DV de CPF/CNPJ no backend).
 - Fase de governanca de clientes no ecommerce: `T9.2.7-A1` (modulo administrativo de clientes com status de conta, KYC, consentimentos e solicitacoes LGPD)
 - Fase de governanca operacional de infraestrutura no Admin Web: `T9.2.7-A2` (modulo dedicado para e-mail, conectividade/dominio e build/release)
 - Fase de governanca operacional de infraestrutura no Admin Web (evolucao): `T9.2.7-A3` (wizard de instalacao/deploy + guard rail de atualizacao continua do instalador)

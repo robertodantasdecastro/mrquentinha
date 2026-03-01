@@ -677,7 +677,7 @@ def test_start_installer_job_prod_ssh_permite_quando_pre_requisitos_ok(monkeypat
                 },
                 "receiver": {
                     "person_type": "CNPJ",
-                    "document": "12345678000190",
+                    "document": "12345678000195",
                     "name": "Mr Quentinha LTDA",
                     "email": "financeiro@mrquentinha.com.br",
                 },
@@ -749,7 +749,7 @@ def test_start_installer_job_aws_exige_conectividade_valida(monkeypatch):
                 "frontend_provider": {"web": "asaas", "mobile": "asaas"},
                 "receiver": {
                     "person_type": "CNPJ",
-                    "document": "12345678000190",
+                    "document": "12345678000195",
                     "name": "Mr Quentinha LTDA",
                     "email": "financeiro@mrquentinha.com.br",
                 },
@@ -849,7 +849,7 @@ def test_start_installer_job_aws_sanitiza_secret_e_expoe_cloud_validation(monkey
                 "frontend_provider": {"web": "asaas", "mobile": "asaas"},
                 "receiver": {
                     "person_type": "CNPJ",
-                    "document": "12345678000190",
+                    "document": "12345678000195",
                     "name": "Mr Quentinha LTDA",
                     "email": "financeiro@mrquentinha.com.br",
                 },

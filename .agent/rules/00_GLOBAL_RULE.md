@@ -51,6 +51,8 @@ Esta regra deve aparecer no painel `Rules > Global` do Antigravity e permanecer 
 ## Padrao tecnico obrigatorio
 - Backend: `services/selectors/serializers/views/urls/tests`.
 - Frontend: uso de `workspaces/web/ui`, `TemplateProvider` e layout clean/modular.
+- Formularios: padrao unico via `FormFieldGuard` para `CEP/telefone/CPF/CNPJ/email`.
+- CEP: usar endpoint backend `GET /api/v1/accounts/lookup-cep/?cep=...` (Correios) e manter link oficial de consulta manual.
 
 ## Politica de Branches (Anti-Conflito)
 - `BRANCH_CODEX_PRIMARY=main`

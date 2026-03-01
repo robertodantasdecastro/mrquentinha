@@ -3,7 +3,7 @@
 Referencia de atualizacao: 01/03/2026.
 
 ## Etapas
-- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.7-A1`, `9.2.7-A2`, `9.2.7-A4`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
+- Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.6-A2`, `9.2.6-A3`, `9.2.7-A1`, `9.2.7-A2`, `9.2.7-A4`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
 - Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
 - Status atual de execucao manual: `T9.2.1-A2` iniciado em 27/02/2026, com relatorio operacional aberto em `docs/memory/T9_2_1_A2_RELATORIO_EXECUCAO_2026-02-27.md`.
@@ -196,6 +196,8 @@ Referencia de atualizacao: 01/03/2026.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): modulo Portal CMS ganhou editor de secoes dinamicas (template/pagina/body_json) e a composicao ganhou upload de fotos para insumos e pratos.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A1`): nova area `/perfil` no Web Admin (todos os templates) para administracao completa do usuario logado com dados adicionais, endereco, documentos, foto de perfil, digitalizacao por camera, biometria por foto e logoff.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A2`): camada global de validacao/formatacao de formularios aplicada no Admin/Client/Portal (CPF/CNPJ/CEP/email/senha/datas) com reforco de validacao backend para senha de cadastro e recebedor de pagamentos.
+- Atualizacao concluida em 01/03/2026 (`T9.2.6-A3`): camada global de formularios evoluida com mascara/validacao de telefone, lookup automatico de CEP com autopreenchimento de endereco e link oficial dos Correios em campos de CEP.
+- Atualizacao concluida em 01/03/2026 (`T9.2.6-A3`): backend ganhou endpoint publico `GET /api/v1/accounts/lookup-cep/`, validacao de CPF/CNPJ por DV em `accounts`/`portal` e persistencia de `phone_is_whatsapp` em perfil de usuario.
 - Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): modulo `/modulos/usuarios-rbac` passou a exibir status de validacao de e-mail e pendencias de dados essenciais para habilitacao de pagamento/autenticacao por usuario.
 - Atualizacao concluida em 27/02/2026 (`T9.2.7-A1`): novo modulo `/modulos/clientes` com gestao completa de carteira de clientes (cadastro, status de conta, KYC, consentimentos e solicitacoes LGPD), navegacao integrada em todos os templates.
 - Atualizacao concluida em 27/02/2026 (`T9.2.7-A2`): criado modulo `/modulos/administracao-servidor` e movidos os paineis de `Gestao de e-mail`, `Conectividade e dominio` e `Build/release` para este novo contexto, mantendo o `Portal CMS` focado em template/autenticacao/pagamentos/conteudo/publicacao.
@@ -241,6 +243,7 @@ Referencia de atualizacao: 01/03/2026.
 - `GET /api/v1/accounts/me/`
 - `GET /api/v1/accounts/me/profile/`
 - `PATCH /api/v1/accounts/me/profile/`
+- `GET /api/v1/accounts/lookup-cep/?cep=<CEP>`
 - `GET /api/v1/accounts/email-verification/confirm/?token=<token>`
 - `POST /api/v1/accounts/email-verification/resend/`
 - `GET /api/v1/accounts/roles/`

@@ -150,6 +150,17 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - administracao de servidor volta a foco exclusivo de infraestrutura (email, conectividade e release).
   - base pronta para evoluir alertas e compliance operacional.
 
+## 01/03/2026 - Padrao global de formularios com CEP Correios e validacao forte
+- Decisao:
+  - evoluir o `FormFieldGuard` como camada global para `CEP`, `telefone`, `CPF/CNPJ`, `email` em tempo real.
+  - criar endpoint backend `GET /api/v1/accounts/lookup-cep/` para lookup de CEP com fonte principal Correios e fallback opcional por configuracao.
+  - reforcar validacao servidor-side de CPF/CNPJ por DV em `accounts` e `portal`.
+  - persistir `phone_is_whatsapp` em `UserProfile` para uso operacional no Admin.
+- Consequencia:
+  - menos erro de digitacao em formularios e padrao consistente entre templates/canais.
+  - seguranca de dados elevada por validacao no cliente e no servidor.
+  - novos formularios devem seguir o mesmo contrato sem implementar validacao local ad-hoc.
+
 ## 27/02/2026 - Confirmacao de e-mail com URL dinamica por ambiente
 - Decisao:
   - tornar e-mail obrigatorio no cadastro do cliente (`/api/v1/accounts/register/`) e disparar confirmacao por token.

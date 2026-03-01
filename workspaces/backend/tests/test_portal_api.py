@@ -209,7 +209,7 @@ def test_portal_admin_atualiza_payment_providers(client):
                 },
                 "receiver": {
                     "person_type": "CNPJ",
-                    "document": "12345678000190",
+                    "document": "12345678000195",
                     "name": "Mr Quentinha LTDA",
                     "email": "financeiro@mrquentinha.com.br",
                 },

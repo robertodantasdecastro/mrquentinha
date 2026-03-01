@@ -7,6 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.utils import timezone
 
+from apps.accounts.address_lookup import CepLookupNotFoundError
 from apps.accounts.models import UserProfile, UserRole, UserTaskAssignment
 from apps.accounts.services import (
     SystemRole,
@@ -605,7 +606,8 @@ def test_accounts_me_profile_patch_atualiza_campos_textuais(client):
         {
             "full_name": "Administrador Operacional",
             "phone": "(11) 99999-0000",
-            "cpf": "123.456.789-09",
+            "phone_is_whatsapp": True,
+            "cpf": "529.982.247-25",
             "postal_code": "01001-000",
             "city": "Sao Paulo",
             "state": "SP",
@@ -620,9 +622,118 @@ def test_accounts_me_profile_patch_atualiza_campos_textuais(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["full_name"] == "Administrador Operacional"
-    assert payload["cpf"] == "12345678909"
+    assert payload["phone"] == "11999990000"
+    assert payload["phone_is_whatsapp"] is True
+    assert payload["cpf"] == "52998224725"
     assert payload["postal_code"] == "01001000"
     assert payload["city"] == "Sao Paulo"
+
+
+@pytest.mark.django_db
+def test_accounts_me_profile_patch_rejeita_documentos_invalidos(client):
+    cpf_response = client.patch(
+        "/api/v1/accounts/me/profile/",
+        {
+            "cpf": "111.111.111-11",
+        },
+        format="json",
+    )
+    assert cpf_response.status_code == 400
+    assert "cpf" in cpf_response.json()
+
+    cpf_sequencial_response = client.patch(
+        "/api/v1/accounts/me/profile/",
+        {
+            "cpf": "123.456.789-09",
+        },
+        format="json",
+    )
+    assert cpf_sequencial_response.status_code == 400
+    assert "cpf" in cpf_sequencial_response.json()
+
+    cnpj_response = client.patch(
+        "/api/v1/accounts/me/profile/",
+        {
+            "cnpj": "11.111.111/1111-11",
+        },
+        format="json",
+    )
+    assert cnpj_response.status_code == 400
+    assert "cnpj" in cnpj_response.json()
+
+
+@pytest.mark.django_db
+def test_accounts_me_profile_patch_rejeita_telefone_invalido(client):
+    response = client.patch(
+        "/api/v1/accounts/me/profile/",
+        {
+            "phone": "12345",
+        },
+        format="json",
+    )
+    assert response.status_code == 400
+    assert "phone" in response.json()
+
+
+@pytest.mark.django_db
+def test_accounts_lookup_cep_publico_retorna_endereco(anonymous_client, monkeypatch):
+    def _fake_lookup_address_by_cep(*, cep: str):
+        assert cep == "01001000"
+        return {
+            "postal_code": "01001000",
+            "street": "Praca da Se",
+            "neighborhood": "Se",
+            "city": "Sao Paulo",
+            "state": "SP",
+            "source": "correios",
+        }
+
+    monkeypatch.setattr(
+        "apps.accounts.views.lookup_address_by_cep",
+        _fake_lookup_address_by_cep,
+    )
+
+    response = anonymous_client.get(
+        "/api/v1/accounts/lookup-cep/",
+        {"cep": "01001-000"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["postal_code"] == "01001000"
+    assert payload["city"] == "Sao Paulo"
+
+
+@pytest.mark.django_db
+def test_accounts_lookup_cep_retorna_404_quando_nao_encontrado(
+    anonymous_client, monkeypatch
+):
+    def _fake_lookup_not_found(*, cep: str):
+        raise CepLookupNotFoundError(f"CEP {cep} nao encontrado.")
+
+    monkeypatch.setattr(
+        "apps.accounts.views.lookup_address_by_cep",
+        _fake_lookup_not_found,
+    )
+
+    response = anonymous_client.get(
+        "/api/v1/accounts/lookup-cep/",
+        {"cep": "99999-999"},
+    )
+
+    assert response.status_code == 404
+    assert "nao encontrado" in response.json()["detail"].lower()
+
+
+@pytest.mark.django_db
+def test_accounts_lookup_cep_rejeita_formato_invalido(anonymous_client):
+    response = anonymous_client.get(
+        "/api/v1/accounts/lookup-cep/",
+        {"cep": "123"},
+    )
+
+    assert response.status_code == 400
+    assert "cep" in response.json()
 
 
 @pytest.mark.django_db

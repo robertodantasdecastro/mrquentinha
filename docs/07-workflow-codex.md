@@ -11,6 +11,13 @@ Antes de qualquer tarefa, manter alinhado:
 - `docs/memory/RUNBOOK_DEV.md`
 - `.agent/memory/CONTEXT_PACK.md`
 
+## Padrao global de formularios (obrigatorio)
+Para qualquer formulario novo ou alterado com `CEP`, `telefone`, `CPF`, `CNPJ` ou `email`:
+- reutilizar `FormFieldGuard` em `@mrquentinha/ui` (ja aplicado nos layouts raiz);
+- manter validacao servidor-side em serializers/services do backend;
+- quando houver campo de telefone operacional, prever opcao de WhatsApp (`phone_is_whatsapp`) quando aplicavel;
+- para CEP, usar lookup backend (`GET /api/v1/accounts/lookup-cep/?cep=...`) e manter link oficial dos Correios para consulta manual.
+
 ## Comandos padrao de desenvolvimento
 No root (`~/mrquentinha`):
 

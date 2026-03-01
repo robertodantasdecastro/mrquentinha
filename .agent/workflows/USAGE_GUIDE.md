@@ -28,6 +28,10 @@
 Comando obrigatorio para trilhas de instalacao/deploy:
 - `bash scripts/check_installer_workflow.sh --check`
 
+Regra adicional para tarefas com formularios:
+- validar padrao global `CEP/telefone/CPF/CNPJ/email` em `docs/memory/T9_2_6_A2_VALIDADORES_FORMATADORES_FORMULARIOS.md`;
+- quando houver CEP, usar `GET /api/v1/accounts/lookup-cep/?cep=...` e manter link oficial dos Correios.
+
 ## Trabalho paralelo (Codex + Antigravity)
 1. Antes de editar, ler `.agent/memory/IN_PROGRESS.md`.
 2. Registrar lock humano no `IN_PROGRESS.md` (agente, branch, arquivos/areas).

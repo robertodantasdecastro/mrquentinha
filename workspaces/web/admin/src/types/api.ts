@@ -39,6 +39,7 @@ export type UserProfileData = {
   full_name: string;
   preferred_name: string;
   phone: string;
+  phone_is_whatsapp: boolean;
   secondary_phone: string;
   birth_date: string | null;
   cpf: string;
@@ -76,6 +77,7 @@ export type UpdateUserProfilePayload = Partial<
     | "full_name"
     | "preferred_name"
     | "phone"
+    | "phone_is_whatsapp"
     | "secondary_phone"
     | "birth_date"
     | "cpf"

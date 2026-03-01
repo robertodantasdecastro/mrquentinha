@@ -35,6 +35,7 @@ type ProfileFormState = {
   full_name: string;
   preferred_name: string;
   phone: string;
+  phone_is_whatsapp: boolean;
   secondary_phone: string;
   birth_date: string;
   cpf: string;
@@ -112,6 +113,7 @@ function mapProfileToForm(profile: UserProfileData): ProfileFormState {
     full_name: profile.full_name ?? "",
     preferred_name: profile.preferred_name ?? "",
     phone: profile.phone ?? "",
+    phone_is_whatsapp: Boolean(profile.phone_is_whatsapp),
     secondary_phone: profile.secondary_phone ?? "",
     birth_date: profile.birth_date ?? "",
     cpf: profile.cpf ?? "",
@@ -205,6 +207,12 @@ function ProfilePageContent() {
 
   async function handleSaveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
     if (!formState) {
       return;
     }
@@ -349,6 +357,17 @@ function ProfilePageContent() {
               value={formState.phone}
               onChange={(event) => handleFieldChange("phone", event.currentTarget.value)}
             />
+            <span className="inline-flex items-center gap-2 text-xs text-muted">
+              <input
+                name="phone_is_whatsapp"
+                type="checkbox"
+                checked={formState.phone_is_whatsapp}
+                onChange={(event) =>
+                  handleFieldChange("phone_is_whatsapp", event.currentTarget.checked)
+                }
+              />
+              Este telefone tambem e WhatsApp (opcional)
+            </span>
           </label>
           <label className="grid gap-1 text-sm text-muted">
             Telefone secundario

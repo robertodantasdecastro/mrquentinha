@@ -315,3 +315,32 @@ Guard rail obrigatorio para trilhas criticas de deploy/instalacao:
 ```bash
 bash scripts/check_installer_workflow.sh --check
 ```
+
+## 18) Padrao de formularios (CEP/telefone/documentos)
+
+### Endpoint de lookup de CEP
+- API:
+  - `GET /api/v1/accounts/lookup-cep/?cep=01001000`
+- Resposta esperada:
+  - `postal_code`, `street`, `neighborhood`, `city`, `state`, `source`.
+
+### Variaveis de ambiente (backend)
+```bash
+CORREIOS_CEP_ENABLED=True
+CORREIOS_CEP_BEARER_TOKEN=
+CORREIOS_TOKEN_USERNAME=
+CORREIOS_TOKEN_PASSWORD=
+CORREIOS_TOKEN_CONTRACT=
+CORREIOS_TOKEN_DR=
+CORREIOS_TOKEN_ENDPOINT=https://api.correios.com.br/token/v1/autentica/contrato
+CORREIOS_CEP_API_BASE_URL=https://api.correios.com.br
+CORREIOS_CEP_ENDPOINT_PATHS=/cp/v2/enderecos,/cep/v2/enderecos
+CORREIOS_CEP_ALLOW_VIACEP_FALLBACK=True
+CORREIOS_CEP_REQUEST_TIMEOUT_SECONDS=8
+```
+
+### Regra de implementacao para novos formularios
+1. Reutilizar `FormFieldGuard` (ja aplicado globalmente em admin/client/portal).
+2. Para telefone operacional, incluir opcao de WhatsApp quando aplicavel (`phone_is_whatsapp`).
+3. Para CEP, manter link oficial dos Correios e permitir autopreenchimento de endereco.
+4. Nunca depender so de validacao frontend; validar tambem no backend (CPF/CNPJ por DV, telefone e email).
