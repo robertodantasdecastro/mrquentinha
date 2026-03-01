@@ -3,29 +3,22 @@
 Atualize este arquivo no inicio de qualquer sessao em modo escrita.
 
 ## Registro atual
-- data_hora: 2026-03-01 22:35 UTC
+- data_hora: 2026-03-01 23:25 UTC
 - agente: codex
 - branch: main
-- etapa: T9.2.7-A5-A2 implementacao inicial AWS no assistente de instalacao/deploy (validacao segura + custos)
+- etapa: T9.2.7-A5-A2-HF1 links guiados no Portal CMS + guia de testes manuais do instalador
 - areas_ou_arquivos_tocados:
-  - workspaces/backend/src/apps/portal/services.py
-  - workspaces/backend/src/apps/portal/views.py
-  - workspaces/backend/tests/test_portal_services.py
-  - workspaces/backend/tests/test_portal_api.py
-  - workspaces/web/admin/src/components/modules/InstallAssistantPanel.tsx
-  - workspaces/web/admin/src/lib/api.ts
-  - workspaces/web/admin/src/types/api.ts
-  - docs/10-plano-mvp-cronograma.md
+  - workspaces/web/admin/src/app/modulos/portal/sections.tsx
+  - docs/12-guia-testes-instalacao-manual.md
   - docs/11-plano-cloud-aws-google-e-testes-operacionais.md
-  - docs/adr/0016-installer-aws-validacao-segura-e-custos.md
   - docs/memory/CHANGELOG.md
   - docs/memory/DECISIONS.md
   - docs/memory/PROJECT_STATE.md
   - .agent/memory/CONTEXT_PACK.md
   - .agent/memory/TODO_NEXT.md
   - .agent/memory/IN_PROGRESS.md
-- objetivo_imediato: entregar primeira iteracao AWS no wizard com credenciais seguras, validacao guiada e custos no Web Admin.
-- proximo_comando: consolidar docs/memory, quality gate e preparar commit da trilha AWS inicial.
+- objetivo_imediato: concluir melhoria de UX operacional no Portal CMS e fechar guia/manual de teste do instalador com validacao automatizada.
+- proximo_comando: executar quality gate da trilha (lint/build/testes backend + check workflow) e preparar commit.
 
 ## Registro anterior (manter historico curto)
 - data_hora: 2026-02-26 06:05

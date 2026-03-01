@@ -169,3 +169,6 @@ Pendencias da proxima rodada:
 - provisionamento automatico completo de recursos AWS;
 - orquestracao de deploy com CodeDeploy de ponta a ponta e rollback automatizado;
 - paridade funcional completa com Google Cloud.
+
+Guia operacional de teste manual:
+- `docs/12-guia-testes-instalacao-manual.md`

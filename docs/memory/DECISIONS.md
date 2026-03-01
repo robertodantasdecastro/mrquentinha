@@ -536,3 +536,14 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - automacao completa de provisionamento/deploy permanece na proxima iteracao.
 - Referencia:
   - ADR `docs/adr/0016-installer-aws-validacao-segura-e-custos.md`.
+
+## 01/03/2026 - Links operacionais no Portal CMS para onboarding de providers (T9.2.7-A5-A2-HF1)
+- Status: aceito.
+- Decisao:
+  - incluir, no `Portal CMS`, blocos de links externos para orientar operadores sobre:
+    - cadastro/configuracao de Google e Apple (OAuth social);
+    - cadastro/configuracao de Mercado Pago, Efi e Asaas (pagamentos).
+  - manter os links dentro do proprio contexto de configuracao, reduzindo troca de tela e erro de preenchimento.
+- Consequencia:
+  - operadores conseguem levantar credenciais e referencias oficiais sem sair do fluxo do Web Admin.
+  - menor tempo de setup para primeira configuracao de autenticacao e gateways.

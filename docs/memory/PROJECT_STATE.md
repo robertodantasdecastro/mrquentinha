@@ -208,6 +208,8 @@ Referencia de atualizacao: 01/03/2026.
 - Atualizacao concluida em 28/02/2026 (`T9.2.7-A4`): secao `Conectividade e dominio` ganhou controle de origem de URL DEV (`random`/`manual`) e URLs manuais editaveis para `portal/client/admin/api`.
 - Atualizacao em 01/03/2026 (`T9.2.7-A5-A1`): modulo `Instalacao / Deploy` ganhou parametros SSH de repositorio remoto (`repo_path`, `auto_clone_repo`, `git_remote_url`, `git_branch`) e exibicao de validacoes de conectividade no acompanhamento do job.
 - Atualizacao em 01/03/2026 (`T9.2.7-A5-A2`): modulo `Instalacao / Deploy` ganhou trilha AWS com autenticacao segura (`profile`/`access_key`), validacao de infraestrutura e painel de custos no passo `Infraestrutura`.
+- Atualizacao em 01/03/2026 (`T9.2.7-A5-A2-HF1`): `Portal CMS` ganhou links guiados de cadastro/setup/documentacao em `Autenticacao social` (Google/Apple) e `Pagamentos e gateways` (Mercado Pago/Efi/Asaas), reduzindo erro operacional de preenchimento.
+- Atualizacao em 01/03/2026 (`T9.2.7-A5-A2-HF1`): novo guia formal de teste manual do instalador por cenario publicado em `docs/12-guia-testes-instalacao-manual.md`.
 - Atualizacao em 01/03/2026 (`T9.2.7-RBAC-HF1`): modulo `/modulos/usuarios-rbac` evoluiu para gestao completa (criacao de conta, edicao de conta, papeis e tarefas por categoria) e recebeu bloqueio explicito de acesso tecnico para perfis sem `ADMIN`.
 - Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`): novo modulo `/modulos/auditoria-atividade` com dashboard de indicadores, filtros avancados, investigacao de eventos e secoes de seguranca/tendencias em todos os templates do Admin.
 - Workspace ativo: `workspaces/web/admin`.

@@ -134,6 +134,102 @@ const PAYMENT_PROVIDER_OPTIONS = [
   { value: "asaas", label: "Asaas" },
 ];
 
+type SetupReferenceLink = {
+  label: string;
+  href: string;
+  description: string;
+};
+
+const GOOGLE_AUTH_REFERENCE_LINKS: SetupReferenceLink[] = [
+  {
+    label: "Google Cloud Console",
+    href: "https://console.cloud.google.com/apis/credentials",
+    description: "Criar projeto OAuth e gerar Client ID/Client Secret.",
+  },
+  {
+    label: "Tela de consentimento OAuth",
+    href: "https://console.cloud.google.com/apis/credentials/consent",
+    description: "Configurar app name, escopos e usuarios de teste.",
+  },
+  {
+    label: "Guia oficial Google OAuth",
+    href: "https://developers.google.com/identity/protocols/oauth2",
+    description: "Referencia oficial de fluxo e campos necessarios.",
+  },
+];
+
+const APPLE_AUTH_REFERENCE_LINKS: SetupReferenceLink[] = [
+  {
+    label: "Apple Developer Program",
+    href: "https://developer.apple.com/programs/",
+    description: "Assinatura necessaria para usar Sign in with Apple.",
+  },
+  {
+    label: "Identifiers (Service ID)",
+    href: "https://developer.apple.com/account/resources/identifiers/list",
+    description: "Criar Service ID, Key ID e configurar redirect URLs.",
+  },
+  {
+    label: "Guia oficial Sign in with Apple",
+    href: "https://developer.apple.com/documentation/sign_in_with_apple",
+    description: "Referencia oficial para Service ID, Team ID e Private Key.",
+  },
+];
+
+const MERCADOPAGO_REFERENCE_LINKS: SetupReferenceLink[] = [
+  {
+    label: "Criar conta Mercado Pago",
+    href: "https://www.mercadopago.com.br/developers/panel",
+    description: "Cadastro e acesso ao painel de desenvolvedor.",
+  },
+  {
+    label: "Credenciais de API",
+    href: "https://www.mercadopago.com.br/developers/panel/credentials",
+    description: "Obter Access Token de teste/producao.",
+  },
+  {
+    label: "Documentacao Mercado Pago",
+    href: "https://www.mercadopago.com.br/developers/pt/docs",
+    description: "Guia completo de integracao e webhooks.",
+  },
+];
+
+const EFI_REFERENCE_LINKS: SetupReferenceLink[] = [
+  {
+    label: "Cadastro Efi",
+    href: "https://sejaefi.com.br/",
+    description: "Abrir conta e habilitar ambiente para API.",
+  },
+  {
+    label: "Painel de aplicacoes Efi",
+    href: "https://sejaefi.com.br/minha-conta/aplicacoes",
+    description: "Gerar Client ID e Client Secret para integracao.",
+  },
+  {
+    label: "Documentacao Efi API",
+    href: "https://dev.sejaefi.com.br/docs/api",
+    description: "Referencia oficial de endpoints e autenticacao.",
+  },
+];
+
+const ASAAS_REFERENCE_LINKS: SetupReferenceLink[] = [
+  {
+    label: "Cadastro Asaas",
+    href: "https://www.asaas.com/",
+    description: "Criar conta para operar pagamentos.",
+  },
+  {
+    label: "Gerar API Key",
+    href: "https://docs.asaas.com/docs/get-started#obtendo-sua-api-key",
+    description: "Passo a passo para chave de integracao.",
+  },
+  {
+    label: "Documentacao Asaas",
+    href: "https://docs.asaas.com/",
+    description: "Guia oficial de cobrancas, webhooks e seguranca.",
+  },
+];
+
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     return error.message;
@@ -302,6 +398,36 @@ function ExternalUrl({ value }: { value: string | null | undefined }) {
     >
       <code>{normalized}</code>
     </a>
+  );
+}
+
+function SetupReferenceLinks({
+  title,
+  links,
+}: {
+  title: string;
+  links: SetupReferenceLink[];
+}) {
+  return (
+    <article className="rounded-md border border-border bg-surface/70 p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">{title}</p>
+      <div className="mt-2 grid gap-2">
+        {links.map((link) => (
+          <p key={`${title}-${link.href}`} className="text-xs text-muted">
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary underline decoration-primary/50 underline-offset-2 hover:no-underline"
+            >
+              {link.label}
+            </a>
+            {" - "}
+            {link.description}
+          </p>
+        ))}
+      </div>
+    </article>
   );
 }
 
@@ -2133,6 +2259,11 @@ export function PortalSections({
             Campos de cada box pertencem ao respectivo provider.
           </p>
 
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <SetupReferenceLinks title="Links de cadastro e setup Google" links={GOOGLE_AUTH_REFERENCE_LINKS} />
+            <SetupReferenceLinks title="Links de cadastro e setup Apple" links={APPLE_AUTH_REFERENCE_LINKS} />
+          </div>
+
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             <article className="rounded-xl border border-border bg-bg p-4">
               <div className="flex items-center justify-between gap-2">
@@ -2337,6 +2468,12 @@ export function PortalSections({
             Configure Mercado Pago, Efi e Asaas, defina roteamento por metodo e valide
             conexao com botao de teste.
           </p>
+
+          <div className="mt-4 grid gap-3 xl:grid-cols-3">
+            <SetupReferenceLinks title="Cadastro e setup Mercado Pago" links={MERCADOPAGO_REFERENCE_LINKS} />
+            <SetupReferenceLinks title="Cadastro e setup Efi" links={EFI_REFERENCE_LINKS} />
+            <SetupReferenceLinks title="Cadastro e setup Asaas" links={ASAAS_REFERENCE_LINKS} />
+          </div>
 
           <div className="mt-4 grid gap-4 xl:grid-cols-2">
             <article className="rounded-xl border border-border bg-bg p-4">

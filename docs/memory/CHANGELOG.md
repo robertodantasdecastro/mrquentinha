@@ -1153,3 +1153,17 @@
     - `source .venv/bin/activate && pytest tests/test_portal_services.py tests/test_portal_api.py` -> OK (`42 passed`);
     - `npm run lint` (web/admin) -> OK;
     - `npm run build` (web/admin) -> OK.
+
+- T9.2.7-A5-A2-HF1 (01/03/2026): links guiados no Portal CMS + guia de teste manual de instalacao
+  - web/admin (`Portal CMS`):
+    - secao `Autenticacao social` agora exibe links de cadastro/setup/documentacao para Google e Apple, orientando de onde obter cada campo do formulario.
+    - secao `Pagamentos e gateways` agora exibe links de cadastro/setup/documentacao para Mercado Pago, Efi e Asaas.
+  - documentacao:
+    - novo guia de execucao manual por cenario:
+      - `docs/12-guia-testes-instalacao-manual.md`
+    - plano cloud atualizado com referencia ao guia.
+  - validacao executada:
+    - `source .venv/bin/activate && ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_services.py tests/test_portal_api.py` -> OK;
+    - `source .venv/bin/activate && pytest tests/test_portal_services.py tests/test_portal_api.py` -> OK (`42 passed`);
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK.
