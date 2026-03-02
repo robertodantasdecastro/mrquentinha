@@ -13,6 +13,16 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (seguranca/midia): documentos, selfie e biometria do perfil agora usam URL assinada temporaria via endpoint `accounts/profile-media`; acesso direto a `/media/accounts/profile|documents|biometric/*` foi bloqueado.
+- Atualizacao em 02/03/2026 (seguranca/hardening): execucao inicial do plano aprovado concluida com `manage.py` deterministico (env/.env), hardening de `config.settings.prod`, derivacao forte de `SECRET_KEY` no `installdev.sh` e `setup_nginx_prod.sh` com redirect HTTP->HTTPS + headers de seguranca.
+- Atualizacao em 02/03/2026 (auditoria): rodada completa de auditoria estatica (seguranca/qualidade/redundancias) concluida e publicada em `docs/reports/`, com plano priorizado `P0/P1/P2` aprovado para execucao.
+- Atualizacao em 02/03/2026 (web admin/navegacao): menu `Prioridades` foi substituido por `Sobre`; rota legada `/prioridades` agora redireciona para `/sobre`.
+- Atualizacao em 02/03/2026 (CEP/global): `FormFieldGuard` passou a exibir feedback de status de CEP (digitacao parcial, consultando, encontrado, nao encontrado, erro) e manter autopreenchimento de endereco no mesmo padrao para Admin, Web Client e Portal em todos os templates.
+- Atualizacao em 02/03/2026 (perfil/CEP): `/perfil` agora mostra status de busca de CEP e preenche endereco automaticamente; backend passou a priorizar fallback ViaCEP quando Correios estiver indisponivel.
+- Atualizacao em 02/03/2026 (ops/producao): novo iniciador `scripts/start_ops_dashboard_prod.sh` para abrir o painel de operacao de producao com um comando unico.
+- Atualizacao em 02/03/2026 (web admin/auth): shell do Admin agora oculta menu e navegacao antes do login; filtragem de menus por permissao de modulo do usuario aplicada em todos os templates.
+- Atualizacao em 02/03/2026 (web admin/perfil): `Meu Perfil` passou a carregar/salvar tambem dados da conta (`username`, `email`, `first_name`, `last_name`) via novo `PATCH /api/v1/accounts/me/`.
+- Atualizacao em 02/03/2026 (ops/media): script `scripts/fix_media_permissions.sh` padroniza ownership/permissoes do `MEDIA_ROOT`; backend exposto para servir `/media/*` em runtime com proxy atual.
 - Atualizacao em 02/03/2026 (web admin): preload global de rede reativado no layout e validacao de senha forte adicionada no modulo `Usuarios e RBAC`; regra global agora exige validar qualquer correcao nos tres templates do Admin (`classic`, `adminkit`, `admindek`).
 - Atualizacao em 02/03/2026 (instalacao hibrida EC2): `installdev.sh` reexecutado com Postgres local, bancos separados (`mrquentinha_dev`/`mrquentinha_prod`), Nginx ativo e smoke de stack validado em `172.31.71.156`.
 - Atualizacao em 02/03/2026 (hardening instalador): `installdev.sh` passou a respeitar `MRQ_DB_HOST` no provisionamento e remover `*.trycloudflare.com` do `.env.prod` (restrito ao DEV).

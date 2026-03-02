@@ -141,6 +141,20 @@ print(hashlib.sha256(secret).hexdigest())
 PY
 }
 
+derive_secret_key_from_secret() {
+  local raw_secret="$1"
+  python3 - "$raw_secret" <<'PY'
+import base64
+import hashlib
+import sys
+
+secret = sys.argv[1].encode("utf-8")
+digest = hashlib.sha512(secret).digest()
+token = base64.urlsafe_b64encode(digest).decode("utf-8").rstrip("=")
+print(f"mrq-{token}")
+PY
+}
+
 version_ge() {
   local installed="$1"
   local minimum="$2"
@@ -508,8 +522,8 @@ configure_envs() {
     prod_key="$(derive_fernet_key_from_secret "${MRQ_DEFAULT_APP_SECRET}-prod")"
     dev_salt="$(derive_salt_from_secret "$MRQ_DEFAULT_APP_SECRET")"
     prod_salt="$(derive_salt_from_secret "${MRQ_DEFAULT_APP_SECRET}-prod")"
-    dev_secret="$MRQ_DEFAULT_APP_SECRET"
-    prod_secret="$MRQ_DEFAULT_APP_SECRET"
+    dev_secret="$(derive_secret_key_from_secret "${MRQ_DEFAULT_APP_SECRET}-dev")"
+    prod_secret="$(derive_secret_key_from_secret "${MRQ_DEFAULT_APP_SECRET}-prod")"
     dev_webhook="$(derive_salt_from_secret "${MRQ_DEFAULT_APP_SECRET}-webhook-dev")"
     prod_webhook="$(derive_salt_from_secret "${MRQ_DEFAULT_APP_SECRET}-webhook-prod")"
   else

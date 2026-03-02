@@ -46,6 +46,7 @@ def lookup_address_by_cep(*, cep: str) -> dict[str, str]:
     if len(postal_code) != 8:
         raise DjangoValidationError("CEP invalido. Informe 8 digitos.")
 
+    correios_unavailable: CepLookupUnavailableError | None = None
     if getattr(settings, "CORREIOS_CEP_ENABLED", True):
         try:
             correios_result = _lookup_with_correios(postal_code)
@@ -54,11 +55,16 @@ def lookup_address_by_cep(*, cep: str) -> dict[str, str]:
         except CepLookupNotFoundError:
             # Continua para fallback se habilitado.
             pass
+        except CepLookupUnavailableError as exc:
+            correios_unavailable = exc
 
     if getattr(settings, "CORREIOS_CEP_ALLOW_VIACEP_FALLBACK", True):
         fallback_result = _lookup_with_viacep(postal_code)
         if fallback_result is not None:
             return fallback_result.to_payload()
+
+    if correios_unavailable is not None:
+        raise correios_unavailable
 
     raise CepLookupNotFoundError(
         "CEP nao encontrado. Confira o numero informado e tente novamente."

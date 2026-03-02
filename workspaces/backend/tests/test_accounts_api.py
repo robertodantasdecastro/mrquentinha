@@ -765,5 +765,55 @@ def test_accounts_me_profile_patch_uploads_documentos_e_biometria(client):
     assert payload["profile_photo_url"]
     assert payload["document_front_image_url"]
     assert payload["biometric_photo_url"]
+    assert "/api/v1/accounts/profile-media/" in payload["profile_photo_url"]
+    assert "/api/v1/accounts/profile-media/" in payload["document_front_image_url"]
+    assert "/api/v1/accounts/profile-media/" in payload["biometric_photo_url"]
     assert payload["biometric_status"] == UserProfile.BiometricStatus.PENDING_REVIEW
     assert payload["biometric_captured_at"] is not None
+
+
+@pytest.mark.django_db
+def test_accounts_profile_media_signed_url_funciona(client):
+    response = client.patch(
+        "/api/v1/accounts/me/profile/",
+        {
+            "document_front_image": SimpleUploadedFile(
+                "documento-frente.gif",
+                VALID_GIF_BYTES,
+                content_type="image/gif",
+            ),
+        },
+        format="multipart",
+    )
+    assert response.status_code == 200
+
+    media_url = response.json()["document_front_image_url"]
+    assert media_url
+
+    media_response = client.get(media_url)
+    assert media_response.status_code == 200
+    assert media_response.get("Cache-Control") == "private, no-store"
+
+
+@pytest.mark.django_db
+def test_accounts_media_direta_sensivel_retorna_403(client):
+    response = client.patch(
+        "/api/v1/accounts/me/profile/",
+        {
+            "document_front_image": SimpleUploadedFile(
+                "documento-frente.gif",
+                VALID_GIF_BYTES,
+                content_type="image/gif",
+            ),
+        },
+        format="multipart",
+    )
+    assert response.status_code == 200
+
+    profile = UserProfile.objects.order_by("id").first()
+    assert profile is not None
+    assert profile.document_front_image.name
+
+    direct_media_path = f"/media/{profile.document_front_image.name}"
+    direct_response = client.get(direct_media_path)
+    assert direct_response.status_code == 403

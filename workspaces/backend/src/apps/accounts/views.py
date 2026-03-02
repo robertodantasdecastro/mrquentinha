@@ -15,6 +15,11 @@ from .address_lookup import (
     CepLookupUnavailableError,
     lookup_address_by_cep,
 )
+from .media_access import (
+    build_profile_media_response,
+    can_user_access_profile_media,
+    resolve_signed_profile_media,
+)
 from .models import UserProfile
 from .permissions import RoleMatrixPermission
 from .selectors import list_roles, list_task_categories, list_tasks
@@ -26,6 +31,7 @@ from .serializers import (
     CepLookupSerializer,
     EmailVerificationConfirmSerializer,
     EmailVerificationResendSerializer,
+    MeAccountUpdateSerializer,
     MeSerializer,
     RegisterSerializer,
     RoleSerializer,
@@ -100,6 +106,17 @@ class MeAPIView(APIView):
         serializer = MeSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def patch(self, request):
+        serializer = MeAccountUpdateSerializer(
+            data=request.data,
+            partial=True,
+            context={"user": request.user},
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.apply(user=request.user)
+        output = MeSerializer(user)
+        return Response(output.data, status=status.HTTP_200_OK)
+
 
 class MeProfileAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -125,6 +142,44 @@ class MeProfileAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProfileMediaAccessAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, profile_id: int, field_name: str):
+        token = str(request.query_params.get("token", "")).strip()
+        if token:
+            try:
+                resolved = resolve_signed_profile_media(
+                    profile_id=profile_id,
+                    field_name=field_name,
+                    token=token,
+                )
+                return build_profile_media_response(
+                    profile=resolved.profile,
+                    field_name=resolved.field_name,
+                )
+            except DjangoValidationError as exc:
+                raise DRFValidationError(exc.messages) from exc
+
+        profile = get_object_or_404(
+            UserProfile.objects.select_related("user"),
+            pk=profile_id,
+        )
+        if not can_user_access_profile_media(
+            user=request.user,
+            profile_user_id=profile.user_id,
+        ):
+            return Response(
+                {"detail": "Voce nao possui permissao para acessar esta midia."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            return build_profile_media_response(profile=profile, field_name=field_name)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
 
 
 class CepLookupAPIView(APIView):
@@ -180,6 +235,7 @@ class UserAdminViewSet(
             User.objects.order_by("id")
             .prefetch_related("user_roles__role")
             .prefetch_related("task_assignments__task__category")
+            .prefetch_related("admin_module_permissions")
             .select_related("profile")
         )
 
@@ -191,7 +247,10 @@ class UserAdminViewSet(
         return UserAdminSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(
+            data=request.data,
+            context={"request_user": request.user},
+        )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         output = UserAdminSerializer(user)
@@ -203,7 +262,10 @@ class UserAdminViewSet(
         serializer = self.get_serializer(
             data=request.data,
             partial=partial,
-            context={"user": user},
+            context={
+                "user": user,
+                "request_user": request.user,
+            },
         )
         serializer.is_valid(raise_exception=True)
         serializer.apply(user=user)

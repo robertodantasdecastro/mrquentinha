@@ -118,6 +118,43 @@ class UserTaskAssignment(TimeStampedModel):
         return f"{self.user_id}:{self.task.code}"
 
 
+class UserAdminModulePermission(TimeStampedModel):
+    class AccessLevel(models.TextChoices):
+        READ = "read", "Leitura"
+        WRITE = "write", "Leitura e escrita"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_module_permissions",
+    )
+    module_slug = models.CharField(max_length=64)
+    access_level = models.CharField(
+        max_length=8,
+        choices=AccessLevel.choices,
+        default=AccessLevel.READ,
+    )
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="admin_module_permissions_granted",
+    )
+
+    class Meta:
+        ordering = ["user_id", "module_slug"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "module_slug"],
+                name="accounts_useradminmodulepermission_user_module_unique",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.module_slug}:{self.access_level}"
+
+
 class UserProfile(TimeStampedModel):
     class DocumentType(models.TextChoices):
         CPF = "CPF", "CPF"

@@ -14,7 +14,29 @@ import {
   listUsersAdmin,
   updateUserAdmin,
 } from "@/lib/api";
-import type { AdminUserData, RoleData, TaskCategoryData } from "@/types/api";
+import { ADMIN_MODULES } from "@/lib/adminModules";
+import type {
+  AdminModulePermissionData,
+  AdminUserData,
+  RoleData,
+  TaskCategoryData,
+} from "@/types/api";
+
+const TECHNICAL_MODULE_SLUGS = new Set([
+  "usuarios-rbac",
+  "portal",
+  "auditoria-atividade",
+  "administracao-servidor",
+  "instalacao-deploy",
+]);
+
+const MODULE_PERMISSION_OPTIONS = ADMIN_MODULES.filter(
+  (moduleItem) => !TECHNICAL_MODULE_SLUGS.has(moduleItem.slug),
+).map((moduleItem) => ({
+  slug: moduleItem.slug,
+  title: moduleItem.title,
+  description: moduleItem.description,
+}));
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -79,6 +101,9 @@ type UserEditFormState = {
   password: string;
 };
 
+type ModulePermissionLevel = "read" | "write";
+type ModulePermissionMap = Record<string, ModulePermissionLevel>;
+
 const CREATE_FORM_INITIAL_STATE: UserCreateFormState = {
   username: "",
   password: "",
@@ -115,6 +140,29 @@ function toggleCode(code: string, current: string[]): string[] {
   return [...current, code].sort();
 }
 
+function toPermissionMap(
+  permissions: AdminModulePermissionData[] | undefined,
+): ModulePermissionMap {
+  const result: ModulePermissionMap = {};
+  (permissions || []).forEach((permission) => {
+    const moduleSlug = String(permission.module_slug || "").trim();
+    if (!moduleSlug) {
+      return;
+    }
+    if (!MODULE_PERMISSION_OPTIONS.some((moduleItem) => moduleItem.slug === moduleSlug)) {
+      return;
+    }
+    result[moduleSlug] = permission.access_level === "write" ? "write" : "read";
+  });
+  return result;
+}
+
+function toPermissionPayload(permissionMap: ModulePermissionMap): AdminModulePermissionData[] {
+  return Object.entries(permissionMap)
+    .map(([module_slug, access_level]) => ({ module_slug, access_level }))
+    .sort((a, b) => a.module_slug.localeCompare(b.module_slug));
+}
+
 function hasStrongPassword(value: string): boolean {
   const password = String(value || "");
   const hasLower = /[a-z]/.test(password);
@@ -135,8 +183,10 @@ export function UsersRbacPanel() {
   const [createForm, setCreateForm] = useState<UserCreateFormState>(CREATE_FORM_INITIAL_STATE);
   const [createRoleCodes, setCreateRoleCodes] = useState<string[]>(["CLIENTE"]);
   const [createTaskCodes, setCreateTaskCodes] = useState<string[]>([]);
+  const [createModulePermissions, setCreateModulePermissions] = useState<ModulePermissionMap>({});
 
   const [editForm, setEditForm] = useState<UserEditFormState | null>(null);
+  const [editModulePermissions, setEditModulePermissions] = useState<ModulePermissionMap>({});
 
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -178,11 +228,13 @@ export function UsersRbacPanel() {
         setSelectedRoleCodes(selectedUser.roles);
         setSelectedTaskCodes(selectedUser.task_codes || []);
         setEditForm(toUserEditForm(selectedUser));
+        setEditModulePermissions(toPermissionMap(selectedUser.module_permissions));
       } else {
         setSelectedUserId("");
         setSelectedRoleCodes([]);
         setSelectedTaskCodes([]);
         setEditForm(null);
+        setEditModulePermissions({});
       }
 
       setErrorMessage("");
@@ -242,6 +294,7 @@ export function UsersRbacPanel() {
     setSelectedRoleCodes(user.roles);
     setSelectedTaskCodes(user.task_codes || []);
     setEditForm(toUserEditForm(user));
+    setEditModulePermissions(toPermissionMap(user.module_permissions));
     setMessage("");
     setErrorMessage("");
     if (options?.focusSection) {
@@ -282,11 +335,13 @@ export function UsersRbacPanel() {
         is_staff: createForm.is_staff,
         role_codes: createRoleCodes,
         task_codes: createTaskCodes,
+        module_permissions: toPermissionPayload(createModulePermissions),
       });
 
       setCreateForm(CREATE_FORM_INITIAL_STATE);
       setCreateRoleCodes(["CLIENTE"]);
       setCreateTaskCodes([]);
+      setCreateModulePermissions({});
       setSelectedUserId(String(created.id));
       setMessage(`Usuário ${created.username} criado com sucesso.`);
       await loadUsersRbac({ silent: true });
@@ -331,6 +386,7 @@ export function UsersRbacPanel() {
       if (editForm.password.trim()) {
         payload.password = editForm.password;
       }
+      payload.module_permissions = toPermissionPayload(editModulePermissions);
 
       const result = await updateUserAdmin(selectedUser.id, payload);
       setMessage(`Conta de ${result.username} atualizada com sucesso.`);
@@ -518,6 +574,16 @@ export function UsersRbacPanel() {
                         <p className="mt-1 text-xs text-muted">
                           Tarefas: {user.task_codes.length > 0 ? user.task_codes.join(", ") : "sem tarefas"}
                         </p>
+                        <p className="mt-1 text-xs text-muted">
+                          Módulos:{" "}
+                          {(user.module_permissions || []).length > 0
+                            ? (user.module_permissions || [])
+                                .map((permission) =>
+                                  `${permission.module_slug} (${permission.access_level === "write" ? "rw" : "r"})`,
+                                )
+                                .join(", ")
+                            : "sem acessos granulares"}
+                        </p>
                         {!user.essential_profile_complete && (
                           <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
                             Pendencias: {formatMissingFields(user.missing_essential_profile_fields)}
@@ -660,6 +726,52 @@ export function UsersRbacPanel() {
                         />
                         Staff Django
                       </label>
+                    </div>
+
+                    <div className="mt-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                        Permissões por módulo (leitura / leitura e escrita)
+                      </p>
+                      <div className="mt-2 space-y-2">
+                        {MODULE_PERMISSION_OPTIONS.map((moduleItem) => {
+                          const currentLevel = editModulePermissions[moduleItem.slug] || "";
+                          return (
+                            <div
+                              key={`edit-module-permission-${moduleItem.slug}`}
+                              className="rounded-lg border border-border bg-surface p-3"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                  <p className="text-sm font-semibold text-text">{moduleItem.title}</p>
+                                  <p className="text-xs text-muted">{moduleItem.description}</p>
+                                </div>
+                                <label className="text-xs text-muted">
+                                  Acesso
+                                  <select
+                                    value={currentLevel}
+                                    onChange={(event) => {
+                                      const nextLevel = event.currentTarget.value as ModulePermissionLevel | "";
+                                      setEditModulePermissions((current) => {
+                                        if (!nextLevel) {
+                                          const next = { ...current };
+                                          delete next[moduleItem.slug];
+                                          return next;
+                                        }
+                                        return { ...current, [moduleItem.slug]: nextLevel };
+                                      });
+                                    }}
+                                    className="ml-2 rounded-md border border-border bg-bg px-2 py-1 text-xs text-text"
+                                  >
+                                    <option value="">Sem acesso</option>
+                                    <option value="read">Leitura</option>
+                                    <option value="write">Leitura e escrita</option>
+                                  </select>
+                                </label>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div className="mt-4 flex justify-end">
@@ -927,6 +1039,52 @@ export function UsersRbacPanel() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                    Permissões por módulo (leitura / leitura e escrita)
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {MODULE_PERMISSION_OPTIONS.map((moduleItem) => {
+                      const currentLevel = createModulePermissions[moduleItem.slug] || "";
+                      return (
+                        <div
+                          key={`create-module-permission-${moduleItem.slug}`}
+                          className="rounded-lg border border-border bg-surface p-3"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold text-text">{moduleItem.title}</p>
+                              <p className="text-xs text-muted">{moduleItem.description}</p>
+                            </div>
+                            <label className="text-xs text-muted">
+                              Acesso
+                              <select
+                                value={currentLevel}
+                                onChange={(event) => {
+                                  const nextLevel = event.currentTarget.value as ModulePermissionLevel | "";
+                                  setCreateModulePermissions((current) => {
+                                    if (!nextLevel) {
+                                      const next = { ...current };
+                                      delete next[moduleItem.slug];
+                                      return next;
+                                    }
+                                    return { ...current, [moduleItem.slug]: nextLevel };
+                                  });
+                                }}
+                                className="ml-2 rounded-md border border-border bg-bg px-2 py-1 text-xs text-text"
+                              >
+                                <option value="">Sem acesso</option>
+                                <option value="read">Leitura</option>
+                                <option value="write">Leitura e escrita</option>
+                              </select>
+                            </label>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

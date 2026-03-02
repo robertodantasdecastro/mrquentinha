@@ -4,9 +4,13 @@ import { Container, Navbar, ThemeToggle } from "@mrquentinha/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { useAdminTemplate } from "@/components/AdminTemplateProvider";
+import { canAccessAdminModule } from "@/lib/adminAccess";
+import { fetchMe, logoutAccount } from "@/lib/api";
+import { hasStoredAuthSession } from "@/lib/storage";
+import type { AuthUserProfile } from "@/types/api";
 
 type NavItem = {
   href: string;
@@ -18,7 +22,7 @@ const CLASSIC_NAV_ITEMS: NavItem[] = [
   { href: "/modulos", label: "Módulos" },
   { href: "/modulos/relatorios", label: "Relatórios" },
   { href: "/perfil", label: "Meu perfil" },
-  { href: "/prioridades", label: "Prioridades" },
+  { href: "/sobre", label: "Sobre" },
 ];
 
 const ADMINKIT_CORE_ITEMS: NavItem[] = [
@@ -46,7 +50,7 @@ const ADMINKIT_PLATFORM_ITEMS: NavItem[] = [
   { href: "/modulos/monitoramento", label: "Monitoramento" },
   { href: "/modulos/usuarios-rbac", label: "Usuários e RBAC" },
   { href: "/perfil", label: "Meu perfil" },
-  { href: "/prioridades", label: "Prioridades" },
+  { href: "/sobre", label: "Sobre" },
 ];
 
 const ADMINDEK_HUB_ITEMS: NavItem[] = [
@@ -74,7 +78,7 @@ const ADMINDEK_PLATFORM_ITEMS: NavItem[] = [
   { href: "/modulos/instalacao-deploy", label: "Instalação / Deploy" },
   { href: "/modulos/usuarios-rbac", label: "Usuários e RBAC" },
   { href: "/perfil", label: "Meu perfil" },
-  { href: "/prioridades", label: "Prioridades" },
+  { href: "/sobre", label: "Sobre" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -83,6 +87,34 @@ function isActive(pathname: string, href: string): boolean {
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function resolveModuleSlugFromHref(href: string): string | null {
+  if (!href.startsWith("/modulos/")) {
+    return null;
+  }
+  const parts = href.split("/").filter(Boolean);
+  if (parts.length < 2) {
+    return null;
+  }
+  return parts[1] || null;
+}
+
+function canRenderNavItem(user: AuthUserProfile, href: string): boolean {
+  if (href === "/" || href === "/modulos" || href === "/perfil" || href === "/sobre") {
+    return true;
+  }
+
+  const moduleSlug = resolveModuleSlugFromHref(href);
+  if (!moduleSlug) {
+    return true;
+  }
+
+  return canAccessAdminModule(user, moduleSlug, "read");
+}
+
+function filterNavItems(user: AuthUserProfile, items: NavItem[]): NavItem[] {
+  return items.filter((item) => canRenderNavItem(user, item.href));
 }
 
 function renderSidebarLink(pathname: string, item: NavItem) {
@@ -111,7 +143,8 @@ function renderSidebarLink(pathname: string, item: NavItem) {
   );
 }
 
-function renderClassicShell(pathname: string, children: ReactNode) {
+function renderClassicShell(pathname: string, children: ReactNode, user: AuthUserProfile) {
+  const navItems = filterNavItems(user, CLASSIC_NAV_ITEMS);
   return (
     <>
       <Navbar>
@@ -129,7 +162,7 @@ function renderClassicShell(pathname: string, children: ReactNode) {
           </Link>
 
           <nav className="flex items-center gap-1 rounded-full border border-border bg-surface p-1 text-xs font-semibold uppercase tracking-[0.08em] md:text-sm">
-            {CLASSIC_NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = isActive(pathname, item.href);
 
               return (
@@ -165,12 +198,11 @@ function renderClassicShell(pathname: string, children: ReactNode) {
   );
 }
 
-function renderAdminKitShell(pathname: string, children: ReactNode) {
-  const mobileItems = [
-    ...ADMINKIT_CORE_ITEMS,
-    ...ADMINKIT_OPERATIONS_ITEMS,
-    ...ADMINKIT_PLATFORM_ITEMS,
-  ];
+function renderAdminKitShell(pathname: string, children: ReactNode, user: AuthUserProfile) {
+  const coreItems = filterNavItems(user, ADMINKIT_CORE_ITEMS);
+  const operationItems = filterNavItems(user, ADMINKIT_OPERATIONS_ITEMS);
+  const platformItems = filterNavItems(user, ADMINKIT_PLATFORM_ITEMS);
+  const mobileItems = [...coreItems, ...operationItems, ...platformItems];
 
   return (
     <div className="flex min-h-screen bg-bg">
@@ -196,21 +228,21 @@ function renderAdminKitShell(pathname: string, children: ReactNode) {
             <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
               Visão geral
             </p>
-            {ADMINKIT_CORE_ITEMS.map((item) => renderSidebarLink(pathname, item))}
+            {coreItems.map((item) => renderSidebarLink(pathname, item))}
           </section>
 
           <section className="space-y-2">
             <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
               Operação diária
             </p>
-            {ADMINKIT_OPERATIONS_ITEMS.map((item) => renderSidebarLink(pathname, item))}
+            {operationItems.map((item) => renderSidebarLink(pathname, item))}
           </section>
 
           <section className="space-y-2">
             <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
               Plataforma
             </p>
-            {ADMINKIT_PLATFORM_ITEMS.map((item) => renderSidebarLink(pathname, item))}
+            {platformItems.map((item) => renderSidebarLink(pathname, item))}
           </section>
         </nav>
       </aside>
@@ -262,12 +294,11 @@ function renderAdminKitShell(pathname: string, children: ReactNode) {
   );
 }
 
-function renderAdminDekShell(pathname: string, children: ReactNode) {
-  const mobileItems = [
-    ...ADMINDEK_HUB_ITEMS,
-    ...ADMINDEK_BUSINESS_ITEMS,
-    ...ADMINDEK_PLATFORM_ITEMS,
-  ];
+function renderAdminDekShell(pathname: string, children: ReactNode, user: AuthUserProfile) {
+  const hubItems = filterNavItems(user, ADMINDEK_HUB_ITEMS);
+  const businessItems = filterNavItems(user, ADMINDEK_BUSINESS_ITEMS);
+  const platformItems = filterNavItems(user, ADMINDEK_PLATFORM_ITEMS);
+  const mobileItems = [...hubItems, ...businessItems, ...platformItems];
 
   return (
     <div className="flex min-h-screen bg-bg">
@@ -301,21 +332,21 @@ function renderAdminDekShell(pathname: string, children: ReactNode) {
             <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
               Hub
             </p>
-            {ADMINDEK_HUB_ITEMS.map((item) => renderSidebarLink(pathname, item))}
+            {hubItems.map((item) => renderSidebarLink(pathname, item))}
           </section>
 
           <section className="space-y-2">
             <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
               Business
             </p>
-            {ADMINDEK_BUSINESS_ITEMS.map((item) => renderSidebarLink(pathname, item))}
+            {businessItems.map((item) => renderSidebarLink(pathname, item))}
           </section>
 
           <section className="space-y-2">
             <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
               Plataforma
             </p>
-            {ADMINDEK_PLATFORM_ITEMS.map((item) => renderSidebarLink(pathname, item))}
+            {platformItems.map((item) => renderSidebarLink(pathname, item))}
           </section>
         </nav>
       </aside>
@@ -392,14 +423,62 @@ function renderAdminDekShell(pathname: string, children: ReactNode) {
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { template } = useAdminTemplate();
+  const [user, setUser] = useState<AuthUserProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function bootstrap() {
+      if (!hasStoredAuthSession()) {
+        if (mounted) {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+        return;
+      }
+      try {
+        const profile = await fetchMe();
+        if (!mounted) {
+          return;
+        }
+        setUser(profile);
+        setIsAuthenticated(true);
+      } catch {
+        logoutAccount();
+        if (!mounted) {
+          return;
+        }
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    }
+
+    void bootstrap();
+    return () => {
+      mounted = false;
+    };
+  }, [pathname]);
+
+  const shellUser = useMemo(() => (isAuthenticated ? user : null), [isAuthenticated, user]);
+
+  if (!shellUser) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 md:px-6 md:py-8">{children}</main>
+      </div>
+    );
+  }
 
   if (template === "admin-adminkit") {
-    return renderAdminKitShell(pathname, children);
+    return renderAdminKitShell(pathname, children, shellUser);
   }
 
   if (template === "admin-admindek") {
-    return renderAdminDekShell(pathname, children);
+    return renderAdminDekShell(pathname, children, shellUser);
   }
 
-  return <div className="flex min-h-screen flex-col">{renderClassicShell(pathname, children)}</div>;
+  return (
+    <div className="flex min-h-screen flex-col">{renderClassicShell(pathname, children, shellUser)}</div>
+  );
 }

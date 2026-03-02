@@ -514,6 +514,22 @@ export async function fetchMe(): Promise<AuthUserProfile> {
   });
 }
 
+export async function updateMeAccount(
+  payload: Partial<{
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    password: string;
+  }>,
+): Promise<AuthUserProfile> {
+  return requestJson<AuthUserProfile>("/api/v1/accounts/me/", {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchMyUserProfile(): Promise<UserProfileData> {
   return requestJson<UserProfileData>("/api/v1/accounts/me/profile/", {
     method: "GET",
