@@ -79,6 +79,9 @@ Atualizar quando houver mudanca de codigo, script, configuracao, endpoint, porta
 ## Regra de ouro
 Qualquer mudanca em `workspaces/backend`, `workspaces/web/*` ou `scripts/` exige atualizar memoria/docs e rodar quality gate antes de push.
 
+## Regra de testes obrigatorios
+Sempre que executar uma acao, ao final deve testar para garantir o funcionamento.
+
 ## Seguranca
 - Nunca comitar segredos (`.env` real, tokens, senhas, chaves).
 - O repositorio deve conter apenas `.env.example` com placeholders.

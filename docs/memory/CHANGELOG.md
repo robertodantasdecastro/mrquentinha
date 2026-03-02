@@ -4,6 +4,7 @@
 - T9.2.7-A6 (ops): Ops Dashboard ganhou box de monitoramento/gerenciamento do Postgres local.
 - T9.2.7-A6 (ops): script `installdev.sh` adicionado para setup dev/prod em AWS com bancos separados e seed.
 - T9.2.7-A6 (docs): guia `docs/13-guia-instalacao-aws-preconfig-dev-prod.md` publicado (AWS preconfig + db dev/prod).
+- T9.2.7-A6 (ops/rules): regra global passou a exigir teste ao final de qualquer acao; `ops_dashboard` corrigido para evitar `UnboundLocalError` de `draw_box`.
 
 ## 01/03/2026
 - T9.2.7-A6 (backend/accounts): criptografia de dados sensiveis no `UserProfile` com hashes de busca para CPF/CNPJ/telefone e chaves por ambiente (`FIELD_ENCRYPTION_KEY`, `FIELD_HASH_SALT`).

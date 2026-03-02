@@ -1006,6 +1006,19 @@ def draw_dashboard(
     )
     y += 2
 
+    def draw_box(x0: int, y0: int, width: int, height: int, attr: int) -> None:
+        safe_add(stdscr, y0, x0, "+" + "-" * (width - 2) + "+", attr)
+        for yy in range(1, height - 1):
+            safe_add(stdscr, y0 + yy, x0, "|" + " " * (width - 2) + "|", attr)
+        safe_add(stdscr, y0 + height - 1, x0, "+" + "-" * (width - 2) + "+", attr)
+
+    def add_button(x0: int, y0: int, label: str, action: str, service_key: str, attr: int) -> None:
+        text = f"[{label}]"
+        safe_add(stdscr, y0, x0, text, attr)
+        click_targets.append(
+            ClickTarget(y1=y0, x1=x0, y2=y0, x2=x0 + len(text) - 1, action=action, service_key=service_key)
+        )
+
     postgres = manager.postgres_snapshot()
     safe_add(stdscr, y, 0, "Postgres local", curses.A_BOLD | color_pair_safe(4))
     y += 1
@@ -1025,19 +1038,6 @@ def draw_dashboard(
     add_button(12, btn_y, "Stop", "stop", "postgres", color_pair_safe(3))
     add_button(20, btn_y, "Rst", "restart", "postgres", color_pair_safe(6))
     y += 6
-
-    def draw_box(x0: int, y0: int, width: int, height: int, attr: int) -> None:
-        safe_add(stdscr, y0, x0, "+" + "-" * (width - 2) + "+", attr)
-        for yy in range(1, height - 1):
-            safe_add(stdscr, y0 + yy, x0, "|" + " " * (width - 2) + "|", attr)
-        safe_add(stdscr, y0 + height - 1, x0, "+" + "-" * (width - 2) + "+", attr)
-
-    def add_button(x0: int, y0: int, label: str, action: str, service_key: str, attr: int) -> None:
-        text = f"[{label}]"
-        safe_add(stdscr, y0, x0, text, attr)
-        click_targets.append(
-            ClickTarget(y1=y0, x1=x0, y2=y0, x2=x0 + len(text) - 1, action=action, service_key=service_key)
-        )
 
     safe_add(stdscr, y, 0, "Servicos", curses.A_BOLD | color_pair_safe(4))
     y += 1

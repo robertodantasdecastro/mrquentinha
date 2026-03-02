@@ -27,6 +27,7 @@
 - Atualizacao em 01/03/2026 (`T9.2.7-A6`): dados sensiveis do `UserProfile` criptografados com hashes de busca, novos endpoints de suporte ao cliente (admin/cliente) e listagem administrativa de inscritos para notificacoes.
 - Atualizacao em 01/03/2026 (`T9.2.7-A6`): web admin ganhou guias individuais por modulo Business, aba de suporte/notificacoes em Clientes e preload global removido; web client/portal receberam paginas de Privacidade/Termos/LGPD com links no footer.
 - Atualizacao em 02/03/2026 (`T9.2.7-A6`): Ops Dashboard ganhou box de Postgres local; script `installdev.sh` e guia AWS preconfig com db dev/prod publicados.
+- Atualizacao em 02/03/2026 (ops/rules): regra global passou a exigir teste ao final de qualquer acao; `ops_dashboard` corrigido para evitar `UnboundLocalError` em `draw_box`.
 - Atualizacao em 28/02/2026 (`T9.2.7-A4`): backend ganhou app `admin_audit` com trilha de atividade administrativa e endpoint `GET /api/v1/admin-audit/admin-activity/`; Web Admin ganhou secao `Auditoria de atividade` em `Administracao do servidor`.
 - Atualizacao em 28/02/2026 (`T9.2.7-A4`): conectividade Cloudflare DEV evoluiu com `dev_url_mode` (`random`/`manual`) e `dev_manual_urls` editaveis para `portal/client/admin/api`, permitindo enderecamento DEV estavel para homologacoes longas/mobile.
 - Atualizacao em 28/02/2026 (`T9.2.7-A3`): `Administracao do servidor` ganhou painel `Assistente de instalacao` com wizard guiado, validacao por etapa, autosave e monitoramento de jobs via backend (`installer_settings` + endpoints `installer-*`).
