@@ -1,6 +1,18 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- Web Admin (UX/preload): preload global de rede reativado no layout (`GlobalNetworkPreloader`) para todos os modulos, com feedback mais rapido durante requisicoes e navegacao entre secoes.
+- Web Admin (Usuarios/RBAC UX): painel reorganizado com fluxo guiado por blocos interdependentes (`assistente de fluxo`), priorizando `Edicao da conta selecionada` antes de `Criar conta`, com atalhos de navegacao por bloco e acao direta `Editar conta` na listagem.
+- Web Admin (Usuarios/RBAC): validacao de senha forte adicionada no frontend para criacao/edicao de usuario (min. 8, maiuscula, minuscula e numero), com mensagem clara antes do submit.
+- Web Admin (acesso tecnico): `adminAccess` endurecido para bloquear modulos tecnicos quando o usuario nao tiver permissao tecnica explicita, evitando acesso parcial que quebrava operacoes de CRUD.
+- Regra global (templates): formalizada exigencia de aplicar e validar correcao em todos os templates do Admin (`admin-classic`, `admin-adminkit`, `admin-admindek`).
+- Ops/Instalacao hibrida (execucao real EC2 t3.micro): `installdev.sh` executado com PostgreSQL local + bancos separados (`mrquentinha_dev` e `mrquentinha_prod`), Nginx ativo e smoke completo validado (`VM_IP=172.31.71.156 ./scripts/smoke_stack_dev.sh`).
+- Ops/Instalador (hardening): `installdev.sh` passou a:
+  - respeitar `MRQ_DB_HOST` (provisionamento local apenas quando host local);
+  - remover `*.trycloudflare.com` de `ALLOWED_HOSTS` em `.env.prod` (mantido apenas no DEV);
+  - carregar segredos locais de `/home/ubuntu/.mrquentinha-secure/host-secrets.env` sem persistir segredo no Git.
+- Ops/Continuidade: checkpoint de execucao salvo em `.runtime/install/hybrid_install_state.json`, `.runtime/install/hybrid_install.current_step` e `.runtime/install/hybrid_install.log`.
+- Ops/Workflow global: inicio de sessao atualizado para carregar segredos locais (quando existir) em `.agent/workflows/W10_iniciar_sessao.md` e regra global reforcada em `.agent/rules/global.md`.
 - T9.2.7-A6 (ops): Ops Dashboard ganhou box de monitoramento/gerenciamento do Postgres local.
 - T9.2.7-A6 (ops): script `installdev.sh` adicionado para setup dev/prod em AWS com bancos separados e seed.
 - T9.2.7-A6 (docs): guia `docs/13-guia-instalacao-aws-preconfig-dev-prod.md` publicado (AWS preconfig + db dev/prod).

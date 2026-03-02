@@ -22,8 +22,8 @@ export function GlobalNetworkPreloader() {
     let timerId: ReturnType<typeof setTimeout> | null = null;
 
     if (pendingRequests > 0) {
-      // Evita flicker em requests curtos e reduz impacto visual no operador.
-      timerId = setTimeout(() => setIsVisible(true), 450);
+      // Mantem feedback rapido sem gerar flicker agressivo.
+      timerId = setTimeout(() => setIsVisible(true), 120);
     } else {
       // Mantem a troca de estado assíncrona para evitar render cascata no efeito.
       timerId = setTimeout(() => setIsVisible(false), 80);

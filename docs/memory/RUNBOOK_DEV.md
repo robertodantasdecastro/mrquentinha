@@ -19,6 +19,7 @@ Acessos:
 2. Validar regra global:
 
 ```bash
+test -f /home/ubuntu/.mrquentinha-secure/host-secrets.env && source /home/ubuntu/.mrquentinha-secure/host-secrets.env || true
 bash scripts/gemini_check.sh
 bash scripts/check_installer_workflow.sh --check
 ```

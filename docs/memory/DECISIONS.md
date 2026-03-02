@@ -29,6 +29,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - RBAC de `inventory` e `procurement` ainda esta temporario com `AllowAny` no MVP.
 - Proxima etapa deve substituir por permissoes por perfil (Admin/Compras/Estoque CRUD, Cozinha criacao de solicitacao e leitura, Financeiro leitura).
 
+## 02/03/2026 - Instalacao hibrida com segredos locais e hardening de host
+- Decisao:
+  - executar instalacao no servidor por `installdev.sh` em modo sequencial (baixo consumo) com PostgreSQL local.
+  - manter segregacao DEV/PROD com bancos distintos (`mrquentinha_dev` e `mrquentinha_prod`).
+  - guardar segredo da maquina fora do repositorio em `/home/ubuntu/.mrquentinha-secure/host-secrets.env` e carregar no bootstrap.
+  - limitar `*.trycloudflare.com` apenas ao ambiente DEV.
+- Consequencia:
+  - ambiente hibrido fica configurado para DNS/subdominios oficiais sem abrir `ALLOWED_HOSTS` de producao de forma excessiva.
+  - continuidade de instalacao passa a ter checkpoint operacional em `.runtime/install/hybrid_install_state.json`.
+
 ## 26/02/2026 - Governanca de OAuth via Portal CMS (Google + Apple)
 - Decisao:
   - centralizar parametros OAuth de client web e mobile em `PortalConfig.auth_providers`.
