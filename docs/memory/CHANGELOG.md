@@ -1,6 +1,21 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- Ajuste de dominios oficiais: `portal` fixado em `www.mrquentinha.com.br`, `web client` em `app.mrquentinha.com.br` e `web admin` em `admin.mrquentinha.com.br`; alias `web.mrquentinha.com.br` removido da lista oficial de frontend.
+- Nginx/hardening de dominio legado: `web.mrquentinha.com.br` passou a responder `404` por vhost dedicado para evitar uso acidental.
+- Admin de servidor (Web Admin): `PortalConfig` em producao foi alinhado para dominios reais (`mrquentinha.com.br`, `www`, `app`, `admin`, `api`) e URLs base correspondentes.
+- Hotfix templates (web): chamadas server-side dos frontends para `portal/config` e `mobile/releases/latest` passaram a enviar `X-Forwarded-Proto=https` ao backend interno; removido cache permanente que congelava fallback de template (`classic`) quando a primeira leitura falhava.
+- Hotfix performance/estabilidade: swap de 2GB habilitada na EC2 (`/swapfile`, `swappiness=15`) para reduzir risco de OOM em `t3.micro` e melhorar estabilidade sob carga.
+- Hotfix producao (502): stack em producao passou a ser gerenciada por `systemd` via `scripts/setup_systemd_prod.sh` (servicos `mrq-backend-prod`, `mrq-portal-prod`, `mrq-client-prod`, `mrq-admin-prod` e target `mrq-stack-prod`) com restart automatico e boot enable.
+- Hotfix Nginx/dominios: `scripts/setup_nginx_prod.sh` passou a tratar `web.mrquentinha.com.br` e `mrquentinha.com.br` como aliases do portal (`www`) nas vhosts HTTP/HTTPS.
+- Hotfix backend hosts: `.env.prod` atualizado para incluir `web.mrquentinha.com.br` em `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS`.
+- Ops/producao (EC2 t3.micro): `scripts/start_vm_prod.sh` ajustado para perfil de baixa memoria (Gunicorn default `1` worker, `NODE_OPTIONS=--max-old-space-size=256`, bind interno `127.0.0.1`) e validacao de falha rapida por servico com tail de log quando nao sobe.
+- Ops/rede valida: smoke executado com sucesso para `admin/www/app` em `same_origin_proxy` e health da API via `admin|www|app` + `44.192.27.104` + `ec2-44-192-27-104.compute-1.amazonaws.com`.
+- Infra/web-api: `admin`, `portal` e `client` passaram a resolver `api_base_url` em modo `same_origin_proxy` para hosts publicos, permitindo chamadas `https://<canal>.../api/v1/*` sem depender de `api.mrquentinha.com.br`.
+- Nginx/producao: `scripts/setup_nginx_prod.sh` agora roteia `^/api/v1/` e `^/media/` nos dominios `admin`, `www` e `app` para o backend local (`127.0.0.1:8000`), mantendo comunicacao interna no mesmo host.
+- Portal CMS/server-admin: adicionada configuracao `API publica para app mobile` (toggle + endpoint preferencial + URLs AWS DNS/IP publico) em `Conectividade e dominios`.
+- Backend/portal: `installer_settings` ganhou `api_public_access`; payload de release mobile (`/api/v1/portal/mobile/releases/latest/`) passa a respeitar esse bloco e bloqueia dominio `*.mrquentinha.com.br` para endpoint publico mobile.
+- Ops/runtime: hardening dos scripts de ciclo de vida da stack VM (`start_vm_prod.sh`, `stop_vm_prod.sh`, `start_backend_dev.sh`) para fixar `.env` correto por ambiente e limpar listeners orfaos nas portas 3000/3001/3002/8000.
 - Security (orders/webhooks): validacao do header `X-Webhook-Token` endurecida com `secrets.compare_digest` (comparacao em tempo constante) e consolidada em classe base para todos os endpoints de webhook de pagamento.
 - Security (orders/webhooks): adicionado throttle por IP (`PaymentsWebhookRateThrottle`) para endpoints de webhook com taxa configuravel por ambiente via `PAYMENTS_WEBHOOK_THROTTLE_RATE` (default `120/min`).
 - Ops/Instalador (prod): `installdev.sh` agora gera `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS` de producao restritos a HTTPS dos dominios oficiais (`www`, `portal`, `client`, `admin`, `api`), removendo origens HTTP/IP/localhost em `.env.prod`.

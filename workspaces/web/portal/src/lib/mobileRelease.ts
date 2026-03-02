@@ -1,7 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
-
 type MobileReleaseLatestPayload = {
   release_version?: string;
   published_at?: string | null;
@@ -38,7 +36,7 @@ function buildPortalAppUrlFromApiBase(apiBaseUrl: string): string {
   }
 }
 
-const fetchPortalAppDownloadsCached = cache(async (): Promise<PortalAppDownloadsData> => {
+export async function fetchPortalAppDownloads(): Promise<PortalAppDownloadsData> {
   const apiBaseUrl = resolveApiBaseUrl();
   const endpoint = `${apiBaseUrl}/api/v1/portal/mobile/releases/latest/`;
   const fallbackAppUrl = buildPortalAppUrlFromApiBase(apiBaseUrl);
@@ -46,6 +44,9 @@ const fetchPortalAppDownloadsCached = cache(async (): Promise<PortalAppDownloads
   try {
     const response = await fetch(endpoint, {
       cache: "no-store",
+      headers: {
+        "X-Forwarded-Proto": "https",
+      },
     });
     if (!response.ok) {
       return {
@@ -78,8 +79,4 @@ const fetchPortalAppDownloadsCached = cache(async (): Promise<PortalAppDownloads
       publishedAt: null,
     };
   }
-});
-
-export async function fetchPortalAppDownloads(): Promise<PortalAppDownloadsData> {
-  return fetchPortalAppDownloadsCached();
 }

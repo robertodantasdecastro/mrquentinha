@@ -132,7 +132,19 @@ function resolveBrowserBaseUrl(): string {
     return "";
   }
 
-  return protocol + "//" + hostname + ":8000";
+  const isPrivateNetworkHost =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.endsWith(".local") ||
+    /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+
+  if (isPrivateNetworkHost) {
+    return protocol + "//" + hostname + ":8000";
+  }
+
+  return protocol + "//" + hostname;
 }
 
 function normalizeApiBaseUrl(value: string): string {

@@ -261,6 +261,12 @@ function getDefaultDraft(): PortalInstallerDraftPayload {
 
 function getDefaultSettings(): PortalInstallerSettingsConfig {
   return {
+    api_public_access: {
+      enabled: false,
+      preferred_endpoint: "public_ip",
+      public_ip_base_url: "http://44.192.27.104",
+      aws_dns_base_url: "http://ec2-44-192-27-104.compute-1.amazonaws.com",
+    },
     workflow_version: "2026.02.28",
     last_synced_at: "",
     last_sync_note: "Workflow do instalador ainda nao sincronizado.",

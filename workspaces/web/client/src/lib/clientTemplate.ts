@@ -1,7 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
-
 import type { ClientTemplateType } from "@/types/template";
 
 type ClientPublicConfigPayload = {
@@ -30,28 +28,25 @@ function normalizeTemplate(value: unknown): ClientTemplateType {
   return "client-classic";
 }
 
-const fetchClientActiveTemplateCached = cache(
-  async (): Promise<ClientTemplateType> => {
-    const apiBaseUrl = resolveApiBaseUrl();
-    const endpoint = `${apiBaseUrl}/api/v1/portal/config/?channel=client&page=home`;
+export async function fetchClientActiveTemplate(): Promise<ClientTemplateType> {
+  const apiBaseUrl = resolveApiBaseUrl();
+  const endpoint = `${apiBaseUrl}/api/v1/portal/config/?channel=client&page=home`;
 
-    try {
-      const response = await fetch(endpoint, {
-        cache: "no-store",
-      });
+  try {
+    const response = await fetch(endpoint, {
+      cache: "no-store",
+      headers: {
+        "X-Forwarded-Proto": "https",
+      },
+    });
 
-      if (!response.ok) {
-        return "client-classic";
-      }
-
-      const payload = (await response.json()) as ClientPublicConfigPayload;
-      return normalizeTemplate(payload.active_template);
-    } catch {
+    if (!response.ok) {
       return "client-classic";
     }
-  },
-);
 
-export async function fetchClientActiveTemplate(): Promise<ClientTemplateType> {
-  return fetchClientActiveTemplateCached();
+    const payload = (await response.json()) as ClientPublicConfigPayload;
+    return normalizeTemplate(payload.active_template);
+  } catch {
+    return "client-classic";
+  }
 }

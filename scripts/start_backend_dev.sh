@@ -20,6 +20,7 @@ fi
 # shellcheck disable=SC1090
 source "$VENV_ACTIVATE"
 cd "$BACKEND_DIR"
+ln -sfn .env.dev .env
 
 export PYTHONUNBUFFERED=1
 

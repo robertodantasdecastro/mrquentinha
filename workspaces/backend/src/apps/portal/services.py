@@ -294,11 +294,70 @@ DEFAULT_INSTALLER_SETTINGS = {
         "last_job_finished_at": "",
         "last_job_summary": "",
     },
+    "api_public_access": {
+        "enabled": False,
+        "preferred_endpoint": "public_ip",
+        "public_ip_base_url": "http://44.192.27.104",
+        "aws_dns_base_url": "http://ec2-44-192-27-104.compute-1.amazonaws.com",
+    },
 }
 
 
 def _default_installer_settings_payload() -> dict:
     return deepcopy(DEFAULT_INSTALLER_SETTINGS)
+
+
+def _normalize_mobile_api_public_url(raw_value: object) -> str:
+    value = str(raw_value or "").strip().rstrip("/")
+    if not value:
+        return ""
+
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"}:
+        return ""
+
+    hostname = str(parsed.hostname or "").strip().lower()
+    if not hostname:
+        return ""
+
+    if hostname.endswith("mrquentinha.com.br"):
+        # Requisito operacional: endpoint mobile publico nao deve usar dominio custom.
+        return ""
+
+    return value
+
+
+def _normalize_api_public_access_settings(raw_value: object | None) -> dict:
+    defaults = deepcopy(DEFAULT_INSTALLER_SETTINGS["api_public_access"])
+    if not isinstance(raw_value, dict):
+        return defaults
+
+    preferred_endpoint = (
+        str(raw_value.get("preferred_endpoint", defaults["preferred_endpoint"]))
+        .strip()
+        .lower()
+    )
+    if preferred_endpoint not in {"public_ip", "aws_dns"}:
+        preferred_endpoint = defaults["preferred_endpoint"]
+
+    public_ip_base_url = _normalize_mobile_api_public_url(
+        raw_value.get("public_ip_base_url", defaults["public_ip_base_url"])
+    )
+    aws_dns_base_url = _normalize_mobile_api_public_url(
+        raw_value.get("aws_dns_base_url", defaults["aws_dns_base_url"])
+    )
+
+    if not public_ip_base_url:
+        public_ip_base_url = defaults["public_ip_base_url"]
+    if not aws_dns_base_url:
+        aws_dns_base_url = defaults["aws_dns_base_url"]
+
+    return {
+        "enabled": bool(raw_value.get("enabled", defaults["enabled"])),
+        "preferred_endpoint": preferred_endpoint,
+        "public_ip_base_url": public_ip_base_url,
+        "aws_dns_base_url": aws_dns_base_url,
+    }
 
 
 DEFAULT_CONFIG_PAYLOAD = {
@@ -1061,6 +1120,10 @@ def _normalize_installer_settings(raw_value: object | None) -> dict:
         merged_jobs["last_job_summary"] = str(jobs.get("last_job_summary", "")).strip()
         normalized["jobs"] = merged_jobs
 
+    normalized["api_public_access"] = _normalize_api_public_access_settings(
+        raw_value.get("api_public_access")
+    )
+
     return normalized
 
 
@@ -1464,7 +1527,10 @@ def _build_cloudflare_preview_payload(config: PortalConfig, settings: dict) -> d
                 else (
                     "Modo dev usando dominio oficial com portas por servico."
                     if dev_url_mode == "official"
-                    else "Modo dev usa dominios aleatorios trycloudflare.com por servico."
+                    else (
+                        "Modo dev usa dominios aleatorios "
+                        "trycloudflare.com por servico."
+                    )
                 )
             )
         ),
@@ -1844,6 +1910,32 @@ def _resolve_api_base_url(config: PortalConfig) -> str:
     return DEFAULT_CONFIG_PAYLOAD["api_base_url"]
 
 
+def _resolve_mobile_api_base_url(config: PortalConfig) -> str:
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    public_access = installer_settings.get("api_public_access", {})
+    if bool(public_access.get("enabled", False)):
+        preferred_endpoint = str(
+            public_access.get("preferred_endpoint", "public_ip")
+        ).strip()
+        candidates: list[str] = []
+        if preferred_endpoint == "aws_dns":
+            candidates = [
+                str(public_access.get("aws_dns_base_url", "")).strip(),
+                str(public_access.get("public_ip_base_url", "")).strip(),
+            ]
+        else:
+            candidates = [
+                str(public_access.get("public_ip_base_url", "")).strip(),
+                str(public_access.get("aws_dns_base_url", "")).strip(),
+            ]
+        for candidate in candidates:
+            normalized = _normalize_mobile_api_public_url(candidate)
+            if normalized:
+                return normalized
+
+    return _resolve_api_base_url(config)
+
+
 def _resolve_public_host(config: PortalConfig) -> str:
     parsed = urlparse(_resolve_api_base_url(config))
     if parsed.hostname:
@@ -1853,6 +1945,13 @@ def _resolve_public_host(config: PortalConfig) -> str:
         return str(config.local_network_ip).strip()
 
     return str(config.local_hostname).strip() or "mrquentinha"
+
+
+def _resolve_mobile_public_host(config: PortalConfig) -> str:
+    parsed = urlparse(_resolve_mobile_api_base_url(config))
+    if parsed.hostname:
+        return parsed.hostname
+    return _resolve_public_host(config)
 
 
 def _resolve_download_base_url(config: PortalConfig) -> str:
@@ -2344,8 +2443,8 @@ def compile_mobile_release(release: MobileRelease) -> MobileRelease:
     now = timezone.now()
 
     release.status = MobileReleaseStatus.SIGNED
-    release.api_base_url_snapshot = _resolve_api_base_url(config)
-    release.host_publico_snapshot = _resolve_public_host(config)
+    release.api_base_url_snapshot = _resolve_mobile_api_base_url(config)
+    release.host_publico_snapshot = _resolve_mobile_public_host(config)
     release.android_download_url = download_urls["android"]
     release.ios_download_url = download_urls["ios"]
     if not release.min_supported_version:
@@ -2424,8 +2523,8 @@ def build_latest_mobile_release_payload() -> dict:
             "is_critical_update": False,
             "min_supported_version": "",
             "recommended_version": "",
-            "api_base_url": _resolve_api_base_url(config),
-            "host_publico": _resolve_public_host(config),
+            "api_base_url": _resolve_mobile_api_base_url(config),
+            "host_publico": _resolve_mobile_public_host(config),
             "android_download_url": download_urls["android"],
             "ios_download_url": download_urls["ios"],
             "published_at": None,
@@ -2440,8 +2539,10 @@ def build_latest_mobile_release_payload() -> dict:
         "is_critical_update": release.is_critical_update,
         "min_supported_version": release.min_supported_version,
         "recommended_version": release.recommended_version,
-        "api_base_url": release.api_base_url_snapshot or _resolve_api_base_url(config),
-        "host_publico": release.host_publico_snapshot or _resolve_public_host(config),
+        "api_base_url": release.api_base_url_snapshot
+        or _resolve_mobile_api_base_url(config),
+        "host_publico": release.host_publico_snapshot
+        or _resolve_mobile_public_host(config),
         "android_download_url": (
             release.android_download_url or download_urls["android"]
         ),
