@@ -13,6 +13,7 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (CEP/global): `FormFieldGuard` passou a exibir feedback de status de CEP (digitacao parcial, consultando, encontrado, nao encontrado, erro) e manter autopreenchimento de endereco no mesmo padrao para Admin, Web Client e Portal em todos os templates.
 - Atualizacao em 02/03/2026 (perfil/CEP): `/perfil` agora mostra status de busca de CEP e preenche endereco automaticamente; backend passou a priorizar fallback ViaCEP quando Correios estiver indisponivel.
 - Atualizacao em 02/03/2026 (ops/producao): novo iniciador `scripts/start_ops_dashboard_prod.sh` para abrir o painel de operacao de producao com um comando unico.
 - Atualizacao em 02/03/2026 (web admin/auth): shell do Admin agora oculta menu e navegacao antes do login; filtragem de menus por permissao de modulo do usuario aplicada em todos os templates.

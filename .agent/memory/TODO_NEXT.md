@@ -56,3 +56,4 @@ Fila atual:
 47. [x] WebAdmin-02/03/2026 Hardening de acesso: ocultar menu pre-login, filtrar navegacao por permissao de modulo, corrigir `Meu Perfil` (dados de conta + dados adicionais) e revisar pipeline de media/upload em producao - concluida em 02/03/2026.
 48. [x] Ops-02/03/2026 Dashboard de producao: launcher shell `start_ops_dashboard_prod.sh` adicionado para iniciar rapidamente o painel TUI de operacao - concluida em 02/03/2026.
 49. [x] WebAdmin-02/03/2026 CEP no perfil: status visual de consulta + autopreenchimento de endereco e fallback ViaCEP no backend quando Correios indisponivel - concluida em 02/03/2026.
+50. [x] Web-02/03/2026 CEP global: feedback padronizado (consultando/sucesso/nao encontrado/erro) e autofill validado para todos os formularios em Admin, Web Client e Portal (todos os templates) - concluida em 02/03/2026.

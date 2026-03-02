@@ -1248,3 +1248,20 @@
     - `npm run lint` (web/admin, web/client, web/portal) -> OK;
     - `npm run build` (web/admin, web/client, web/portal) -> OK;
     - `cd workspaces/backend && .venv/bin/pytest tests/test_accounts_api.py tests/test_customers_admin_api.py tests/test_portal_api.py tests/test_portal_services.py` -> OK (`79 passed`).
+
+- T9.2.7-A6-HF2 (02/03/2026): feedback de consulta de CEP padronizado em todos os formularios web
+  - web/ui (`FormFieldGuard`):
+    - adicionado feedback visual padronizado para CEP em runtime:
+      - estado parcial (`Informe os 8 digitos do CEP.`);
+      - estado de consulta (`Consultando CEP...`);
+      - sucesso (`CEP encontrado e endereco preenchido.`);
+      - nao encontrado e erro de consulta.
+    - fluxo de lookup passou a diferenciar `not_found` de `error`, mantendo validacao de formulario coerente.
+    - autofill de endereco mantido por escopo do formulario/template, cobrindo Admin, Web Client e Portal com a mesma regra global.
+  - validacao executada:
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK;
+    - `npm run build` (web/client) -> OK;
+    - `npm run build` (web/portal) -> OK;
+    - `npm run lint` (web/client) -> FALHA preexistente em `src/app/privacidade/page.tsx` (`react/no-unescaped-entities`);
+    - `npm run lint` (web/portal) -> FALHA preexistente em `src/app/privacidade/page.tsx` (`react/no-unescaped-entities`).
