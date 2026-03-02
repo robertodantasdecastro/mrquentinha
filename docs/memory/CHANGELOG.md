@@ -1326,3 +1326,16 @@
     - `ruff check` (arquivos alterados) -> OK;
     - `python -m pytest tests/test_accounts_api.py -q` -> OK;
     - `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py check --deploy` -> OK.
+
+- Ops-02/03/2026 (dev sync): script unico para sincronizacao segura da VM DEV
+  - novo script: `scripts/sync_dev_from_main.sh`
+  - cobre fluxo completo:
+    - `git fetch/pull` do `main` com auto-stash opcional;
+    - garantia de `.env.dev` + `DATABASE_URL`;
+    - provisionamento/ajuste de role e banco local Postgres DEV;
+    - `migrate` + `check` backend;
+    - instalacao opcional de dependencias frontend;
+    - restart dos 4 servicos DEV e smoke de portas (`8000/3000/3001/3002`).
+  - parametros de operacao:
+    - `MRQ_DEV_AUTO_STASH` (default `1`);
+    - `MRQ_DEV_INSTALL_FRONTEND_DEPS` (default `1`).
