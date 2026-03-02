@@ -1284,3 +1284,26 @@
     - exposicao de midias sensiveis;
     - hardening HTTPS incompleto;
     - segredo de aplicacao de producao fraco.
+
+- Ops-02/03/2026 (plano de correcao - execucao inicial aprovada): hardening de configuracao e borda
+  - backend:
+    - `manage.py` passou a resolver `DJANGO_SETTINGS_MODULE` de forma deterministica via env ou `.env` antes de fallback `config.settings.dev`.
+    - `config.settings.dev` removido app duplicado `corsheaders` em `INSTALLED_APPS`.
+    - `config.settings.prod` recebeu hardening padrao:
+      - `SECURE_SSL_REDIRECT=True` (configuravel por env),
+      - `SECURE_HSTS_SECONDS=31536000`,
+      - `SECURE_HSTS_INCLUDE_SUBDOMAINS=True`,
+      - `SECURE_HSTS_PRELOAD=True`,
+      - `SECURE_CONTENT_TYPE_NOSNIFF=True`,
+      - `SECURE_REFERRER_POLICY=strict-origin-when-cross-origin`,
+      - `X_FRAME_OPTIONS=DENY`.
+  - instalador:
+    - `installdev.sh` passou a derivar `SECRET_KEY` forte a partir de `MRQ_DEFAULT_APP_SECRET` (nao usa mais segredo cru curto como chave Django).
+  - nginx:
+    - `setup_nginx_prod.sh` agora aplica redirect HTTP->HTTPS quando certificados existem;
+    - adicionados headers de seguranca em HTTPS (`HSTS`, `nosniff`, `X-Frame-Options`, `Referrer-Policy`).
+  - validacao executada:
+    - `bash -n installdev.sh` e `bash -n scripts/setup_nginx_prod.sh` -> OK;
+    - `ruff check` (arquivos alterados) -> OK;
+    - `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py check --deploy` -> OK (sem warnings);
+    - `bash scripts/setup_nginx_prod.sh` + `curl` -> HTTP 301 e HTTPS 200 nos subdominios oficiais.

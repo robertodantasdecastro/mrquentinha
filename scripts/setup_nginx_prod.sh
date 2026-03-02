@@ -32,8 +32,40 @@ ensure_root() {
 write_nginx_config() {
   ensure_root
   local tmp_file
+  local has_ssl="0"
   tmp_file="$(mktemp)"
-  cat >"$tmp_file" <<EOF
+  if sudo test -f "$LETSENCRYPT_FULLCHAIN" && sudo test -f "$LETSENCRYPT_PRIVKEY"; then
+    has_ssl="1"
+  fi
+
+  if [[ "$has_ssl" == "1" ]]; then
+    cat >"$tmp_file" <<EOF
+server {
+    listen 80;
+    server_name ${PORTAL_DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 80;
+    server_name ${CLIENT_DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 80;
+    server_name ${ADMIN_DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 80;
+    server_name ${API_DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+EOF
+  else
+    cat >"$tmp_file" <<EOF
 server {
     listen 80;
     server_name ${PORTAL_DOMAIN};
@@ -98,8 +130,9 @@ server {
     }
 }
 EOF
+  fi
 
-  if sudo test -f "$LETSENCRYPT_FULLCHAIN" && sudo test -f "$LETSENCRYPT_PRIVKEY"; then
+  if [[ "$has_ssl" == "1" ]]; then
     cat >>"$tmp_file" <<EOF
 
 server {
@@ -107,6 +140,10 @@ server {
     server_name ${PORTAL_DOMAIN};
     ssl_certificate ${LETSENCRYPT_FULLCHAIN};
     ssl_certificate_key ${LETSENCRYPT_PRIVKEY};
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location / {
         proxy_http_version 1.1;
@@ -125,6 +162,10 @@ server {
     server_name ${CLIENT_DOMAIN};
     ssl_certificate ${LETSENCRYPT_FULLCHAIN};
     ssl_certificate_key ${LETSENCRYPT_PRIVKEY};
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location / {
         proxy_http_version 1.1;
@@ -143,6 +184,10 @@ server {
     server_name ${ADMIN_DOMAIN};
     ssl_certificate ${LETSENCRYPT_FULLCHAIN};
     ssl_certificate_key ${LETSENCRYPT_PRIVKEY};
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location / {
         proxy_http_version 1.1;
@@ -161,6 +206,10 @@ server {
     server_name ${API_DOMAIN};
     ssl_certificate ${LETSENCRYPT_FULLCHAIN};
     ssl_certificate_key ${LETSENCRYPT_PRIVKEY};
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location / {
         proxy_http_version 1.1;

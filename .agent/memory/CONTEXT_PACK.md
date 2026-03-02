@@ -13,6 +13,7 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (seguranca/hardening): execucao inicial do plano aprovado concluida com `manage.py` deterministico (env/.env), hardening de `config.settings.prod`, derivacao forte de `SECRET_KEY` no `installdev.sh` e `setup_nginx_prod.sh` com redirect HTTP->HTTPS + headers de seguranca.
 - Atualizacao em 02/03/2026 (auditoria): rodada completa de auditoria estatica (seguranca/qualidade/redundancias) concluida e publicada em `docs/reports/`, com plano priorizado `P0/P1/P2` aprovado para execucao.
 - Atualizacao em 02/03/2026 (web admin/navegacao): menu `Prioridades` foi substituido por `Sobre`; rota legada `/prioridades` agora redireciona para `/sobre`.
 - Atualizacao em 02/03/2026 (CEP/global): `FormFieldGuard` passou a exibir feedback de status de CEP (digitacao parcial, consultando, encontrado, nao encontrado, erro) e manter autopreenchimento de endereco no mesmo padrao para Admin, Web Client e Portal em todos os templates.
