@@ -13,6 +13,9 @@ SECRET_KEY = env("SECRET_KEY", default="django-insecure-dev-only-change-me")
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
+FIELD_ENCRYPTION_STRICT = env.bool("FIELD_ENCRYPTION_STRICT", default=False)
+FIELD_HASH_SALT = env("FIELD_HASH_SALT", default="")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

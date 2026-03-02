@@ -3,22 +3,29 @@
 Atualize este arquivo no inicio de qualquer sessao em modo escrita.
 
 ## Registro atual
-- data_hora: 2026-03-01 23:25 UTC
+- data_hora: 2026-03-01 21:05 UTC
 - agente: codex
 - branch: main
-- etapa: T9.2.7-A5-A2-HF1 links guiados no Portal CMS + guia de testes manuais do instalador
+- etapa: T9.2.7-A6 suporte/criptografia/LGPD + guias Business + ajustes de preload
 - areas_ou_arquivos_tocados:
-  - workspaces/web/admin/src/app/modulos/portal/sections.tsx
-  - docs/12-guia-testes-instalacao-manual.md
-  - docs/11-plano-cloud-aws-google-e-testes-operacionais.md
+  - workspaces/backend/src/apps/accounts/*
+  - workspaces/backend/tests/test_support_tickets_api.py
+  - workspaces/web/admin/src/app/modulos/*/sections.tsx
+  - workspaces/web/admin/src/components/modules/*
+  - workspaces/web/client/src/app/conta/page.tsx
+  - workspaces/web/client/src/app/{privacidade,termos,lgpd}/page.tsx
+  - workspaces/web/portal/src/app/{privacidade,termos,lgpd}/page.tsx
+  - workspaces/web/client/src/components/Footer.tsx
+  - docs/adr/0018-criptografia-dados-sensiveis-userprofile.md
   - docs/memory/CHANGELOG.md
   - docs/memory/DECISIONS.md
   - docs/memory/PROJECT_STATE.md
+  - docs/memory/RUNBOOK_DEV.md
   - .agent/memory/CONTEXT_PACK.md
   - .agent/memory/TODO_NEXT.md
   - .agent/memory/IN_PROGRESS.md
-- objetivo_imediato: concluir melhoria de UX operacional no Portal CMS e fechar guia/manual de teste do instalador com validacao automatizada.
-- proximo_comando: executar quality gate da trilha (lint/build/testes backend + check workflow) e preparar commit.
+- objetivo_imediato: finalizar atualizacao de memoria/docs, validar LGPD, registrar testes e preparar commit.
+- proximo_comando: rodar quality gate parcial (pytest focado) e atualizar changelog/decisions.
 
 ## Registro anterior (manter historico curto)
 - data_hora: 2026-02-26 06:05

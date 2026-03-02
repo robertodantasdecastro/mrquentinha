@@ -15,12 +15,14 @@ import type { OrderData } from "@/types/api";
 
 import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
+import { ModuleGuide } from "@/components/modules/ModuleGuide";
 import { OrdersOpsPanel } from "@/components/modules/OrdersOpsPanel";
 
 export const PEDIDOS_BASE_PATH = "/modulos/pedidos";
 
 export const PEDIDOS_MENU_ITEMS = [
   { key: "all", label: "Todos", href: PEDIDOS_BASE_PATH },
+  { key: "guia", label: "Guia do modulo", href: `${PEDIDOS_BASE_PATH}/guia#guia` },
   { key: "visao-geral", label: "Visão geral", href: `${PEDIDOS_BASE_PATH}/visao-geral#visao-geral` },
   { key: "operacao", label: "Operação", href: `${PEDIDOS_BASE_PATH}/operacao#operacao` },
   { key: "tendencias", label: "Tendências", href: `${PEDIDOS_BASE_PATH}/tendencias#tendencias` },
@@ -29,6 +31,7 @@ export const PEDIDOS_MENU_ITEMS = [
 
 export type PedidosSectionKey =
   | "all"
+  | "guia"
   | "visao-geral"
   | "operacao"
   | "tendencias"
@@ -174,6 +177,34 @@ export function PedidosSections({ activeSection = "all" }: PedidosSectionsProps)
 
   return (
     <>
+      {(showAll || activeSection === "guia") && (
+        <section id="guia" className="scroll-mt-24">
+          <ModuleGuide
+            title="Pedidos e atendimento"
+            summary="Organize a fila do dia, garanta confirmacoes e acompanhe o ciclo completo do pedido."
+            steps={[
+              {
+                title: "Validar fila do dia",
+                description: "Revise pedidos criados/confirmados e ajuste status antes da producao.",
+              },
+              {
+                title: "Atualizar status operacionais",
+                description: "Mantenha o fluxo entre em preparo, saída para entrega e entregue.",
+              },
+              {
+                title: "Tratar excecoes",
+                description: "Registre cancelamentos, reembolsos e reaberturas com justificativa.",
+              },
+              {
+                title: "Exportar relatorios",
+                description: "Gere CSV por periodo para conciliacao, repasse e auditoria.",
+              },
+            ]}
+            note="Este guia e individual do modulo de Pedidos. O modo Fluxo Operacional e exclusivo para usuarios com acesso a todos os modulos envolvidos."
+          />
+        </section>
+      )}
+
       {(showAll || activeSection === "visao-geral") && (
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">

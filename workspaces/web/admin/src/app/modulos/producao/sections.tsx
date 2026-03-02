@@ -16,11 +16,13 @@ import type { ProductionBatchData } from "@/types/api";
 import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { ProductionOpsPanel } from "@/components/modules/ProductionOpsPanel";
+import { ModuleGuide } from "@/components/modules/ModuleGuide";
 
 export const PRODUCAO_BASE_PATH = "/modulos/producao";
 
 export const PRODUCAO_MENU_ITEMS = [
   { key: "all", label: "Todos", href: PRODUCAO_BASE_PATH },
+  { key: "guia", label: "Guia do modulo", href: `${PRODUCAO_BASE_PATH}/guia#guia` },
   { key: "visao-geral", label: "Visão geral", href: `${PRODUCAO_BASE_PATH}/visao-geral#visao-geral` },
   { key: "lotes", label: "Lotes", href: `${PRODUCAO_BASE_PATH}/lotes#lotes` },
   { key: "tendencias", label: "Tendências", href: `${PRODUCAO_BASE_PATH}/tendencias#tendencias` },
@@ -29,6 +31,7 @@ export const PRODUCAO_MENU_ITEMS = [
 
 export type ProducaoSectionKey =
   | "all"
+  | "guia"
   | "visao-geral"
   | "lotes"
   | "tendencias"
@@ -190,6 +193,34 @@ export function ProducaoSections({ activeSection = "all" }: ProducaoSectionsProp
 
   return (
     <>
+      {(showAll || activeSection === "guia") && (
+        <section id="guia" className="scroll-mt-24">
+          <ModuleGuide
+            title="Producao e lotes"
+            summary="Acompanhe planejado x produzido e mantenha o fluxo da cozinha."
+            steps={[
+              {
+                title: "Revisar lotes do dia",
+                description: "Confirme volumes planejados e materiais disponiveis.",
+              },
+              {
+                title: "Executar producao",
+                description: "Atualize quantidades produzidas e desperdicios.",
+              },
+              {
+                title: "Checar divergencias",
+                description: "Valide alertas de diferenca entre planejado e produzido.",
+              },
+              {
+                title: "Exportar registros",
+                description: "Gere CSV para auditoria e controle interno.",
+              },
+            ]}
+            note="Guia individual do modulo de Producao. O Fluxo Operacional integra com Cardapio e Pedidos."
+          />
+        </section>
+      )}
+
       {(showAll || activeSection === "visao-geral") && (
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">

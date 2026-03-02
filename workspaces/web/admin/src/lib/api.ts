@@ -71,6 +71,8 @@ import type {
   RoleData,
   StockItemData,
   StockMovementData,
+  SupportTicketData,
+  SupportTicketMessageData,
   UpdateCustomerConsentsPayload,
   UpdateCustomerStatusPayload,
   UpsertMenuDayPayload,
@@ -793,6 +795,91 @@ export async function updateCustomerLgpdRequestStatusAdmin(
     `/api/v1/accounts/customers/lgpd-requests/${requestId}/status/`,
     {
       method: "PATCH",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function listCustomerNotificationSubscribersAdmin(): Promise<
+  Array<{
+    id: number;
+    email: string;
+    full_name: string;
+    marketing_opt_in_at: string | null;
+    notifications_opt_in_at: string | null;
+  }>
+> {
+  return requestJson(
+    "/api/v1/accounts/customers/notification-subscribers/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function listSupportTicketsAdmin(): Promise<SupportTicketData[]> {
+  const payload = await requestJson<SupportTicketData[] | { results?: SupportTicketData[] }>(
+    "/api/v1/accounts/support-tickets/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+  return normalizeListPayload(payload);
+}
+
+export async function fetchSupportTicketAdmin(
+  ticketId: number,
+): Promise<SupportTicketData> {
+  return requestJson<SupportTicketData>(`/api/v1/accounts/support-tickets/${ticketId}/`, {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+}
+
+export async function updateSupportTicketAdmin(
+  ticketId: number,
+  payload: {
+    status?: string;
+    priority?: string;
+    channel?: string;
+    assigned_to_id?: number | null;
+    internal_note?: string;
+  },
+): Promise<SupportTicketData> {
+  return requestJson<SupportTicketData>(`/api/v1/accounts/support-tickets/${ticketId}/`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listSupportTicketMessagesAdmin(
+  ticketId: number,
+): Promise<SupportTicketMessageData[]> {
+  return requestJson<SupportTicketMessageData[]>(
+    `/api/v1/accounts/support-tickets/${ticketId}/messages/`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function createSupportTicketMessageAdmin(
+  ticketId: number,
+  payload: { message: string; is_internal?: boolean },
+): Promise<SupportTicketMessageData> {
+  return requestJson<SupportTicketMessageData>(
+    `/api/v1/accounts/support-tickets/${ticketId}/messages/`,
+    {
+      method: "POST",
       auth: true,
       body: JSON.stringify(payload),
     },

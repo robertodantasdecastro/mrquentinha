@@ -161,6 +161,15 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - seguranca de dados elevada por validacao no cliente e no servidor.
   - novos formularios devem seguir o mesmo contrato sem implementar validacao local ad-hoc.
 
+## 01/03/2026 - Criptografia de dados sensiveis em `UserProfile`
+- Decisao:
+  - adotar `EncryptedTextField` para dados sensiveis com hashes de busca.
+  - controlar chaves por ambiente (`FIELD_ENCRYPTION_KEY`, `FIELD_HASH_SALT`) e strict mode opcional.
+  - registrar decisão formal no ADR `0018-criptografia-dados-sensiveis-userprofile.md`.
+- Consequencia:
+  - dados sensiveis ficam protegidos em repouso, mantendo buscas administrativas por hash.
+  - ambiente precisa gerenciar chaves e rotacao com cuidado.
+
 ## 27/02/2026 - Confirmacao de e-mail com URL dinamica por ambiente
 - Decisao:
   - tornar e-mail obrigatorio no cadastro do cliente (`/api/v1/accounts/register/`) e disparar confirmacao por token.

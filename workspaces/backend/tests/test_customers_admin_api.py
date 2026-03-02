@@ -93,6 +93,28 @@ def test_customers_admin_atualiza_consents(client, create_user_with_roles):
 
 
 @pytest.mark.django_db
+def test_customers_admin_lista_notification_subscribers(client, create_user_with_roles):
+    customer = create_user_with_roles(
+        username="cliente_notif",
+        role_codes=[SystemRole.CLIENTE],
+    )
+
+    response = client.post(
+        f"/api/v1/accounts/customers/{customer.id}/consents/",
+        {
+            "notifications_opt_in": True,
+        },
+        format="json",
+    )
+    assert response.status_code == 200
+
+    list_response = client.get("/api/v1/accounts/customers/notification-subscribers/")
+    assert list_response.status_code == 200
+    payload = list_response.json()
+    assert any(item["id"] == customer.id for item in payload)
+
+
+@pytest.mark.django_db
 def test_customers_admin_patch_profile_normaliza_telefone_e_whatsapp(
     client, create_user_with_roles
 ):

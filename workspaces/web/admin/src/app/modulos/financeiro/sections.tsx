@@ -30,11 +30,13 @@ import type {
 import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { FinanceOpsPanel } from "@/components/modules/FinanceOpsPanel";
+import { ModuleGuide } from "@/components/modules/ModuleGuide";
 
 export const FINANCEIRO_BASE_PATH = "/modulos/financeiro";
 
 export const FINANCEIRO_MENU_ITEMS = [
   { key: "all", label: "Todos", href: FINANCEIRO_BASE_PATH },
+  { key: "guia", label: "Guia do modulo", href: `${FINANCEIRO_BASE_PATH}/guia#guia` },
   { key: "visao-geral", label: "Visão geral", href: `${FINANCEIRO_BASE_PATH}/visao-geral#visao-geral` },
   { key: "conciliacao", label: "Conciliação", href: `${FINANCEIRO_BASE_PATH}/conciliacao#conciliacao` },
   { key: "tendencias", label: "Tendências", href: `${FINANCEIRO_BASE_PATH}/tendencias#tendencias` },
@@ -43,6 +45,7 @@ export const FINANCEIRO_MENU_ITEMS = [
 
 export type FinanceiroSectionKey =
   | "all"
+  | "guia"
   | "visao-geral"
   | "conciliacao"
   | "tendencias"
@@ -240,6 +243,34 @@ export function FinanceiroSections({ activeSection = "all" }: FinanceiroSections
 
   return (
     <>
+      {(showAll || activeSection === "guia") && (
+        <section id="guia" className="scroll-mt-24">
+          <ModuleGuide
+            title="Financeiro e conciliacao"
+            summary="Acompanhe KPIs, concilie entradas e exporte relatorios."
+            steps={[
+              {
+                title: "Revisar KPIs",
+                description: "Confira margem, receita e caixa nao conciliado.",
+              },
+              {
+                title: "Conciliar movimentos",
+                description: "Valide origem de valores e divergencias.",
+              },
+              {
+                title: "Monitorar tendencias",
+                description: "Analise variacao de receitas e despesas.",
+              },
+              {
+                title: "Exportar arquivos",
+                description: "Gere CSV de caixa e DRE para auditoria.",
+              },
+            ]}
+            note="Guia individual do modulo Financeiro. Processos globais exigem acesso a Pedidos, Compras e Producao."
+          />
+        </section>
+      )}
+
       {(showAll || activeSection === "visao-geral") && (
         <section id="visao-geral" className="scroll-mt-24">
           <FinanceOpsPanel />

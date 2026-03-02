@@ -49,10 +49,11 @@ function useRuntimeUrl(port: number, fallback: string): string {
 export function Footer() {
   const adminUrl = useRuntimeUrl(3002, ADMIN_URL);
   const clientAreaUrl = useRuntimeUrl(3001, CLIENT_AREA_URL);
+  const currentYear = new Date().getFullYear();
 
   return (
     <AppFooter>
-      <Container className="flex w-full flex-col gap-5 py-10 md:flex-row md:items-center md:justify-between">
+      <Container className="flex w-full flex-col gap-6 py-10 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="inline-flex rounded-lg bg-white/95 px-2 py-1 ring-1 ring-border/70 shadow-sm dark:bg-white">
             <Image
@@ -67,25 +68,41 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-muted">
-          <Link className="transition hover:text-primary" href="/">
-            Home
-          </Link>
-          <Link className="transition hover:text-primary" href="/cardapio">
-            Cardapio
-          </Link>
-          <Link className="transition hover:text-primary" href="/app">
-            App
-          </Link>
-          <Link className="transition hover:text-primary" href="/contato">
-            Contato
-          </Link>
-          <a className="transition hover:text-primary" href={adminUrl} target="_blank" rel="noreferrer">
-            Gestao
-          </a>
-          <a className="transition hover:text-primary" href={clientAreaUrl} target="_blank" rel="noreferrer">
-            Area do Cliente
-          </a>
+        <div className="flex flex-col gap-4 text-sm font-medium text-muted">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link className="transition hover:text-primary" href="/">
+              Home
+            </Link>
+            <Link className="transition hover:text-primary" href="/cardapio">
+              Cardapio
+            </Link>
+            <Link className="transition hover:text-primary" href="/app">
+              App
+            </Link>
+            <Link className="transition hover:text-primary" href="/contato">
+              Contato
+            </Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link className="transition hover:text-primary" href="/privacidade">
+              Privacidade
+            </Link>
+            <Link className="transition hover:text-primary" href="/termos">
+              Termos de uso
+            </Link>
+            <Link className="transition hover:text-primary" href="/lgpd">
+              LGPD
+            </Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+            <a className="transition hover:text-primary" href={adminUrl} target="_blank" rel="noreferrer">
+              Gestao
+            </a>
+            <a className="transition hover:text-primary" href={clientAreaUrl} target="_blank" rel="noreferrer">
+              Area do Cliente
+            </a>
+            <span>© {currentYear} Mr Quentinha. Todos os direitos reservados.</span>
+          </div>
         </div>
       </Container>
     </AppFooter>

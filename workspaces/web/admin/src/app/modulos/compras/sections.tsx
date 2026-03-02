@@ -24,11 +24,13 @@ import type {
 import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { ProcurementOpsPanel } from "@/components/modules/ProcurementOpsPanel";
+import { ModuleGuide } from "@/components/modules/ModuleGuide";
 
 export const COMPRAS_BASE_PATH = "/modulos/compras";
 
 export const COMPRAS_MENU_ITEMS = [
   { key: "all", label: "Todos", href: COMPRAS_BASE_PATH },
+  { key: "guia", label: "Guia do modulo", href: `${COMPRAS_BASE_PATH}/guia#guia` },
   { key: "visao-geral", label: "Visão geral", href: `${COMPRAS_BASE_PATH}/visao-geral#visao-geral` },
   { key: "operacao", label: "Operação", href: `${COMPRAS_BASE_PATH}/operacao#operacao` },
   { key: "impacto", label: "Impacto", href: `${COMPRAS_BASE_PATH}/impacto#impacto` },
@@ -37,6 +39,7 @@ export const COMPRAS_MENU_ITEMS = [
 
 export type ComprasSectionKey =
   | "all"
+  | "guia"
   | "visao-geral"
   | "operacao"
   | "impacto"
@@ -207,6 +210,34 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
 
   return (
     <>
+      {(showAll || activeSection === "guia") && (
+        <section id="guia" className="scroll-mt-24">
+          <ModuleGuide
+            title="Compras e abastecimento"
+            summary="Planeje requisicoes, valide custos e acompanhe entregas."
+            steps={[
+              {
+                title: "Revisar necessidades",
+                description: "Confirme estoque minimo e itens criticos antes de comprar.",
+              },
+              {
+                title: "Registrar compras",
+                description: "Cadastre fornecedores, valores e documentos fiscais.",
+              },
+              {
+                title: "Validar impacto",
+                description: "Compare custo real versus planejado e ajuste pedidos.",
+              },
+              {
+                title: "Encerrar ciclo",
+                description: "Confirme recebimento e sincronize com estoque.",
+              },
+            ]}
+            note="Guia individual do modulo de Compras. O Fluxo Operacional integra com Estoque, Producao e Financeiro."
+          />
+        </section>
+      )}
+
       {(showAll || activeSection === "visao-geral") && (
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">

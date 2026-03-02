@@ -61,12 +61,12 @@ const ADMINDEK_BUSINESS_ITEMS: NavItem[] = [
   { href: "/modulos/compras", label: "Compras e OCR" },
   { href: "/modulos/producao", label: "Produção" },
   { href: "/modulos/pedidos", label: "Pedidos e Entrega" },
+  { href: "/modulos/estoque", label: "Estoque" },
   { href: "/modulos/financeiro", label: "Financeiro" },
   { href: "/modulos/relatorios", label: "Relatórios" },
 ];
 
 const ADMINDEK_PLATFORM_ITEMS: NavItem[] = [
-  { href: "/modulos/estoque", label: "Estoque" },
   { href: "/modulos/monitoramento", label: "Monitoramento" },
   { href: "/modulos/auditoria-atividade", label: "Auditoria de atividade" },
   { href: "/modulos/portal", label: "Portal CMS" },

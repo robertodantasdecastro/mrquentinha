@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
@@ -6,6 +7,10 @@ from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from .customer_services import (
+    apply_customer_consents,
+    ensure_customer_governance_profile,
+)
 from .models import Role, UserProfile, UserTask, UserTaskCategory
 from .services import (
     SystemRole,
@@ -152,6 +157,10 @@ class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, allow_blank=False)
     first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
     last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    accepted_terms = serializers.BooleanField(required=False)
+    accepted_privacy_policy = serializers.BooleanField(required=False)
+    marketing_opt_in = serializers.BooleanField(required=False)
+    notifications_opt_in = serializers.BooleanField(required=False)
 
     def validate_username(self, value: str) -> str:
         User = get_user_model()
@@ -182,10 +191,24 @@ class RegisterSerializer(serializers.Serializer):
         return password
 
     def create(self, validated_data):
+        accepted_terms = bool(validated_data.pop("accepted_terms", False))
+        accepted_privacy_policy = bool(
+            validated_data.pop("accepted_privacy_policy", False)
+        )
+        marketing_opt_in = validated_data.pop("marketing_opt_in", None)
+        notifications_opt_in = validated_data.pop("notifications_opt_in", None)
         try:
             user = register_user_with_default_role(**validated_data)
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.messages) from exc
+
+        apply_customer_consents(
+            customer=user,
+            accepted_terms=accepted_terms,
+            accepted_privacy_policy=accepted_privacy_policy,
+            marketing_opt_in=marketing_opt_in,
+            notifications_opt_in=notifications_opt_in,
+        )
 
         return user
 
@@ -210,6 +233,14 @@ class TokenObtainPairEmailVerifiedSerializer(TokenObtainPairSerializer):
         }
         if role_codes.intersection(management_roles):
             return data
+
+        if getattr(settings, "DEBUG", False):
+            governance = ensure_customer_governance_profile(user=user)
+            if not governance.email_login_allowed_dev:
+                raise AuthenticationFailed(
+                    "Acesso via e-mail bloqueado em modo dev para esta conta.",
+                    code="email_blocked_dev",
+                )
 
         profile, _created = UserProfile.objects.get_or_create(user=user)
         if profile.email_verified_at is not None:

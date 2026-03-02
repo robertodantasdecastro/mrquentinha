@@ -20,11 +20,13 @@ import type { StockItemData, StockMovementData } from "@/types/api";
 import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { InventoryOpsPanel } from "@/components/modules/InventoryOpsPanel";
+import { ModuleGuide } from "@/components/modules/ModuleGuide";
 
 export const ESTOQUE_BASE_PATH = "/modulos/estoque";
 
 export const ESTOQUE_MENU_ITEMS = [
   { key: "all", label: "Todos", href: ESTOQUE_BASE_PATH },
+  { key: "guia", label: "Guia do modulo", href: `${ESTOQUE_BASE_PATH}/guia#guia` },
   { key: "visao-geral", label: "Visão geral", href: `${ESTOQUE_BASE_PATH}/visao-geral#visao-geral` },
   { key: "movimentos", label: "Movimentos", href: `${ESTOQUE_BASE_PATH}/movimentos#movimentos` },
   { key: "tendencias", label: "Tendências", href: `${ESTOQUE_BASE_PATH}/tendencias#tendencias` },
@@ -32,6 +34,7 @@ export const ESTOQUE_MENU_ITEMS = [
 
 export type EstoqueSectionKey =
   | "all"
+  | "guia"
   | "visao-geral"
   | "movimentos"
   | "tendencias";
@@ -153,6 +156,34 @@ export function EstoqueSections({ activeSection = "all" }: EstoqueSectionsProps)
 
   return (
     <>
+      {(showAll || activeSection === "guia") && (
+        <section id="guia" className="scroll-mt-24">
+          <ModuleGuide
+            title="Estoque e inventario"
+            summary="Controle entradas, saidas e niveis minimos para evitar ruptura."
+            steps={[
+              {
+                title: "Revisar alertas",
+                description: "Confira itens abaixo do minimo e priorize reposicao.",
+              },
+              {
+                title: "Registrar movimentos",
+                description: "Inclua entradas e saidas com motivo e origem.",
+              },
+              {
+                title: "Conferir inventario",
+                description: "Ajuste saldos para manter a base confiavel.",
+              },
+              {
+                title: "Monitorar tendencias",
+                description: "Use historico de consumo para planejar compras.",
+              },
+            ]}
+            note="Guia individual do modulo de Estoque. Operacoes integradas aparecem no Fluxo Operacional."
+          />
+        </section>
+      )}
+
       {(showAll || activeSection === "visao-geral") && (
         <section id="visao-geral" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">

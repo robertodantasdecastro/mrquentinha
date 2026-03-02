@@ -132,9 +132,11 @@ export function CustomersManagementPanel() {
     "PENDING",
   );
   const [kycNotesDraft, setKycNotesDraft] = useState("");
+  const [emailLoginAllowedDevDraft, setEmailLoginAllowedDevDraft] = useState(true);
   const [acceptedTermsDraft, setAcceptedTermsDraft] = useState(false);
   const [acceptedPrivacyDraft, setAcceptedPrivacyDraft] = useState(false);
   const [marketingOptInDraft, setMarketingOptInDraft] = useState<boolean | null>(null);
+  const [notificationsOptInDraft, setNotificationsOptInDraft] = useState<boolean | null>(null);
 
   const [lgpdTypeDraft, setLgpdTypeDraft] = useState<CustomerLgpdRequestType>("ACCESS");
   const [lgpdChannelDraft, setLgpdChannelDraft] = useState<CustomerLgpdRequestChannel>("WEB");
@@ -182,6 +184,7 @@ export function CustomersManagementPanel() {
     setStatusReasonDraft(governance?.account_status_reason ?? "");
     setKycStatusDraft(governance?.kyc_review_status ?? "PENDING");
     setKycNotesDraft(governance?.kyc_review_notes ?? "");
+    setEmailLoginAllowedDevDraft(governance?.email_login_allowed_dev ?? true);
     setAcceptedTermsDraft(Boolean(governance?.terms_accepted_at));
     setAcceptedPrivacyDraft(Boolean(governance?.privacy_policy_accepted_at));
     if (governance?.marketing_opt_in_at) {
@@ -190,6 +193,13 @@ export function CustomersManagementPanel() {
       setMarketingOptInDraft(false);
     } else {
       setMarketingOptInDraft(null);
+    }
+    if (governance?.notifications_opt_in_at) {
+      setNotificationsOptInDraft(true);
+    } else if (governance?.notifications_opt_out_at) {
+      setNotificationsOptInDraft(false);
+    } else {
+      setNotificationsOptInDraft(null);
     }
   }
 
@@ -318,6 +328,7 @@ export function CustomersManagementPanel() {
       await updateCustomerGovernanceAdmin(selectedCustomerId, {
         kyc_review_status: kycStatusDraft,
         kyc_review_notes: kycNotesDraft.trim(),
+        email_login_allowed_dev: emailLoginAllowedDevDraft,
       });
       await loadSelectedCustomerDetail(selectedCustomerId);
       setMessage("Governanca/KYC atualizada com sucesso.");
@@ -341,6 +352,7 @@ export function CustomersManagementPanel() {
         accepted_terms: acceptedTermsDraft,
         accepted_privacy_policy: acceptedPrivacyDraft,
         marketing_opt_in: marketingOptInDraft,
+        notifications_opt_in: notificationsOptInDraft,
       });
       await loadSelectedCustomerDetail(selectedCustomerId);
       await loadCustomers({ silent: true });
@@ -639,6 +651,14 @@ export function CustomersManagementPanel() {
                       rows={2}
                       placeholder="Observações de revisão documental"
                     />
+                    <label className="mt-2 inline-flex items-center gap-2 text-xs text-muted">
+                      <input
+                        type="checkbox"
+                        checked={emailLoginAllowedDevDraft}
+                        onChange={(event) => setEmailLoginAllowedDevDraft(event.currentTarget.checked)}
+                      />
+                      Permitir login por e-mail em modo dev
+                    </label>
                   </article>
 
                   <article className="rounded-lg border border-border bg-surface p-3">
@@ -812,6 +832,32 @@ export function CustomersManagementPanel() {
                         <option value="">Marketing: sem alteração</option>
                         <option value="true">Opt-in marketing</option>
                         <option value="false">Opt-out marketing</option>
+                      </select>
+                      <select
+                        value={
+                          notificationsOptInDraft === null
+                            ? ""
+                            : notificationsOptInDraft
+                              ? "true"
+                              : "false"
+                        }
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
+                          if (value === "true") {
+                            setNotificationsOptInDraft(true);
+                            return;
+                          }
+                          if (value === "false") {
+                            setNotificationsOptInDraft(false);
+                            return;
+                          }
+                          setNotificationsOptInDraft(null);
+                        }}
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      >
+                        <option value="">Notificações: sem alteração</option>
+                        <option value="true">Opt-in notificações</option>
+                        <option value="false">Opt-out notificações</option>
                       </select>
                       <button
                         type="button"

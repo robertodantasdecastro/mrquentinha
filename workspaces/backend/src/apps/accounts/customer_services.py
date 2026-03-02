@@ -102,6 +102,7 @@ def apply_customer_consents(
     accepted_terms: bool | None,
     accepted_privacy_policy: bool | None,
     marketing_opt_in: bool | None,
+    notifications_opt_in: bool | None = None,
 ) -> CustomerGovernanceProfile:
     governance = ensure_customer_governance_profile(user=customer)
     now = timezone.now()
@@ -124,6 +125,13 @@ def apply_customer_consents(
     elif marketing_opt_in is False:
         governance.marketing_opt_out_at = now
         update_fields.append("marketing_opt_out_at")
+
+    if notifications_opt_in is True:
+        governance.notifications_opt_in_at = now
+        update_fields.append("notifications_opt_in_at")
+    elif notifications_opt_in is False:
+        governance.notifications_opt_out_at = now
+        update_fields.append("notifications_opt_out_at")
 
     governance.save(update_fields=list(set(update_fields)))
     return governance

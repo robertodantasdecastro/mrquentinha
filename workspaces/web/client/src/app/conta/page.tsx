@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { InlinePreloader } from "@/components/InlinePreloader";
+import { SupportTicketsPanel } from "@/components/SupportTicketsPanel";
 import {
   ApiError,
   fetchAuthProvidersConfig,
@@ -187,6 +188,12 @@ export default function ContaPage() {
     firstName: "",
     lastName: "",
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const [notificationsOptIn, setNotificationsOptIn] = useState(false);
+
+  const canStartSocial = mode === "login" || (acceptedTerms && acceptedPrivacy);
 
   useEffect(() => {
     let mounted = true;
@@ -322,6 +329,11 @@ export default function ContaPage() {
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!acceptedTerms || !acceptedPrivacy) {
+      setErrorMessage("Aceite os termos e a politica de privacidade para continuar.");
+      return;
+    }
+
     setBusy(true);
     setMessage("");
     setErrorMessage("");
@@ -334,6 +346,10 @@ export default function ContaPage() {
         email: registerForm.email.trim(),
         first_name: registerForm.firstName.trim(),
         last_name: registerForm.lastName.trim(),
+        accepted_terms: acceptedTerms,
+        accepted_privacy_policy: acceptedPrivacy,
+        marketing_opt_in: marketingOptIn,
+        notifications_opt_in: notificationsOptIn,
       });
 
       setUser(null);
@@ -352,6 +368,10 @@ export default function ContaPage() {
         firstName: "",
         lastName: "",
       });
+      setAcceptedTerms(false);
+      setAcceptedPrivacy(false);
+      setMarketingOptIn(false);
+      setNotificationsOptIn(false);
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
@@ -490,6 +510,8 @@ export default function ContaPage() {
               </div>
             )}
 
+            <SupportTicketsPanel />
+
             <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.08em]">
               <Link
                 href="/cardapio"
@@ -532,7 +554,7 @@ export default function ContaPage() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin("google")}
-                  disabled={!authProviders.google.enabled}
+                  disabled={!authProviders.google.enabled || !canStartSocial}
                   className="rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60 dark:bg-bg"
                 >
                   Continuar com Google
@@ -540,12 +562,17 @@ export default function ContaPage() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin("apple")}
-                  disabled={!authProviders.apple.enabled}
+                  disabled={!authProviders.apple.enabled || !canStartSocial}
                   className="rounded-md border border-border bg-text px-4 py-2 text-sm font-semibold text-bg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Continuar com Apple
                 </button>
               </div>
+              {!canStartSocial && (
+                <p className="mt-2 text-xs text-muted">
+                  Para cadastro social, aceite os termos e a politica de privacidade.
+                </p>
+              )}
             </div>
 
             <div className="inline-flex rounded-full border border-border bg-bg p-1 text-xs font-semibold uppercase tracking-[0.08em]">
@@ -728,9 +755,54 @@ export default function ContaPage() {
                   />
                 </label>
 
+                <div className="rounded-lg border border-border bg-bg px-3 py-3 text-xs text-muted">
+                  <label className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={acceptedTerms}
+                      onChange={(event) => setAcceptedTerms(event.currentTarget.checked)}
+                    />
+                    <span>
+                      Aceito os{" "}
+                      <Link href="/termos" className="font-semibold text-primary">
+                        Termos de uso
+                      </Link>
+                    </span>
+                  </label>
+                  <label className="mt-2 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={acceptedPrivacy}
+                      onChange={(event) => setAcceptedPrivacy(event.currentTarget.checked)}
+                    />
+                    <span>
+                      Aceito a{" "}
+                      <Link href="/privacidade" className="font-semibold text-primary">
+                        Politica de privacidade
+                      </Link>
+                    </span>
+                  </label>
+                  <label className="mt-2 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={notificationsOptIn}
+                      onChange={(event) => setNotificationsOptIn(event.currentTarget.checked)}
+                    />
+                    <span>Quero receber notificacoes operacionais por e-mail.</span>
+                  </label>
+                  <label className="mt-2 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={marketingOptIn}
+                      onChange={(event) => setMarketingOptIn(event.currentTarget.checked)}
+                    />
+                    <span>Desejo receber ofertas e novidades.</span>
+                  </label>
+                </div>
+
                 <button
                   type="submit"
-                  disabled={busy}
+                  disabled={busy || !acceptedTerms || !acceptedPrivacy}
                   className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {busy ? "Cadastrando..." : "Criar conta"}

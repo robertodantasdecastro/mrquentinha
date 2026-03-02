@@ -17,11 +17,13 @@ import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { MenuOpsPanel } from "@/components/modules/MenuOpsPanel";
 import { DishCompositionPanel } from "@/components/modules/DishCompositionPanel";
+import { ModuleGuide } from "@/components/modules/ModuleGuide";
 
 export const CARDAPIO_BASE_PATH = "/modulos/cardapio";
 
 export const CARDAPIO_MENU_ITEMS = [
   { key: "all", label: "Todos", href: CARDAPIO_BASE_PATH },
+  { key: "guia", label: "Guia do modulo", href: `${CARDAPIO_BASE_PATH}/guia#guia` },
   { key: "planejamento", label: "Planejamento", href: `${CARDAPIO_BASE_PATH}/planejamento#planejamento` },
   { key: "composicao", label: "Composição", href: `${CARDAPIO_BASE_PATH}/composicao#composicao` },
   { key: "menus", label: "Menus", href: `${CARDAPIO_BASE_PATH}/menus#menus` },
@@ -30,6 +32,7 @@ export const CARDAPIO_MENU_ITEMS = [
 
 export type CardapioSectionKey =
   | "all"
+  | "guia"
   | "planejamento"
   | "composicao"
   | "menus"
@@ -142,6 +145,34 @@ export function CardapioSections({ activeSection = "all" }: CardapioSectionsProp
 
   return (
     <>
+      {(showAll || activeSection === "guia") && (
+        <section id="guia" className="scroll-mt-24">
+          <ModuleGuide
+            title="Receitas e cardapio"
+            summary="Planeje menus por data, ajuste receitas e mantenha o mix do dia consistente."
+            steps={[
+              {
+                title: "Planejar dias e quantidades",
+                description: "Abra o planejamento e confirme cardapios ativos para o periodo.",
+              },
+              {
+                title: "Ajustar composicao dos pratos",
+                description: "Revise ingredientes e custos para nao impactar margem.",
+              },
+              {
+                title: "Publicar menus",
+                description: "Confirme os pratos do dia e publique para o cliente.",
+              },
+              {
+                title: "Monitorar tendencia",
+                description: "Use indicadores para ajustar itens mais demandados.",
+              },
+            ]}
+            note="Guia individual do modulo de Cardapio. O Fluxo Operacional integra etapas com Compras, Producao e Pedidos."
+          />
+        </section>
+      )}
+
       {(showAll || activeSection === "planejamento") && (
         <section id="planejamento" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">

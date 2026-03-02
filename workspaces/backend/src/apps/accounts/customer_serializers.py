@@ -167,10 +167,13 @@ class CustomerGovernanceSerializer(serializers.ModelSerializer):
             "account_status_reason",
             "checkout_blocked",
             "checkout_block_reason",
+            "email_login_allowed_dev",
             "terms_accepted_at",
             "privacy_policy_accepted_at",
             "marketing_opt_in_at",
             "marketing_opt_out_at",
+            "notifications_opt_in_at",
+            "notifications_opt_out_at",
             "lgpd_data_export_last_at",
             "lgpd_data_anonymized_at",
             "kyc_review_status",
@@ -188,6 +191,8 @@ class CustomerGovernanceSerializer(serializers.ModelSerializer):
             "privacy_policy_accepted_at",
             "marketing_opt_in_at",
             "marketing_opt_out_at",
+            "notifications_opt_in_at",
+            "notifications_opt_out_at",
             "lgpd_data_export_last_at",
             "lgpd_data_anonymized_at",
             "reviewed_by",
@@ -369,6 +374,7 @@ class CustomerConsentsUpdateSerializer(serializers.Serializer):
     accepted_terms = serializers.BooleanField(required=False, allow_null=True)
     accepted_privacy_policy = serializers.BooleanField(required=False, allow_null=True)
     marketing_opt_in = serializers.BooleanField(required=False, allow_null=True)
+    notifications_opt_in = serializers.BooleanField(required=False, allow_null=True)
 
 
 class CustomerLgpdRequestCreateSerializer(serializers.Serializer):
@@ -390,3 +396,11 @@ class CustomerLgpdRequestCreateSerializer(serializers.Serializer):
 class CustomerLgpdRequestStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=CustomerLgpdRequest.RequestStatus.choices)
     resolution_notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class CustomerNotificationSubscriberSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+    full_name = serializers.CharField(read_only=True)
+    marketing_opt_in_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    notifications_opt_in_at = serializers.DateTimeField(read_only=True, allow_null=True)

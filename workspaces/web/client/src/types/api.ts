@@ -151,6 +151,50 @@ export type RegisterPayload = {
   email: string;
   first_name?: string;
   last_name?: string;
+  accepted_terms?: boolean;
+  accepted_privacy_policy?: boolean;
+  marketing_opt_in?: boolean;
+  notifications_opt_in?: boolean;
+};
+
+export type SupportTicketStatus =
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "WAITING_CUSTOMER"
+  | "RESOLVED"
+  | "CLOSED";
+
+export type SupportTicketPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
+
+export type SupportTicketChannel = "WEB" | "APP" | "EMAIL" | "WHATSAPP" | "PHONE";
+
+export type SupportTicketMessageData = {
+  id: number;
+  ticket: number;
+  author: number | null;
+  author_type: "CUSTOMER" | "AGENT" | "SYSTEM";
+  author_username: string;
+  message: string;
+  is_internal: boolean;
+  created_at: string;
+};
+
+export type SupportTicketData = {
+  id: number;
+  customer: number;
+  subject: string;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  channel: SupportTicketChannel;
+  assigned_to: number | null;
+  created_by: number | null;
+  last_activity_at: string | null;
+  first_response_at: string | null;
+  closed_at: string | null;
+  last_message_at: string | null;
+  created_at: string;
+  updated_at: string;
+  messages?: SupportTicketMessageData[];
 };
 
 export type RegisterAccountResult = {

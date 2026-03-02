@@ -19,6 +19,7 @@ from .customer_serializers import (
     CustomerLgpdRequestSerializer,
     CustomerLgpdRequestStatusSerializer,
     CustomerListSerializer,
+    CustomerNotificationSubscriberSerializer,
     CustomerProfileAdminSerializer,
 )
 from .customer_services import (
@@ -29,7 +30,9 @@ from .customer_services import (
 )
 from .models import CustomerGovernanceProfile, CustomerLgpdRequest, UserProfile
 from .permissions import MANAGEMENT_ROLES, RoleMatrixPermission
+from .security import hash_sensitive_value
 from .services import issue_email_verification_for_user
+from .validators import normalize_digits, normalize_phone_digits
 
 
 class CustomerAdminViewSet(
@@ -47,13 +50,20 @@ class CustomerAdminViewSet(
 
         search = str(params.get("search", "")).strip()
         if search:
-            queryset = queryset.filter(
+            digits = normalize_digits(search)
+            phone_digits = normalize_phone_digits(search)
+            q_objects = (
                 Q(username__icontains=search)
                 | Q(email__icontains=search)
                 | Q(profile__full_name__icontains=search)
-                | Q(profile__cpf__icontains=search)
-                | Q(profile__cnpj__icontains=search)
             )
+            if len(digits) == 11:
+                q_objects |= Q(profile__cpf_hash=hash_sensitive_value(digits))
+            elif len(digits) == 14:
+                q_objects |= Q(profile__cnpj_hash=hash_sensitive_value(digits))
+            if len(phone_digits) in {10, 11}:
+                q_objects |= Q(profile__phone_hash=hash_sensitive_value(phone_digits))
+            queryset = queryset.filter(q_objects)
 
         account_status = str(params.get("account_status", "")).strip().upper()
         if account_status:
@@ -149,6 +159,7 @@ class CustomerAdminViewSet(
                 "accepted_privacy_policy"
             ),
             marketing_opt_in=serializer.validated_data.get("marketing_opt_in"),
+            notifications_opt_in=serializer.validated_data.get("notifications_opt_in"),
         )
         output = CustomerGovernanceSerializer(governance)
         return Response(output.data, status=status.HTTP_200_OK)
@@ -167,6 +178,38 @@ class CustomerAdminViewSet(
         if not bool(result.get("sent", False)):
             response_status = status.HTTP_202_ACCEPTED
         return Response(result, status=response_status)
+
+    @action(detail=False, methods=["get"], url_path="notification-subscribers")
+    def notification_subscribers(self, _request):
+        queryset = (
+            list_customers_queryset()
+            .filter(
+                Q(customer_governance__notifications_opt_in_at__isnull=False)
+                | Q(customer_governance__marketing_opt_in_at__isnull=False)
+            )
+            .select_related("profile", "customer_governance")
+        )
+
+        payload = [
+            {
+                "id": customer.id,
+                "email": customer.email,
+                "full_name": (
+                    customer.profile.full_name
+                    if getattr(customer, "profile", None) and customer.profile.full_name
+                    else f"{customer.first_name} {customer.last_name}".strip()
+                ),
+                "marketing_opt_in_at": getattr(
+                    customer.customer_governance, "marketing_opt_in_at", None
+                ),
+                "notifications_opt_in_at": getattr(
+                    customer.customer_governance, "notifications_opt_in_at", None
+                ),
+            }
+            for customer in queryset
+        ]
+        serializer = CustomerNotificationSubscriberSerializer(payload, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get", "post"], url_path="lgpd-requests")
     def lgpd_requests(self, request, pk=None):

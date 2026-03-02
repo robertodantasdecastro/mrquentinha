@@ -30,11 +30,13 @@ import type {
 
 import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
+import { ModuleGuide } from "@/components/modules/ModuleGuide";
 
 export const RELATORIOS_BASE_PATH = "/modulos/relatorios";
 
 export const RELATORIOS_MENU_ITEMS = [
   { key: "all", label: "Todos", href: RELATORIOS_BASE_PATH },
+  { key: "guia", label: "Guia do modulo", href: `${RELATORIOS_BASE_PATH}/guia#guia` },
   { key: "fluxo-caixa", label: "Fluxo de caixa", href: `${RELATORIOS_BASE_PATH}/fluxo-caixa#fluxo-caixa` },
   { key: "compras", label: "Compras", href: `${RELATORIOS_BASE_PATH}/compras#compras` },
   { key: "producao", label: "Produção", href: `${RELATORIOS_BASE_PATH}/producao#producao` },
@@ -44,6 +46,7 @@ export const RELATORIOS_MENU_ITEMS = [
 
 export type RelatoriosSectionKey =
   | "all"
+  | "guia"
   | "fluxo-caixa"
   | "compras"
   | "producao"
@@ -359,6 +362,34 @@ export function RelatoriosSections({ activeSection = "all" }: RelatoriosSections
           )}
         </div>
       </section>
+
+      {(showAll || activeSection === "guia") && (
+        <section id="guia" className="scroll-mt-24">
+          <ModuleGuide
+            title="Relatorios gerenciais"
+            summary="Consolide indicadores e exporte dados por periodo."
+            steps={[
+              {
+                title: "Definir periodo",
+                description: "Ajuste datas para refletir o intervalo desejado.",
+              },
+              {
+                title: "Conferir caixas e pedidos",
+                description: "Analise entradas, saidas e volumes operacionais.",
+              },
+              {
+                title: "Validar producao e compras",
+                description: "Confirme impacto de custos e lotes produzidos.",
+              },
+              {
+                title: "Exportar relatórios",
+                description: "Baixe CSV para auditoria e controle externo.",
+              },
+            ]}
+            note="Guia individual do modulo de Relatorios. O Fluxo Operacional depende do acesso aos modulos operacionais."
+          />
+        </section>
+      )}
 
       {(showAll || activeSection === "fluxo-caixa") && (
         <section id="fluxo-caixa" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">

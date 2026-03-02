@@ -20,6 +20,8 @@ import type {
   PublicPaymentProvidersConfig,
   RegisterAccountResult,
   RegisterPayload,
+  SupportTicketData,
+  SupportTicketMessageData,
 } from "@/types/api";
 
 export class ApiError extends Error {
@@ -562,6 +564,55 @@ export async function fetchAuthProvidersConfig(): Promise<PublicAuthProvidersCon
   } catch {
     return DEFAULT_AUTH_PROVIDERS_CONFIG;
   }
+}
+
+export async function listMySupportTickets(): Promise<SupportTicketData[]> {
+  const payload = await requestJson<SupportTicketData[] | { results?: SupportTicketData[] }>(
+    "/api/v1/accounts/me/support-tickets/",
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+  return normalizeListPayload(payload);
+}
+
+export async function fetchMySupportTicket(
+  ticketId: number,
+): Promise<SupportTicketData> {
+  return requestJson<SupportTicketData>(`/api/v1/accounts/me/support-tickets/${ticketId}/`, {
+    method: "GET",
+    auth: true,
+    cache: "no-store",
+  });
+}
+
+export async function createMySupportTicket(payload: {
+  subject: string;
+  message: string;
+  channel?: string;
+  priority?: string;
+}): Promise<SupportTicketData> {
+  return requestJson<SupportTicketData>("/api/v1/accounts/me/support-tickets/create/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createMySupportTicketMessage(
+  ticketId: number,
+  payload: { message: string },
+): Promise<SupportTicketMessageData> {
+  return requestJson<SupportTicketMessageData>(
+    `/api/v1/accounts/me/support-tickets/${ticketId}/messages/`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function fetchPaymentProvidersConfig(): Promise<PublicPaymentProvidersConfig> {

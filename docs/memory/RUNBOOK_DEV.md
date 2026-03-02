@@ -77,6 +77,11 @@ bash scripts/check_installer_workflow.sh --check
 bash scripts/sync_memory.sh --check
 ```
 
+## 6.1) Variaveis criticas (seguranca de dados)
+- `FIELD_ENCRYPTION_KEY`: chave para criptografia em repouso de dados sensiveis.
+- `FIELD_HASH_SALT`: salt para hashes de busca (CPF/CNPJ/telefone).
+- `FIELD_ENCRYPTION_STRICT`: quando `true`, bloqueia fallback sem `cryptography`.
+
 ## 7) Uniao oficial (main + AntigravityIDE)
 ```bash
 ./scripts/union_branch_build_and_test.sh

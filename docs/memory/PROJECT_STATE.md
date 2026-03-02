@@ -128,6 +128,10 @@ Referencia de atualizacao: 01/03/2026.
 - Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`):
   - auditoria de atividade foi separada do modulo `Administracao do servidor` e publicada em modulo dedicado `/modulos/auditoria-atividade`.
   - API administrativa de auditoria evoluiu com endpoint de overview (`/api/v1/admin-audit/admin-activity/overview/`) para KPIs e tendencias.
+- Atualizacao em 01/03/2026 (`T9.2.7-A6`):
+  - dados sensiveis do `UserProfile` passaram a ser criptografados em repouso com hashes para busca por CPF/CNPJ/telefone.
+  - novos modelos e endpoints de suporte ao cliente (`support-tickets`) para admin e web cliente.
+  - listagem administrativa de inscritos para notificacoes em `/api/v1/accounts/customers/notification-subscribers/`.
 - Financas pessoais (`T8.1.1`):
   - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
   - ownership estrito por usuario em querysets e validacoes.
@@ -146,6 +150,7 @@ Referencia de atualizacao: 01/03/2026.
 ### Web Portal (Next.js - 3000)
 - Status: institucional em evolucao de template (`classic` + `letsfit-clean`).
 - Integracao: cardapio por API (`/today/` e `/by-date/`).
+- Atualizacao em 01/03/2026 (`T9.2.7-A6`): novas paginas de Privacidade, Termos e LGPD com links no footer.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A2`): consumo de `active_template` do CMS em runtime (server-side).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A2-HF1`): fallback automatico de API no cardapio para host atual (`:8000`) quando variavel de ambiente nao estiver definida.
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A3`): template LetsFit passou a consumir secoes dinamicas do CMS (`hero`, `benefits`, `categories`, `kit`, `how_to_heat`, `faq`) incluindo fotos/links via `body_json`.
@@ -158,6 +163,7 @@ Referencia de atualizacao: 01/03/2026.
 - Pedido/historico: escopo autenticado sem demo.
 - Checkout online concluido com intents por metodo (PIX/CARD/VR), painel de instrucoes e polling via `intent/latest`.
 - Metodos de pagamento agora habilitados dinamicamente pelo payload publico `payment_providers` do Portal CMS.
+- Atualizacao em 01/03/2026 (`T9.2.7-A6`): pagina Conta com consentimentos LGPD, opt-ins e painel de tickets de suporte; footer atualizado com links de Privacidade/Termos/LGPD.
 - Atualizacao concluida em 26/02/2026 (`T7.2.3-HF1`): fallback automatico de API para host atual (`:8000`) e mensagem de erro de rede padronizada.
 - Atualizacao concluida em 26/02/2026 (`T7.2.3-HF2`): jornada UX de ponta a ponta (login -> cardapio -> checkout -> pedidos -> confirmacao de recebimento), com indicador de conectividade API, guard de autenticacao no checkout e suporte validado para execucao em `localhost:3000` (`CLIENT_PORT=3000`).
 - Atualizacao concluida em 26/02/2026 (`T6.3.2-A4`): modo de template dinamico integrado ao CMS (`channel=client`) com dois temas (`client-classic` e `client-quentinhas`) no layout, header, footer e jornada do cardapio.
@@ -198,6 +204,8 @@ Referencia de atualizacao: 01/03/2026.
 - Atualizacao concluida em 27/02/2026 (`T9.2.6-A2`): camada global de validacao/formatacao de formularios aplicada no Admin/Client/Portal (CPF/CNPJ/CEP/email/senha/datas) com reforco de validacao backend para senha de cadastro e recebedor de pagamentos.
 - Atualizacao concluida em 01/03/2026 (`T9.2.6-A3`): camada global de formularios evoluida com mascara/validacao de telefone, lookup automatico de CEP com autopreenchimento de endereco e link oficial dos Correios em campos de CEP.
 - Atualizacao concluida em 01/03/2026 (`T9.2.6-A3`): backend ganhou endpoint publico `GET /api/v1/accounts/lookup-cep/`, validacao de CPF/CNPJ por DV em `accounts`/`portal` e persistencia de `phone_is_whatsapp` em perfil de usuario.
+- Atualizacao concluida em 01/03/2026 (`T9.2.7-A6`): guias individuais por modulo Business, aba de suporte/notificacoes em Clientes, toggle de login por e-mail no dev e ajuste do grupo Estoque para Business.
+- Atualizacao concluida em 01/03/2026 (`T9.2.7-A6`): preload global removido no Admin para evitar bloqueio total, mantendo preloads inline por box.
 - Atualizacao concluida em 27/02/2026 (`T9.2.1-A2-HF4`): modulo `/modulos/usuarios-rbac` passou a exibir status de validacao de e-mail e pendencias de dados essenciais para habilitacao de pagamento/autenticacao por usuario.
 - Atualizacao concluida em 27/02/2026 (`T9.2.7-A1`): novo modulo `/modulos/clientes` com gestao completa de carteira de clientes (cadastro, status de conta, KYC, consentimentos e solicitacoes LGPD), navegacao integrada em todos os templates.
 - Atualizacao concluida em 27/02/2026 (`T9.2.7-A2`): criado modulo `/modulos/administracao-servidor` e movidos os paineis de `Gestao de e-mail`, `Conectividade e dominio` e `Build/release` para este novo contexto, mantendo o `Portal CMS` focado em template/autenticacao/pagamentos/conteudo/publicacao.

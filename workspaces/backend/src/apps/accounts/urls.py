@@ -7,6 +7,7 @@ from .customer_views import (
     CustomerLgpdRequestStatusAPIView,
     CustomerLifecycleOverviewAPIView,
 )
+from .support_views import SupportTicketAdminViewSet, SupportTicketCustomerViewSet
 from .views import (
     CepLookupAPIView,
     EmailVerificationConfirmAPIView,
@@ -31,6 +32,16 @@ router.register(
 )
 router.register(r"tasks", UserTaskViewSet, basename="accounts-tasks")
 router.register(r"customers", CustomerAdminViewSet, basename="accounts-customers")
+router.register(
+    r"support-tickets",
+    SupportTicketAdminViewSet,
+    basename="accounts-support-tickets",
+)
+router.register(
+    r"me/support-tickets",
+    SupportTicketCustomerViewSet,
+    basename="accounts-me-support-tickets",
+)
 
 urlpatterns = [
     path("lookup-cep/", CepLookupAPIView.as_view(), name="accounts-lookup-cep"),

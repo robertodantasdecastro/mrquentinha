@@ -1,6 +1,16 @@
 # Changelog (por sprint)
 
 ## 01/03/2026
+- T9.2.7-A6 (backend/accounts): criptografia de dados sensiveis no `UserProfile` com hashes de busca para CPF/CNPJ/telefone e chaves por ambiente (`FIELD_ENCRYPTION_KEY`, `FIELD_HASH_SALT`).
+- T9.2.7-A6 (backend/accounts): fallback seguro para criptografia quando `FIELD_ENCRYPTION_KEY` nao estiver definida e `FIELD_ENCRYPTION_STRICT=false`.
+- T9.2.7-A6 (backend/accounts): novos modelos de suporte ao cliente (`CustomerSupportTicket` e `CustomerSupportMessage`) e endpoints admin/cliente para tickets e mensagens.
+- T9.2.7-A6 (backend/accounts): nova listagem administrativa de inscritos para notificacoes (`GET /api/v1/accounts/customers/notification-subscribers/`).
+- T9.2.7-A6 (web admin): modulo Clientes ganhou abas de suporte e notificacoes, toggle de login por e-mail no modo dev e novos campos de consentimento.
+- T9.2.7-A6 (web admin): guias individuais por modulo Business e ajuste de agrupamento do modulo Estoque para o grupo Business.
+- T9.2.7-A6 (web admin): preload global removido para evitar bloqueio total; preloads permanecem inline por box.
+- T9.2.7-A6 (web client): area de conta agora inclui consentimentos LGPD, opt-ins e painel de tickets de suporte.
+- T9.2.7-A6 (web client/portal): paginas de Privacidade, Termos e LGPD adicionadas e footer atualizado com links oficiais.
+- T9.2.7-A6 (docs/adr): ADR `0018-criptografia-dados-sensiveis-userprofile.md` adicionada.
 - T9.2.6-A3 (ecosistema web/forms): `FormFieldGuard` evoluiu com mascara/validacao em tempo real de telefone, lookup automatico de CEP com autopreenchimento de endereco e link oficial dos Correios nos campos de CEP.
 - T9.2.6-A3 (backend/accounts): novo endpoint publico `GET /api/v1/accounts/lookup-cep/?cep=...` com integracao principal Correios e fallback opcional controlado por ambiente.
 - T9.2.6-A3 (backend/security): validacao de CPF/CNPJ por DV reforcada no backend (`accounts` e recebedor em `portal`), alem de normalizacao/validacao de telefone em perfis.

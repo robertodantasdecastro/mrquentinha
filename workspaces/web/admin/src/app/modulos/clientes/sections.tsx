@@ -4,17 +4,30 @@ import Link from "next/link";
 import { StatusPill } from "@mrquentinha/ui";
 
 import { CustomersManagementPanel } from "@/components/modules/CustomersManagementPanel";
+import { ModuleGuide } from "@/components/modules/ModuleGuide";
+import { SupportTicketsPanel } from "@/components/modules/SupportTicketsPanel";
+import { NotificationSubscribersPanel } from "@/components/modules/NotificationSubscribersPanel";
 
 export const CLIENTES_BASE_PATH = "/modulos/clientes";
 
 export const CLIENTES_MENU_ITEMS = [
   { key: "all", label: "Todos", href: CLIENTES_BASE_PATH },
+  { key: "guia", label: "Guia do modulo", href: `${CLIENTES_BASE_PATH}/guia#guia` },
   { key: "gestao", label: "Gestao", href: `${CLIENTES_BASE_PATH}/gestao#gestao` },
   { key: "compliance", label: "Compliance", href: `${CLIENTES_BASE_PATH}/compliance#compliance` },
   { key: "operacao", label: "Operacao", href: `${CLIENTES_BASE_PATH}/operacao#operacao` },
+  { key: "suporte", label: "Suporte", href: `${CLIENTES_BASE_PATH}/suporte#suporte` },
+  { key: "notificacoes", label: "Notificacoes", href: `${CLIENTES_BASE_PATH}/notificacoes#notificacoes` },
 ];
 
-export type ClientesSectionKey = "all" | "gestao" | "compliance" | "operacao";
+export type ClientesSectionKey =
+  | "all"
+  | "guia"
+  | "gestao"
+  | "compliance"
+  | "operacao"
+  | "suporte"
+  | "notificacoes";
 
 type ClientesSectionsProps = {
   activeSection?: ClientesSectionKey;
@@ -25,6 +38,34 @@ export function ClientesSections({ activeSection = "all" }: ClientesSectionsProp
 
   return (
     <>
+      {(showAll || activeSection === "guia") && (
+        <section id="guia" className="scroll-mt-24">
+          <ModuleGuide
+            title="Clientes e atendimento"
+            summary="Controle cadastro, governanca, comunicacao e suporte ao cliente."
+            steps={[
+              {
+                title: "Atualizar cadastro e status",
+                description: "Revise dados, status da conta e bloqueios de checkout.",
+              },
+              {
+                title: "Verificar compliance",
+                description: "Acompanhe email verificado, LGPD e KYC quando necessario.",
+              },
+              {
+                title: "Atender solicitacoes",
+                description: "Registre demandas, resolva tickets e acompanhe prazos.",
+              },
+              {
+                title: "Manter relacionamento",
+                description: "Gerencie consentimentos e listas de notificacao.",
+              },
+            ]}
+            note="Guia individual do modulo de Clientes. Processos globais exigem acesso aos demais modulos do fluxo."
+          />
+        </section>
+      )}
+
       {(showAll || activeSection === "gestao") && (
         <section id="gestao" className="scroll-mt-24">
           <CustomersManagementPanel />
@@ -128,6 +169,18 @@ export function ClientesSections({ activeSection = "all" }: ClientesSectionsProp
               </p>
             </Link>
           </div>
+        </section>
+      )}
+
+      {(showAll || activeSection === "suporte") && (
+        <section id="suporte" className="scroll-mt-24">
+          <SupportTicketsPanel />
+        </section>
+      )}
+
+      {(showAll || activeSection === "notificacoes") && (
+        <section id="notificacoes" className="scroll-mt-24">
+          <NotificationSubscribersPanel />
         </section>
       )}
     </>
