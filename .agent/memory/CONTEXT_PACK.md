@@ -13,6 +13,10 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (web admin): preload global de rede reativado no layout e validacao de senha forte adicionada no modulo `Usuarios e RBAC`; regra global agora exige validar qualquer correcao nos tres templates do Admin (`classic`, `adminkit`, `admindek`).
+- Atualizacao em 02/03/2026 (instalacao hibrida EC2): `installdev.sh` reexecutado com Postgres local, bancos separados (`mrquentinha_dev`/`mrquentinha_prod`), Nginx ativo e smoke de stack validado em `172.31.71.156`.
+- Atualizacao em 02/03/2026 (hardening instalador): `installdev.sh` passou a respeitar `MRQ_DB_HOST` no provisionamento e remover `*.trycloudflare.com` do `.env.prod` (restrito ao DEV).
+- Atualizacao em 02/03/2026 (seguranca operacional): segredos da maquina padronizados fora do Git em `/home/ubuntu/.mrquentinha-secure/host-secrets.env`, com carga no workflow de inicio (`W10_iniciar_sessao`).
 - Atualizacao em 01/03/2026 (`T9.2.6-A3`): padrao global de formularios evoluido com lookup automatico de CEP (Correios), autopreenchimento de endereco, mascara/validacao de telefone em tempo real e validacao servidor-side de CPF/CNPJ por DV.
 - Atualizacao em 01/03/2026 (`T9.2.6-A3`): backend ganhou endpoint publico `GET /api/v1/accounts/lookup-cep/?cep=...` e perfil de usuario passou a persistir `phone_is_whatsapp`.
 - Atualizacao em 01/03/2026 (`T9.2.7-A4-HF2`): auditoria de atividade foi separada de `Administracao do servidor` e ganhou modulo proprio `/modulos/auditoria-atividade` com dashboard/KPIs, filtros e analise de seguranca/tendencias.

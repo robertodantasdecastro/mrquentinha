@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { AdminTemplateProvider } from "@/components/AdminTemplateProvider";
 import { AdminShell } from "@/components/AdminShell";
+import { GlobalNetworkPreloader } from "@/components/GlobalNetworkPreloader";
 import { fetchAdminActiveTemplate } from "@/lib/adminTemplate";
 
 import "./globals.css";
@@ -49,6 +50,7 @@ export default async function RootLayout({
         <AdminTemplateProvider initialTemplate={template}>
           <TemplateProvider template="clean">
             <FormFieldGuard />
+            <GlobalNetworkPreloader />
             <AdminShell>{children}</AdminShell>
           </TemplateProvider>
         </AdminTemplateProvider>

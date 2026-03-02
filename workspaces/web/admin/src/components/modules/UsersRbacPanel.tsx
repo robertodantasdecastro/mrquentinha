@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 import { InlinePreloader } from "@/components/InlinePreloader";
 
@@ -115,6 +115,14 @@ function toggleCode(code: string, current: string[]): string[] {
   return [...current, code].sort();
 }
 
+function hasStrongPassword(value: string): boolean {
+  const password = String(value || "");
+  const hasLower = /[a-z]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  return password.length >= 8 && hasLower && hasUpper && hasDigit;
+}
+
 export function UsersRbacPanel() {
   const [users, setUsers] = useState<AdminUserData[]>([]);
   const [roles, setRoles] = useState<RoleData[]>([]);
@@ -138,6 +146,10 @@ export function UsersRbacPanel() {
   const [updatingUser, setUpdatingUser] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const editSectionRef = useRef<HTMLElement | null>(null);
+  const rolesSectionRef = useRef<HTMLElement | null>(null);
+  const tasksSectionRef = useRef<HTMLElement | null>(null);
+  const createSectionRef = useRef<HTMLElement | null>(null);
 
   async function loadUsersRbac({ silent = false }: { silent?: boolean } = {}) {
     if (silent) {
@@ -209,13 +221,32 @@ export function UsersRbacPanel() {
     [users],
   );
 
-  function handleSelectUser(user: AdminUserData) {
+  function scrollToSection(section: "edit" | "roles" | "tasks" | "create") {
+    const refs = {
+      edit: editSectionRef,
+      roles: rolesSectionRef,
+      tasks: tasksSectionRef,
+      create: createSectionRef,
+    } as const;
+
+    window.requestAnimationFrame(() => {
+      refs[section].current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
+
+  function handleSelectUser(user: AdminUserData, options?: { focusSection?: "edit" | "roles" | "tasks" }) {
     setSelectedUserId(String(user.id));
     setSelectedRoleCodes(user.roles);
     setSelectedTaskCodes(user.task_codes || []);
     setEditForm(toUserEditForm(user));
     setMessage("");
     setErrorMessage("");
+    if (options?.focusSection) {
+      scrollToSection(options.focusSection);
+    }
   }
 
   async function handleCreateUser() {
@@ -224,8 +255,10 @@ export function UsersRbacPanel() {
       return;
     }
 
-    if (createForm.password.trim().length < 8) {
-      setErrorMessage("Informe uma senha forte com ao menos 8 caracteres.");
+    if (!hasStrongPassword(createForm.password)) {
+      setErrorMessage(
+        "Senha inicial invalida. Use ao menos 8 caracteres com letra maiuscula, minuscula e numero.",
+      );
       return;
     }
 
@@ -272,6 +305,13 @@ export function UsersRbacPanel() {
 
     if (!editForm.username.trim()) {
       setErrorMessage("O nome de usuário não pode ficar vazio.");
+      return;
+    }
+
+    if (editForm.password.trim() && !hasStrongPassword(editForm.password)) {
+      setErrorMessage(
+        "Nova senha invalida. Use ao menos 8 caracteres com letra maiuscula, minuscula e numero.",
+      );
       return;
     }
 
@@ -409,7 +449,16 @@ export function UsersRbacPanel() {
 
           <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr,1.3fr]">
             <section className="rounded-xl border border-border bg-bg p-4">
-              <h4 className="text-base font-semibold text-text">Usuários</h4>
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-base font-semibold text-text">Usuários</h4>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection("create")}
+                  className="rounded-md border border-border bg-surface px-3 py-1 text-xs font-semibold text-text transition hover:border-primary hover:text-primary"
+                >
+                  Nova conta
+                </button>
+              </div>
               {users.length === 0 && (
                 <p className="mt-3 text-sm text-muted">Nenhum usuário encontrado.</p>
               )}
@@ -457,10 +506,10 @@ export function UsersRbacPanel() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleSelectUser(user)}
+                            onClick={() => handleSelectUser(user, { focusSection: "edit" })}
                             className="rounded-md border border-border bg-bg px-3 py-1 text-xs font-semibold text-text transition hover:border-primary hover:text-primary"
                           >
-                            {isSelected ? "Selecionado" : "Selecionar"}
+                            {isSelected ? "Editando" : "Editar conta"}
                           </button>
                         </div>
                         <p className="mt-2 text-xs text-muted">
@@ -483,6 +532,267 @@ export function UsersRbacPanel() {
 
             <section className="space-y-4">
               <article className="rounded-xl border border-border bg-bg p-4">
+                <h4 className="text-base font-semibold text-text">Assistente de fluxo</h4>
+                <p className="mt-1 text-sm text-muted">
+                  Selecione um usuário na lista e siga os blocos em ordem para reduzir erros operacionais.
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("edit")}
+                    disabled={!selectedUser}
+                    className="rounded-md border border-border bg-surface px-3 py-2 text-left text-sm text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    1. Editar conta selecionada
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("roles")}
+                    disabled={!selectedUser}
+                    className="rounded-md border border-border bg-surface px-3 py-2 text-left text-sm text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    2. Ajustar papéis (RBAC)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("tasks")}
+                    disabled={!selectedUser}
+                    className="rounded-md border border-border bg-surface px-3 py-2 text-left text-sm text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    3. Ajustar tarefas operacionais
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("create")}
+                    className="rounded-md border border-border bg-surface px-3 py-2 text-left text-sm text-text transition hover:border-primary hover:text-primary"
+                  >
+                    4. Criar nova conta
+                  </button>
+                </div>
+              </article>
+
+              <article ref={editSectionRef} className="rounded-xl border border-border bg-bg p-4">
+                <h4 className="text-base font-semibold text-text">Edição da conta selecionada</h4>
+                {!selectedUser || !editForm ? (
+                  <p className="mt-3 text-sm text-muted">Selecione um usuário para editar conta, papéis e tarefas.</p>
+                ) : (
+                  <>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <label className="text-sm text-muted">
+                        Usuário
+                        <input
+                          value={editForm.username}
+                          onChange={(event) => {
+                            const username = event.currentTarget.value;
+                            setEditForm((current) => (current ? { ...current, username } : current));
+                          }}
+                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                        />
+                      </label>
+                      <label className="text-sm text-muted">
+                        E-mail
+                        <input
+                          type="email"
+                          value={editForm.email}
+                          onChange={(event) => {
+                            const email = event.currentTarget.value;
+                            setEditForm((current) => (current ? { ...current, email } : current));
+                          }}
+                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                        />
+                      </label>
+                      <label className="text-sm text-muted">
+                        Nome
+                        <input
+                          value={editForm.first_name}
+                          onChange={(event) => {
+                            const first_name = event.currentTarget.value;
+                            setEditForm((current) => (current ? { ...current, first_name } : current));
+                          }}
+                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                        />
+                      </label>
+                      <label className="text-sm text-muted">
+                        Sobrenome
+                        <input
+                          value={editForm.last_name}
+                          onChange={(event) => {
+                            const last_name = event.currentTarget.value;
+                            setEditForm((current) => (current ? { ...current, last_name } : current));
+                          }}
+                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                        />
+                      </label>
+                      <label className="text-sm text-muted md:col-span-2">
+                        Nova senha (opcional)
+                        <input
+                          type="password"
+                          value={editForm.password}
+                          onChange={(event) => {
+                            const password = event.currentTarget.value;
+                            setEditForm((current) => (current ? { ...current, password } : current));
+                          }}
+                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted">
+                      <label className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={editForm.is_active}
+                          onChange={(event) => {
+                            const is_active = event.currentTarget.checked;
+                            setEditForm((current) => (current ? { ...current, is_active } : current));
+                          }}
+                        />
+                        Ativo
+                      </label>
+                      <label className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={editForm.is_staff}
+                          onChange={(event) => {
+                            const is_staff = event.currentTarget.checked;
+                            setEditForm((current) => (current ? { ...current, is_staff } : current));
+                          }}
+                        />
+                        Staff Django
+                      </label>
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => void handleUpdateUser()}
+                        disabled={updatingUser}
+                        className="rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {updatingUser ? "Salvando conta..." : "Salvar conta"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </article>
+
+              <article ref={rolesSectionRef} className="rounded-xl border border-border bg-bg p-4">
+                <h4 className="text-base font-semibold text-text">Papéis e permissões</h4>
+                {!selectedUser && (
+                  <p className="mt-3 text-sm text-muted">
+                    Selecione um usuário para editar papéis.
+                  </p>
+                )}
+
+                {selectedUser && (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-sm text-muted">
+                      Editando papéis de <strong className="text-text">{selectedUser.username}</strong>.
+                    </p>
+
+                    <div className="space-y-2">
+                      {roles.map((role) => {
+                        const checked = selectedRoleCodes.includes(role.code);
+
+                        return (
+                          <label
+                            key={role.id}
+                            className="flex items-start gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                setSelectedRoleCodes((current) => toggleCode(role.code, current))
+                              }
+                              className="mt-0.5 h-4 w-4"
+                            />
+                            <span>
+                              <span className="font-semibold text-text">{role.code}</span>
+                              <span className="block text-xs text-muted">{role.description}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveRoles()}
+                        disabled={savingRoles || roles.length === 0}
+                        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {savingRoles ? "Salvando papéis..." : "Salvar papéis"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </article>
+
+              <article ref={tasksSectionRef} className="rounded-xl border border-border bg-bg p-4">
+                <h4 className="text-base font-semibold text-text">Categorias e tarefas</h4>
+                {!selectedUser && (
+                  <p className="mt-3 text-sm text-muted">
+                    Selecione um usuário para atribuir tarefas operacionais.
+                  </p>
+                )}
+
+                {selectedUser && (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-sm text-muted">
+                      Tarefas de <strong className="text-text">{selectedUser.username}</strong>.
+                    </p>
+                    <div className="space-y-2">
+                      {taskCategories.map((category) => (
+                        <div key={category.id} className="rounded-lg border border-border bg-surface p-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                            {category.name}
+                          </p>
+                          <p className="mt-1 text-xs text-muted">{category.description}</p>
+                          <div className="mt-2 space-y-1.5">
+                            {category.tasks
+                              .filter((task) => task.is_active)
+                              .map((task) => {
+                                const checked = selectedTaskCodes.includes(task.code);
+                                return (
+                                  <label key={task.id} className="flex items-start gap-2 text-sm text-text">
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() =>
+                                        setSelectedTaskCodes((current) => toggleCode(task.code, current))
+                                      }
+                                      className="mt-0.5 h-4 w-4"
+                                    />
+                                    <span>
+                                      <span>{task.name}</span>
+                                      <span className="block text-xs text-muted">
+                                        {task.description}
+                                      </span>
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveTasks()}
+                        disabled={savingTasks || taskCategories.length === 0}
+                        className="rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {savingTasks ? "Salvando tarefas..." : "Salvar tarefas"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </article>
+              <article ref={createSectionRef} className="rounded-xl border border-border bg-bg p-4">
                 <h4 className="text-base font-semibold text-text">Criar conta de usuário</h4>
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   <label className="text-sm text-muted">
@@ -630,228 +940,6 @@ export function UsersRbacPanel() {
                     {creatingUser ? "Criando..." : "Criar usuário"}
                   </button>
                 </div>
-              </article>
-
-              <article className="rounded-xl border border-border bg-bg p-4">
-                <h4 className="text-base font-semibold text-text">Edição da conta selecionada</h4>
-                {!selectedUser || !editForm ? (
-                  <p className="mt-3 text-sm text-muted">Selecione um usuário para editar conta, papéis e tarefas.</p>
-                ) : (
-                  <>
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <label className="text-sm text-muted">
-                        Usuário
-                        <input
-                          value={editForm.username}
-                          onChange={(event) => {
-                            const username = event.currentTarget.value;
-                            setEditForm((current) => (current ? { ...current, username } : current));
-                          }}
-                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-                        />
-                      </label>
-                      <label className="text-sm text-muted">
-                        E-mail
-                        <input
-                          type="email"
-                          value={editForm.email}
-                          onChange={(event) => {
-                            const email = event.currentTarget.value;
-                            setEditForm((current) => (current ? { ...current, email } : current));
-                          }}
-                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-                        />
-                      </label>
-                      <label className="text-sm text-muted">
-                        Nome
-                        <input
-                          value={editForm.first_name}
-                          onChange={(event) => {
-                            const first_name = event.currentTarget.value;
-                            setEditForm((current) => (current ? { ...current, first_name } : current));
-                          }}
-                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-                        />
-                      </label>
-                      <label className="text-sm text-muted">
-                        Sobrenome
-                        <input
-                          value={editForm.last_name}
-                          onChange={(event) => {
-                            const last_name = event.currentTarget.value;
-                            setEditForm((current) => (current ? { ...current, last_name } : current));
-                          }}
-                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-                        />
-                      </label>
-                      <label className="text-sm text-muted md:col-span-2">
-                        Nova senha (opcional)
-                        <input
-                          type="password"
-                          value={editForm.password}
-                          onChange={(event) => {
-                            const password = event.currentTarget.value;
-                            setEditForm((current) => (current ? { ...current, password } : current));
-                          }}
-                          className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-                        />
-                      </label>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted">
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={editForm.is_active}
-                          onChange={(event) => {
-                            const is_active = event.currentTarget.checked;
-                            setEditForm((current) => (current ? { ...current, is_active } : current));
-                          }}
-                        />
-                        Ativo
-                      </label>
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={editForm.is_staff}
-                          onChange={(event) => {
-                            const is_staff = event.currentTarget.checked;
-                            setEditForm((current) => (current ? { ...current, is_staff } : current));
-                          }}
-                        />
-                        Staff Django
-                      </label>
-                    </div>
-
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => void handleUpdateUser()}
-                        disabled={updatingUser}
-                        className="rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {updatingUser ? "Salvando conta..." : "Salvar conta"}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </article>
-
-              <article className="rounded-xl border border-border bg-bg p-4">
-                <h4 className="text-base font-semibold text-text">Papéis e permissões</h4>
-                {!selectedUser && (
-                  <p className="mt-3 text-sm text-muted">
-                    Selecione um usuário para editar papéis.
-                  </p>
-                )}
-
-                {selectedUser && (
-                  <div className="mt-3 space-y-3">
-                    <p className="text-sm text-muted">
-                      Editando papéis de <strong className="text-text">{selectedUser.username}</strong>.
-                    </p>
-
-                    <div className="space-y-2">
-                      {roles.map((role) => {
-                        const checked = selectedRoleCodes.includes(role.code);
-
-                        return (
-                          <label
-                            key={role.id}
-                            className="flex items-start gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() =>
-                                setSelectedRoleCodes((current) => toggleCode(role.code, current))
-                              }
-                              className="mt-0.5 h-4 w-4"
-                            />
-                            <span>
-                              <span className="font-semibold text-text">{role.code}</span>
-                              <span className="block text-xs text-muted">{role.description}</span>
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => void handleSaveRoles()}
-                        disabled={savingRoles || roles.length === 0}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {savingRoles ? "Salvando papéis..." : "Salvar papéis"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </article>
-
-              <article className="rounded-xl border border-border bg-bg p-4">
-                <h4 className="text-base font-semibold text-text">Categorias e tarefas</h4>
-                {!selectedUser && (
-                  <p className="mt-3 text-sm text-muted">
-                    Selecione um usuário para atribuir tarefas operacionais.
-                  </p>
-                )}
-
-                {selectedUser && (
-                  <div className="mt-3 space-y-3">
-                    <p className="text-sm text-muted">
-                      Tarefas de <strong className="text-text">{selectedUser.username}</strong>.
-                    </p>
-                    <div className="space-y-2">
-                      {taskCategories.map((category) => (
-                        <div key={category.id} className="rounded-lg border border-border bg-surface p-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                            {category.name}
-                          </p>
-                          <p className="mt-1 text-xs text-muted">{category.description}</p>
-                          <div className="mt-2 space-y-1.5">
-                            {category.tasks
-                              .filter((task) => task.is_active)
-                              .map((task) => {
-                                const checked = selectedTaskCodes.includes(task.code);
-                                return (
-                                  <label key={task.id} className="flex items-start gap-2 text-sm text-text">
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() =>
-                                        setSelectedTaskCodes((current) => toggleCode(task.code, current))
-                                      }
-                                      className="mt-0.5 h-4 w-4"
-                                    />
-                                    <span>
-                                      <span>{task.name}</span>
-                                      <span className="block text-xs text-muted">
-                                        {task.description}
-                                      </span>
-                                    </span>
-                                  </label>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => void handleSaveTasks()}
-                        disabled={savingTasks || taskCategories.length === 0}
-                        className="rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {savingTasks ? "Salvando tarefas..." : "Salvar tarefas"}
-                      </button>
-                    </div>
-                  </div>
-                )}
               </article>
             </section>
           </div>
