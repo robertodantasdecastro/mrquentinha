@@ -22,7 +22,7 @@ const CLASSIC_NAV_ITEMS: NavItem[] = [
   { href: "/modulos", label: "Módulos" },
   { href: "/modulos/relatorios", label: "Relatórios" },
   { href: "/perfil", label: "Meu perfil" },
-  { href: "/prioridades", label: "Prioridades" },
+  { href: "/sobre", label: "Sobre" },
 ];
 
 const ADMINKIT_CORE_ITEMS: NavItem[] = [
@@ -50,7 +50,7 @@ const ADMINKIT_PLATFORM_ITEMS: NavItem[] = [
   { href: "/modulos/monitoramento", label: "Monitoramento" },
   { href: "/modulos/usuarios-rbac", label: "Usuários e RBAC" },
   { href: "/perfil", label: "Meu perfil" },
-  { href: "/prioridades", label: "Prioridades" },
+  { href: "/sobre", label: "Sobre" },
 ];
 
 const ADMINDEK_HUB_ITEMS: NavItem[] = [
@@ -78,7 +78,7 @@ const ADMINDEK_PLATFORM_ITEMS: NavItem[] = [
   { href: "/modulos/instalacao-deploy", label: "Instalação / Deploy" },
   { href: "/modulos/usuarios-rbac", label: "Usuários e RBAC" },
   { href: "/perfil", label: "Meu perfil" },
-  { href: "/prioridades", label: "Prioridades" },
+  { href: "/sobre", label: "Sobre" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -101,7 +101,7 @@ function resolveModuleSlugFromHref(href: string): string | null {
 }
 
 function canRenderNavItem(user: AuthUserProfile, href: string): boolean {
-  if (href === "/" || href === "/modulos" || href === "/perfil" || href === "/prioridades") {
+  if (href === "/" || href === "/modulos" || href === "/perfil" || href === "/sobre") {
     return true;
   }
 

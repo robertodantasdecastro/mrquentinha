@@ -1265,3 +1265,22 @@
     - `npm run build` (web/portal) -> OK;
     - `npm run lint` (web/client) -> FALHA preexistente em `src/app/privacidade/page.tsx` (`react/no-unescaped-entities`);
     - `npm run lint` (web/portal) -> FALHA preexistente em `src/app/privacidade/page.tsx` (`react/no-unescaped-entities`).
+
+- WebAdmin-02/03/2026 (navegacao): modulo `Prioridades` substituido por `Sobre`
+  - menu atualizado em todos os templates do Admin (`classic`, `adminkit`, `admindek`) para usar rota `/sobre`.
+  - nova pagina `/sobre` adicionada com dados de contato do desenvolvedor.
+  - rota legada `/prioridades` mantida com redirect para `/sobre`.
+  - validacao executada:
+    - `npm run build` (web/admin) -> OK;
+    - acesso de producao validado para `/sobre` e `/prioridades`.
+
+- Ops-02/03/2026 (auditoria): relatorios tecnicos de seguranca/qualidade e plano de correcao priorizado publicados
+  - novos artefatos em `docs/reports/`:
+    - `2026-03-02-auditoria-seguranca.md`
+    - `2026-03-02-auditoria-qualidade-redundancias.md`
+    - `2026-03-02-relatorio-evidencias-tecnicas.md`
+    - `2026-03-02-plano-otimizacao-correcao-melhoria.md`
+  - principais riscos registrados:
+    - exposicao de midias sensiveis;
+    - hardening HTTPS incompleto;
+    - segredo de aplicacao de producao fraco.
