@@ -174,6 +174,18 @@ source ~/.nvm/nvm.sh
 nvm use --lts
 ```
 
+## 13) Setup rapido DEV/PROD (AWS preconfig)
+Script recomendado:
+```bash
+./installdev.sh
+```
+Com dump DEV:
+```bash
+MRQ_DEV_DB_DUMP_PATH=/tmp/mrq_dev.dump ./installdev.sh
+```
+Guia completo:
+- `docs/13-guia-instalacao-aws-preconfig-dev-prod.md`
+
 ## 13) Portal CMS (T6.3.1) - validacao rapida
 Seed idempotente:
 ```bash

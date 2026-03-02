@@ -1,6 +1,6 @@
 # Project State (dev)
 
-Referencia de atualizacao: 01/03/2026.
+Referencia de atualizacao: 02/03/2026.
 
 ## Etapas
 - Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.6-A2`, `9.2.6-A3`, `9.2.7-A1`, `9.2.7-A2`, `9.2.7-A4`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
@@ -132,6 +132,8 @@ Referencia de atualizacao: 01/03/2026.
   - dados sensiveis do `UserProfile` passaram a ser criptografados em repouso com hashes para busca por CPF/CNPJ/telefone.
   - novos modelos e endpoints de suporte ao cliente (`support-tickets`) para admin e web cliente.
   - listagem administrativa de inscritos para notificacoes em `/api/v1/accounts/customers/notification-subscribers/`.
+  - Ops Dashboard ganhou box de monitoramento/gerenciamento do Postgres local.
+  - script `installdev.sh` publicado para setup dev/prod em AWS com bancos separados e seed base.
 - Financas pessoais (`T8.1.1`):
   - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
   - ownership estrito por usuario em querysets e validacoes.

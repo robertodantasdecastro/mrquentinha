@@ -122,6 +122,25 @@ export function InstallDeploySections({ activeSection = "all" }: InstallDeploySe
                 Abrir pagamentos
               </Link>
             </article>
+
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-sm font-semibold text-text">Guia AWS (infra pré-configurada)</p>
+              <p className="mt-1 text-xs text-muted">
+                Fluxo recomendado para usuario avancado: EC2, Route53, Security Group e clone do repo
+                antes de executar o instalador. Consulte o guia em
+                <span className="font-semibold text-text"> docs/13-guia-instalacao-aws-preconfig-dev-prod.md</span>.
+              </p>
+            </article>
+
+            <article className="rounded-xl border border-border bg-bg p-4">
+              <p className="text-sm font-semibold text-text">Atualizacao da aplicacao</p>
+              <p className="mt-1 text-xs text-muted">
+                Atualize com <code className="font-semibold">git pull</code>, instale dependencias
+                (Python/Node) e rode <code className="font-semibold">python manage.py migrate</code>.
+                Em producao, use <code className="font-semibold">seed_portal_default</code> para
+                manter os defaults antes da configuracao via Web Admin.
+              </p>
+            </article>
           </div>
         </section>
       )}

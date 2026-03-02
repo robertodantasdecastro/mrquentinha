@@ -3,20 +3,17 @@
 Atualize este arquivo no inicio de qualquer sessao em modo escrita.
 
 ## Registro atual
-- data_hora: 2026-03-01 21:05 UTC
+- data_hora: 2026-03-02 10:40 UTC
 - agente: codex
 - branch: main
-- etapa: T9.2.7-A6 suporte/criptografia/LGPD + guias Business + ajustes de preload
+- etapa: T9.2.7-A6 ops_dashboard Postgres + installdev + guia AWS preconfig
 - areas_ou_arquivos_tocados:
   - workspaces/backend/src/apps/accounts/*
   - workspaces/backend/tests/test_support_tickets_api.py
-  - workspaces/web/admin/src/app/modulos/*/sections.tsx
-  - workspaces/web/admin/src/components/modules/*
-  - workspaces/web/client/src/app/conta/page.tsx
-  - workspaces/web/client/src/app/{privacidade,termos,lgpd}/page.tsx
-  - workspaces/web/portal/src/app/{privacidade,termos,lgpd}/page.tsx
-  - workspaces/web/client/src/components/Footer.tsx
-  - docs/adr/0018-criptografia-dados-sensiveis-userprofile.md
+  - scripts/ops_center.py
+  - installdev.sh
+  - docs/13-guia-instalacao-aws-preconfig-dev-prod.md
+  - workspaces/web/admin/src/app/modulos/instalacao-deploy/sections.tsx
   - docs/memory/CHANGELOG.md
   - docs/memory/DECISIONS.md
   - docs/memory/PROJECT_STATE.md
@@ -24,8 +21,8 @@ Atualize este arquivo no inicio de qualquer sessao em modo escrita.
   - .agent/memory/CONTEXT_PACK.md
   - .agent/memory/TODO_NEXT.md
   - .agent/memory/IN_PROGRESS.md
-- objetivo_imediato: finalizar atualizacao de memoria/docs, validar LGPD, registrar testes e preparar commit.
-- proximo_comando: rodar quality gate parcial (pytest focado) e atualizar changelog/decisions.
+- objetivo_imediato: concluir script/guia AWS preconfig e box Postgres no Ops Dashboard.
+- proximo_comando: rodar quality gate e atualizar memoria.
 
 ## Registro anterior (manter historico curto)
 - data_hora: 2026-02-26 06:05

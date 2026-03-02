@@ -170,6 +170,15 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - dados sensiveis ficam protegidos em repouso, mantendo buscas administrativas por hash.
   - ambiente precisa gerenciar chaves e rotacao com cuidado.
 
+## 02/03/2026 - Bancos separados DEV/PROD com seed controlado
+- Decisao:
+  - manter bancos fisicamente separados para DEV e PROD (`mrquentinha_dev` e `mrquentinha_prod`).
+  - DEV pode receber dump do ambiente local para testes; PROD inicia zerado com defaults minimos (`seed_portal_default`).
+  - padronizar setup via script `installdev.sh` e guia AWS preconfig.
+- Consequencia:
+  - evita vazamento de dados de teste para producao.
+  - exige disciplina operacional para alternar `.env` e executar migrations corretas.
+
 ## 27/02/2026 - Confirmacao de e-mail com URL dinamica por ambiente
 - Decisao:
   - tornar e-mail obrigatorio no cadastro do cliente (`/api/v1/accounts/register/`) e disparar confirmacao por token.

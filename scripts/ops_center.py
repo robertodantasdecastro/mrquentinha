@@ -32,6 +32,7 @@ KEY_HELP = [
     "Admin:   g start | h stop | j restart",
     "Portal:  4 start | 5 stop | 6 restart",
     "Client:  7 start | 8 stop | 9 restart",
+    "Postgres: p start | o stop | i restart",
     "UI:      ? ajuda | l logs | c compacto | x ssh modal | mouse clique",
 ]
 
@@ -68,12 +69,22 @@ class ClickTarget:
     service_key: str
 
 
+@dataclass
+class PostgresSnapshot:
+    state: str
+    pid: int | None
+    port: int
+    detail: str
+
+
 SERVICES = (
     ServiceSpec("backend", "Backend Django", "scripts/start_backend_dev.sh", 8000),
     ServiceSpec("admin", "Admin Web", "scripts/start_admin_dev.sh", 3002),
     ServiceSpec("portal", "Portal Next", "scripts/start_portal_dev.sh", 3000),
     ServiceSpec("client", "Client Next", "scripts/start_client_dev.sh", 3001),
 )
+
+POSTGRES_PORT = 5432
 
 
 class LogCounter:
@@ -126,6 +137,7 @@ class OpsManager:
         self.hit_history: dict[str, Deque[int]] = {
             spec.key: deque([0] * HISTORY_SIZE, maxlen=HISTORY_SIZE) for spec in SERVICES
         }
+        self._postgres_cache: tuple[float, PostgresSnapshot] | None = None
 
     def pid_file(self, spec: ServiceSpec) -> Path:
         return self.pid_dir / f"{spec.key}.pid"
@@ -198,6 +210,77 @@ class OpsManager:
                 return []
 
         return []
+
+    def _systemctl_available(self) -> bool:
+        return shutil.which("systemctl") is not None
+
+    def _run_systemctl(self, action: str) -> tuple[bool, str]:
+        if not self._systemctl_available():
+            return False, "systemctl nao disponivel."
+
+        if os.geteuid() == 0:
+            cmd = ["systemctl", action, "postgresql.service"]
+        else:
+            cmd = ["sudo", "-n", "systemctl", action, "postgresql.service"]
+
+        proc = subprocess.run(  # noqa: S603
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode == 0:
+            return True, "ok"
+
+        stderr = (proc.stderr or "").strip()
+        if "sudo" in stderr and "password" in stderr:
+            return False, "sudo exige senha para operar o Postgres."
+        return False, stderr or (proc.stdout or "").strip() or "falha ao executar systemctl."
+
+    def postgres_snapshot(self) -> PostgresSnapshot:
+        now = time.monotonic()
+        if self._postgres_cache and now - self._postgres_cache[0] < 2:
+            return self._postgres_cache[1]
+
+        listener_pids = self._listener_pids(POSTGRES_PORT)
+        pid = listener_pids[0] if listener_pids else None
+        state = "STOPPED"
+        detail = "sem listener local"
+
+        if self._systemctl_available():
+            proc = subprocess.run(  # noqa: S603
+                ["systemctl", "is-active", "postgresql.service"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            status = (proc.stdout or "").strip()
+            if status == "active":
+                state = "RUNNING"
+                detail = "systemctl ativo"
+            elif status:
+                state = "STOPPED"
+                detail = f"systemctl {status}"
+
+        if pid and state != "RUNNING":
+            state = "RUNNING"
+            detail = "listener ativo (port 5432)"
+
+        snapshot = PostgresSnapshot(state=state, pid=pid, port=POSTGRES_PORT, detail=detail)
+        self._postgres_cache = (now, snapshot)
+        return snapshot
+
+    def start_postgres(self) -> str:
+        ok, msg = self._run_systemctl("start")
+        return "Postgres iniciado." if ok else f"Postgres nao iniciou: {msg}"
+
+    def stop_postgres(self) -> str:
+        ok, msg = self._run_systemctl("stop")
+        return "Postgres parado." if ok else f"Postgres nao parou: {msg}"
+
+    def restart_postgres(self) -> str:
+        ok, msg = self._run_systemctl("restart")
+        return "Postgres reiniciado." if ok else f"Postgres nao reiniciou: {msg}"
 
     def start_service(self, key: str) -> str:
         spec = self._spec(key)
@@ -846,7 +929,8 @@ def draw_dashboard(
     )
     action_line = (
         "Acoes rapidas: [SSH] | [a] start all  [s] stop all  [r] restart all  |  "
-        "Servicos: [1/2/3] Backend  [g/h/j] Admin  [4/5/6] Portal  [7/8/9] Client"
+        "Servicos: [1/2/3] Backend  [g/h/j] Admin  [4/5/6] Portal  [7/8/9] Client  "
+        "[p/o/i] Postgres"
     )
     safe_add(stdscr, 1, 0, action_line, color_pair_safe(6))
     ssh_x = action_line.find("[SSH]")
@@ -922,16 +1006,25 @@ def draw_dashboard(
     )
     y += 2
 
-    safe_add(stdscr, y, 0, "Servicos", curses.A_BOLD | color_pair_safe(4))
+    postgres = manager.postgres_snapshot()
+    safe_add(stdscr, y, 0, "Postgres local", curses.A_BOLD | color_pair_safe(4))
     y += 1
-
-    host = host_hint()
-    cards_area_height = max(6, h - y - 14)
-    card_w = 28
-    card_h = 7
-    max_cols = max(1, (w - 2) // (card_w + 2))
-    max_rows = max(1, cards_area_height // (card_h + 1))
-    total_cards = min(len(snapshots), max_cols * max_rows)
+    pg_box_w = min(w - 2, 58)
+    draw_box(0, y, pg_box_w, 5, color_pair_safe(4))
+    pg_state_attr = color_pair_safe(2 if postgres.state == "RUNNING" else 3)
+    safe_add(
+        stdscr,
+        y + 1,
+        2,
+        f"Estado: {postgres.state:7}  pid {str(postgres.pid or '-'):>6}  port {postgres.port}",
+        pg_state_attr,
+    )
+    safe_add(stdscr, y + 2, 2, f"Detalhe: {postgres.detail[: max(0, pg_box_w - 12)]}", color_pair_safe(6))
+    btn_y = y + 3
+    add_button(2, btn_y, "Start", "start", "postgres", color_pair_safe(2))
+    add_button(12, btn_y, "Stop", "stop", "postgres", color_pair_safe(3))
+    add_button(20, btn_y, "Rst", "restart", "postgres", color_pair_safe(6))
+    y += 6
 
     def draw_box(x0: int, y0: int, width: int, height: int, attr: int) -> None:
         safe_add(stdscr, y0, x0, "+" + "-" * (width - 2) + "+", attr)
@@ -945,6 +1038,17 @@ def draw_dashboard(
         click_targets.append(
             ClickTarget(y1=y0, x1=x0, y2=y0, x2=x0 + len(text) - 1, action=action, service_key=service_key)
         )
+
+    safe_add(stdscr, y, 0, "Servicos", curses.A_BOLD | color_pair_safe(4))
+    y += 1
+
+    host = host_hint()
+    cards_area_height = max(6, h - y - 14)
+    card_w = 28
+    card_h = 7
+    max_cols = max(1, (w - 2) // (card_w + 2))
+    max_rows = max(1, cards_area_height // (card_h + 1))
+    total_cards = min(len(snapshots), max_cols * max_rows)
 
     if compact or total_cards < len(snapshots):
         if not compact:
@@ -1243,6 +1347,9 @@ def handle_key(manager: OpsManager, key: str) -> str | None:
         "7": lambda: manager.start_service("client"),
         "8": lambda: manager.stop_service("client"),
         "9": lambda: manager.restart_service("client"),
+        "p": manager.start_postgres,
+        "o": manager.stop_postgres,
+        "i": manager.restart_postgres,
         "a": manager.start_all,
         "s": manager.stop_all,
         "r": manager.restart_all,
@@ -1259,6 +1366,15 @@ def handle_key(manager: OpsManager, key: str) -> str | None:
 
 
 def handle_action(manager: OpsManager, service_key: str, action: str) -> str | None:
+    if service_key == "postgres":
+        if action == "start":
+            return manager.start_postgres()
+        if action == "stop":
+            return manager.stop_postgres()
+        if action == "restart":
+            return manager.restart_postgres()
+        return None
+
     if action == "start":
         return manager.start_service(service_key)
     if action == "stop":

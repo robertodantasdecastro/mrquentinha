@@ -50,3 +50,4 @@ Fila atual:
 41. [x] T9.2.7-A4-HF2 Criar modulo dedicado `Auditoria de atividade` (separado de `Administracao do servidor`) com dashboard/KPIs, filtros e analise de seguranca - concluida em 01/03/2026.
 42. [x] T9.2.6-A3 Padronizacao global de formularios: CEP Correios com autopreenchimento, mascara/validacao de telefone + checkbox WhatsApp e validacao de CPF/CNPJ por DV no backend - concluida em 01/03/2026.
 43. [x] T9.2.7-A6 Suporte ao cliente + notificacoes, criptografia de dados sensiveis, guias de modulos Business e paginas LGPD/Privacidade/Termos no portal/client - concluida em 01/03/2026.
+44. [x] T9.2.7-A6 Ops Dashboard com box Postgres + script installdev + guia AWS preconfig (db dev/prod) - concluida em 02/03/2026.
