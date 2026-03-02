@@ -70,6 +70,21 @@ function resolveApiBaseUrlFromRequestHost(request: NextRequest): string {
   return `http://${hostname}:8000`;
 }
 
+function resolveSameOriginApiProxyBaseUrl(request: NextRequest): string {
+  const hostname = extractRequestHostname(request);
+  if (!hostname || isLocalNetworkHostname(hostname)) {
+    return "";
+  }
+
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const protocol = (forwardedProto || new URL(request.url).protocol).replace(/:$/, "");
+  if (protocol !== "http" && protocol !== "https") {
+    return "";
+  }
+
+  return `${protocol}://${hostname}`;
+}
+
 async function fetchApiBaseUrlFromBackend(): Promise<string> {
   const backendBaseUrl = resolveInternalBackendBaseUrl();
   const endpoint = `${backendBaseUrl}/api/v1/portal/config/?channel=portal&page=home`;
@@ -80,6 +95,9 @@ async function fetchApiBaseUrlFromBackend(): Promise<string> {
     const response = await fetch(endpoint, {
       cache: "no-store",
       signal: controller.signal,
+      headers: {
+        "X-Forwarded-Proto": "https",
+      },
     });
     if (!response.ok) {
       return "";
@@ -101,6 +119,22 @@ export async function GET(request: NextRequest) {
       {
         api_base_url: fromRequestHost,
         source: "request_local_network",
+        generated_at: new Date().toISOString(),
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
+
+  const fromSameOriginProxy = normalizeBaseUrl(resolveSameOriginApiProxyBaseUrl(request));
+  if (fromSameOriginProxy) {
+    return NextResponse.json(
+      {
+        api_base_url: fromSameOriginProxy,
+        source: "same_origin_proxy",
         generated_at: new Date().toISOString(),
       },
       {

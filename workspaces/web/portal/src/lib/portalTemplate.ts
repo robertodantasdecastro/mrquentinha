@@ -1,7 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
-
 export type TemplateType = "classic" | "letsfit-clean";
 
 export type PortalSectionPayload = {
@@ -63,38 +61,35 @@ function normalizePortalConfigPayload(payload: unknown): PortalConfigPayload {
   };
 }
 
-const fetchPortalConfigCached = cache(
-  async (page: string): Promise<PortalConfigPayload> => {
-    const apiBaseUrl = resolveApiBaseUrl();
-    const endpoint = `${apiBaseUrl}/api/v1/portal/config/?page=${encodeURIComponent(page)}`;
+export async function fetchPortalConfig(
+  page: string = "home",
+): Promise<PortalConfigPayload> {
+  const apiBaseUrl = resolveApiBaseUrl();
+  const endpoint = `${apiBaseUrl}/api/v1/portal/config/?page=${encodeURIComponent(page)}`;
 
-    try {
-      const response = await fetch(endpoint, {
-        cache: "no-store",
-      });
+  try {
+    const response = await fetch(endpoint, {
+      cache: "no-store",
+      headers: {
+        "X-Forwarded-Proto": "https",
+      },
+    });
 
-      if (!response.ok) {
-        return {
-          active_template: "classic",
-          sections: [],
-        };
-      }
-
-      const payload = (await response.json()) as unknown;
-      return normalizePortalConfigPayload(payload);
-    } catch {
+    if (!response.ok) {
       return {
         active_template: "classic",
         sections: [],
       };
     }
-  },
-);
 
-export async function fetchPortalConfig(
-  page: string = "home",
-): Promise<PortalConfigPayload> {
-  return fetchPortalConfigCached(page);
+    const payload = (await response.json()) as unknown;
+    return normalizePortalConfigPayload(payload);
+  } catch {
+    return {
+      active_template: "classic",
+      sections: [],
+    };
+  }
 }
 
 export async function fetchPortalActiveTemplate(

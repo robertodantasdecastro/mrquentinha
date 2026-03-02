@@ -35,6 +35,21 @@ const nextConfig: NextConfig = {
         hostname: "api.mrquentinha.com.br",
         pathname: "/media/**",
       },
+      {
+        protocol: "https",
+        hostname: "www.mrquentinha.com.br",
+        pathname: "/media/**",
+      },
+      {
+        protocol: "https",
+        hostname: "app.mrquentinha.com.br",
+        pathname: "/media/**",
+      },
+      {
+        protocol: "https",
+        hostname: "admin.mrquentinha.com.br",
+        pathname: "/media/**",
+      },
     ],
   },
 };

@@ -1,7 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
-
 import type { AdminTemplateType } from "@/types/template";
 
 type AdminPublicConfigPayload = {
@@ -31,13 +29,16 @@ function normalizeTemplate(value: unknown): AdminTemplateType {
   return "admin-classic";
 }
 
-const fetchAdminActiveTemplateCached = cache(async (): Promise<AdminTemplateType> => {
+export async function fetchAdminActiveTemplate(): Promise<AdminTemplateType> {
   const apiBaseUrl = resolveApiBaseUrl();
   const endpoint = `${apiBaseUrl}/api/v1/portal/config/?channel=admin&page=home`;
 
   try {
     const response = await fetch(endpoint, {
       cache: "no-store",
+      headers: {
+        "X-Forwarded-Proto": "https",
+      },
     });
 
     if (!response.ok) {
@@ -49,8 +50,4 @@ const fetchAdminActiveTemplateCached = cache(async (): Promise<AdminTemplateType
   } catch {
     return "admin-classic";
   }
-});
-
-export async function fetchAdminActiveTemplate(): Promise<AdminTemplateType> {
-  return fetchAdminActiveTemplateCached();
 }

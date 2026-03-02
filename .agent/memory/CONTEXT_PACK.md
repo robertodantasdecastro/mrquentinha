@@ -13,6 +13,18 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (dominios oficiais): frontends oficiais consolidados para `www` (portal), `app` (cliente) e `admin` (web admin); dominio `web.mrquentinha.com.br` removido da configuracao oficial.
+- Atualizacao em 02/03/2026 (nginx legado): vhost dedicado de bloqueio para `web.mrquentinha.com.br` (`404`) aplicado para evitar roteamento acidental para o portal.
+- Atualizacao em 02/03/2026 (admin servidor): `PortalConfig` de producao alinhado para `mrquentinha.com.br`, `www.mrquentinha.com.br`, `app.mrquentinha.com.br`, `admin.mrquentinha.com.br` e `api.mrquentinha.com.br`.
+- Atualizacao em 02/03/2026 (templates restaurados): frontend `portal/client/admin` voltou a respeitar templates configurados no CMS (`letsfit-clean`, `client-vitrine-fit`, `admin-admindek`) apos ajuste de fetch server-side interno (`X-Forwarded-Proto=https`) e remocao de cache permanente de fallback.
+- Atualizacao em 02/03/2026 (estabilidade EC2): swapfile de 2GB habilitado (`/swapfile`) com `swappiness=15` para reduzir travamentos em picos de memoria no `t3.micro`.
+- Atualizacao em 02/03/2026 (hotfix 502): stack de producao ficou sob `systemd` (`mrq-stack-prod.target` + servicos backend/portal/client/admin), reduzindo indisponibilidade apos reboot/quedas e mantendo restart automatico.
+- Atualizacao em 02/03/2026 (dominios portal): Nginx passou a aceitar `web.mrquentinha.com.br` e `mrquentinha.com.br` como aliases do portal (`www`) com proxy interno mantido.
+- Atualizacao em 02/03/2026 (backend host policy): `.env.prod` passou a incluir `https://web.mrquentinha.com.br` e host `web.mrquentinha.com.br` nos controles de host/CORS/CSRF.
+- Atualizacao em 02/03/2026 (validacao final producao): smoke de conectividade confirmou `same_origin_proxy` em `admin/www/app` e health da API em todos os ingressos (`admin|www|app|44.192.27.104|ec2-44-192-27-104.compute-1.amazonaws.com`), mantendo API interna para web e endpoint publico AWS para mobile.
+- Atualizacao em 02/03/2026 (ops/t3.micro): `start_vm_prod.sh` passou a subir stack em perfil conservador de memoria (`gunicorn=1 worker`, `NODE_OPTIONS --max-old-space-size=256`, bind interno `127.0.0.1`) com fail-fast/log tail por servico.
+- Atualizacao em 02/03/2026 (rede/web-mobile): Admin, Portal e Web Client passaram a usar `same_origin_proxy` para API (`/api/v1/*` no proprio dominio), com Nginx roteando `admin/www/app` para backend local; `Portal CMS` ganhou configuracao de `API publica para app mobile` via AWS DNS/IP (sem usar `mrquentinha.com.br`).
+- Atualizacao em 02/03/2026 (ops/runtime): scripts de start/stop da stack VM foram endurecidos para fixar `.env` por ambiente e encerrar listeners orfaos em `3000/3001/3002/8000`.
 - Atualizacao em 02/03/2026 (P1 hardening aprovado): webhooks de pagamento passaram a validar token com comparacao em tempo constante (`compare_digest`) e throttle por IP com taxa configuravel (`PAYMENTS_WEBHOOK_THROTTLE_RATE`).
 - Atualizacao em 02/03/2026 (instalador/prod): `installdev.sh` foi ajustado para gerar CORS/CSRF de producao apenas com origens HTTPS oficiais dos subdominios do projeto, removendo origens locais/IP em `.env.prod`.
 - Atualizacao em 02/03/2026 (ops/dev): publicado `scripts/sync_dev_from_main.sh` para sincronizar VM DEV com `main` sem interferir na maquina de producao (auto-stash, ajuste de env/db, migrate/check, restart e smoke).

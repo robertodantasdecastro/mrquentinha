@@ -43,6 +43,11 @@ def test_portal_config_singleton():
     assert "mock" in first.payment_providers["enabled_providers"]
     assert first.payment_providers["frontend_provider"]["web"] == "mock"
     assert first.payment_providers["frontend_provider"]["mobile"] == "mock"
+    assert first.installer_settings["api_public_access"]["enabled"] is False
+    assert first.installer_settings["api_public_access"]["preferred_endpoint"] in {
+        "public_ip",
+        "aws_dns",
+    }
 
 
 @pytest.mark.django_db
@@ -301,6 +306,59 @@ def test_build_latest_mobile_release_payload_retorna_release_publicada():
     assert payload["status"] == "PUBLISHED"
     assert payload["update_policy"] == "FORCE"
     assert payload["android_download_url"].endswith("/app/downloads/android.apk")
+
+
+@pytest.mark.django_db
+def test_mobile_release_payload_usa_endpoint_aws_dns_quando_publico_habilitado():
+    config = ensure_portal_config()
+    save_portal_config(
+        instance=config,
+        payload={
+            "installer_settings": {
+                **config.installer_settings,
+                "api_public_access": {
+                    "enabled": True,
+                    "preferred_endpoint": "aws_dns",
+                    "public_ip_base_url": "http://44.192.27.104",
+                    "aws_dns_base_url": "http://ec2-44-192-27-104.compute-1.amazonaws.com",
+                },
+            }
+        },
+    )
+
+    payload = build_latest_mobile_release_payload()
+    assert (
+        payload["api_base_url"]
+        == "http://ec2-44-192-27-104.compute-1.amazonaws.com"
+    )
+    assert payload["host_publico"] == "ec2-44-192-27-104.compute-1.amazonaws.com"
+
+
+@pytest.mark.django_db
+def test_mobile_release_payload_ignora_dominio_custom_quando_publico_habilitado():
+    config = ensure_portal_config()
+    save_portal_config(
+        instance=config,
+        payload={
+            "api_base_url": "https://api.mrquentinha.com.br",
+            "installer_settings": {
+                **config.installer_settings,
+                "api_public_access": {
+                    "enabled": True,
+                    "preferred_endpoint": "aws_dns",
+                    "public_ip_base_url": "https://api.mrquentinha.com.br",
+                    "aws_dns_base_url": "https://api.mrquentinha.com.br",
+                },
+            },
+        },
+    )
+
+    payload = build_latest_mobile_release_payload()
+    assert (
+        payload["api_base_url"]
+        == "http://ec2-44-192-27-104.compute-1.amazonaws.com"
+    )
+    assert payload["host_publico"] == "ec2-44-192-27-104.compute-1.amazonaws.com"
 
 
 @pytest.mark.django_db

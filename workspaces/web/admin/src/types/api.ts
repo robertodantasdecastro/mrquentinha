@@ -1318,6 +1318,12 @@ export type PortalInstallerDraftPayload = {
 };
 
 export type PortalInstallerSettingsConfig = {
+  api_public_access: {
+    enabled: boolean;
+    preferred_endpoint: "public_ip" | "aws_dns";
+    public_ip_base_url: string;
+    aws_dns_base_url: string;
+  };
   workflow_version: string;
   last_synced_at: string;
   last_sync_note: string;

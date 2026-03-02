@@ -38,6 +38,7 @@ FAIL_ON_DNS_MISMATCH="${MRQ_FAIL_ON_DNS_MISMATCH:-0}"
 
 PRIMARY_IP=""
 IS_LOCAL_POSTGRES="0"
+AWS_PUBLIC_DNS=""
 
 log() {
   echo "[installdev] $*"
@@ -198,6 +199,28 @@ join_csv() {
 
 capture_primary_ip() {
   PRIMARY_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+
+  local imds_token=""
+  imds_token="$(curl -fsS --max-time 2 -X PUT \
+    "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || true)"
+
+  if [[ -z "${PUBLIC_IP:-}" ]]; then
+    if [[ -n "$imds_token" ]]; then
+      PUBLIC_IP="$(curl -fsS --max-time 2 \
+        -H "X-aws-ec2-metadata-token: ${imds_token}" \
+        "http://169.254.169.254/latest/meta-data/public-ipv4" 2>/dev/null || true)"
+    fi
+    if [[ -z "${PUBLIC_IP:-}" ]]; then
+      PUBLIC_IP="$(curl -fsS --max-time 2 https://checkip.amazonaws.com 2>/dev/null | tr -d '\r\n' || true)"
+    fi
+  fi
+
+  if [[ -n "$imds_token" ]]; then
+    AWS_PUBLIC_DNS="$(curl -fsS --max-time 2 \
+      -H "X-aws-ec2-metadata-token: ${imds_token}" \
+      "http://169.254.169.254/latest/meta-data/public-hostname" 2>/dev/null || true)"
+  fi
 }
 
 detect_postgres_mode() {
@@ -419,6 +442,7 @@ build_allowed_hosts() {
   append_unique "$(hostname -s 2>/dev/null || true)" hosts
   append_unique "$PRIMARY_IP" hosts
   append_unique "$PUBLIC_IP" hosts
+  append_unique "$AWS_PUBLIC_DNS" hosts
   append_unique "$ROOT_DOMAIN" hosts
   append_unique "$PORTAL_DOMAIN" hosts
   append_unique "$CLIENT_DOMAIN" hosts
@@ -435,7 +459,12 @@ build_web_origins() {
   local env_kind="${1:-dev}"
   local origins=()
   if [[ "$env_kind" == "prod" ]]; then
-    local prod_frontend_domains=("$ROOT_DOMAIN" "$PORTAL_DOMAIN" "$CLIENT_DOMAIN" "$ADMIN_DOMAIN")
+    local prod_frontend_domains=(
+      "$ROOT_DOMAIN"
+      "$PORTAL_DOMAIN"
+      "$CLIENT_DOMAIN"
+      "$ADMIN_DOMAIN"
+    )
     local domain
     for domain in "${prod_frontend_domains[@]}"; do
       append_unique "https://${domain}" origins
@@ -455,7 +484,12 @@ build_web_origins() {
     append_unique "http://${host}:3002" origins
   done
 
-  local frontend_domains=("$PORTAL_DOMAIN" "$CLIENT_DOMAIN" "$ADMIN_DOMAIN" "$DEV_DOMAIN")
+  local frontend_domains=(
+    "$PORTAL_DOMAIN"
+    "$CLIENT_DOMAIN"
+    "$ADMIN_DOMAIN"
+    "$DEV_DOMAIN"
+  )
   local domain
   for domain in "${frontend_domains[@]}"; do
     append_unique "http://${domain}" origins
@@ -704,10 +738,12 @@ configure_nginx_prod() {
 
   log "Aplicando configuracao Nginx para subdominios..."
   MRQ_ROOT_DOMAIN="$ROOT_DOMAIN" \
-    MRQ_PORTAL_DOMAIN="$PORTAL_DOMAIN" \
-    MRQ_CLIENT_DOMAIN="$CLIENT_DOMAIN" \
-    MRQ_ADMIN_DOMAIN="$ADMIN_DOMAIN" \
-    MRQ_API_DOMAIN="$API_DOMAIN" \
+  MRQ_PORTAL_DOMAIN="$PORTAL_DOMAIN" \
+  MRQ_CLIENT_DOMAIN="$CLIENT_DOMAIN" \
+  MRQ_ADMIN_DOMAIN="$ADMIN_DOMAIN" \
+  MRQ_API_DOMAIN="$API_DOMAIN" \
+  MRQ_MOBILE_API_PUBLIC_IP="$PUBLIC_IP" \
+  MRQ_MOBILE_API_AWS_DNS="$AWS_PUBLIC_DNS" \
     bash "$ROOT_DIR/scripts/setup_nginx_prod.sh"
 }
 

@@ -35,6 +35,7 @@ import type {
   PortalEmailSettingsConfig,
   PortalEfiConfig,
   PortalGoogleAuthConfig,
+  PortalInstallerSettingsConfig,
   PortalMercadoPagoConfig,
   PortalPaymentProviderRouting,
   PortalPaymentProvidersConfig,
@@ -231,6 +232,10 @@ const ASAAS_REFERENCE_LINKS: SetupReferenceLink[] = [
     description: "Guia oficial de cobrancas, webhooks e seguranca.",
   },
 ];
+
+const DEFAULT_MOBILE_API_PUBLIC_IP_URL = "http://44.192.27.104";
+const DEFAULT_MOBILE_API_AWS_DNS_URL =
+  "http://ec2-44-192-27-104.compute-1.amazonaws.com";
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -736,6 +741,37 @@ function normalizeCloudflareSettings(
   };
 }
 
+function getDefaultApiPublicAccessSettings(): PortalInstallerSettingsConfig["api_public_access"] {
+  return {
+    enabled: false,
+    preferred_endpoint: "public_ip",
+    public_ip_base_url: DEFAULT_MOBILE_API_PUBLIC_IP_URL,
+    aws_dns_base_url: DEFAULT_MOBILE_API_AWS_DNS_URL,
+  };
+}
+
+function normalizeApiPublicAccessSettings(
+  value: PortalInstallerSettingsConfig | null | undefined,
+): PortalInstallerSettingsConfig["api_public_access"] {
+  const defaults = getDefaultApiPublicAccessSettings();
+  const source = value?.api_public_access;
+  if (!source) {
+    return defaults;
+  }
+
+  const preferredEndpoint =
+    source.preferred_endpoint === "aws_dns" || source.preferred_endpoint === "public_ip"
+      ? source.preferred_endpoint
+      : defaults.preferred_endpoint;
+
+  return {
+    enabled: Boolean(source.enabled),
+    preferred_endpoint: preferredEndpoint,
+    public_ip_base_url: source.public_ip_base_url?.trim() || defaults.public_ip_base_url,
+    aws_dns_base_url: source.aws_dns_base_url?.trim() || defaults.aws_dns_base_url,
+  };
+}
+
 export function PortalSections({
   activeSection = "all",
   mode = "portal",
@@ -760,6 +796,16 @@ export function PortalSections({
   const [adminDomainDraft, setAdminDomainDraft] = useState("admin.mrquentinha.local");
   const [apiDomainDraft, setApiDomainDraft] = useState("api.mrquentinha.local");
   const [apiBaseUrlDraft, setApiBaseUrlDraft] = useState("https://10.211.55.21:8000");
+  const [mobileApiPublicEnabledDraft, setMobileApiPublicEnabledDraft] = useState(false);
+  const [mobileApiPreferredEndpointDraft, setMobileApiPreferredEndpointDraft] = useState<
+    "public_ip" | "aws_dns"
+  >("public_ip");
+  const [mobileApiPublicIpUrlDraft, setMobileApiPublicIpUrlDraft] = useState(
+    DEFAULT_MOBILE_API_PUBLIC_IP_URL,
+  );
+  const [mobileApiAwsDnsUrlDraft, setMobileApiAwsDnsUrlDraft] = useState(
+    DEFAULT_MOBILE_API_AWS_DNS_URL,
+  );
   const [portalBaseUrlDraft, setPortalBaseUrlDraft] = useState("https://10.211.55.21:3000");
   const [clientBaseUrlDraft, setClientBaseUrlDraft] = useState("https://10.211.55.21:3001");
   const [adminBaseUrlDraft, setAdminBaseUrlDraft] = useState("https://10.211.55.21:3002");
@@ -1154,6 +1200,13 @@ export function PortalSections({
         setAdminDomainDraft(configPayload.admin_domain || "admin.mrquentinha.local");
         setApiDomainDraft(configPayload.api_domain || "api.mrquentinha.local");
         setApiBaseUrlDraft(configPayload.api_base_url || "https://10.211.55.21:8000");
+        const mobileApiPublicAccess = normalizeApiPublicAccessSettings(
+          configPayload.installer_settings,
+        );
+        setMobileApiPublicEnabledDraft(mobileApiPublicAccess.enabled);
+        setMobileApiPreferredEndpointDraft(mobileApiPublicAccess.preferred_endpoint);
+        setMobileApiPublicIpUrlDraft(mobileApiPublicAccess.public_ip_base_url);
+        setMobileApiAwsDnsUrlDraft(mobileApiPublicAccess.aws_dns_base_url);
         setPortalBaseUrlDraft(configPayload.portal_base_url || "https://10.211.55.21:3000");
         setClientBaseUrlDraft(configPayload.client_base_url || "https://10.211.55.21:3001");
         setAdminBaseUrlDraft(configPayload.admin_base_url || "https://10.211.55.21:3002");
@@ -1779,6 +1832,15 @@ export function PortalSections({
     setErrorMessage("");
 
     try {
+      const nextInstallerSettings: PortalInstallerSettingsConfig = {
+        ...(config.installer_settings ?? ({} as PortalInstallerSettingsConfig)),
+        api_public_access: {
+          enabled: mobileApiPublicEnabledDraft,
+          preferred_endpoint: mobileApiPreferredEndpointDraft,
+          public_ip_base_url: mobileApiPublicIpUrlDraft.trim(),
+          aws_dns_base_url: mobileApiAwsDnsUrlDraft.trim(),
+        },
+      };
       const updatedConfig = await updatePortalConfigAdmin(config.id, {
         api_base_url: apiBaseUrlDraft.trim(),
         local_hostname: localHostnameDraft.trim() || "mrquentinha",
@@ -1795,6 +1857,7 @@ export function PortalSections({
         proxy_base_url: proxyBaseUrlDraft.trim(),
         cors_allowed_origins: parseOrigins(corsAllowedOriginsDraft),
         cloudflare_settings: buildCloudflareSettingsDraftPayload(),
+        installer_settings: nextInstallerSettings,
       });
 
       setConfig(updatedConfig);
@@ -1812,6 +1875,13 @@ export function PortalSections({
       setBackendBaseUrlDraft(updatedConfig.backend_base_url);
       setProxyBaseUrlDraft(updatedConfig.proxy_base_url);
       setCorsAllowedOriginsDraft(stringifyOrigins(updatedConfig.cors_allowed_origins));
+      const updatedMobileApiPublicAccess = normalizeApiPublicAccessSettings(
+        updatedConfig.installer_settings,
+      );
+      setMobileApiPublicEnabledDraft(updatedMobileApiPublicAccess.enabled);
+      setMobileApiPreferredEndpointDraft(updatedMobileApiPublicAccess.preferred_endpoint);
+      setMobileApiPublicIpUrlDraft(updatedMobileApiPublicAccess.public_ip_base_url);
+      setMobileApiAwsDnsUrlDraft(updatedMobileApiPublicAccess.aws_dns_base_url);
       const cloudflareSettings = normalizeCloudflareSettings(
         updatedConfig.cloudflare_settings,
       );
@@ -3122,6 +3192,68 @@ export function PortalSections({
               </button>
             </div>
           </div>
+
+          <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-text">API publica para app mobile</h3>
+                <p className="mt-1 text-xs text-muted">
+                  Web client no servidor usa API local. Quando habilitar acesso externo para o app
+                  mobile, utilize apenas endpoint AWS (DNS EC2 ou IP publico), sem dominio
+                  `mrquentinha.com.br`.
+                </p>
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm text-text">
+                <input
+                  type="checkbox"
+                  checked={mobileApiPublicEnabledDraft}
+                  onChange={(event) => setMobileApiPublicEnabledDraft(event.currentTarget.checked)}
+                  className="h-4 w-4 rounded border-border text-primary"
+                />
+                Habilitar porta publica da API para mobile
+              </label>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <label className="grid gap-1 text-sm text-muted">
+                Endpoint preferencial
+                <select
+                  value={mobileApiPreferredEndpointDraft}
+                  onChange={(event) =>
+                    setMobileApiPreferredEndpointDraft(
+                      event.currentTarget.value as "public_ip" | "aws_dns",
+                    )
+                  }
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                >
+                  <option value="public_ip">IP publico (44.192.27.104)</option>
+                  <option value="aws_dns">
+                    DNS AWS (ec2-44-192-27-104.compute-1.amazonaws.com)
+                  </option>
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm text-muted">
+                API publica por IP
+                <input
+                  value={mobileApiPublicIpUrlDraft}
+                  onChange={(event) => setMobileApiPublicIpUrlDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="http://44.192.27.104"
+                />
+              </label>
+
+              <label className="grid gap-1 text-sm text-muted">
+                API publica por DNS AWS
+                <input
+                  value={mobileApiAwsDnsUrlDraft}
+                  onChange={(event) => setMobileApiAwsDnsUrlDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="http://ec2-44-192-27-104.compute-1.amazonaws.com"
+                />
+              </label>
+            </div>
+          </article>
 
           <article className="mt-4 rounded-xl border border-border bg-bg p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
