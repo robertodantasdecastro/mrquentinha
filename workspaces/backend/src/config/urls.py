@@ -1,9 +1,9 @@
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpResponseForbidden
 from django.urls import include, path, re_path
-from django.views.static import serve
 from django.views.generic import RedirectView
+from django.views.static import serve
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -42,6 +42,19 @@ def health_view(_request):
     return Response({"status": "ok", "app": "mrquentinha", "version": "v1"})
 
 
+def protected_media_serve_view(request, path: str):
+    normalized_path = str(path or "").strip().lstrip("/")
+    sensitive_prefixes = (
+        "accounts/profile/",
+        "accounts/documents/",
+        "accounts/biometric/",
+    )
+    if any(normalized_path.startswith(prefix) for prefix in sensitive_prefixes):
+        return HttpResponseForbidden("Acesso direto a esta midia nao permitido.")
+
+    return serve(request, normalized_path, document_root=settings.MEDIA_ROOT)
+
+
 urlpatterns = [
     path("", api_index_view, name="api-index"),
     path(
@@ -64,11 +77,9 @@ urlpatterns = [
     path("api/v1/admin-audit/", include("apps.admin_audit.urls")),
 ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += [
     re_path(
         r"^media/(?P<path>.*)$",
-        serve,
-        {"document_root": settings.MEDIA_ROOT},
+        protected_media_serve_view,
     )
 ]

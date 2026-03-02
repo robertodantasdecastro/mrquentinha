@@ -11,6 +11,7 @@ from .customer_services import (
     apply_customer_consents,
     ensure_customer_governance_profile,
 )
+from .media_access import build_profile_media_url
 from .models import Role, UserProfile, UserTask, UserTaskCategory
 from .services import (
     SystemRole,
@@ -557,7 +558,10 @@ class AdminUserUpdateSerializer(serializers.Serializer):
             try:
                 assign_admin_modules_to_user(
                     user=user,
-                    module_permissions=self.validated_data.get("module_permissions", []),
+                    module_permissions=self.validated_data.get(
+                        "module_permissions",
+                        [],
+                    ),
                     replace=True,
                     assigned_by=self.context.get("request_user"),
                 )
@@ -694,30 +698,37 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "document_type": {"required": False, "allow_blank": True},
         }
 
-    def _build_file_url(self, value) -> str | None:
+    def _build_file_url(self, obj: UserProfile, field_name: str) -> str | None:
+        value = getattr(obj, field_name, None)
         if not value:
             return None
 
         request = self.context.get("request")
+        signed_url = build_profile_media_url(
+            request=request,
+            profile=obj,
+            field_name=field_name,
+        )
+        if signed_url:
+            return signed_url
+
         url = value.url
-        if request:
-            return request.build_absolute_uri(url)
-        return url
+        return request.build_absolute_uri(url) if request else url
 
     def get_profile_photo_url(self, obj):
-        return self._build_file_url(obj.profile_photo)
+        return self._build_file_url(obj, "profile_photo")
 
     def get_document_front_image_url(self, obj):
-        return self._build_file_url(obj.document_front_image)
+        return self._build_file_url(obj, "document_front_image")
 
     def get_document_back_image_url(self, obj):
-        return self._build_file_url(obj.document_back_image)
+        return self._build_file_url(obj, "document_back_image")
 
     def get_document_selfie_image_url(self, obj):
-        return self._build_file_url(obj.document_selfie_image)
+        return self._build_file_url(obj, "document_selfie_image")
 
     def get_biometric_photo_url(self, obj):
-        return self._build_file_url(obj.biometric_photo)
+        return self._build_file_url(obj, "biometric_photo")
 
     def validate_cpf(self, value: str) -> str:
         normalized = normalize_digits(value)

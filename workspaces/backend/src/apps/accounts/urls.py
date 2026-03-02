@@ -14,6 +14,7 @@ from .views import (
     EmailVerificationResendAPIView,
     MeAPIView,
     MeProfileAPIView,
+    ProfileMediaAccessAPIView,
     RegisterAPIView,
     RoleViewSet,
     TokenObtainPairEmailVerifiedView,
@@ -60,6 +61,11 @@ urlpatterns = [
     path("token/refresh/", TokenRefreshView.as_view(), name="accounts-token-refresh"),
     path("me/", MeAPIView.as_view(), name="accounts-me"),
     path("me/profile/", MeProfileAPIView.as_view(), name="accounts-me-profile"),
+    path(
+        "profile-media/<int:profile_id>/<str:field_name>/",
+        ProfileMediaAccessAPIView.as_view(),
+        name="accounts-profile-media",
+    ),
     path(
         "customers/overview/",
         CustomerLifecycleOverviewAPIView.as_view(),

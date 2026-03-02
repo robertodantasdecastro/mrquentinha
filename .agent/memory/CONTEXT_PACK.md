@@ -13,6 +13,7 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (seguranca/midia): documentos, selfie e biometria do perfil agora usam URL assinada temporaria via endpoint `accounts/profile-media`; acesso direto a `/media/accounts/profile|documents|biometric/*` foi bloqueado.
 - Atualizacao em 02/03/2026 (seguranca/hardening): execucao inicial do plano aprovado concluida com `manage.py` deterministico (env/.env), hardening de `config.settings.prod`, derivacao forte de `SECRET_KEY` no `installdev.sh` e `setup_nginx_prod.sh` com redirect HTTP->HTTPS + headers de seguranca.
 - Atualizacao em 02/03/2026 (auditoria): rodada completa de auditoria estatica (seguranca/qualidade/redundancias) concluida e publicada em `docs/reports/`, com plano priorizado `P0/P1/P2` aprovado para execucao.
 - Atualizacao em 02/03/2026 (web admin/navegacao): menu `Prioridades` foi substituido por `Sobre`; rota legada `/prioridades` agora redireciona para `/sobre`.

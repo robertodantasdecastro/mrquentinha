@@ -1307,3 +1307,22 @@
     - `ruff check` (arquivos alterados) -> OK;
     - `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py check --deploy` -> OK (sem warnings);
     - `bash scripts/setup_nginx_prod.sh` + `curl` -> HTTP 301 e HTTPS 200 nos subdominios oficiais.
+
+- Ops-02/03/2026 (plano de correcao - fase P0 de midia sensivel): protecao de documentos e biometria
+  - backend (`accounts`):
+    - novo endpoint assinado para acesso de midia de perfil:
+      - `GET /api/v1/accounts/profile-media/<profile_id>/<field_name>/?token=...`
+    - URLs de `profile_photo`/documentos/biometria no serializer de perfil passaram a ser assinadas e temporarias.
+    - fallback com autenticacao mantido para owner/admin quando sem token.
+  - backend (`config.urls`):
+    - rota global de `/media/*` endurecida para bloquear acesso direto a caminhos sensiveis:
+      - `accounts/profile/*`
+      - `accounts/documents/*`
+      - `accounts/biometric/*`
+    - demais midias publicas continuam servidas normalmente.
+  - testes:
+    - `tests/test_accounts_api.py` atualizado com cobertura de URL assinada e bloqueio de acesso direto.
+  - validacao executada:
+    - `ruff check` (arquivos alterados) -> OK;
+    - `python -m pytest tests/test_accounts_api.py -q` -> OK;
+    - `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py check --deploy` -> OK.
