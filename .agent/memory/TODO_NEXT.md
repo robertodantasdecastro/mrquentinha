@@ -61,3 +61,4 @@ Fila atual:
 52. [x] Ops-02/03/2026 Auditoria completa (seguranca + qualidade + evidencias + plano P0/P1/P2) publicada e aprovada para execucao - concluida em 02/03/2026.
 53. [x] Ops-02/03/2026 Hardening inicial executado: settings deterministicas (`manage.py`), `SECRET_KEY` forte no instalador e HTTPS/headers reforcados em `prod.py` + `setup_nginx_prod.sh` - concluida em 02/03/2026.
 54. [x] Ops-02/03/2026 Fase P0 midia sensivel: URL assinada para documentos/biometria no perfil e bloqueio de acesso direto em `/media/accounts/*` sensivel - concluida em 02/03/2026.
+55. [x] Ops-02/03/2026 Automacao de continuidade DEV: script `sync_dev_from_main.sh` criado para sincronizacao segura e repetivel da VM DEV - concluida em 02/03/2026.
