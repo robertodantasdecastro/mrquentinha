@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
+import { useAdminSession } from "@/components/AdminSessionGate";
 import { useAdminTemplate } from "@/components/AdminTemplateProvider";
+import { canAccessAdminModule } from "@/lib/adminAccess";
 
 export type ModuleMenuItem = {
   key: string;
@@ -13,6 +16,9 @@ export type ModuleMenuItem = {
 };
 
 type ModulePageShellProps = {
+  moduleSlug?: string;
+  moduleLabel?: string;
+  requiredAccess?: "read" | "write";
   title: string;
   description: string;
   statusLabel?: string;
@@ -23,6 +29,9 @@ type ModulePageShellProps = {
 };
 
 export function ModulePageShell({
+  moduleSlug,
+  moduleLabel,
+  requiredAccess = "read",
   title,
   description,
   statusLabel,
@@ -32,8 +41,30 @@ export function ModulePageShell({
   children,
 }: ModulePageShellProps) {
   const { template } = useAdminTemplate();
+  const { user } = useAdminSession();
+  const pathname = usePathname();
   const isAdminKit = template === "admin-adminkit";
   const isAdminDek = template === "admin-admindek";
+  const resolvedModuleSlug =
+    moduleSlug || pathname.split("/").filter(Boolean).slice(1, 2).join("");
+  const resolvedModuleLabel = moduleLabel || title;
+  const hasModuleAccess = resolvedModuleSlug
+    ? canAccessAdminModule(user, resolvedModuleSlug, requiredAccess)
+    : true;
+
+  if (!hasModuleAccess) {
+    return (
+      <section className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-amber-900 shadow-sm">
+        <h2 className="text-lg font-semibold">Acesso restrito</h2>
+        <p className="mt-2 text-sm">
+          O módulo <strong>{resolvedModuleLabel}</strong> exige permissão de leitura.
+        </p>
+        <p className="mt-1 text-sm">
+          Solicite ao administrador o acesso do módulo com nível de leitura ou leitura e escrita.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-6">

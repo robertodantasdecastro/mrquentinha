@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import { AdminSessionGate, useAdminSession } from "@/components/AdminSessionGate";
@@ -10,6 +10,7 @@ import { InlinePreloader } from "@/components/InlinePreloader";
 import {
   ApiError,
   fetchMyUserProfile,
+  updateMeAccount,
   updateMyUserProfile,
   uploadMyUserProfileFiles,
 } from "@/lib/api";
@@ -31,7 +32,13 @@ const DOCUMENT_TYPE_OPTIONS: Array<{ value: UserDocumentType; label: string }> =
   { value: "OUTRO", label: "Outro" },
 ];
 
+type CepLookupStatus = "idle" | "loading" | "found" | "not_found" | "error";
+
 type ProfileFormState = {
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
   full_name: string;
   preferred_name: string;
   phone: string;
@@ -76,6 +83,48 @@ function resolveErrorMessage(error: unknown): string {
   return "Falha inesperada. Tente novamente.";
 }
 
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+type CepLookupData = {
+  postal_code: string;
+  street: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+};
+
+async function lookupCep(cep: string): Promise<CepLookupData | null> {
+  const normalized = digitsOnly(cep);
+  if (normalized.length !== 8) {
+    return null;
+  }
+
+  const response = await fetch(`/api/runtime/lookup-cep?cep=${encodeURIComponent(normalized)}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error("Falha ao consultar CEP.");
+  }
+
+  const payload = (await response.json()) as Record<string, string>;
+  const payloadPostalCode = digitsOnly(String(payload.postal_code || normalized));
+  return {
+    postal_code: payloadPostalCode || normalized,
+    street: String(payload.street || "").trim(),
+    neighborhood: String(payload.neighborhood || "").trim(),
+    city: String(payload.city || "").trim(),
+    state: String(payload.state || "").trim().toUpperCase(),
+  };
+}
+
 function resolveBiometricTone(status: UserBiometricStatus): StatusTone {
   if (status === "VERIFIED") {
     return "success";
@@ -110,6 +159,10 @@ function resolveBiometricLabel(status: UserBiometricStatus): string {
 
 function mapProfileToForm(profile: UserProfileData): ProfileFormState {
   return {
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
     full_name: profile.full_name ?? "",
     preferred_name: profile.preferred_name ?? "",
     phone: profile.phone ?? "",
@@ -158,6 +211,9 @@ function ProfilePageContent() {
   const [fileState, setFileState] = useState<ProfileFileState>(createEmptyFiles);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [cepLookupStatus, setCepLookupStatus] = useState<CepLookupStatus>("idle");
+  const [cepLookupDetail, setCepLookupDetail] = useState<string>("");
+  const [lastLookupCep, setLastLookupCep] = useState<string>("");
 
   useEffect(() => {
     let mounted = true;
@@ -169,7 +225,13 @@ function ProfilePageContent() {
           return;
         }
         setProfile(payload);
-        setFormState(mapProfileToForm(payload));
+        setFormState({
+          ...mapProfileToForm(payload),
+          username: user.username || "",
+          email: user.email || "",
+          first_name: user.first_name || "",
+          last_name: user.last_name || "",
+        });
       } catch (error) {
         if (!mounted) {
           return;
@@ -186,7 +248,96 @@ function ProfilePageContent() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user.email, user.first_name, user.last_name, user.username]);
+
+  const cepDigits = useMemo(
+    () => digitsOnly(formState?.postal_code ?? ""),
+    [formState?.postal_code],
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    if (!formState) {
+      return () => {
+        active = false;
+      };
+    }
+
+    if (cepDigits.length === 0) {
+      setCepLookupStatus("idle");
+      setCepLookupDetail("");
+      setLastLookupCep("");
+      return () => {
+        active = false;
+      };
+    }
+
+    if (cepDigits.length < 8) {
+      setCepLookupStatus("idle");
+      setCepLookupDetail("Informe os 8 digitos do CEP.");
+      return () => {
+        active = false;
+      };
+    }
+
+    if (cepDigits === lastLookupCep) {
+      return () => {
+        active = false;
+      };
+    }
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        setCepLookupStatus("loading");
+        setCepLookupDetail("Consultando CEP...");
+
+        try {
+          const result = await lookupCep(cepDigits);
+          if (!active) {
+            return;
+          }
+
+          if (!result) {
+            setCepLookupStatus("not_found");
+            setCepLookupDetail("CEP nao encontrado.");
+            setLastLookupCep(cepDigits);
+            return;
+          }
+
+          setCepLookupStatus("found");
+          setCepLookupDetail("CEP encontrado e endereco carregado.");
+          setLastLookupCep(cepDigits);
+
+          setFormState((current) => {
+            if (!current) {
+              return current;
+            }
+            return {
+              ...current,
+              postal_code: result.postal_code,
+              street: result.street || current.street,
+              neighborhood: result.neighborhood || current.neighborhood,
+              city: result.city || current.city,
+              state: result.state || current.state,
+            };
+          });
+        } catch {
+          if (!active) {
+            return;
+          }
+          setCepLookupStatus("error");
+          setCepLookupDetail("Erro ao consultar CEP. Tente novamente.");
+          setLastLookupCep("");
+        }
+      })();
+    }, 420);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [cepDigits, formState, lastLookupCep]);
 
   function handleFieldChange<K extends keyof ProfileFormState>(
     key: K,
@@ -222,9 +373,44 @@ function ProfilePageContent() {
     setErrorMessage("");
 
     try {
-      const payload = await updateMyUserProfile(formState);
+      const accountPayload = await updateMeAccount({
+        username: formState.username,
+        email: formState.email,
+        first_name: formState.first_name,
+        last_name: formState.last_name,
+      });
+      const payload = await updateMyUserProfile({
+        full_name: formState.full_name,
+        preferred_name: formState.preferred_name,
+        phone: formState.phone,
+        phone_is_whatsapp: formState.phone_is_whatsapp,
+        secondary_phone: formState.secondary_phone,
+        birth_date: formState.birth_date,
+        cpf: formState.cpf,
+        cnpj: formState.cnpj,
+        rg: formState.rg,
+        occupation: formState.occupation,
+        postal_code: formState.postal_code,
+        street: formState.street,
+        street_number: formState.street_number,
+        address_complement: formState.address_complement,
+        neighborhood: formState.neighborhood,
+        city: formState.city,
+        state: formState.state,
+        country: formState.country,
+        document_type: formState.document_type,
+        document_number: formState.document_number,
+        document_issuer: formState.document_issuer,
+        notes: formState.notes,
+      });
       setProfile(payload);
-      setFormState(mapProfileToForm(payload));
+      setFormState({
+        ...mapProfileToForm(payload),
+        username: accountPayload.username || "",
+        email: accountPayload.email || "",
+        first_name: accountPayload.first_name || "",
+        last_name: accountPayload.last_name || "",
+      });
       setMessage("Dados do perfil atualizados com sucesso.");
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
@@ -262,7 +448,13 @@ function ProfilePageContent() {
     try {
       const payload = await uploadMyUserProfileFiles(formData);
       setProfile(payload);
-      setFormState(mapProfileToForm(payload));
+      setFormState((current) => ({
+        ...mapProfileToForm(payload),
+        username: current?.username ?? user.username ?? "",
+        email: current?.email ?? user.email ?? "",
+        first_name: current?.first_name ?? user.first_name ?? "",
+        last_name: current?.last_name ?? user.last_name ?? "",
+      }));
       setFileState(createEmptyFiles());
       setMessage("Arquivos enviados e vinculados ao perfil.");
     } catch (error) {
@@ -331,6 +523,43 @@ function ProfilePageContent() {
       >
         <h2 className="text-lg font-semibold text-text">Dados adicionais completos</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="grid gap-1 text-sm text-muted">
+            Usuario
+            <input
+              name="username"
+              className={INPUT_CLASS}
+              value={formState.username}
+              onChange={(event) => handleFieldChange("username", event.currentTarget.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-muted">
+            E-mail
+            <input
+              name="email"
+              type="email"
+              className={INPUT_CLASS}
+              value={formState.email}
+              onChange={(event) => handleFieldChange("email", event.currentTarget.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-muted">
+            Nome
+            <input
+              name="first_name"
+              className={INPUT_CLASS}
+              value={formState.first_name}
+              onChange={(event) => handleFieldChange("first_name", event.currentTarget.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-muted">
+            Sobrenome
+            <input
+              name="last_name"
+              className={INPUT_CLASS}
+              value={formState.last_name}
+              onChange={(event) => handleFieldChange("last_name", event.currentTarget.value)}
+            />
+          </label>
           <label className="grid gap-1 text-sm text-muted">
             Nome completo
             <input
@@ -436,6 +665,20 @@ function ProfilePageContent() {
               value={formState.postal_code}
               onChange={(event) => handleFieldChange("postal_code", event.currentTarget.value)}
             />
+            {cepLookupDetail && (
+              <span
+                className={[
+                  "text-xs",
+                  cepLookupStatus === "found"
+                    ? "text-emerald-600"
+                    : cepLookupStatus === "error" || cepLookupStatus === "not_found"
+                      ? "text-rose-600"
+                      : "text-muted",
+                ].join(" ")}
+              >
+                {cepLookupDetail}
+              </span>
+            )}
           </label>
           <label className="grid gap-1 text-sm text-muted">
             Rua

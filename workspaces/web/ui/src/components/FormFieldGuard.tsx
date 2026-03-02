@@ -22,12 +22,18 @@ type CepLookupPayload = {
   state: string;
 };
 
+type CepLookupResult =
+  | { status: "ok"; payload: CepLookupPayload }
+  | { status: "not_found" }
+  | { status: "error" };
+
 const DATA_KIND_ATTR = "data-mrq-field-kind";
 const DATA_TOUCHED_ATTR = "data-mrq-field-touched";
 const DATA_AUTOFILLED_ATTR = "data-mrq-autofilled";
 const DATA_CEP_LINK_ATTR = "data-mrq-cep-link";
 const DATA_LAST_CEP_LOOKUP_ATTR = "data-mrq-last-cep-lookup";
 const DATA_CEP_LOOKUP_STATUS_ATTR = "data-mrq-cep-lookup-status";
+const DATA_CEP_FEEDBACK_ATTR = "data-mrq-cep-feedback";
 
 const CEP_LOOKUP_DEBOUNCE_MS = 420;
 const RUNTIME_CEP_LOOKUP_ENDPOINT = "/api/runtime/lookup-cep";
@@ -35,7 +41,7 @@ const CEP_OFFICIAL_SITE_URL =
   "https://buscacepinter.correios.com.br/app/endereco/index.php";
 
 const cepLookupCache = new Map<string, CepLookupPayload>();
-const cepLookupInFlight = new Map<string, Promise<CepLookupPayload | null>>();
+const cepLookupInFlight = new Map<string, Promise<CepLookupResult>>();
 const cepLookupTimers = new WeakMap<HTMLInputElement, number>();
 
 function normalizeText(value: string): string {
@@ -326,6 +332,60 @@ function ensureCepOfficialLink(input: HTMLInputElement): void {
   parent.appendChild(link);
 }
 
+function ensureCepFeedbackNode(input: HTMLInputElement): HTMLSpanElement | null {
+  const parent = input.parentElement;
+  if (!parent) {
+    return null;
+  }
+
+  const existing = parent.querySelector(
+    `span[${DATA_CEP_FEEDBACK_ATTR}="true"]`,
+  );
+  if (existing instanceof HTMLSpanElement) {
+    return existing;
+  }
+
+  const feedback = document.createElement("span");
+  feedback.setAttribute(DATA_CEP_FEEDBACK_ATTR, "true");
+  feedback.setAttribute("aria-live", "polite");
+  feedback.style.display = "none";
+  feedback.style.marginTop = "0.3rem";
+  feedback.style.fontSize = "0.75rem";
+  feedback.style.lineHeight = "1.2";
+  feedback.style.color = "var(--muted-foreground, #6b7280)";
+
+  parent.appendChild(feedback);
+  return feedback;
+}
+
+function setCepFeedback(
+  input: HTMLInputElement,
+  message: string,
+  tone: "neutral" | "success" | "danger",
+): void {
+  const feedback = ensureCepFeedbackNode(input);
+  if (!feedback) {
+    return;
+  }
+
+  feedback.textContent = message;
+  if (!message) {
+    feedback.style.display = "none";
+    return;
+  }
+
+  feedback.style.display = "block";
+  if (tone === "success") {
+    feedback.style.color = "var(--mrq-success-600, #15803d)";
+    return;
+  }
+  if (tone === "danger") {
+    feedback.style.color = "var(--mrq-error-600, #b91c1c)";
+    return;
+  }
+  feedback.style.color = "var(--muted-foreground, #6b7280)";
+}
+
 function applyFieldConfig(input: HTMLInputElement, fieldKind: FieldKind): void {
   input.setAttribute(DATA_KIND_ATTR, fieldKind);
 
@@ -354,6 +414,7 @@ function applyFieldConfig(input: HTMLInputElement, fieldKind: FieldKind): void {
       input.placeholder = "00000-000";
     }
     ensureCepOfficialLink(input);
+    ensureCepFeedbackNode(input);
     return;
   }
 
@@ -707,15 +768,15 @@ function normalizeCepLookupPayload(payload: unknown): CepLookupPayload | null {
   };
 }
 
-async function fetchCepLookup(cep: string): Promise<CepLookupPayload | null> {
+async function fetchCepLookup(cep: string): Promise<CepLookupResult> {
   const sanitizedCep = digitsOnly(cep);
   if (sanitizedCep.length !== 8) {
-    return null;
+    return { status: "error" };
   }
 
   const fromCache = cepLookupCache.get(sanitizedCep);
   if (fromCache) {
-    return fromCache;
+    return { status: "ok", payload: fromCache };
   }
 
   const inFlight = cepLookupInFlight.get(sanitizedCep);
@@ -732,23 +793,23 @@ async function fetchCepLookup(cep: string): Promise<CepLookupPayload | null> {
       });
 
       if (response.status === 404) {
-        return null;
+        return { status: "not_found" as const };
       }
 
       if (!response.ok) {
-        return null;
+        return { status: "error" as const };
       }
 
       const payload = await response.json();
       const normalized = normalizeCepLookupPayload(payload);
       if (!normalized) {
-        return null;
+        return { status: "error" as const };
       }
 
       cepLookupCache.set(sanitizedCep, normalized);
-      return normalized;
+      return { status: "ok" as const, payload: normalized };
     } catch {
-      return null;
+      return { status: "error" as const };
     }
   })();
 
@@ -766,6 +827,11 @@ async function executeCepLookup(input: HTMLInputElement): Promise<void> {
     input.removeAttribute(DATA_LAST_CEP_LOOKUP_ATTR);
     input.removeAttribute(DATA_CEP_LOOKUP_STATUS_ATTR);
     validateInputValue(input, "cep");
+    if (digits.length === 0) {
+      setCepFeedback(input, "", "neutral");
+    } else {
+      setCepFeedback(input, "Informe os 8 digitos do CEP.", "neutral");
+    }
     return;
   }
 
@@ -774,18 +840,32 @@ async function executeCepLookup(input: HTMLInputElement): Promise<void> {
     return;
   }
 
-  const payload = await fetchCepLookup(digits);
-  if (!payload) {
+  input.setAttribute(DATA_CEP_LOOKUP_STATUS_ATTR, "pending");
+  setCepFeedback(input, "Consultando CEP...", "neutral");
+
+  const lookupResult = await fetchCepLookup(digits);
+  if (lookupResult.status === "not_found") {
     input.setAttribute(DATA_CEP_LOOKUP_STATUS_ATTR, "not_found");
+    input.setAttribute(DATA_LAST_CEP_LOOKUP_ATTR, digits);
     validateInputValue(input, "cep");
+    setCepFeedback(input, "CEP nao encontrado.", "danger");
+    return;
+  }
+
+  if (lookupResult.status === "error") {
+    input.setAttribute(DATA_CEP_LOOKUP_STATUS_ATTR, "error");
+    input.removeAttribute(DATA_LAST_CEP_LOOKUP_ATTR);
+    validateInputValue(input, "cep");
+    setCepFeedback(input, "Erro ao consultar CEP. Tente novamente.", "danger");
     return;
   }
 
   input.setAttribute(DATA_CEP_LOOKUP_STATUS_ATTR, "ok");
   input.setAttribute(DATA_LAST_CEP_LOOKUP_ATTR, digits);
   validateInputValue(input, "cep");
+  setCepFeedback(input, "CEP encontrado e endereco preenchido.", "success");
 
-  applyAddressAutofill(input, payload);
+  applyAddressAutofill(input, lookupResult.payload);
 }
 
 function scheduleCepLookup(input: HTMLInputElement, immediate = false): void {
@@ -832,6 +912,12 @@ export function FormFieldGuard() {
 
       if (readFieldKind(target) === "cep") {
         target.removeAttribute(DATA_CEP_LOOKUP_STATUS_ATTR);
+        const digits = digitsOnly(target.value);
+        if (digits.length === 0) {
+          setCepFeedback(target, "", "neutral");
+        } else if (digits.length < 8) {
+          setCepFeedback(target, "Informe os 8 digitos do CEP.", "neutral");
+        }
       }
 
       const fieldKind = configureInputSafely(target);

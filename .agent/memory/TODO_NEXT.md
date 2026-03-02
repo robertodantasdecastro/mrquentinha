@@ -53,3 +53,11 @@ Fila atual:
 44. [x] T9.2.7-A6 Ops Dashboard com box Postgres + script installdev + guia AWS preconfig (db dev/prod) - concluida em 02/03/2026.
 45. [x] Ops-02/03/2026 Instalacao hibrida real em EC2 t3.micro (Postgres local + DNS oficial + hardening `installdev.sh` + checkpoint de continuidade) - concluida em 02/03/2026.
 46. [x] WebAdmin-02/03/2026 Corrigir preload global + endurecer acesso tecnico + validacao de senha no modulo Usuarios/RBAC (cobertura em todos os templates) - concluida em 02/03/2026.
+47. [x] WebAdmin-02/03/2026 Hardening de acesso: ocultar menu pre-login, filtrar navegacao por permissao de modulo, corrigir `Meu Perfil` (dados de conta + dados adicionais) e revisar pipeline de media/upload em producao - concluida em 02/03/2026.
+48. [x] Ops-02/03/2026 Dashboard de producao: launcher shell `start_ops_dashboard_prod.sh` adicionado para iniciar rapidamente o painel TUI de operacao - concluida em 02/03/2026.
+49. [x] WebAdmin-02/03/2026 CEP no perfil: status visual de consulta + autopreenchimento de endereco e fallback ViaCEP no backend quando Correios indisponivel - concluida em 02/03/2026.
+50. [x] Web-02/03/2026 CEP global: feedback padronizado (consultando/sucesso/nao encontrado/erro) e autofill validado para todos os formularios em Admin, Web Client e Portal (todos os templates) - concluida em 02/03/2026.
+51. [x] WebAdmin-02/03/2026 Navegacao institucional: `Prioridades` substituido por `Sobre` com redirecionamento de compatibilidade - concluida em 02/03/2026.
+52. [x] Ops-02/03/2026 Auditoria completa (seguranca + qualidade + evidencias + plano P0/P1/P2) publicada e aprovada para execucao - concluida em 02/03/2026.
+53. [x] Ops-02/03/2026 Hardening inicial executado: settings deterministicas (`manage.py`), `SECRET_KEY` forte no instalador e HTTPS/headers reforcados em `prod.py` + `setup_nginx_prod.sh` - concluida em 02/03/2026.
+54. [x] Ops-02/03/2026 Fase P0 midia sensivel: URL assinada para documentos/biometria no perfil e bloqueio de acesso direto em `/media/accounts/*` sensivel - concluida em 02/03/2026.

@@ -8,8 +8,6 @@ if DEBUG:  # noqa: F405
         dict.fromkeys([*ALLOWED_HOSTS, ".trycloudflare.com"])  # noqa: F405
     )  # noqa: F405
 
-INSTALLED_APPS = [*INSTALLED_APPS, "corsheaders"]  # noqa: F405
-
 CORS_MIDDLEWARE = "corsheaders.middleware.CorsMiddleware"
 if CORS_MIDDLEWARE not in MIDDLEWARE:  # noqa: F405
     common_middleware = "django.middleware.common.CommonMiddleware"

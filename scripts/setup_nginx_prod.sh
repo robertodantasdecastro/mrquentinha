@@ -14,6 +14,9 @@ API_PORT="${MRQ_API_PORT:-8000}"
 
 NGINX_SITE_PATH="/etc/nginx/sites-available/mrquentinha.conf"
 NGINX_SITE_LINK="/etc/nginx/sites-enabled/mrquentinha.conf"
+LETSENCRYPT_CERT_DIR="${MRQ_SSL_CERT_DIR:-/etc/letsencrypt/live/mrquentinha}"
+LETSENCRYPT_FULLCHAIN="${LETSENCRYPT_CERT_DIR}/fullchain.pem"
+LETSENCRYPT_PRIVKEY="${LETSENCRYPT_CERT_DIR}/privkey.pem"
 
 ensure_root() {
   if [[ "$(id -u)" -eq 0 ]]; then
@@ -27,9 +30,42 @@ ensure_root() {
 }
 
 write_nginx_config() {
+  ensure_root
   local tmp_file
+  local has_ssl="0"
   tmp_file="$(mktemp)"
-  cat >"$tmp_file" <<EOF
+  if sudo test -f "$LETSENCRYPT_FULLCHAIN" && sudo test -f "$LETSENCRYPT_PRIVKEY"; then
+    has_ssl="1"
+  fi
+
+  if [[ "$has_ssl" == "1" ]]; then
+    cat >"$tmp_file" <<EOF
+server {
+    listen 80;
+    server_name ${PORTAL_DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 80;
+    server_name ${CLIENT_DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 80;
+    server_name ${ADMIN_DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 80;
+    server_name ${API_DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+EOF
+  else
+    cat >"$tmp_file" <<EOF
 server {
     listen 80;
     server_name ${PORTAL_DOMAIN};
@@ -94,8 +130,101 @@ server {
     }
 }
 EOF
+  fi
 
-  ensure_root
+  if [[ "$has_ssl" == "1" ]]; then
+    cat >>"$tmp_file" <<EOF
+
+server {
+    listen 443 ssl http2;
+    server_name ${PORTAL_DOMAIN};
+    ssl_certificate ${LETSENCRYPT_FULLCHAIN};
+    ssl_certificate_key ${LETSENCRYPT_PRIVKEY};
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://127.0.0.1:${PORTAL_PORT};
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${CLIENT_DOMAIN};
+    ssl_certificate ${LETSENCRYPT_FULLCHAIN};
+    ssl_certificate_key ${LETSENCRYPT_PRIVKEY};
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://127.0.0.1:${CLIENT_PORT};
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${ADMIN_DOMAIN};
+    ssl_certificate ${LETSENCRYPT_FULLCHAIN};
+    ssl_certificate_key ${LETSENCRYPT_PRIVKEY};
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://127.0.0.1:${ADMIN_PORT};
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${API_DOMAIN};
+    ssl_certificate ${LETSENCRYPT_FULLCHAIN};
+    ssl_certificate_key ${LETSENCRYPT_PRIVKEY};
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://127.0.0.1:${API_PORT};
+    }
+}
+EOF
+  fi
+
   sudo install -m 0644 "$tmp_file" "$NGINX_SITE_PATH"
   rm -f "$tmp_file"
   sudo ln -sf "$NGINX_SITE_PATH" "$NGINX_SITE_LINK"

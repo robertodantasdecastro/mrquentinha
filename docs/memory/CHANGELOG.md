@@ -1,6 +1,20 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- Web Admin (perfil/CEP UX): tela `/perfil` passou a exibir status da consulta de CEP (`consultando`, `encontrado`, `nao encontrado`, `erro`) e autopreencher `rua`, `bairro`, `cidade` e `estado` ao validar CEP.
+- Backend (accounts/CEP): `lookup_address_by_cep` foi ajustado para usar fallback ViaCEP quando Correios estiver indisponivel, evitando erro 503 em CEP valido sem credencial Correios.
+- Ops/producao: criado iniciador `scripts/start_ops_dashboard_prod.sh` para abrir rapidamente o dashboard operacional de producao no terminal.
+- Web Admin (auth shell): menu lateral/topbar e atalhos de navegacao passam a aparecer somente com sessao autenticada; em estado anonimo o shell mostra apenas conteudo de login.
+- Web Admin (authz/menu): navegacao de menus agora e filtrada por permissao efetiva do usuario (`module_permissions` + regras RBAC), evitando exibicao de modulos nao autorizados.
+- Web Admin (perfil): tela `Meu Perfil` passou a carregar e editar tambem dados de conta (`username`, `email`, `first_name`, `last_name`) via `PATCH /api/v1/accounts/me/`, junto dos campos adicionais de `UserProfile`.
+- Backend (accounts): endpoint `PATCH /api/v1/accounts/me/` adicionado para atualizacao segura da conta logada sem depender do modulo administrativo de usuarios.
+- Ops/upload media: publicado `scripts/fix_media_permissions.sh` para padronizar ownership/permissoes do `MEDIA_ROOT` e manter persistencia segura local na instancia.
+- Backend/media serving: `config/urls.py` ajustado para expor `/media/*` no backend em runtime, garantindo acesso aos arquivos de perfil/documentos/ocr no ambiente de producao com proxy atual.
+- Web Admin (RBAC/acesso): corrigido bug de permissao que permitia acesso a modulos nao autorizados quando `allowed_admin_module_slugs` vinha vazio; comportamento agora e `deny by default` para nao-admin.
+- Web Admin (RBAC/UX): modulo `Usuarios/RBAC` ganhou configuracao granular por modulo com nivel `Sem acesso`, `Leitura` e `Leitura e escrita` no fluxo de criacao e edicao de usuario.
+- Backend (accounts): novo modelo `UserAdminModulePermission` (migration `0010`) para persistir permissoes granulares por modulo no Admin Web.
+- Backend/API (accounts): payloads de `me` e `users` agora incluem `module_permissions`; create/update de usuario aceitam `module_permissions` para governanca de acesso por modulo.
+- Web Admin (guard global): `ModulePageShell` passou a validar acesso por modulo para todas as paginas de modulo (todos os templates) usando a regra de permissao granular.
 - Web Admin (UX/preload): preload global de rede reativado no layout (`GlobalNetworkPreloader`) para todos os modulos, com feedback mais rapido durante requisicoes e navegacao entre secoes.
 - Web Admin (Usuarios/RBAC UX): painel reorganizado com fluxo guiado por blocos interdependentes (`assistente de fluxo`), priorizando `Edicao da conta selecionada` antes de `Criar conta`, com atalhos de navegacao por bloco e acao direta `Editar conta` na listagem.
 - Web Admin (Usuarios/RBAC): validacao de senha forte adicionada no frontend para criacao/edicao de usuario (min. 8, maiuscula, minuscula e numero), com mensagem clara antes do submit.
@@ -1234,3 +1248,81 @@
     - `npm run lint` (web/admin, web/client, web/portal) -> OK;
     - `npm run build` (web/admin, web/client, web/portal) -> OK;
     - `cd workspaces/backend && .venv/bin/pytest tests/test_accounts_api.py tests/test_customers_admin_api.py tests/test_portal_api.py tests/test_portal_services.py` -> OK (`79 passed`).
+
+- T9.2.7-A6-HF2 (02/03/2026): feedback de consulta de CEP padronizado em todos os formularios web
+  - web/ui (`FormFieldGuard`):
+    - adicionado feedback visual padronizado para CEP em runtime:
+      - estado parcial (`Informe os 8 digitos do CEP.`);
+      - estado de consulta (`Consultando CEP...`);
+      - sucesso (`CEP encontrado e endereco preenchido.`);
+      - nao encontrado e erro de consulta.
+    - fluxo de lookup passou a diferenciar `not_found` de `error`, mantendo validacao de formulario coerente.
+    - autofill de endereco mantido por escopo do formulario/template, cobrindo Admin, Web Client e Portal com a mesma regra global.
+  - validacao executada:
+    - `npm run lint` (web/admin) -> OK;
+    - `npm run build` (web/admin) -> OK;
+    - `npm run build` (web/client) -> OK;
+    - `npm run build` (web/portal) -> OK;
+    - `npm run lint` (web/client) -> FALHA preexistente em `src/app/privacidade/page.tsx` (`react/no-unescaped-entities`);
+    - `npm run lint` (web/portal) -> FALHA preexistente em `src/app/privacidade/page.tsx` (`react/no-unescaped-entities`).
+
+- WebAdmin-02/03/2026 (navegacao): modulo `Prioridades` substituido por `Sobre`
+  - menu atualizado em todos os templates do Admin (`classic`, `adminkit`, `admindek`) para usar rota `/sobre`.
+  - nova pagina `/sobre` adicionada com dados de contato do desenvolvedor.
+  - rota legada `/prioridades` mantida com redirect para `/sobre`.
+  - validacao executada:
+    - `npm run build` (web/admin) -> OK;
+    - acesso de producao validado para `/sobre` e `/prioridades`.
+
+- Ops-02/03/2026 (auditoria): relatorios tecnicos de seguranca/qualidade e plano de correcao priorizado publicados
+  - novos artefatos em `docs/reports/`:
+    - `2026-03-02-auditoria-seguranca.md`
+    - `2026-03-02-auditoria-qualidade-redundancias.md`
+    - `2026-03-02-relatorio-evidencias-tecnicas.md`
+    - `2026-03-02-plano-otimizacao-correcao-melhoria.md`
+  - principais riscos registrados:
+    - exposicao de midias sensiveis;
+    - hardening HTTPS incompleto;
+    - segredo de aplicacao de producao fraco.
+
+- Ops-02/03/2026 (plano de correcao - execucao inicial aprovada): hardening de configuracao e borda
+  - backend:
+    - `manage.py` passou a resolver `DJANGO_SETTINGS_MODULE` de forma deterministica via env ou `.env` antes de fallback `config.settings.dev`.
+    - `config.settings.dev` removido app duplicado `corsheaders` em `INSTALLED_APPS`.
+    - `config.settings.prod` recebeu hardening padrao:
+      - `SECURE_SSL_REDIRECT=True` (configuravel por env),
+      - `SECURE_HSTS_SECONDS=31536000`,
+      - `SECURE_HSTS_INCLUDE_SUBDOMAINS=True`,
+      - `SECURE_HSTS_PRELOAD=True`,
+      - `SECURE_CONTENT_TYPE_NOSNIFF=True`,
+      - `SECURE_REFERRER_POLICY=strict-origin-when-cross-origin`,
+      - `X_FRAME_OPTIONS=DENY`.
+  - instalador:
+    - `installdev.sh` passou a derivar `SECRET_KEY` forte a partir de `MRQ_DEFAULT_APP_SECRET` (nao usa mais segredo cru curto como chave Django).
+  - nginx:
+    - `setup_nginx_prod.sh` agora aplica redirect HTTP->HTTPS quando certificados existem;
+    - adicionados headers de seguranca em HTTPS (`HSTS`, `nosniff`, `X-Frame-Options`, `Referrer-Policy`).
+  - validacao executada:
+    - `bash -n installdev.sh` e `bash -n scripts/setup_nginx_prod.sh` -> OK;
+    - `ruff check` (arquivos alterados) -> OK;
+    - `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py check --deploy` -> OK (sem warnings);
+    - `bash scripts/setup_nginx_prod.sh` + `curl` -> HTTP 301 e HTTPS 200 nos subdominios oficiais.
+
+- Ops-02/03/2026 (plano de correcao - fase P0 de midia sensivel): protecao de documentos e biometria
+  - backend (`accounts`):
+    - novo endpoint assinado para acesso de midia de perfil:
+      - `GET /api/v1/accounts/profile-media/<profile_id>/<field_name>/?token=...`
+    - URLs de `profile_photo`/documentos/biometria no serializer de perfil passaram a ser assinadas e temporarias.
+    - fallback com autenticacao mantido para owner/admin quando sem token.
+  - backend (`config.urls`):
+    - rota global de `/media/*` endurecida para bloquear acesso direto a caminhos sensiveis:
+      - `accounts/profile/*`
+      - `accounts/documents/*`
+      - `accounts/biometric/*`
+    - demais midias publicas continuam servidas normalmente.
+  - testes:
+    - `tests/test_accounts_api.py` atualizado com cobertura de URL assinada e bloqueio de acesso direto.
+  - validacao executada:
+    - `ruff check` (arquivos alterados) -> OK;
+    - `python -m pytest tests/test_accounts_api.py -q` -> OK;
+    - `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py check --deploy` -> OK.
