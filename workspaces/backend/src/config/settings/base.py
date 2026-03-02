@@ -110,6 +110,10 @@ PAYMENTS_WEBHOOK_TOKEN = env(
     "PAYMENTS_WEBHOOK_TOKEN",
     default="dev-mrquentinha-webhook-token",
 )
+PAYMENTS_WEBHOOK_THROTTLE_RATE = env(
+    "PAYMENTS_WEBHOOK_THROTTLE_RATE",
+    default="120/min",
+)
 
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",

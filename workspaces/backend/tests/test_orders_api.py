@@ -3,6 +3,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from django.test import override_settings
 from rest_framework.test import APIClient
 
 from apps.accounts.services import SystemRole
@@ -778,6 +779,31 @@ def test_payment_webhook_retorna_401_sem_token(settings):
     )
 
     assert response.status_code == 401
+
+
+@pytest.mark.django_db
+@override_settings(PAYMENTS_WEBHOOK_THROTTLE_RATE="1/min")
+def test_payment_webhook_retorna_429_quando_excede_rate_limit(settings):
+    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-throttle"
+
+    webhook_client = APIClient()
+    first_response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/",
+        data=json.dumps({"event_id": "evt-throttle-001"}),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+        HTTP_X_FORWARDED_FOR="198.51.100.10",
+    )
+    assert first_response.status_code == 400
+
+    second_response = webhook_client.post(
+        "/api/v1/orders/payments/webhook/",
+        data=json.dumps({"event_id": "evt-throttle-002"}),
+        content_type="application/json",
+        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
+        HTTP_X_FORWARDED_FOR="198.51.100.10",
+    )
+    assert second_response.status_code == 429
 
 
 @pytest.mark.django_db

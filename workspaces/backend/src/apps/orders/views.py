@@ -1,4 +1,5 @@
 import os
+import secrets
 import shutil
 import socket
 from datetime import timedelta
@@ -69,20 +70,32 @@ from .services import (
     update_order_status,
     update_payment_status,
 )
+from .throttling import PaymentsWebhookRateThrottle
 
 
-class PaymentWebhookAPIView(APIView):
+class _WebhookTokenProtectedAPIView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [PaymentsWebhookRateThrottle]
 
-    def post(self, request):
-        expected_token = getattr(settings, "PAYMENTS_WEBHOOK_TOKEN", "")
-        received_token = request.headers.get("X-Webhook-Token", "")
-        if not expected_token or received_token != expected_token:
+    def _authorize(self, request):
+        expected_token = str(getattr(settings, "PAYMENTS_WEBHOOK_TOKEN", "")).strip()
+        received_token = str(request.headers.get("X-Webhook-Token", "")).strip()
+        if not expected_token or not secrets.compare_digest(
+            received_token, expected_token
+        ):
             return Response(
                 {"detail": "Webhook token invalido."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+        return None
+
+
+class PaymentWebhookAPIView(_WebhookTokenProtectedAPIView):
+    def post(self, request):
+        unauthorized_response = self._authorize(request)
+        if unauthorized_response is not None:
+            return unauthorized_response
 
         input_serializer = PaymentWebhookInputSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
@@ -141,18 +154,11 @@ def _resolve_client_channel_from_request(request) -> str:
     return "WEB"
 
 
-class MercadoPagoWebhookAPIView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
+class MercadoPagoWebhookAPIView(_WebhookTokenProtectedAPIView):
     def post(self, request):
-        expected_token = getattr(settings, "PAYMENTS_WEBHOOK_TOKEN", "")
-        received_token = request.headers.get("X-Webhook-Token", "")
-        if not expected_token or received_token != expected_token:
-            return Response(
-                {"detail": "Webhook token invalido."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+        unauthorized_response = self._authorize(request)
+        if unauthorized_response is not None:
+            return unauthorized_response
 
         payload = dict(request.data)
         data = payload.get("data")
@@ -188,18 +194,11 @@ class MercadoPagoWebhookAPIView(APIView):
         )
 
 
-class AsaasWebhookAPIView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
+class AsaasWebhookAPIView(_WebhookTokenProtectedAPIView):
     def post(self, request):
-        expected_token = getattr(settings, "PAYMENTS_WEBHOOK_TOKEN", "")
-        received_token = request.headers.get("X-Webhook-Token", "")
-        if not expected_token or received_token != expected_token:
-            return Response(
-                {"detail": "Webhook token invalido."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+        unauthorized_response = self._authorize(request)
+        if unauthorized_response is not None:
+            return unauthorized_response
 
         payload = dict(request.data)
         payment_data = payload.get("payment")
@@ -242,18 +241,11 @@ class AsaasWebhookAPIView(APIView):
         )
 
 
-class EfiWebhookAPIView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
+class EfiWebhookAPIView(_WebhookTokenProtectedAPIView):
     def post(self, request):
-        expected_token = getattr(settings, "PAYMENTS_WEBHOOK_TOKEN", "")
-        received_token = request.headers.get("X-Webhook-Token", "")
-        if not expected_token or received_token != expected_token:
-            return Response(
-                {"detail": "Webhook token invalido."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+        unauthorized_response = self._authorize(request)
+        if unauthorized_response is not None:
+            return unauthorized_response
 
         payload = dict(request.data)
         event_id = (
