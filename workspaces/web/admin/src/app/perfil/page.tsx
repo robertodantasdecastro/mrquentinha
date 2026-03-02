@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
 import { StatusPill, type StatusTone } from "@mrquentinha/ui";
 
 import { AdminSessionGate, useAdminSession } from "@/components/AdminSessionGate";
@@ -31,6 +31,8 @@ const DOCUMENT_TYPE_OPTIONS: Array<{ value: UserDocumentType; label: string }> =
   { value: "PASSAPORTE", label: "Passaporte" },
   { value: "OUTRO", label: "Outro" },
 ];
+
+type CepLookupStatus = "idle" | "loading" | "found" | "not_found" | "error";
 
 type ProfileFormState = {
   username: string;
@@ -79,6 +81,48 @@ function resolveErrorMessage(error: unknown): string {
   }
 
   return "Falha inesperada. Tente novamente.";
+}
+
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+type CepLookupData = {
+  postal_code: string;
+  street: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+};
+
+async function lookupCep(cep: string): Promise<CepLookupData | null> {
+  const normalized = digitsOnly(cep);
+  if (normalized.length !== 8) {
+    return null;
+  }
+
+  const response = await fetch(`/api/runtime/lookup-cep?cep=${encodeURIComponent(normalized)}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error("Falha ao consultar CEP.");
+  }
+
+  const payload = (await response.json()) as Record<string, string>;
+  const payloadPostalCode = digitsOnly(String(payload.postal_code || normalized));
+  return {
+    postal_code: payloadPostalCode || normalized,
+    street: String(payload.street || "").trim(),
+    neighborhood: String(payload.neighborhood || "").trim(),
+    city: String(payload.city || "").trim(),
+    state: String(payload.state || "").trim().toUpperCase(),
+  };
 }
 
 function resolveBiometricTone(status: UserBiometricStatus): StatusTone {
@@ -167,6 +211,9 @@ function ProfilePageContent() {
   const [fileState, setFileState] = useState<ProfileFileState>(createEmptyFiles);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [cepLookupStatus, setCepLookupStatus] = useState<CepLookupStatus>("idle");
+  const [cepLookupDetail, setCepLookupDetail] = useState<string>("");
+  const [lastLookupCep, setLastLookupCep] = useState<string>("");
 
   useEffect(() => {
     let mounted = true;
@@ -202,6 +249,95 @@ function ProfilePageContent() {
       mounted = false;
     };
   }, [user.email, user.first_name, user.last_name, user.username]);
+
+  const cepDigits = useMemo(
+    () => digitsOnly(formState?.postal_code ?? ""),
+    [formState?.postal_code],
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    if (!formState) {
+      return () => {
+        active = false;
+      };
+    }
+
+    if (cepDigits.length === 0) {
+      setCepLookupStatus("idle");
+      setCepLookupDetail("");
+      setLastLookupCep("");
+      return () => {
+        active = false;
+      };
+    }
+
+    if (cepDigits.length < 8) {
+      setCepLookupStatus("idle");
+      setCepLookupDetail("Informe os 8 digitos do CEP.");
+      return () => {
+        active = false;
+      };
+    }
+
+    if (cepDigits === lastLookupCep) {
+      return () => {
+        active = false;
+      };
+    }
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        setCepLookupStatus("loading");
+        setCepLookupDetail("Consultando CEP...");
+
+        try {
+          const result = await lookupCep(cepDigits);
+          if (!active) {
+            return;
+          }
+
+          if (!result) {
+            setCepLookupStatus("not_found");
+            setCepLookupDetail("CEP nao encontrado.");
+            setLastLookupCep(cepDigits);
+            return;
+          }
+
+          setCepLookupStatus("found");
+          setCepLookupDetail("CEP encontrado e endereco carregado.");
+          setLastLookupCep(cepDigits);
+
+          setFormState((current) => {
+            if (!current) {
+              return current;
+            }
+            return {
+              ...current,
+              postal_code: result.postal_code,
+              street: result.street || current.street,
+              neighborhood: result.neighborhood || current.neighborhood,
+              city: result.city || current.city,
+              state: result.state || current.state,
+            };
+          });
+        } catch {
+          if (!active) {
+            return;
+          }
+          setCepLookupStatus("error");
+          setCepLookupDetail("Erro ao consultar CEP. Tente novamente.");
+          setLastLookupCep("");
+        }
+      })();
+    }, 420);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [cepDigits, formState, lastLookupCep]);
 
   function handleFieldChange<K extends keyof ProfileFormState>(
     key: K,
@@ -529,6 +665,20 @@ function ProfilePageContent() {
               value={formState.postal_code}
               onChange={(event) => handleFieldChange("postal_code", event.currentTarget.value)}
             />
+            {cepLookupDetail && (
+              <span
+                className={[
+                  "text-xs",
+                  cepLookupStatus === "found"
+                    ? "text-emerald-600"
+                    : cepLookupStatus === "error" || cepLookupStatus === "not_found"
+                      ? "text-rose-600"
+                      : "text-muted",
+                ].join(" ")}
+              >
+                {cepLookupDetail}
+              </span>
+            )}
           </label>
           <label className="grid gap-1 text-sm text-muted">
             Rua

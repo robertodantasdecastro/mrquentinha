@@ -13,6 +13,7 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (perfil/CEP): `/perfil` agora mostra status de busca de CEP e preenche endereco automaticamente; backend passou a priorizar fallback ViaCEP quando Correios estiver indisponivel.
 - Atualizacao em 02/03/2026 (ops/producao): novo iniciador `scripts/start_ops_dashboard_prod.sh` para abrir o painel de operacao de producao com um comando unico.
 - Atualizacao em 02/03/2026 (web admin/auth): shell do Admin agora oculta menu e navegacao antes do login; filtragem de menus por permissao de modulo do usuario aplicada em todos os templates.
 - Atualizacao em 02/03/2026 (web admin/perfil): `Meu Perfil` passou a carregar/salvar tambem dados da conta (`username`, `email`, `first_name`, `last_name`) via novo `PATCH /api/v1/accounts/me/`.

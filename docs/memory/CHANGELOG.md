@@ -1,6 +1,8 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- Web Admin (perfil/CEP UX): tela `/perfil` passou a exibir status da consulta de CEP (`consultando`, `encontrado`, `nao encontrado`, `erro`) e autopreencher `rua`, `bairro`, `cidade` e `estado` ao validar CEP.
+- Backend (accounts/CEP): `lookup_address_by_cep` foi ajustado para usar fallback ViaCEP quando Correios estiver indisponivel, evitando erro 503 em CEP valido sem credencial Correios.
 - Ops/producao: criado iniciador `scripts/start_ops_dashboard_prod.sh` para abrir rapidamente o dashboard operacional de producao no terminal.
 - Web Admin (auth shell): menu lateral/topbar e atalhos de navegacao passam a aparecer somente com sessao autenticada; em estado anonimo o shell mostra apenas conteudo de login.
 - Web Admin (authz/menu): navegacao de menus agora e filtrada por permissao efetiva do usuario (`module_permissions` + regras RBAC), evitando exibicao de modulos nao autorizados.
