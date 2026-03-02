@@ -1,6 +1,9 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- Security (orders/webhooks): validacao do header `X-Webhook-Token` endurecida com `secrets.compare_digest` (comparacao em tempo constante) e consolidada em classe base para todos os endpoints de webhook de pagamento.
+- Security (orders/webhooks): adicionado throttle por IP (`PaymentsWebhookRateThrottle`) para endpoints de webhook com taxa configuravel por ambiente via `PAYMENTS_WEBHOOK_THROTTLE_RATE` (default `120/min`).
+- Ops/Instalador (prod): `installdev.sh` agora gera `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS` de producao restritos a HTTPS dos dominios oficiais (`www`, `portal`, `client`, `admin`, `api`), removendo origens HTTP/IP/localhost em `.env.prod`.
 - Web Admin (perfil/CEP UX): tela `/perfil` passou a exibir status da consulta de CEP (`consultando`, `encontrado`, `nao encontrado`, `erro`) e autopreencher `rua`, `bairro`, `cidade` e `estado` ao validar CEP.
 - Backend (accounts/CEP): `lookup_address_by_cep` foi ajustado para usar fallback ViaCEP quando Correios estiver indisponivel, evitando erro 503 em CEP valido sem credencial Correios.
 - Ops/producao: criado iniciador `scripts/start_ops_dashboard_prod.sh` para abrir rapidamente o dashboard operacional de producao no terminal.

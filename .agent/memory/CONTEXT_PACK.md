@@ -13,6 +13,8 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (P1 hardening aprovado): webhooks de pagamento passaram a validar token com comparacao em tempo constante (`compare_digest`) e throttle por IP com taxa configuravel (`PAYMENTS_WEBHOOK_THROTTLE_RATE`).
+- Atualizacao em 02/03/2026 (instalador/prod): `installdev.sh` foi ajustado para gerar CORS/CSRF de producao apenas com origens HTTPS oficiais dos subdominios do projeto, removendo origens locais/IP em `.env.prod`.
 - Atualizacao em 02/03/2026 (ops/dev): publicado `scripts/sync_dev_from_main.sh` para sincronizar VM DEV com `main` sem interferir na maquina de producao (auto-stash, ajuste de env/db, migrate/check, restart e smoke).
 - Atualizacao em 02/03/2026 (seguranca/midia): documentos, selfie e biometria do perfil agora usam URL assinada temporaria via endpoint `accounts/profile-media`; acesso direto a `/media/accounts/profile|documents|biometric/*` foi bloqueado.
 - Atualizacao em 02/03/2026 (seguranca/hardening): execucao inicial do plano aprovado concluida com `manage.py` deterministico (env/.env), hardening de `config.settings.prod`, derivacao forte de `SECRET_KEY` no `installdev.sh` e `setup_nginx_prod.sh` com redirect HTTP->HTTPS + headers de seguranca.

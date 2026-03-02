@@ -432,7 +432,18 @@ build_allowed_hosts() {
 }
 
 build_web_origins() {
+  local env_kind="${1:-dev}"
   local origins=()
+  if [[ "$env_kind" == "prod" ]]; then
+    local prod_frontend_domains=("$ROOT_DOMAIN" "$PORTAL_DOMAIN" "$CLIENT_DOMAIN" "$ADMIN_DOMAIN")
+    local domain
+    for domain in "${prod_frontend_domains[@]}"; do
+      append_unique "https://${domain}" origins
+    done
+    join_csv "${origins[@]}"
+    return 0
+  fi
+
   local local_hosts=("localhost" "127.0.0.1")
   append_unique "$PRIMARY_IP" local_hosts
   append_unique "$PUBLIC_IP" local_hosts
@@ -455,13 +466,18 @@ build_web_origins() {
 }
 
 build_csrf_origins() {
+  local env_kind="${1:-dev}"
   local origins=()
   local base_origins_csv
-  base_origins_csv="$(build_web_origins)"
+  base_origins_csv="$(build_web_origins "$env_kind")"
   IFS=',' read -r -a origins <<<"$base_origins_csv"
 
-  append_unique "http://${API_DOMAIN}" origins
-  append_unique "https://${API_DOMAIN}" origins
+  if [[ "$env_kind" == "prod" ]]; then
+    append_unique "https://${API_DOMAIN}" origins
+  else
+    append_unique "http://${API_DOMAIN}" origins
+    append_unique "https://${API_DOMAIN}" origins
+  fi
 
   join_csv "${origins[@]}"
 }
@@ -490,8 +506,8 @@ write_env_file() {
   fi
 
   allowed_hosts="$(build_allowed_hosts "$env_kind")"
-  web_origins="$(build_web_origins)"
-  csrf_origins="$(build_csrf_origins)"
+  web_origins="$(build_web_origins "$env_kind")"
+  csrf_origins="$(build_csrf_origins "$env_kind")"
 
   upsert_env "$target" "DATABASE_URL" "postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${db_name}"
   upsert_env "$target" "DEBUG" "$debug"
