@@ -1,6 +1,7 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- Ops/producao: criado iniciador `scripts/start_ops_dashboard_prod.sh` para abrir rapidamente o dashboard operacional de producao no terminal.
 - Web Admin (auth shell): menu lateral/topbar e atalhos de navegacao passam a aparecer somente com sessao autenticada; em estado anonimo o shell mostra apenas conteudo de login.
 - Web Admin (authz/menu): navegacao de menus agora e filtrada por permissao efetiva do usuario (`module_permissions` + regras RBAC), evitando exibicao de modulos nao autorizados.
 - Web Admin (perfil): tela `Meu Perfil` passou a carregar e editar tambem dados de conta (`username`, `email`, `first_name`, `last_name`) via `PATCH /api/v1/accounts/me/`, junto dos campos adicionais de `UserProfile`.
