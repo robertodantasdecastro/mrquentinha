@@ -15,7 +15,15 @@ export type AuthUserProfile = {
   essential_profile_complete?: boolean;
   missing_essential_profile_fields?: string[];
   allowed_admin_module_slugs?: string[];
+  module_permissions?: AdminModulePermissionData[];
   can_access_technical_admin?: boolean;
+};
+
+export type AdminModuleAccessLevel = "read" | "write";
+
+export type AdminModulePermissionData = {
+  module_slug: string;
+  access_level: AdminModuleAccessLevel;
 };
 
 export type UserDocumentType =
@@ -128,6 +136,7 @@ export type AdminUserData = {
   task_codes: string[];
   task_category_codes: string[];
   allowed_admin_module_slugs: string[];
+  module_permissions: AdminModulePermissionData[];
   can_access_technical_admin: boolean;
 };
 
@@ -189,6 +198,7 @@ export type CreateAdminUserPayload = {
   is_staff?: boolean;
   role_codes: string[];
   task_codes?: string[];
+  module_permissions?: AdminModulePermissionData[];
 };
 
 export type UpdateAdminUserPayload = Partial<{
@@ -199,6 +209,7 @@ export type UpdateAdminUserPayload = Partial<{
   is_active: boolean;
   is_staff: boolean;
   password: string;
+  module_permissions: AdminModulePermissionData[];
 }>;
 
 export type CustomerAccountStatus =

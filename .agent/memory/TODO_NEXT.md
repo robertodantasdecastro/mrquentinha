@@ -53,3 +53,4 @@ Fila atual:
 44. [x] T9.2.7-A6 Ops Dashboard com box Postgres + script installdev + guia AWS preconfig (db dev/prod) - concluida em 02/03/2026.
 45. [x] Ops-02/03/2026 Instalacao hibrida real em EC2 t3.micro (Postgres local + DNS oficial + hardening `installdev.sh` + checkpoint de continuidade) - concluida em 02/03/2026.
 46. [x] WebAdmin-02/03/2026 Corrigir preload global + endurecer acesso tecnico + validacao de senha no modulo Usuarios/RBAC (cobertura em todos os templates) - concluida em 02/03/2026.
+47. [x] WebAdmin-02/03/2026 Hardening de acesso: ocultar menu pre-login, filtrar navegacao por permissao de modulo, corrigir `Meu Perfil` (dados de conta + dados adicionais) e revisar pipeline de media/upload em producao - concluida em 02/03/2026.

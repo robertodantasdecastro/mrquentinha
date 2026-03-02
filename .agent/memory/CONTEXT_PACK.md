@@ -13,6 +13,9 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 02/03/2026 (web admin/auth): shell do Admin agora oculta menu e navegacao antes do login; filtragem de menus por permissao de modulo do usuario aplicada em todos os templates.
+- Atualizacao em 02/03/2026 (web admin/perfil): `Meu Perfil` passou a carregar/salvar tambem dados da conta (`username`, `email`, `first_name`, `last_name`) via novo `PATCH /api/v1/accounts/me/`.
+- Atualizacao em 02/03/2026 (ops/media): script `scripts/fix_media_permissions.sh` padroniza ownership/permissoes do `MEDIA_ROOT`; backend exposto para servir `/media/*` em runtime com proxy atual.
 - Atualizacao em 02/03/2026 (web admin): preload global de rede reativado no layout e validacao de senha forte adicionada no modulo `Usuarios e RBAC`; regra global agora exige validar qualquer correcao nos tres templates do Admin (`classic`, `adminkit`, `admindek`).
 - Atualizacao em 02/03/2026 (instalacao hibrida EC2): `installdev.sh` reexecutado com Postgres local, bancos separados (`mrquentinha_dev`/`mrquentinha_prod`), Nginx ativo e smoke de stack validado em `172.31.71.156`.
 - Atualizacao em 02/03/2026 (hardening instalador): `installdev.sh` passou a respeitar `MRQ_DB_HOST` no provisionamento e remover `*.trycloudflare.com` do `.env.prod` (restrito ao DEV).

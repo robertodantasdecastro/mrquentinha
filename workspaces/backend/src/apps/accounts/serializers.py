@@ -14,14 +14,17 @@ from .customer_services import (
 from .models import Role, UserProfile, UserTask, UserTaskCategory
 from .services import (
     SystemRole,
+    assign_admin_modules_to_user,
     assign_roles_to_user,
     assign_tasks_to_user,
     build_user_account_compliance,
     get_allowed_admin_module_slugs,
+    get_user_admin_module_permissions,
     get_user_role_codes,
     get_user_task_category_codes,
     get_user_task_codes,
     register_user_with_default_role,
+    user_can_access_technical_admin,
 )
 from .validators import (
     is_valid_cnpj_document,
@@ -60,6 +63,7 @@ class MeSerializer(serializers.Serializer):
     essential_profile_complete = serializers.SerializerMethodField()
     missing_essential_profile_fields = serializers.SerializerMethodField()
     allowed_admin_module_slugs = serializers.SerializerMethodField()
+    module_permissions = serializers.SerializerMethodField()
     can_access_technical_admin = serializers.SerializerMethodField()
 
     def get_roles(self, obj):
@@ -88,8 +92,73 @@ class MeSerializer(serializers.Serializer):
     def get_allowed_admin_module_slugs(self, obj):
         return get_allowed_admin_module_slugs(obj)
 
+    def get_module_permissions(self, obj):
+        return get_user_admin_module_permissions(obj)
+
     def get_can_access_technical_admin(self, obj):
-        return "usuarios-rbac" in set(get_allowed_admin_module_slugs(obj))
+        return user_can_access_technical_admin(obj)
+
+
+class MeAccountUpdateSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150, required=False)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    password = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
+    def validate_username(self, value: str) -> str:
+        username = str(value or "").strip()
+        if not username:
+            raise serializers.ValidationError("Informe um nome de usuario valido.")
+
+        user = self.context.get("user")
+        User = get_user_model()
+        qs = User.objects.filter(username=username)
+        if user is not None:
+            qs = qs.exclude(pk=user.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Nome de usuario ja cadastrado.")
+        return username
+
+    def validate_password(self, value: str) -> str:
+        password = str(value or "")
+        if not password:
+            return ""
+        if len(password) < 8:
+            raise serializers.ValidationError("Senha deve ter ao menos 8 caracteres.")
+        has_lower = any(char.islower() for char in password)
+        has_upper = any(char.isupper() for char in password)
+        has_digit = any(char.isdigit() for char in password)
+        if not (has_lower and has_upper and has_digit):
+            raise serializers.ValidationError(
+                "Senha deve conter letra maiuscula, minuscula e numero."
+            )
+        return password
+
+    def apply(self, *, user):
+        updates: list[str] = []
+        for field_name in ("username", "email", "first_name", "last_name"):
+            if field_name not in self.validated_data:
+                continue
+            value = self.validated_data[field_name]
+            if isinstance(value, str):
+                value = value.strip()
+            if getattr(user, field_name) == value:
+                continue
+            setattr(user, field_name, value)
+            updates.append(field_name)
+
+        password = self.validated_data.get("password", None)
+        if isinstance(password, str) and password:
+            user.set_password(password)
+            updates.append("password")
+
+        if updates:
+            if "password" in updates:
+                user.save()
+            else:
+                user.save(update_fields=updates)
+        return user
 
 
 class UserAdminSerializer(serializers.Serializer):
@@ -110,6 +179,7 @@ class UserAdminSerializer(serializers.Serializer):
     task_codes = serializers.SerializerMethodField()
     task_category_codes = serializers.SerializerMethodField()
     allowed_admin_module_slugs = serializers.SerializerMethodField()
+    module_permissions = serializers.SerializerMethodField()
     can_access_technical_admin = serializers.SerializerMethodField()
 
     def get_roles(self, obj):
@@ -147,8 +217,11 @@ class UserAdminSerializer(serializers.Serializer):
     def get_allowed_admin_module_slugs(self, obj):
         return get_allowed_admin_module_slugs(obj)
 
+    def get_module_permissions(self, obj):
+        return get_user_admin_module_permissions(obj)
+
     def get_can_access_technical_admin(self, obj):
-        return "usuarios-rbac" in set(get_allowed_admin_module_slugs(obj))
+        return user_can_access_technical_admin(obj)
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -312,6 +385,11 @@ class AssignTasksSerializer(serializers.Serializer):
             raise serializers.ValidationError(exc.messages) from exc
 
 
+class AdminModulePermissionInputSerializer(serializers.Serializer):
+    module_slug = serializers.CharField(max_length=64)
+    access_level = serializers.ChoiceField(choices=("read", "write"))
+
+
 class AdminUserCreateSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(min_length=8, write_only=True)
@@ -327,6 +405,11 @@ class AdminUserCreateSerializer(serializers.Serializer):
     task_codes = serializers.ListField(
         child=serializers.CharField(max_length=64),
         allow_empty=True,
+        required=False,
+        default=list,
+    )
+    module_permissions = AdminModulePermissionInputSerializer(
+        many=True,
         required=False,
         default=list,
     )
@@ -377,6 +460,7 @@ class AdminUserCreateSerializer(serializers.Serializer):
 
         role_codes = validated_data.pop("role_codes", [])
         task_codes = validated_data.pop("task_codes", [])
+        module_permissions = validated_data.pop("module_permissions", [])
         password = validated_data.pop("password")
         try:
             with transaction.atomic():
@@ -391,6 +475,12 @@ class AdminUserCreateSerializer(serializers.Serializer):
                 )
                 assign_roles_to_user(user=user, role_codes=role_codes, replace=True)
                 assign_tasks_to_user(user=user, task_codes=task_codes, replace=True)
+                assign_admin_modules_to_user(
+                    user=user,
+                    module_permissions=module_permissions,
+                    replace=True,
+                    assigned_by=self.context.get("request_user"),
+                )
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.messages) from exc
         return user
@@ -404,6 +494,10 @@ class AdminUserUpdateSerializer(serializers.Serializer):
     is_active = serializers.BooleanField(required=False)
     is_staff = serializers.BooleanField(required=False)
     password = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    module_permissions = AdminModulePermissionInputSerializer(
+        many=True,
+        required=False,
+    )
 
     def validate_username(self, value: str) -> str:
         username = str(value or "").strip()
@@ -458,6 +552,17 @@ class AdminUserUpdateSerializer(serializers.Serializer):
         if isinstance(password, str) and password:
             user.set_password(password)
             updates.append("password")
+
+        if "module_permissions" in self.validated_data:
+            try:
+                assign_admin_modules_to_user(
+                    user=user,
+                    module_permissions=self.validated_data.get("module_permissions", []),
+                    replace=True,
+                    assigned_by=self.context.get("request_user"),
+                )
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError(exc.messages) from exc
 
         if updates:
             if "password" in updates:

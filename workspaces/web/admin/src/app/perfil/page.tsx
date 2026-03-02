@@ -10,6 +10,7 @@ import { InlinePreloader } from "@/components/InlinePreloader";
 import {
   ApiError,
   fetchMyUserProfile,
+  updateMeAccount,
   updateMyUserProfile,
   uploadMyUserProfileFiles,
 } from "@/lib/api";
@@ -32,6 +33,10 @@ const DOCUMENT_TYPE_OPTIONS: Array<{ value: UserDocumentType; label: string }> =
 ];
 
 type ProfileFormState = {
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
   full_name: string;
   preferred_name: string;
   phone: string;
@@ -110,6 +115,10 @@ function resolveBiometricLabel(status: UserBiometricStatus): string {
 
 function mapProfileToForm(profile: UserProfileData): ProfileFormState {
   return {
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
     full_name: profile.full_name ?? "",
     preferred_name: profile.preferred_name ?? "",
     phone: profile.phone ?? "",
@@ -169,7 +178,13 @@ function ProfilePageContent() {
           return;
         }
         setProfile(payload);
-        setFormState(mapProfileToForm(payload));
+        setFormState({
+          ...mapProfileToForm(payload),
+          username: user.username || "",
+          email: user.email || "",
+          first_name: user.first_name || "",
+          last_name: user.last_name || "",
+        });
       } catch (error) {
         if (!mounted) {
           return;
@@ -186,7 +201,7 @@ function ProfilePageContent() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user.email, user.first_name, user.last_name, user.username]);
 
   function handleFieldChange<K extends keyof ProfileFormState>(
     key: K,
@@ -222,9 +237,44 @@ function ProfilePageContent() {
     setErrorMessage("");
 
     try {
-      const payload = await updateMyUserProfile(formState);
+      const accountPayload = await updateMeAccount({
+        username: formState.username,
+        email: formState.email,
+        first_name: formState.first_name,
+        last_name: formState.last_name,
+      });
+      const payload = await updateMyUserProfile({
+        full_name: formState.full_name,
+        preferred_name: formState.preferred_name,
+        phone: formState.phone,
+        phone_is_whatsapp: formState.phone_is_whatsapp,
+        secondary_phone: formState.secondary_phone,
+        birth_date: formState.birth_date,
+        cpf: formState.cpf,
+        cnpj: formState.cnpj,
+        rg: formState.rg,
+        occupation: formState.occupation,
+        postal_code: formState.postal_code,
+        street: formState.street,
+        street_number: formState.street_number,
+        address_complement: formState.address_complement,
+        neighborhood: formState.neighborhood,
+        city: formState.city,
+        state: formState.state,
+        country: formState.country,
+        document_type: formState.document_type,
+        document_number: formState.document_number,
+        document_issuer: formState.document_issuer,
+        notes: formState.notes,
+      });
       setProfile(payload);
-      setFormState(mapProfileToForm(payload));
+      setFormState({
+        ...mapProfileToForm(payload),
+        username: accountPayload.username || "",
+        email: accountPayload.email || "",
+        first_name: accountPayload.first_name || "",
+        last_name: accountPayload.last_name || "",
+      });
       setMessage("Dados do perfil atualizados com sucesso.");
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
@@ -262,7 +312,13 @@ function ProfilePageContent() {
     try {
       const payload = await uploadMyUserProfileFiles(formData);
       setProfile(payload);
-      setFormState(mapProfileToForm(payload));
+      setFormState((current) => ({
+        ...mapProfileToForm(payload),
+        username: current?.username ?? user.username ?? "",
+        email: current?.email ?? user.email ?? "",
+        first_name: current?.first_name ?? user.first_name ?? "",
+        last_name: current?.last_name ?? user.last_name ?? "",
+      }));
       setFileState(createEmptyFiles());
       setMessage("Arquivos enviados e vinculados ao perfil.");
     } catch (error) {
@@ -331,6 +387,43 @@ function ProfilePageContent() {
       >
         <h2 className="text-lg font-semibold text-text">Dados adicionais completos</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="grid gap-1 text-sm text-muted">
+            Usuario
+            <input
+              name="username"
+              className={INPUT_CLASS}
+              value={formState.username}
+              onChange={(event) => handleFieldChange("username", event.currentTarget.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-muted">
+            E-mail
+            <input
+              name="email"
+              type="email"
+              className={INPUT_CLASS}
+              value={formState.email}
+              onChange={(event) => handleFieldChange("email", event.currentTarget.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-muted">
+            Nome
+            <input
+              name="first_name"
+              className={INPUT_CLASS}
+              value={formState.first_name}
+              onChange={(event) => handleFieldChange("first_name", event.currentTarget.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-muted">
+            Sobrenome
+            <input
+              name="last_name"
+              className={INPUT_CLASS}
+              value={formState.last_name}
+              onChange={(event) => handleFieldChange("last_name", event.currentTarget.value)}
+            />
+          </label>
           <label className="grid gap-1 text-sm text-muted">
             Nome completo
             <input

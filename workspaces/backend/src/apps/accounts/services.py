@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from .models import (
     Role,
+    UserAdminModulePermission,
     UserProfile,
     UserRole,
     UserTask,
@@ -946,24 +947,10 @@ def get_user_task_category_codes(user) -> set[str]:
 
 
 def get_allowed_admin_module_slugs(user) -> list[str]:
-    if not user or not getattr(user, "is_authenticated", False):
-        return []
-
-    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
-        return sorted(ADMIN_WEB_MODULE_SLUGS)
-
-    role_codes = get_user_role_codes(user)
-    if SystemRole.ADMIN in role_codes:
-        return sorted(ADMIN_WEB_MODULE_SLUGS)
-
-    allowed_modules: set[str] = set()
-    for role_code in role_codes:
-        allowed_modules.update(ROLE_ADMIN_MODULE_ACCESS.get(role_code, set()))
-
-    return sorted(allowed_modules.difference(TECHNICAL_ADMIN_MODULE_SLUGS))
+    return sorted(get_user_admin_module_access_map(user).keys())
 
 
-def user_can_access_technical_admin(user) -> bool:
+def _has_base_technical_admin_access(user) -> bool:
     if not user or not getattr(user, "is_authenticated", False):
         return False
 
@@ -971,6 +958,132 @@ def user_can_access_technical_admin(user) -> bool:
         return True
 
     return SystemRole.ADMIN in get_user_role_codes(user)
+
+
+def get_user_admin_module_access_map(user) -> dict[str, str]:
+    if not user or not getattr(user, "is_authenticated", False):
+        return {}
+
+    cached = getattr(user, "_rbac_admin_module_access_map", None)
+    if isinstance(cached, dict):
+        return cached
+
+    if _has_base_technical_admin_access(user):
+        full_access = {module_slug: "write" for module_slug in ADMIN_WEB_MODULE_SLUGS}
+        user._rbac_admin_module_access_map = full_access
+        return full_access
+
+    explicit_permissions_qs = UserAdminModulePermission.objects.filter(user=user).values(
+        "module_slug",
+        "access_level",
+    )
+    explicit_permissions = list(explicit_permissions_qs)
+    if explicit_permissions:
+        explicit_access: dict[str, str] = {}
+        for permission in explicit_permissions:
+            module_slug = str(permission["module_slug"] or "").strip()
+            access_level = str(permission["access_level"] or "").strip().lower()
+            if module_slug not in ADMIN_WEB_MODULE_SLUGS:
+                continue
+            if module_slug in TECHNICAL_ADMIN_MODULE_SLUGS:
+                continue
+            explicit_access[module_slug] = "write" if access_level == "write" else "read"
+        user._rbac_admin_module_access_map = explicit_access
+        return explicit_access
+
+    role_codes = get_user_role_codes(user)
+    role_access_map: dict[str, str] = {}
+    for role_code in role_codes:
+        for module_slug in ROLE_ADMIN_MODULE_ACCESS.get(role_code, set()):
+            if module_slug in TECHNICAL_ADMIN_MODULE_SLUGS:
+                continue
+            role_access_map[module_slug] = "write"
+
+    user._rbac_admin_module_access_map = role_access_map
+    return role_access_map
+
+
+def get_user_admin_module_permissions(user) -> list[dict[str, str]]:
+    access_map = get_user_admin_module_access_map(user)
+    return [
+        {"module_slug": module_slug, "access_level": access_map[module_slug]}
+        for module_slug in sorted(access_map.keys())
+    ]
+
+
+@transaction.atomic
+def assign_admin_modules_to_user(
+    *,
+    user,
+    module_permissions: list[dict[str, str]],
+    replace: bool = True,
+    assigned_by=None,
+) -> dict[str, str]:
+    if not user:
+        raise ValidationError("Usuario invalido para atribuicao de modulos.")
+
+    normalized_permissions: dict[str, str] = {}
+    for entry in module_permissions:
+        module_slug = str(entry.get("module_slug", "") or "").strip()
+        access_level = str(entry.get("access_level", "") or "").strip().lower()
+        if not module_slug:
+            continue
+        if module_slug not in ADMIN_WEB_MODULE_SLUGS:
+            raise ValidationError(f"Modulo admin invalido: {module_slug}.")
+        if module_slug in TECHNICAL_ADMIN_MODULE_SLUGS:
+            raise ValidationError(
+                "Modulos tecnicos exigem papel ADMIN e nao podem ser delegados por permissao granular."
+            )
+        normalized_permissions[module_slug] = "write" if access_level == "write" else "read"
+
+    if replace:
+        UserAdminModulePermission.objects.filter(user=user).delete()
+
+    existing_by_module = {
+        item.module_slug: item
+        for item in UserAdminModulePermission.objects.filter(user=user)
+    }
+    to_create: list[UserAdminModulePermission] = []
+    to_update: list[UserAdminModulePermission] = []
+    for module_slug, access_level in normalized_permissions.items():
+        existing = existing_by_module.get(module_slug)
+        if existing is None:
+            to_create.append(
+                UserAdminModulePermission(
+                    user=user,
+                    module_slug=module_slug,
+                    access_level=access_level,
+                    assigned_by=assigned_by,
+                )
+            )
+            continue
+        if existing.access_level != access_level:
+            existing.access_level = access_level
+            existing.assigned_by = assigned_by
+            to_update.append(existing)
+
+    if to_create:
+        UserAdminModulePermission.objects.bulk_create(to_create)
+    if to_update:
+        UserAdminModulePermission.objects.bulk_update(
+            to_update,
+            fields=["access_level", "assigned_by", "updated_at"],
+        )
+
+    if replace:
+        keep_modules = set(normalized_permissions.keys())
+        UserAdminModulePermission.objects.filter(user=user).exclude(
+            module_slug__in=keep_modules
+        ).delete()
+
+    if hasattr(user, "_rbac_admin_module_access_map"):
+        delattr(user, "_rbac_admin_module_access_map")
+
+    return get_user_admin_module_access_map(user)
+
+
+def user_can_access_technical_admin(user) -> bool:
+    return _has_base_technical_admin_access(user)
 
 
 def user_has_any_role(user, role_codes: set[str] | list[str] | tuple[str, ...]) -> bool:

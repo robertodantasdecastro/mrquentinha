@@ -1,6 +1,17 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- Web Admin (auth shell): menu lateral/topbar e atalhos de navegacao passam a aparecer somente com sessao autenticada; em estado anonimo o shell mostra apenas conteudo de login.
+- Web Admin (authz/menu): navegacao de menus agora e filtrada por permissao efetiva do usuario (`module_permissions` + regras RBAC), evitando exibicao de modulos nao autorizados.
+- Web Admin (perfil): tela `Meu Perfil` passou a carregar e editar tambem dados de conta (`username`, `email`, `first_name`, `last_name`) via `PATCH /api/v1/accounts/me/`, junto dos campos adicionais de `UserProfile`.
+- Backend (accounts): endpoint `PATCH /api/v1/accounts/me/` adicionado para atualizacao segura da conta logada sem depender do modulo administrativo de usuarios.
+- Ops/upload media: publicado `scripts/fix_media_permissions.sh` para padronizar ownership/permissoes do `MEDIA_ROOT` e manter persistencia segura local na instancia.
+- Backend/media serving: `config/urls.py` ajustado para expor `/media/*` no backend em runtime, garantindo acesso aos arquivos de perfil/documentos/ocr no ambiente de producao com proxy atual.
+- Web Admin (RBAC/acesso): corrigido bug de permissao que permitia acesso a modulos nao autorizados quando `allowed_admin_module_slugs` vinha vazio; comportamento agora e `deny by default` para nao-admin.
+- Web Admin (RBAC/UX): modulo `Usuarios/RBAC` ganhou configuracao granular por modulo com nivel `Sem acesso`, `Leitura` e `Leitura e escrita` no fluxo de criacao e edicao de usuario.
+- Backend (accounts): novo modelo `UserAdminModulePermission` (migration `0010`) para persistir permissoes granulares por modulo no Admin Web.
+- Backend/API (accounts): payloads de `me` e `users` agora incluem `module_permissions`; create/update de usuario aceitam `module_permissions` para governanca de acesso por modulo.
+- Web Admin (guard global): `ModulePageShell` passou a validar acesso por modulo para todas as paginas de modulo (todos os templates) usando a regra de permissao granular.
 - Web Admin (UX/preload): preload global de rede reativado no layout (`GlobalNetworkPreloader`) para todos os modulos, com feedback mais rapido durante requisicoes e navegacao entre secoes.
 - Web Admin (Usuarios/RBAC UX): painel reorganizado com fluxo guiado por blocos interdependentes (`assistente de fluxo`), priorizando `Edicao da conta selecionada` antes de `Criar conta`, com atalhos de navegacao por bloco e acao direta `Editar conta` na listagem.
 - Web Admin (Usuarios/RBAC): validacao de senha forte adicionada no frontend para criacao/edicao de usuario (min. 8, maiuscula, minuscula e numero), com mensagem clara antes do submit.

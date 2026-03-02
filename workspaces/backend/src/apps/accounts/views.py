@@ -26,6 +26,7 @@ from .serializers import (
     CepLookupSerializer,
     EmailVerificationConfirmSerializer,
     EmailVerificationResendSerializer,
+    MeAccountUpdateSerializer,
     MeSerializer,
     RegisterSerializer,
     RoleSerializer,
@@ -99,6 +100,17 @@ class MeAPIView(APIView):
     def get(self, request):
         serializer = MeSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = MeAccountUpdateSerializer(
+            data=request.data,
+            partial=True,
+            context={"user": request.user},
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.apply(user=request.user)
+        output = MeSerializer(user)
+        return Response(output.data, status=status.HTTP_200_OK)
 
 
 class MeProfileAPIView(APIView):
@@ -180,6 +192,7 @@ class UserAdminViewSet(
             User.objects.order_by("id")
             .prefetch_related("user_roles__role")
             .prefetch_related("task_assignments__task__category")
+            .prefetch_related("admin_module_permissions")
             .select_related("profile")
         )
 
@@ -191,7 +204,10 @@ class UserAdminViewSet(
         return UserAdminSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(
+            data=request.data,
+            context={"request_user": request.user},
+        )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         output = UserAdminSerializer(user)
@@ -203,7 +219,10 @@ class UserAdminViewSet(
         serializer = self.get_serializer(
             data=request.data,
             partial=partial,
-            context={"user": user},
+            context={
+                "user": user,
+                "request_user": request.user,
+            },
         )
         serializer.is_valid(raise_exception=True)
         serializer.apply(user=user)
