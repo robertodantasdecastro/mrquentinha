@@ -5,6 +5,17 @@
 - T9.2.7-A6 (ops): script `installdev.sh` adicionado para setup dev/prod em AWS com bancos separados e seed.
 - T9.2.7-A6 (docs): guia `docs/13-guia-instalacao-aws-preconfig-dev-prod.md` publicado (AWS preconfig + db dev/prod).
 - T9.2.7-A6 (ops/rules): regra global passou a exigir teste ao final de qualquer acao; `ops_dashboard` corrigido para evitar `UnboundLocalError` de `draw_box`.
+- T9.2.7-A6 (ops/cloud): modo DEV oficial com dominio + portas no Cloudflare (admin), SSL/TLS via Web Admin e scripts Nginx/Certbot.
+  - backend:
+    - novo endpoint admin `POST /api/v1/portal/admin/config/ssl-certificates/apply/` para aplicar certs via `certbot`.
+    - Cloudflare DEV ganhou `dev_official_domain` e `dev_url_mode=official`.
+  - web admin:
+    - painel `SSL/TLS e certificados` com dry-run/aplicar.
+    - Cloudflare DEV passou a permitir modo `Dominio oficial + portas`.
+  - scripts:
+    - `scripts/setup_nginx_prod.sh` (proxy Nginx por subdominio).
+    - `scripts/ops_ssl_cert.sh` (certbot com dominios configurados).
+    - `installdev.sh` passou a instalar nginx/certbot + validar DNS.
 
 ## 01/03/2026
 - T9.2.7-A6 (backend/accounts): criptografia de dados sensiveis no `UserProfile` com hashes de busca para CPF/CNPJ/telefone e chaves por ambiente (`FIELD_ENCRYPTION_KEY`, `FIELD_HASH_SALT`).

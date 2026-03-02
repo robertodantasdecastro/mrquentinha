@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
 
 import { InlinePreloader } from "@/components/InlinePreloader";
@@ -69,11 +69,6 @@ export function SupportTicketsPanel() {
   const [priorityDraft, setPriorityDraft] = useState<SupportTicketPriority>("NORMAL");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-
-  const selected = useMemo(
-    () => tickets.find((ticket) => ticket.id === selectedId) ?? null,
-    [tickets, selectedId],
-  );
 
   async function loadTickets() {
     setLoading(true);

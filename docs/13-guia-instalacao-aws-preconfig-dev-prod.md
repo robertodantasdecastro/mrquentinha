@@ -5,7 +5,7 @@ Perfil: usuario avancado AWS
 
 ## 1) Pre-requisitos no AWS Console (feito pelo usuario)
 1. Criar uma instancia EC2 com acesso SSH via chave `.pem`.
-2. Configurar o Route 53 apontando `www.mrquentinha.com.br` para a EC2.
+2. Configurar o Route 53 apontando `www.mrquentinha.com.br` para a EC2 (IP publico/EIP).
 3. Security Group liberando portas: `22`, `80`, `443`, `8000`.
 4. Acessar a instancia via SSH e clonar o repo:
    ```bash
@@ -41,11 +41,23 @@ MRQ_DEV_DB_DUMP_PATH=/tmp/mrq_dev.dump ./installdev.sh
 
 O script:
 - Instala dependencias (Python, Node, Postgres).
+- Instala Nginx + certbot e valida DNS (quando `dig` estiver disponivel).
 - Cria 2 bancos separados: `mrquentinha_dev` e `mrquentinha_prod`.
 - Gera `.env.dev` e `.env.prod` com chaves distintas.
 - Deixa `.env` apontando para DEV.
 - Restaura dump DEV (ou usa seed DEMO se dump nao for informado).
 - Prepara PROD com migrations + `seed_portal_default`.
+
+Opcional para DNS/SSL:
+```bash
+MRQ_PUBLIC_IP=34.204.185.9 \
+MRQ_ROOT_DOMAIN=mrquentinha.com.br \
+MRQ_ENABLE_NGINX=1 \
+MRQ_SETUP_SSL=1 \
+MRQ_SSL_EMAIL=contato@mrquentinha.com.br \
+MRQ_SSL_DOMAINS="www.mrquentinha.com.br,app.mrquentinha.com.br,admin.mrquentinha.com.br,api.mrquentinha.com.br" \
+./installdev.sh
+```
 
 ## 5) Como alternar entre DEV e PROD
 DEV:
@@ -90,6 +102,7 @@ cd ../admin && npm install
    - dados da empresa
    - pagamento
    - dominios/SSL
+   - modo DEV oficial (dev.mrquentinha.com.br + portas) quando usar ambiente hibrido
 
 ## 8) Operacao rapida
 ```bash

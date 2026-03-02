@@ -221,6 +221,7 @@ DEFAULT_CLOUDFLARE_SETTINGS = {
         "api": "",
     },
     "dev_url_mode": "random",
+    "dev_official_domain": "dev.mrquentinha.com.br",
     "dev_manual_urls": {
         "portal": "https://portal-mrquentinha.trycloudflare.com",
         "client": "https://cliente-mrquentinha.trycloudflare.com",
@@ -244,6 +245,7 @@ INSTALLER_ALLOWED_CLOUD_PROVIDERS = {"aws", "gcp"}
 INSTALLER_ALLOWED_AWS_AUTH_MODES = {"profile", "access_key"}
 INSTALLER_SAFE_REMOTE_PATH_RE = re.compile(r"^[A-Za-z0-9_./$-]+$")
 INSTALLER_SAFE_GIT_REF_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
+SSL_ALLOWED_DOMAIN_RE = re.compile(r"^[A-Za-z0-9.-]+$")
 INSTALLER_RUNTIME_DIR = PROJECT_ROOT / ".runtime" / "install"
 INSTALLER_JOBS_DIR = INSTALLER_RUNTIME_DIR / "jobs"
 AWS_COST_DEFAULT_EC2_HOURLY_USD = 0.0416
@@ -1168,7 +1170,7 @@ def _normalize_cloudflare_mode(value: object) -> str:
 
 def _normalize_cloudflare_dev_url_mode(value: object) -> str:
     normalized = str(value or "").strip().lower()
-    if normalized in {"random", "manual"}:
+    if normalized in {"random", "manual", "official"}:
         return normalized
     return "random"
 
@@ -1215,6 +1217,9 @@ def _normalize_cloudflare_settings(raw_value: object | None) -> dict:
     normalized["dev_url_mode"] = _normalize_cloudflare_dev_url_mode(
         raw_value.get("dev_url_mode")
     )
+    normalized["dev_official_domain"] = str(
+        raw_value.get("dev_official_domain", normalized.get("dev_official_domain", ""))
+    ).strip()
     normalized["last_action_at"] = str(raw_value.get("last_action_at", "")).strip()
     normalized["last_status_message"] = (
         str(raw_value.get("last_status_message", "")).strip()
@@ -1296,12 +1301,38 @@ def _normalize_cloudflare_dev_urls(settings: dict) -> dict[str, str]:
     return output
 
 
+def _build_cloudflare_official_dev_urls(settings: dict) -> dict[str, str]:
+    dev_domain = str(settings.get("dev_official_domain", "")).strip().lower().strip(".")
+    scheme = str(settings.get("scheme", "https")).strip().lower()
+    if scheme not in {"http", "https"}:
+        scheme = "https"
+
+    output: dict[str, str] = {
+        "portal": "",
+        "client": "",
+        "admin": "",
+        "api": "",
+    }
+    if not dev_domain:
+        return output
+
+    for spec in CLOUDFLARE_DEV_SERVICE_SPECS:
+        channel = str(spec.get("key", "")).strip()
+        port = int(spec.get("port", 0) or 0)
+        if channel in output and port > 0:
+            output[channel] = f"{scheme}://{dev_domain}:{port}"
+    return output
+
+
 def _resolve_cloudflare_active_dev_urls(settings: dict) -> dict[str, str]:
     manual_urls = _normalize_cloudflare_manual_dev_urls(settings.get("dev_manual_urls"))
-    if _normalize_cloudflare_dev_url_mode(
-        settings.get("dev_url_mode")
-    ) == "manual" and _has_complete_cloudflare_dev_urls(manual_urls):
+    dev_url_mode = _normalize_cloudflare_dev_url_mode(settings.get("dev_url_mode"))
+    if dev_url_mode == "manual" and _has_complete_cloudflare_dev_urls(manual_urls):
         return manual_urls
+    if dev_url_mode == "official":
+        official_urls = _build_cloudflare_official_dev_urls(settings)
+        if _has_complete_cloudflare_dev_urls(official_urls):
+            return official_urls
     return _normalize_cloudflare_dev_urls(settings)
 
 
@@ -1430,7 +1461,11 @@ def _build_cloudflare_preview_payload(config: PortalConfig, settings: dict) -> d
             else (
                 "Modo dev usando URLs manuais/estaveis definidas pelo operador."
                 if dev_url_mode == "manual"
-                else "Modo dev usa dominios aleatorios trycloudflare.com por servico."
+                else (
+                    "Modo dev usando dominio oficial com portas por servico."
+                    if dev_url_mode == "official"
+                    else "Modo dev usa dominios aleatorios trycloudflare.com por servico."
+                )
             )
         ),
         "generated_at": timezone.now().isoformat(),
@@ -1447,6 +1482,9 @@ def _build_public_cloudflare_settings(config: PortalConfig) -> dict:
         "dev_url_mode": _normalize_cloudflare_dev_url_mode(
             normalized.get("dev_url_mode")
         ),
+        "dev_official_domain": str(
+            normalized.get("dev_official_domain", "")
+        ).strip(),
         "scheme": normalized["scheme"],
         "root_domain": normalized["root_domain"],
         "subdomains": normalized["subdomains"],
@@ -2947,6 +2985,54 @@ def manage_cloudflare_runtime(
     config.cloudflare_settings = _normalize_cloudflare_settings(settings)
     config.save(update_fields=["cloudflare_settings", "updated_at"])
     return config, runtime_payload
+
+
+def apply_ssl_certificates(*, payload: dict | None) -> dict:
+    payload = payload if isinstance(payload, dict) else {}
+    email = str(payload.get("email", "")).strip()
+    raw_domains = payload.get("domains", [])
+    dry_run = bool(payload.get("dry_run", False))
+
+    if not email:
+        raise ValidationError("Informe o e-mail para o certificado SSL.")
+
+    domains: list[str] = []
+    if isinstance(raw_domains, str):
+        domains = [item.strip() for item in raw_domains.split(",") if item.strip()]
+    elif isinstance(raw_domains, list):
+        domains = [str(item).strip() for item in raw_domains if str(item).strip()]
+
+    if not domains:
+        raise ValidationError("Informe pelo menos um dominio para SSL.")
+
+    for domain in domains:
+        if not SSL_ALLOWED_DOMAIN_RE.fullmatch(domain):
+            raise ValidationError(f"Dominio invalido: {domain}")
+
+    script_path = PROJECT_ROOT / "scripts" / "ops_ssl_cert.sh"
+    if not script_path.exists():
+        raise ValidationError("Script de certificados nao encontrado.")
+
+    env = os.environ.copy()
+    env["MRQ_SSL_EMAIL"] = email
+    env["MRQ_SSL_DOMAINS"] = ",".join(domains)
+    env["MRQ_SSL_DRY_RUN"] = "1" if dry_run else "0"
+
+    process = subprocess.run(
+        ["bash", str(script_path)],
+        env=env,
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    return {
+        "ok": process.returncode == 0,
+        "exit_code": process.returncode,
+        "stdout": process.stdout.strip(),
+        "stderr": process.stderr.strip(),
+    }
 
 
 def _ensure_installer_runtime_dirs() -> None:

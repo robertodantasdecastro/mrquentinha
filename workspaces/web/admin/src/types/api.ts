@@ -1020,7 +1020,7 @@ export type PortalEmailTestResult = {
 };
 
 export type PortalCloudflareMode = "local_only" | "cloudflare_only" | "hybrid";
-export type PortalCloudflareDevUrlMode = "random" | "manual";
+export type PortalCloudflareDevUrlMode = "random" | "manual" | "official";
 
 export type PortalCloudflareSubdomains = {
   portal: string;
@@ -1049,6 +1049,7 @@ export type PortalCloudflareConfig = {
   mode: PortalCloudflareMode;
   dev_mode: boolean;
   dev_url_mode: PortalCloudflareDevUrlMode;
+  dev_official_domain: string;
   scheme: "http" | "https";
   root_domain: string;
   subdomains: PortalCloudflareSubdomains;
@@ -1097,6 +1098,19 @@ export type PortalCloudflarePreviewData = {
   ingress_rules: string[];
   coexistence_note: string;
   generated_at: string;
+};
+
+export type PortalSslCertificatesRequest = {
+  email: string;
+  domains: string[];
+  dry_run?: boolean;
+};
+
+export type PortalSslCertificatesResult = {
+  ok: boolean;
+  exit_code: number;
+  stdout: string;
+  stderr: string;
 };
 
 export type PortalCloudflareToggleResult = {

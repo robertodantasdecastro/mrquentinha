@@ -31,6 +31,7 @@ from .services import (
     get_installer_job_status,
     list_installer_jobs,
     manage_cloudflare_runtime,
+    apply_ssl_certificates,
     publish_mobile_release,
     publish_portal_config,
     save_installer_wizard_settings,
@@ -212,6 +213,15 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["post"], url_path="ssl-certificates/apply")
+    def ssl_certificates_apply(self, request):
+        try:
+            result = apply_ssl_certificates(payload=request.data)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+
+        return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["post"], url_path="installer-wizard-validate")
     def installer_wizard_validate(self, request):

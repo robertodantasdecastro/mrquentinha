@@ -6,6 +6,7 @@ import { InlinePreloader } from "@/components/InlinePreloader";
 
 import {
   ApiError,
+  applyPortalSslCertificatesAdmin,
   createMobileReleaseAdmin,
   ensurePortalConfigAdmin,
   listMobileReleasesAdmin,
@@ -39,6 +40,7 @@ import type {
   PortalPaymentProvidersConfig,
   PortalPaymentReceiverConfig,
   PortalSectionData,
+  PortalSslCertificatesResult,
   PortalTemplateData,
 } from "@/types/api";
 
@@ -644,6 +646,7 @@ function getDefaultCloudflareSettings(): PortalCloudflareConfig {
     mode: "hybrid",
     dev_mode: false,
     dev_url_mode: "random",
+    dev_official_domain: "dev.mrquentinha.com.br",
     scheme: "https",
     root_domain: "mrquentinha.com.br",
     subdomains: {
@@ -697,7 +700,9 @@ function normalizeCloudflareSettings(
   const normalizedScheme =
     value?.scheme === "http" || value?.scheme === "https" ? value.scheme : defaults.scheme;
   const normalizedDevUrlMode =
-    value?.dev_url_mode === "manual" || value?.dev_url_mode === "random"
+    value?.dev_url_mode === "manual" ||
+    value?.dev_url_mode === "random" ||
+    value?.dev_url_mode === "official"
       ? value.dev_url_mode
       : defaults.dev_url_mode;
 
@@ -707,6 +712,10 @@ function normalizeCloudflareSettings(
     mode: normalizedMode,
     dev_url_mode: normalizedDevUrlMode,
     scheme: normalizedScheme,
+    dev_official_domain:
+      typeof value?.dev_official_domain === "string" && value.dev_official_domain.trim()
+        ? value.dev_official_domain.trim()
+        : defaults.dev_official_domain,
     subdomains: {
       ...defaults.subdomains,
       ...(value?.subdomains ?? {}),
@@ -762,6 +771,9 @@ export function PortalSections({
   const [cloudflareDevModeDraft, setCloudflareDevModeDraft] = useState(false);
   const [cloudflareDevUrlModeDraft, setCloudflareDevUrlModeDraft] =
     useState<PortalCloudflareDevUrlMode>("random");
+  const [cloudflareDevOfficialDomainDraft, setCloudflareDevOfficialDomainDraft] = useState(
+    "dev.mrquentinha.com.br",
+  );
   const [cloudflareSchemeDraft, setCloudflareSchemeDraft] = useState<"http" | "https">("https");
   const [cloudflareRootDomainDraft, setCloudflareRootDomainDraft] = useState("mrquentinha.com.br");
   const [cloudflarePortalSubdomainDraft, setCloudflarePortalSubdomainDraft] = useState("www");
@@ -876,6 +888,10 @@ export function PortalSections({
   );
   const [emailReplyToDraft, setEmailReplyToDraft] = useState("");
   const [emailTestRecipientDraft, setEmailTestRecipientDraft] = useState("");
+  const [sslEmailDraft, setSslEmailDraft] = useState("");
+  const [sslDomainsDraft, setSslDomainsDraft] = useState("");
+  const [sslApplying, setSslApplying] = useState(false);
+  const [sslResult, setSslResult] = useState<PortalSslCertificatesResult | null>(null);
   const [testingEmail, setTestingEmail] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [mobileReleases, setMobileReleases] = useState<MobileReleaseData[]>([]);
@@ -1024,6 +1040,7 @@ export function PortalSections({
     [apiBaseUrlDraft],
   );
   const customDevHostsEnabled = cloudflareDevUrlModeDraft === "manual";
+  const officialDevHostsEnabled = cloudflareDevUrlModeDraft === "official";
   const selectedFrontendProviders = useMemo(
     () =>
       new Set(
@@ -1044,6 +1061,7 @@ export function PortalSections({
       mode: cloudflareModeDraft,
       dev_mode: cloudflareDevModeDraft,
       dev_url_mode: cloudflareDevUrlModeDraft,
+      dev_official_domain: cloudflareDevOfficialDomainDraft.trim(),
       scheme: cloudflareSchemeDraft,
       root_domain: cloudflareRootDomainDraft.trim(),
       subdomains: {
@@ -1149,6 +1167,9 @@ export function PortalSections({
         setCloudflareModeDraft(cloudflareSettings.mode);
         setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
         setCloudflareDevUrlModeDraft(cloudflareSettings.dev_url_mode);
+        setCloudflareDevOfficialDomainDraft(
+          cloudflareSettings.dev_official_domain || "dev.mrquentinha.com.br",
+        );
         setCloudflareSchemeDraft(cloudflareSettings.scheme);
         setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
         setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
@@ -1256,6 +1277,21 @@ export function PortalSections({
         setEmailFromAddressDraft(emailSettings.from_email);
         setEmailReplyToDraft(emailSettings.reply_to_email);
         setEmailTestRecipientDraft(emailSettings.test_recipient);
+        setSslEmailDraft(
+          emailSettings.from_email ||
+            emailSettings.reply_to_email ||
+            "contato@mrquentinha.com.br",
+        );
+        setSslDomainsDraft(
+          [
+            configPayload.portal_domain,
+            configPayload.client_domain,
+            configPayload.admin_domain,
+            configPayload.api_domain,
+          ]
+            .filter((domain) => Boolean(domain))
+            .join("\n"),
+        );
         setCloudflarePreview(null);
         try {
           const runtimePayload = await managePortalCloudflareRuntimeAdmin("status");
@@ -1618,6 +1654,19 @@ export function PortalSections({
       setEmailFromAddressDraft(emailSettings.from_email);
       setEmailReplyToDraft(emailSettings.reply_to_email);
       setEmailTestRecipientDraft(emailSettings.test_recipient);
+      setSslEmailDraft(
+        emailSettings.from_email || emailSettings.reply_to_email || "contato@mrquentinha.com.br",
+      );
+      setSslDomainsDraft(
+        [
+          updatedConfig.portal_domain,
+          updatedConfig.client_domain,
+          updatedConfig.admin_domain,
+          updatedConfig.api_domain,
+        ]
+          .filter((domain) => Boolean(domain))
+          .join("\n"),
+      );
       setSuccessMessage("Gestao de e-mail atualizada com sucesso.");
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
@@ -1637,6 +1686,44 @@ export function PortalSections({
       setErrorMessage(resolveErrorMessage(error));
     } finally {
       setTestingEmail(false);
+    }
+  }
+
+  function resolveSslDomains(): string[] {
+    return sslDomainsDraft
+      .split(/\s+|,/)
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  async function handleApplySslCertificates(dryRun = false) {
+    if (!sslEmailDraft.trim()) {
+      setErrorMessage("Informe o e-mail para o certificado SSL.");
+      return;
+    }
+    const domains = resolveSslDomains();
+    if (domains.length === 0) {
+      setErrorMessage("Informe ao menos um dominio para SSL.");
+      return;
+    }
+
+    setSslApplying(true);
+    setSslResult(null);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const result = await applyPortalSslCertificatesAdmin({
+        email: sslEmailDraft.trim(),
+        domains,
+        dry_run: dryRun,
+      });
+      setSslResult(result);
+      setSuccessMessage(result.ok ? "Certificados aplicados com sucesso." : "Falha ao aplicar SSL.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setSslApplying(false);
     }
   }
 
@@ -1732,6 +1819,9 @@ export function PortalSections({
       setCloudflareModeDraft(cloudflareSettings.mode);
       setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
       setCloudflareDevUrlModeDraft(cloudflareSettings.dev_url_mode);
+      setCloudflareDevOfficialDomainDraft(
+        cloudflareSettings.dev_official_domain || "dev.mrquentinha.com.br",
+      );
       setCloudflareSchemeDraft(cloudflareSettings.scheme);
       setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
       setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
@@ -1829,6 +1919,9 @@ export function PortalSections({
       setCloudflareModeDraft(cloudflareSettings.mode);
       setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
       setCloudflareDevUrlModeDraft(cloudflareSettings.dev_url_mode);
+      setCloudflareDevOfficialDomainDraft(
+        cloudflareSettings.dev_official_domain || "dev.mrquentinha.com.br",
+      );
       setCloudflareSchemeDraft(cloudflareSettings.scheme);
       setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
       setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
@@ -1908,6 +2001,9 @@ export function PortalSections({
       setCloudflareModeDraft(cloudflareSettings.mode);
       setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
       setCloudflareDevUrlModeDraft(cloudflareSettings.dev_url_mode);
+      setCloudflareDevOfficialDomainDraft(
+        cloudflareSettings.dev_official_domain || "dev.mrquentinha.com.br",
+      );
       setCloudflareSchemeDraft(cloudflareSettings.scheme);
       setCloudflareRootDomainDraft(cloudflareSettings.root_domain);
       setCloudflarePortalSubdomainDraft(cloudflareSettings.subdomains.portal);
@@ -3098,40 +3194,47 @@ export function PortalSections({
                   onChange={(event) => setCloudflareDevModeDraft(event.currentTarget.checked)}
                   className="h-4 w-4 rounded border-border text-primary"
                 />
-                Modo DEV com dominios aleatorios (trycloudflare)
+                Modo DEV com dominios publicos
               </label>
               <p className="mt-1 text-xs text-muted">
-                Quando ativo, o runtime gera URLs publicas temporarias para Portal/Client/Admin/API
-                sem depender do dominio oficial. Ideal para homologacao em desenvolvimento.
+                Quando ativo, as URLs DEV substituem as URLs de producao (portal/client/admin/api).
+                Escolha entre trycloudflare (random), manual ou dominio oficial com portas.
               </p>
               {cloudflareDevModeDraft && (
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   <div className="grid gap-2 text-sm text-muted">
-                    <p className="font-medium text-text">Hosts personalizados (DEV)</p>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCloudflareDevUrlModeDraft(
-                          customDevHostsEnabled ? "random" : "manual",
-                        )
-                      }
-                      className="w-fit rounded-md border border-border bg-bg px-3 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
-                    >
-                      {customDevHostsEnabled
-                        ? "Desabilitar hosts personalizados"
-                        : "Habilitar hosts personalizados"}
-                    </button>
+                    <label className="grid gap-1 text-sm text-muted">
+                      Modo de URL DEV
+                      <select
+                        value={cloudflareDevUrlModeDraft}
+                        onChange={(event) =>
+                          setCloudflareDevUrlModeDraft(
+                            event.currentTarget.value as PortalCloudflareDevUrlMode,
+                          )
+                        }
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      >
+                        <option value="random">Random (trycloudflare)</option>
+                        <option value="manual">Manual (URLs estaveis)</option>
+                        <option value="official">Dominio oficial + portas</option>
+                      </select>
+                    </label>
                     <p className="text-xs">
                       Status atual:{" "}
                       <strong className="text-text">
-                        {customDevHostsEnabled ? "habilitado" : "desabilitado"}
+                        {cloudflareDevUrlModeDraft === "manual"
+                          ? "manual"
+                          : cloudflareDevUrlModeDraft === "official"
+                            ? "dominio oficial"
+                            : "random"}
                       </strong>
                     </p>
                   </div>
                   <p className="rounded-md border border-border bg-bg px-3 py-2 text-xs text-muted">
                     Em <strong>manual</strong>, as URLs abaixo viram referencia ativa para
                     roteamento/API dos frontends no modo DEV. Em <strong>random</strong>, o sistema
-                    usa os dominios gerados pelo runtime.
+                    usa os dominios gerados pelo runtime. Em <strong>oficial</strong>, usa um unico
+                    dominio (ex.: dev.mrquentinha.com.br) com portas 3000/3001/3002/8000.
                   </p>
                 </div>
               )}
@@ -3179,6 +3282,33 @@ export function PortalSections({
                     placeholder="https://api-mrquentinha.trycloudflare.com"
                   />
                 </label>
+              </div>
+            )}
+
+            {cloudflareDevModeDraft && officialDevHostsEnabled && (
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="grid gap-1 text-sm text-muted">
+                  Dominio oficial DEV (porta por servico)
+                  <input
+                    value={cloudflareDevOfficialDomainDraft}
+                    onChange={(event) =>
+                      setCloudflareDevOfficialDomainDraft(event.currentTarget.value)
+                    }
+                    className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                    placeholder="dev.mrquentinha.com.br"
+                  />
+                </label>
+                <div className="rounded-md border border-border bg-bg px-3 py-2 text-xs text-muted">
+                  Este dominio sera aplicado como:
+                  <br />
+                  Portal: https://dev.mrquentinha.com.br:3000
+                  <br />
+                  Client: https://dev.mrquentinha.com.br:3001
+                  <br />
+                  Admin: https://dev.mrquentinha.com.br:3002
+                  <br />
+                  API: https://dev.mrquentinha.com.br:8000
+                </div>
               </div>
             )}
 
@@ -3509,6 +3639,76 @@ export function PortalSections({
                 )}
               </div>
             )}
+          </article>
+
+          <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-text">SSL/TLS e certificados</h3>
+                <p className="mt-1 text-xs text-muted">
+                  Gera e aplica certificados HTTPS (Lets Encrypt) para Portal, Client, Admin e API.
+                  Requer Nginx e certbot instalados na instancia.
+                </p>
+              </div>
+              <StatusPill tone={sslResult?.ok ? "success" : "neutral"}>
+                {sslResult?.ok ? "Aplicado" : "Aguardando"}
+              </StatusPill>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="grid gap-1 text-sm text-muted">
+                E-mail para o certificado
+                <input
+                  value={sslEmailDraft}
+                  onChange={(event) => setSslEmailDraft(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="contato@mrquentinha.com.br"
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-muted">
+                Dominios (um por linha)
+                <textarea
+                  value={sslDomainsDraft}
+                  onChange={(event) => setSslDomainsDraft(event.currentTarget.value)}
+                  rows={4}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder={"www.mrquentinha.com.br\napp.mrquentinha.com.br\nadmin.mrquentinha.com.br\napi.mrquentinha.com.br"}
+                />
+              </label>
+            </div>
+
+            {sslResult && (
+              <div className="mt-3 rounded-md border border-border bg-surface/60 px-3 py-2 text-xs text-muted">
+                <p className="font-semibold text-text">
+                  Resultado: {sslResult.ok ? "sucesso" : "falha"} (exit {sslResult.exit_code})
+                </p>
+                {sslResult.stdout && (
+                  <pre className="mt-2 whitespace-pre-wrap">{sslResult.stdout}</pre>
+                )}
+                {sslResult.stderr && (
+                  <pre className="mt-2 whitespace-pre-wrap text-rose-600">{sslResult.stderr}</pre>
+                )}
+              </div>
+            )}
+
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => void handleApplySslCertificates(true)}
+                disabled={sslApplying || loading}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {sslApplying ? "Processando..." : "Simular (dry-run)"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleApplySslCertificates(false)}
+                disabled={sslApplying || loading}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {sslApplying ? "Processando..." : "Aplicar certificados"}
+              </button>
+            </div>
           </article>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">

@@ -47,6 +47,8 @@ import type {
   PortalCloudflareRuntimeResult,
   PortalCloudflareToggleResult,
   PortalEmailTestResult,
+  PortalSslCertificatesRequest,
+  PortalSslCertificatesResult,
   PortalInstallerAwsValidateResult,
   PortalInstallerDraftPayload,
   PortalInstallerJobResult,
@@ -1492,6 +1494,19 @@ export async function managePortalCloudflareRuntimeAdmin(
       method: "POST",
       auth: true,
       body: JSON.stringify({ action }),
+    },
+  );
+}
+
+export async function applyPortalSslCertificatesAdmin(
+  payload: PortalSslCertificatesRequest,
+): Promise<PortalSslCertificatesResult> {
+  return requestJson<PortalSslCertificatesResult>(
+    "/api/v1/portal/admin/config/ssl-certificates/apply/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
     },
   );
 }

@@ -14,6 +14,19 @@ DB_PROD_NAME="${MRQ_DB_PROD_NAME:-mrquentinha_prod}"
 DEV_DUMP_PATH="${MRQ_DEV_DB_DUMP_PATH:-}"
 DEV_DUMP_URL="${MRQ_DEV_DB_DUMP_URL:-}"
 
+ROOT_DOMAIN="${MRQ_ROOT_DOMAIN:-mrquentinha.com.br}"
+PORTAL_DOMAIN="${MRQ_PORTAL_DOMAIN:-www.${ROOT_DOMAIN}}"
+CLIENT_DOMAIN="${MRQ_CLIENT_DOMAIN:-app.${ROOT_DOMAIN}}"
+ADMIN_DOMAIN="${MRQ_ADMIN_DOMAIN:-admin.${ROOT_DOMAIN}}"
+API_DOMAIN="${MRQ_API_DOMAIN:-api.${ROOT_DOMAIN}}"
+DEV_DOMAIN="${MRQ_DEV_DOMAIN:-dev.${ROOT_DOMAIN}}"
+PUBLIC_IP="${MRQ_PUBLIC_IP:-}"
+
+ENABLE_NGINX="${MRQ_ENABLE_NGINX:-1}"
+SETUP_SSL="${MRQ_SETUP_SSL:-0}"
+SSL_EMAIL="${MRQ_SSL_EMAIL:-}"
+SSL_DOMAINS="${MRQ_SSL_DOMAINS:-}"
+
 ensure_sudo() {
   if sudo -n true >/dev/null 2>&1; then
     return 0
@@ -53,8 +66,12 @@ install_system_packages() {
     build-essential \
     ca-certificates \
     curl \
+    dnsutils \
     git \
     libpq-dev \
+    nginx \
+    certbot \
+    python3-certbot-nginx \
     postgresql \
     postgresql-contrib \
     python3 \
@@ -77,6 +94,65 @@ install_node() {
   source "$nvm_dir/nvm.sh"
   nvm install --lts
   nvm use --lts
+}
+
+check_dns() {
+  if ! command -v dig >/dev/null 2>&1; then
+    echo "[installdev] 'dig' nao disponivel para validar DNS."
+    return 0
+  fi
+
+  local domains=(
+    "$PORTAL_DOMAIN"
+    "$CLIENT_DOMAIN"
+    "$ADMIN_DOMAIN"
+    "$API_DOMAIN"
+  )
+  echo "[installdev] Validando DNS (A records)..."
+  for domain in "${domains[@]}"; do
+    local resolved
+    resolved="$(dig +short "$domain" | head -n1 | tr -d '\r')"
+    if [[ -z "$resolved" ]]; then
+      echo " - $domain -> (nao resolvido)"
+      continue
+    fi
+    if [[ -n "$PUBLIC_IP" && "$resolved" != "$PUBLIC_IP" ]]; then
+      echo " - $domain -> $resolved (esperado: $PUBLIC_IP)"
+    else
+      echo " - $domain -> $resolved"
+    fi
+  done
+}
+
+configure_nginx_prod() {
+  if [[ "$ENABLE_NGINX" != "1" ]]; then
+    return 0
+  fi
+  ensure_sudo
+  MRQ_ROOT_DOMAIN="$ROOT_DOMAIN" \
+    MRQ_PORTAL_DOMAIN="$PORTAL_DOMAIN" \
+    MRQ_CLIENT_DOMAIN="$CLIENT_DOMAIN" \
+    MRQ_ADMIN_DOMAIN="$ADMIN_DOMAIN" \
+    MRQ_API_DOMAIN="$API_DOMAIN" \
+    bash "$ROOT_DIR/scripts/setup_nginx_prod.sh"
+}
+
+setup_ssl_certs() {
+  if [[ "$SETUP_SSL" != "1" ]]; then
+    return 0
+  fi
+  if [[ -z "$SSL_EMAIL" ]]; then
+    echo "[installdev] MRQ_SSL_EMAIL obrigatorio para configurar certificados." >&2
+    exit 1
+  fi
+  MRQ_ROOT_DOMAIN="$ROOT_DOMAIN" \
+    MRQ_PORTAL_DOMAIN="$PORTAL_DOMAIN" \
+    MRQ_CLIENT_DOMAIN="$CLIENT_DOMAIN" \
+    MRQ_ADMIN_DOMAIN="$ADMIN_DOMAIN" \
+    MRQ_API_DOMAIN="$API_DOMAIN" \
+    MRQ_SSL_EMAIL="$SSL_EMAIL" \
+    MRQ_SSL_DOMAINS="$SSL_DOMAINS" \
+    bash "$ROOT_DIR/scripts/ops_ssl_cert.sh"
 }
 
 configure_postgres() {
@@ -204,11 +280,14 @@ codex_login_prompt() {
 main() {
   install_system_packages
   install_node
+  check_dns
   configure_postgres
   configure_envs
   install_backend_deps
   restore_dev_database
   prepare_prod_database
+  configure_nginx_prod
+  setup_ssl_certs
   codex_login_prompt
 
   echo
@@ -218,6 +297,11 @@ main() {
   echo "- Portal:  scripts/start_portal_dev.sh"
   echo "- Client:  scripts/start_client_dev.sh"
   echo "- Ops:     scripts/ops_dashboard.sh --auto-start"
+  echo
+  echo "[installdev] Dicas DNS/SSL (opcional):"
+  echo "  MRQ_PUBLIC_IP=<ip-publico> para validar A records."
+  echo "  MRQ_ENABLE_NGINX=1 para configurar proxy Nginx."
+  echo "  MRQ_SETUP_SSL=1 + MRQ_SSL_EMAIL/MRQ_SSL_DOMAINS para aplicar certificados."
 }
 
 main "$@"

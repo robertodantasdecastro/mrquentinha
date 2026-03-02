@@ -137,6 +137,10 @@ Referencia de atualizacao: 02/03/2026.
 - Atualizacao em 02/03/2026 (ops/rules):
   - regra global passou a exigir teste ao final de qualquer acao.
   - `ops_dashboard` corrigido para evitar `UnboundLocalError` de `draw_box`.
+- Atualizacao em 02/03/2026 (ops/cloud):
+  - Web Admin passou a permitir SSL/TLS com certbot (acao via painel + scripts de apoio).
+  - modo DEV oficial com dominio + portas adicionado ao Cloudflare (dev_url_mode `official`).
+  - `installdev.sh` passou a instalar Nginx/certbot e validar DNS (A records).
 - Financas pessoais (`T8.1.1`):
   - novo app `personal_finance` com `accounts`, `categories`, `entries` e `budgets`.
   - ownership estrito por usuario em querysets e validacoes.

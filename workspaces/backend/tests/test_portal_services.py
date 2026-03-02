@@ -414,6 +414,26 @@ def test_cloudflare_preview_dev_manual_usa_urls_configuradas():
     assert preview["coexistence_note"].startswith("Modo dev usando URLs manuais")
 
 
+@pytest.mark.django_db
+def test_cloudflare_preview_dev_official_usa_dominio_com_portas():
+    preview = build_cloudflare_preview(
+        overrides={
+            "mode": "hybrid",
+            "dev_mode": True,
+            "dev_url_mode": "official",
+            "dev_official_domain": "dev.mrquentinha.com.br",
+        }
+    )
+
+    assert preview["dev_mode"] is True
+    assert preview["dev_url_mode"] == "official"
+    assert preview["urls"]["portal_base_url"] == "https://dev.mrquentinha.com.br:3000"
+    assert preview["urls"]["client_base_url"] == "https://dev.mrquentinha.com.br:3001"
+    assert preview["urls"]["admin_base_url"] == "https://dev.mrquentinha.com.br:3002"
+    assert preview["urls"]["api_base_url"] == "https://dev.mrquentinha.com.br:8000"
+    assert preview["coexistence_note"].startswith("Modo dev usando dominio oficial")
+
+
 def test_read_cloudflare_dev_url_from_log_ignora_endpoint_interno(tmp_path):
     log_file = tmp_path / "cloudflare-dev-api.log"
     log_file.write_text(
