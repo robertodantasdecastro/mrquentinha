@@ -12,6 +12,7 @@ outputs:
 commands:
   - sed -n '1,220p' AGENTS.md
   - sed -n '1,220p' /home/roberto/.gemini/GEMINI.md
+  - test -f /home/ubuntu/.mrquentinha-secure/host-secrets.env && source /home/ubuntu/.mrquentinha-secure/host-secrets.env || true
   - bash scripts/gemini_check.sh
   - sed -n '1,220p' .agent/memory/IN_PROGRESS.md
   - bash scripts/branch_guard.sh --agent <agente> --strict --codex-primary main --antigravity-branch AntigravityIDE --union-branch Antigravity_Codex
@@ -34,10 +35,12 @@ memory_updates:
 
 ## Passos
 1. Ler `AGENTS.md`, `/home/roberto/.gemini/GEMINI.md` e `IN_PROGRESS.md`.
-2. Rodar `bash scripts/gemini_check.sh`.
-3. Validar branch do agente com `branch_guard`.
-4. Rodar baseline tecnico (backend + build portal/client).
-5. Se `modo_escrita=sim`, atualizar `IN_PROGRESS.md` (agente, branch, etapa, areas tocadas).
+2. Carregar segredos locais da maquina (quando existir):
+   - `source /home/ubuntu/.mrquentinha-secure/host-secrets.env`
+3. Rodar `bash scripts/gemini_check.sh`.
+4. Validar branch do agente com `branch_guard`.
+5. Rodar baseline tecnico (backend + build portal/client).
+6. Se `modo_escrita=sim`, atualizar `IN_PROGRESS.md` (agente, branch, etapa, areas tocadas).
 
 ## Criterio de saida
 - Emitir `Sessao pronta` com checklist do dia.

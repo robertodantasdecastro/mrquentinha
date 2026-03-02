@@ -33,6 +33,10 @@ export function canAccessAdminModule(
     return true;
   }
 
+  if (isTechnicalAdminModule(moduleSlug) && !canAccessTechnicalAdmin(user)) {
+    return false;
+  }
+
   const explicitAllowed = user.allowed_admin_module_slugs || [];
   if (explicitAllowed.length > 0) {
     return explicitAllowed.includes(moduleSlug);

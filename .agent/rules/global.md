@@ -51,6 +51,7 @@ Esta regra deve aparecer no painel `Rules > Global` do Antigravity e permanecer 
 ## Padrao tecnico obrigatorio
 - Backend: `services/selectors/serializers/views/urls/tests`.
 - Frontend: uso de `workspaces/web/ui`, `TemplateProvider` e layout clean/modular.
+- Frontend Admin: toda correcao/feature deve ser validada e aplicada em **todos os templates** (`admin-classic`, `admin-adminkit`, `admin-admindek`) antes de concluir.
 - Formularios: padrao unico via `FormFieldGuard` para `CEP/telefone/CPF/CNPJ/email`.
 - CEP: usar endpoint backend `GET /api/v1/accounts/lookup-cep/?cep=...` (Correios) e manter link oficial de consulta manual.
 
@@ -85,6 +86,8 @@ Sempre que executar uma acao, ao final deve testar para garantir o funcionamento
 ## Seguranca
 - Nunca comitar segredos (`.env` real, tokens, senhas, chaves).
 - O repositorio deve conter apenas `.env.example` com placeholders.
+- Segredos operacionais da maquina devem ficar fora do Git em:
+  - `/home/ubuntu/.mrquentinha-secure/host-secrets.env` (permissao `600`).
 
 ## Git hygiene
 - Regra global Codex: antes de qualquer comando git (commit, push, pull, merge, rebase, cherry-pick), confirme a branch correta com git branch --show-current e execute scripts/branch_guard.sh no modo do agente atual.
