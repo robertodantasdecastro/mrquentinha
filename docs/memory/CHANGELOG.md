@@ -1,6 +1,7 @@
 # Changelog (por sprint)
 
 ## 03/03/2026
+- Hotfix dominios (prod): consolidado `app.mrquentinha.com.br` como unico dominio oficial do `mrq_client`; `web.mrquentinha.com.br` mantido apenas como dominio legado explicitamente desativado (`404`) no Nginx.
 - T6.2.1 (portal/web client): consolidacao visual iniciada com padronizacao de shell institucional (`PortalPageIntro` e `ClientPageIntro`) e variacoes de identidade por template em CSS.
 - T6.2.1 (portal): navegacao principal/rodape atualizados para incluir `Suporte` e `Wiki`, com ponte comercial explicita para `app.mrquentinha.com.br`.
 - T6.2.1 (portal): novas paginas publicas `/suporte` e `/wiki` adicionadas, com CTAs para area de vendas e trilhas de atendimento/compliance.

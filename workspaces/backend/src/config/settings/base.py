@@ -179,7 +179,6 @@ CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
     default=[
         "https://www.mrquentinha.com.br",
-        "https://web.mrquentinha.com.br",
         "https://app.mrquentinha.com.br",
         "https://admin.mrquentinha.com.br",
     ],
