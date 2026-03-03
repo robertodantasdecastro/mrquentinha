@@ -20,7 +20,7 @@ from apps.catalog.services import (
 from apps.finance.services import ensure_default_accounts
 from apps.ocr_ai.models import OCRKind
 from apps.ocr_ai.services import apply_ocr_job, create_ocr_job
-from apps.procurement.models import Purchase
+from apps.procurement.models import Purchase, PurchaseRequest
 from apps.procurement.services import (
     create_purchase_and_apply_stock,
     generate_purchase_request_from_menu,
@@ -479,13 +479,17 @@ class Command(BaseCommand):
             dish = dishes_by_weekday[weekday]
             label = self.WEEKDAY_LABELS[weekday]
             existing_menu_day = MenuDay.objects.filter(menu_date=menu_date).first()
-            if (
-                existing_menu_day
-                and existing_menu_day.items.filter(order_items__isnull=False).exists()
-            ):
-                # Evita excluir itens ja usados em pedidos confirmados.
-                menu_days.append(existing_menu_day)
-                continue
+            if existing_menu_day:
+                has_order_links = existing_menu_day.items.filter(
+                    order_items__isnull=False
+                ).exists()
+                has_production_links = existing_menu_day.items.filter(
+                    production_items__isnull=False
+                ).exists()
+                if has_order_links or has_production_links:
+                    # Evita excluir itens ja usados em pedidos e lotes existentes.
+                    menu_days.append(existing_menu_day)
+                    continue
 
             menu_day = set_menu_for_day(
                 menu_date=menu_date,
@@ -510,6 +514,13 @@ class Command(BaseCommand):
     ) -> int:
         created = 0
         for menu_day in menu_days:
+            auto_note = (
+                "Gerada automaticamente a partir do cardapio "
+                f"{menu_day.menu_date.isoformat()}"
+            )
+            if PurchaseRequest.objects.filter(note=auto_note).exists():
+                continue
+
             result = generate_purchase_request_from_menu(
                 menu_day.id, requested_by=operator_user
             )

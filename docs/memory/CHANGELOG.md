@@ -1,6 +1,9 @@
 # Changelog (por sprint)
 
 ## 03/03/2026
+- WebAdmin/procurement: novo endpoint administrativo `POST /api/v1/procurement/ops/seed-paraiba-week/` para disparar a simulacao semanal paraibana sem terminal, com payload opcional `start_date` e retorno estruturado de periodo, volume processado, compra utilizada e log do comando.
+- WebAdmin/modulos: novo painel reutilizavel `WeeklySimulationPanel` publicado em `Cardapio` e `Compras` (secoes `simulacao`) com seletor de data inicial, execucao guiada e relatorio em tela.
+- QA/backend: cobertura adicionada para `seed_paraiba_caseira_week` em `tests/test_seed_paraiba_caseira_week_command.py` (idempotencia, preservacao de menu com pedido existente e formula de precificacao) + teste de API em `tests/test_procurement_api.py`.
 - Ops/monitoramento UX: `GestorServidor` teve layout atualizado para seguir o estilo do dashboard dev (`scripts/ops_dashboard.py`/`ops_center.py`), com cabecalho de acoes, barras percentuais + sparklines de sistema/rede e boxes operacionais de servicos/health.
 - Ops/monitoramento: novo aplicativo TUI `GestorServidor` implementado em `GestorServidor/app.py` com monitoramento em tempo real (host/rede/servicos/dominios/API), controle `start|stop|restart` por servico/stack via `systemctl`, eventos persistidos em `.runtime/gestor-servidor` e launcher raiz `gestor_servidor.sh`.
 - T9.2.8 (web admin/servidor): secao `Conectividade e dominio` ganhou area de credenciais SSH de producao (host/porta/usuario, auth por chave ou senha, upload de `.pem` e validacao de conectividade), restrita a admin e bloqueada fora de modo dev/hibrido.

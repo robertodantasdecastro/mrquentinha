@@ -79,6 +79,8 @@ import type {
   PurchaseItemData,
   PurchaseRequestData,
   PurchaseRequestFromMenuResultData,
+  SeedParaibaCaseiraWeekPayload,
+  SeedParaibaCaseiraWeekResultData,
   ProcurementRequestStatus,
   TaskCategoryData,
   RoleData,
@@ -1284,6 +1286,16 @@ export async function generatePurchaseRequestFromMenuAdmin(
     method: "POST",
     auth: true,
     body: JSON.stringify({ menu_day_id: menuDayId }),
+  });
+}
+
+export async function seedParaibaCaseiraWeekAdmin(
+  payload: SeedParaibaCaseiraWeekPayload,
+): Promise<SeedParaibaCaseiraWeekResultData> {
+  return requestJson<SeedParaibaCaseiraWeekResultData>("/api/v1/procurement/ops/seed-paraiba-week/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
   });
 }
 

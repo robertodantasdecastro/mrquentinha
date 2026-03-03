@@ -1,6 +1,11 @@
+import re
+from datetime import timedelta
 from decimal import Decimal
+from io import StringIO
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -27,12 +32,83 @@ from .serializers import (
     PurchaseRequestFromMenuResultSerializer,
     PurchaseRequestSerializer,
     PurchaseSerializer,
+    SeedParaibaCaseiraWeekInputSerializer,
+    SeedParaibaCaseiraWeekResultSerializer,
 )
 from .services import (
     create_purchase_and_apply_stock,
     create_purchase_request,
     generate_purchase_request_from_menu,
 )
+
+ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
+WEEK_RANGE_PATTERN = re.compile(
+    r"^- Semana: (?P<start_date>\d{4}-\d{2}-\d{2}) a (?P<end_date>\d{4}-\d{2}-\d{2})$"
+)
+MENU_DAYS_PATTERN = re.compile(r"^- Cardapios processados: (?P<count>\d+)$")
+PURCHASE_REQUESTS_PATTERN = re.compile(
+    r"^- Purchase requests simuladas: (?P<count>\d+)$"
+)
+PURCHASE_PATTERN = re.compile(
+    r"^- Compra utilizada: #(?P<id>\d+) \((?P<invoice_number>[^\)]+)\)$"
+)
+BATCHES_PATTERN = re.compile(r"^- Lotes de producao processados: (?P<count>\d+)$")
+
+
+def _sanitize_command_output_line(line: str) -> str:
+    without_ansi = ANSI_ESCAPE_PATTERN.sub("", line)
+    return without_ansi.strip()
+
+
+def _parse_seed_paraiba_caseira_week_output(raw_output: str) -> dict:
+    lines: list[str] = []
+    for raw_line in raw_output.splitlines():
+        cleaned_line = _sanitize_command_output_line(raw_line)
+        if cleaned_line:
+            lines.append(cleaned_line)
+
+    result = {
+        "start_date": "",
+        "end_date": "",
+        "menu_days_processed": 0,
+        "purchase_requests_created": 0,
+        "production_batches_processed": 0,
+        "purchase": None,
+        "command_log": lines,
+    }
+
+    for line in lines:
+        week_match = WEEK_RANGE_PATTERN.match(line)
+        if week_match:
+            result["start_date"] = week_match.group("start_date")
+            result["end_date"] = week_match.group("end_date")
+            continue
+
+        menu_days_match = MENU_DAYS_PATTERN.match(line)
+        if menu_days_match:
+            result["menu_days_processed"] = int(menu_days_match.group("count"))
+            continue
+
+        purchase_requests_match = PURCHASE_REQUESTS_PATTERN.match(line)
+        if purchase_requests_match:
+            result["purchase_requests_created"] = int(
+                purchase_requests_match.group("count")
+            )
+            continue
+
+        purchase_match = PURCHASE_PATTERN.match(line)
+        if purchase_match:
+            result["purchase"] = {
+                "id": int(purchase_match.group("id")),
+                "invoice_number": purchase_match.group("invoice_number"),
+            }
+            continue
+
+        batches_match = BATCHES_PATTERN.match(line)
+        if batches_match:
+            result["production_batches_processed"] = int(batches_match.group("count"))
+
+    return result
 
 
 class PurchaseRequestViewSet(viewsets.ModelViewSet):
@@ -277,3 +353,41 @@ class PurchasesExportAPIView(APIView):
                 ["Atualizacao de itens deve ser feita em fluxo dedicado de compras."]
             )
         return super().partial_update(request, *args, **kwargs)
+
+
+class SeedParaibaCaseiraWeekAPIView(APIView):
+    permission_classes = [RoleMatrixPermission]
+    required_roles_by_method = {"POST": PROCUREMENT_FROM_MENU_ROLES}
+
+    def post(self, request):
+        input_serializer = SeedParaibaCaseiraWeekInputSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        start_date = input_serializer.validated_data.get("start_date")
+        command_kwargs: dict[str, str] = {}
+        if start_date is not None:
+            command_kwargs["start_date"] = start_date.isoformat()
+
+        command_stdout = StringIO()
+        try:
+            call_command(
+                "seed_paraiba_caseira_week",
+                stdout=command_stdout,
+                **command_kwargs,
+            )
+        except CommandError as exc:
+            raise DRFValidationError([str(exc)]) from exc
+
+        result = _parse_seed_paraiba_caseira_week_output(command_stdout.getvalue())
+
+        if not result["start_date"] or not result["end_date"]:
+            if start_date is None:
+                raise DRFValidationError(
+                    ["Nao foi possivel interpretar o periodo da simulacao semanal."]
+                )
+            result["start_date"] = start_date.isoformat()
+            result["end_date"] = (start_date + timedelta(days=6)).isoformat()
+
+        output_serializer = SeedParaibaCaseiraWeekResultSerializer(data=result)
+        output_serializer.is_valid(raise_exception=True)
+        return Response(output_serializer.data, status=status.HTTP_200_OK)

@@ -678,6 +678,23 @@ export type PurchaseRequestFromMenuResultData = {
   };
 };
 
+export type SeedParaibaCaseiraWeekPayload = {
+  start_date?: string;
+};
+
+export type SeedParaibaCaseiraWeekResultData = {
+  start_date: string;
+  end_date: string;
+  menu_days_processed: number;
+  purchase_requests_created: number;
+  production_batches_processed: number;
+  purchase: {
+    id: number;
+    invoice_number: string;
+  } | null;
+  command_log?: string[];
+};
+
 export type OpsPipelineStageData = {
   stage: string;
   count: number;

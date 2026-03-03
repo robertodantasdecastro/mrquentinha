@@ -97,6 +97,28 @@ class PurchaseRequestFromMenuResultSerializer(serializers.Serializer):
     alerts = serializers.DictField(required=False)
 
 
+class SeedParaibaCaseiraWeekInputSerializer(serializers.Serializer):
+    start_date = serializers.DateField(required=False)
+
+
+class SeedParaibaCaseiraWeekPurchaseSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    invoice_number = serializers.CharField()
+
+
+class SeedParaibaCaseiraWeekResultSerializer(serializers.Serializer):
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    menu_days_processed = serializers.IntegerField(min_value=0)
+    purchase_requests_created = serializers.IntegerField(min_value=0)
+    production_batches_processed = serializers.IntegerField(min_value=0)
+    purchase = SeedParaibaCaseiraWeekPurchaseSerializer(allow_null=True)
+    command_log = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+    )
+
+
 class PurchaseItemWriteSerializer(serializers.Serializer):
     ingredient = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
     qty = serializers.DecimalField(
