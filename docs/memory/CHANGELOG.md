@@ -1,6 +1,11 @@
 # Changelog (por sprint)
 
 ## 03/03/2026
+- Workflow/governanca: publicado `W26_gestao_triagente_novoprojeto` em `.agent/workflows/` para coordenacao de `Mac` (gestor), `VM` (dev) e `EC2` (producao).
+- Workflow/governanca: criado `docs/memory/AGENT_SYNC_BOARD.md` como quadro unico de sincronizacao entre os 3 agentes.
+- Workflow/governanca: criada trilha de atas em `docs/memory/reunioes/` com `README` e `TEMPLATE_REUNIAO.md` para registro formal de reunioes.
+- Template/reuso: publicado `docs/templates/novoprojeto/workflow_triagente_novoprojeto.md` para replicar o modelo em novos projetos.
+- Tooling/workflow: `scripts/gemini_check.sh` passou a resolver `~/.gemini/GEMINI.md` com fallback Linux/macOS, removendo bloqueio de execucao no agente Mac.
 - Ops/monitoramento UX: `GestorServidor` teve layout atualizado para seguir o estilo do dashboard dev (`scripts/ops_dashboard.py`/`ops_center.py`), com cabecalho de acoes, barras percentuais + sparklines de sistema/rede e boxes operacionais de servicos/health.
 - Ops/monitoramento: novo aplicativo TUI `GestorServidor` implementado em `GestorServidor/app.py` com monitoramento em tempo real (host/rede/servicos/dominios/API), controle `start|stop|restart` por servico/stack via `systemctl`, eventos persistidos em `.runtime/gestor-servidor` e launcher raiz `gestor_servidor.sh`.
 - T9.2.8 (web admin/servidor): secao `Conectividade e dominio` ganhou area de credenciais SSH de producao (host/porta/usuario, auth por chave ou senha, upload de `.pem` e validacao de conectividade), restrita a admin e bloqueada fora de modo dev/hibrido.

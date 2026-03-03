@@ -1,10 +1,10 @@
 # Session Commands (macros de rotina)
 
 ## Regra base
-- Ler `AGENTS.md` e `/home/roberto/.gemini/GEMINI.md` antes de qualquer macro.
+- Ler `AGENTS.md` e `~/.gemini/GEMINI.md` antes de qualquer macro.
 - Em fluxos com commit/push/merge, executar `scripts/branch_guard.sh`.
 
-## Mapeamento de macros (fonte de verdade W09..W25)
+## Mapeamento de macros (fonte de verdade W09..W26)
 - `PREFLIGHT` -> `W09_preflight_antigravity.md`
 - `INICIAR_SESSAO` -> `W10_iniciar_sessao.md`
 - `CONTINUAR_SESSAO` -> `W11_continuar_sessao.md`
@@ -22,6 +22,7 @@
 - `SYNC_DESIGN_SYSTEM` -> `W23_design_system_sync.md`
 - `COMPARAR_BRANCHES` -> `W24_git_comparison_review.md`
 - `RECOVERY_READONLY` -> `W25_recovery_readonly.md`
+- `GESTAO_TRIAGENTE_NOVOPROJETO` -> `W26_gestao_triagente_novoprojeto.md`
 
 ## Wrappers (00..06)
 - `BOOTSTRAP` -> `00_bootstrap.md`

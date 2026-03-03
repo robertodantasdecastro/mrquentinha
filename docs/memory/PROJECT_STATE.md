@@ -24,7 +24,7 @@ Referencia de atualizacao: 02/03/2026.
 - Guard rail: `scripts/branch_guard.sh`.
 
 ## Antigravity / GEMINI
-- Fonte unica GEMINI (runtime + policy): `/home/roberto/.gemini/GEMINI.md`
+- Fonte unica GEMINI (runtime + policy): `~/.gemini/GEMINI.md`
 - Validacao obrigatoria: `bash scripts/gemini_check.sh`
 - Rules path: `.agent/rules/global.md`
 - Espelho topo: `.agent/rules/00_GLOBAL_RULE.md`
@@ -35,6 +35,7 @@ Referencia de atualizacao: 02/03/2026.
 - Regras: `docs/memory/PARALLEL_DEV_RULES.md`
 - Lock humano: `.agent/memory/IN_PROGRESS.md`
 - Sync obrigatorio: `W21_sync_codex_antigravity`
+- Governanca triagente (NovoProjeto): `W26_gestao_triagente_novoprojeto` com quadro em `docs/memory/AGENT_SYNC_BOARD.md` e atas em `docs/memory/reunioes/`
 - Observacao: se `6.2 portal template` estiver ativo no Antigravity, Codex evita alteracao concorrente de layout no portal.
 
 ## Estado por componente

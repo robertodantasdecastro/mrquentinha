@@ -1,9 +1,9 @@
 # Workflow Map Oficial
 
 ## Regra de arquitetura
-- Fonte de verdade: `W09..W25`.
+- Fonte de verdade: `W09..W26`.
 - Wrappers: `00..06` apenas encaminham para os W-workflows.
-- Precondicao universal: ler `AGENTS.md`, ` /home/roberto/.gemini/GEMINI.md` e rodar `bash scripts/gemini_check.sh`.
+- Precondicao universal: ler `AGENTS.md`, `~/.gemini/GEMINI.md` e rodar `bash scripts/gemini_check.sh`.
 
 | Workflow | Tipo | Objetivo | Precondicoes | Comandos-chave | Atualiza memoria |
 |---|---|---|---|---|---|
@@ -31,6 +31,7 @@
 | W23_design_system_sync | Fonte | Auditoria DS portal/client | GEMINI global valido | mapear uso de ui/tokens | DESIGN_SYSTEM_STATUS |
 | W24_git_comparison_review | Fonte | Comparar branches | gemini_check + branch_guard | git diff/log entre branches | GIT_COMPARE_REPORT |
 | W25_recovery_readonly | Fonte | Recovery sem alteracoes | GEMINI global valido | diagnostico read-only | RECOVERY_TEMPLATE + RUNBOOK |
+| W26_gestao_triagente_novoprojeto | Fonte | Orquestrar Mac/VM/EC2 com ata e sync de estado | gemini_check + branch_guard + acesso SSH | snapshot local + VM + EC2 + AGENT_SYNC_BOARD | AGENT_SYNC_BOARD + PROJECT_STATE + reunioes |
 
 ## Padrao de ambiente (obrigatorio)
 - Python:

@@ -29,6 +29,20 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - RBAC de `inventory` e `procurement` ainda esta temporario com `AllowAny` no MVP.
 - Proxima etapa deve substituir por permissoes por perfil (Admin/Compras/Estoque CRUD, Cozinha criacao de solicitacao e leitura, Financeiro leitura).
 
+## 03/03/2026 - Governanca triagente (Mac + VM + EC2) para NovoProjeto
+- Decisao:
+  - institucionalizar o modelo de 3 agentes com papeis fixos:
+    - `Mac` como gestor de projeto e consolidacao de memoria;
+    - `VM` como ambiente principal de desenvolvimento;
+    - `EC2` como ambiente de producao e validacao operacional.
+  - criar workflow dedicado `W26_gestao_triagente_novoprojeto` para coordenar snapshot de estado, registro de reunioes e sincronizacao de memoria.
+  - adotar artefatos obrigatorios de governanca:
+    - `docs/memory/AGENT_SYNC_BOARD.md` (quadro consolidado dos 3 agentes);
+    - `docs/memory/reunioes/*.md` (atas com decisoes, acoes, dono e prazo).
+- Consequencia:
+  - toda evolucao passa a ter rastreabilidade cruzada entre local, VM e producao.
+  - reducao de perda de contexto entre agentes e maior previsibilidade de entrega para novos projetos que reutilizem a arquitetura.
+
 ## 03/03/2026 - DB Ops via Web Admin com SSH e dumps versionados
 - Decisao:
   - centralizar operacoes de banco de producao no Web Admin com pre-requisito de SSH configurado.
