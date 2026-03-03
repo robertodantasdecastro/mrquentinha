@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: "%s | Mr Quentinha",
   },
   description:
-    "Portal institucional do Mr Quentinha com cardapio em tempo real, app e contato.",
+    "Portal institucional do Mr Quentinha com cardapio em tempo real, app, suporte e wiki operacional.",
   metadataBase: new URL("https://www.mrquentinha.com.br"),
   icons: {
     icon: "/brand/png/favicon.ico",

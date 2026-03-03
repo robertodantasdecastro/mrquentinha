@@ -1,6 +1,6 @@
 import "server-only";
 
-export type TemplateType = "classic" | "letsfit-clean";
+export type TemplateType = "classic" | "letsfit-clean" | "editorial-jp";
 
 export type PortalSectionPayload = {
   id: number;
@@ -42,6 +42,10 @@ function resolveApiBaseUrl(): string {
 }
 
 function normalizeTemplate(value: unknown): TemplateType {
+  if (value === "editorial-jp") {
+    return "editorial-jp";
+  }
+
   return value === "letsfit-clean" ? "letsfit-clean" : "classic";
 }
 

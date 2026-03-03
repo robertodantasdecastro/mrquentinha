@@ -27,8 +27,12 @@ def test_portal_config_singleton():
     assert first.local_hostname == "mrquentinha"
     assert first.portal_base_url == "https://10.211.55.21:3000"
     assert first.api_base_url == "https://10.211.55.21:8000"
+    assert any(item["id"] == "editorial-jp" for item in first.available_templates)
     assert any(
         item["id"] == "client-vitrine-fit" for item in first.client_available_templates
+    )
+    assert any(
+        item["id"] == "client-editorial-jp" for item in first.client_available_templates
     )
     assert any(
         item["id"] == "admin-adminkit" for item in first.admin_available_templates
@@ -70,6 +74,60 @@ def test_ensure_portal_config_preenche_cors_padrao_quando_vazio():
         "http://10.211.55.21:3001",
         "http://10.211.55.21:3002",
     ]
+
+
+@pytest.mark.django_db
+def test_build_public_payload_retorna_paginas_suporte_e_wiki_do_template_ativo():
+    ensure_portal_config()
+
+    support_payload = build_public_portal_payload(page="suporte")
+    wiki_payload = build_public_portal_payload(page="wiki")
+
+    support_keys = {section["key"] for section in support_payload["sections"]}
+    wiki_keys = {section["key"] for section in wiki_payload["sections"]}
+
+    assert {"hero", "channels"} <= support_keys
+    assert {"hero", "topics"} <= wiki_keys
+
+
+@pytest.mark.django_db
+def test_build_public_payload_fallback_classico_sem_secao():
+    save_portal_config(
+        payload={
+            "active_template": "editorial-jp",
+            "available_templates": [
+                {"id": "classic", "label": "Classic"},
+                {"id": "editorial-jp", "label": "Editorial JP"},
+            ],
+        }
+    )
+
+    payload = build_public_portal_payload(page="privacidade", channel="portal")
+
+    assert payload["active_template"] == "editorial-jp"
+    assert payload["sections"]
+    assert payload["sections"][0]["key"] == "hero"
+    assert payload["sections"][0]["template_id"] == "classic"
+
+
+@pytest.mark.django_db
+def test_build_public_payload_cliente_faz_fallback_para_client_classic():
+    save_portal_config(
+        payload={
+            "client_active_template": "client-vitrine-fit",
+            "client_available_templates": [
+                {"id": "client-classic", "label": "Cliente Classico"},
+                {"id": "client-vitrine-fit", "label": "Cliente Vitrine Fit"},
+            ],
+        }
+    )
+
+    payload = build_public_portal_payload(page="suporte", channel="client")
+
+    assert payload["active_template"] == "client-vitrine-fit"
+    assert payload["sections"]
+    assert payload["sections"][0]["key"] == "hero"
+    assert payload["sections"][0]["template_id"] == "client-classic"
 
 
 @pytest.mark.django_db
@@ -327,10 +385,7 @@ def test_mobile_release_payload_usa_endpoint_aws_dns_quando_publico_habilitado()
     )
 
     payload = build_latest_mobile_release_payload()
-    assert (
-        payload["api_base_url"]
-        == "http://ec2-44-192-27-104.compute-1.amazonaws.com"
-    )
+    assert payload["api_base_url"] == "http://ec2-44-192-27-104.compute-1.amazonaws.com"
     assert payload["host_publico"] == "ec2-44-192-27-104.compute-1.amazonaws.com"
 
 
@@ -354,10 +409,7 @@ def test_mobile_release_payload_ignora_dominio_custom_quando_publico_habilitado(
     )
 
     payload = build_latest_mobile_release_payload()
-    assert (
-        payload["api_base_url"]
-        == "http://ec2-44-192-27-104.compute-1.amazonaws.com"
-    )
+    assert payload["api_base_url"] == "http://ec2-44-192-27-104.compute-1.amazonaws.com"
     assert payload["host_publico"] == "ec2-44-192-27-104.compute-1.amazonaws.com"
 
 

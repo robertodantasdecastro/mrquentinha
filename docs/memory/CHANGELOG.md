@@ -1,5 +1,16 @@
 # Changelog (por sprint)
 
+## 03/03/2026
+- T6.2.1 (portal/web client): consolidacao visual iniciada com padronizacao de shell institucional (`PortalPageIntro` e `ClientPageIntro`) e variacoes de identidade por template em CSS.
+- T6.2.1 (portal): navegacao principal/rodape atualizados para incluir `Suporte` e `Wiki`, com ponte comercial explicita para `app.mrquentinha.com.br`.
+- T6.2.1 (portal): novas paginas publicas `/suporte` e `/wiki` adicionadas, com CTAs para area de vendas e trilhas de atendimento/compliance.
+- T6.2.1 (web client): novas paginas `/suporte` e `/wiki` adicionadas; suporte autenticado ganhou tela dedicada com fallback para login e entrada da base de ajuda.
+- T6.2.1 (backend/portal): `PortalPage` evoluiu com `suporte` e `wiki` (migration `0011`), incluindo fixtures padrao por template para permitir gestao de conteudo via CMS.
+- T6.2.1 (web admin/portal cms): rotulagem de paginas no editor de conteudo atualizada para reconhecer `Suporte` e `Wiki`.
+- T6.2.1 (templates novos): criados template `editorial-jp` (portal) e `client-editorial-jp` (web client), com referencia visual inspirada em `jp.lightisgood.com.br` e identidade da marca preservada.
+- T6.2.1 (docs/adr): ADR `0021-consolidacao-visual-portal-e-centrais-suporte-wiki.md` publicada.
+- T6.2.1 (qa): validado com `pytest tests/test_portal_services.py tests/test_portal_api.py`, `python manage.py check`, `ruff check`, `npm run lint` e `npm run build` em `web/portal`, `web/client` e `web/admin`.
+
 ## 02/03/2026
 - T9.2.x (web admin/upload): campos de imagem com captura por camera passaram a aceitar tambem selecao de arquivo local (sem `capture` fixo) nos modulos `Compras`, `Cardapio` e `Perfil`, mantendo o fluxo de upload/ocr com fallback manual.
 - T9.2.x (OCR/compras/web admin): modulo `Compras` evoluido com captura por camera para quatro tipos de imagem por item (`rotulo frente`, `rotulo verso`, `produto` e `etiqueta de preco`), processamento OCR individual por imagem e fallback manual mantido no mesmo formulario.
@@ -1367,3 +1378,23 @@
   - parametros de operacao:
     - `MRQ_DEV_AUTO_STASH` (default `1`);
     - `MRQ_DEV_INSTALL_FRONTEND_DEPS` (default `1`).
+- Web/Ops-03/03/2026 (portal+web client dinamicos + simulacao semanal paraibana)
+  - backend (`portal`):
+    - `PortalPage` ampliado com paginas adicionais (`app`, `pedidos`, `conta`, `privacidade`, `termos`, `lgpd`);
+    - novo fallback de secoes por canal/pagina no payload publico (`classic` para portal e `client-classic` para web client quando template ativo nao tiver secao da pagina);
+    - fixtures default ampliadas para novas paginas, mantendo edicao dinamica via Portal CMS.
+  - backend (`ocr_ai`):
+    - novo comando `seed_paraiba_caseira_week` para simular fluxo completo semanal (7 dias / 1 prato por dia / 20 marmitas por dia):
+      - cardapio + composicao da receita;
+      - requisicao de compras e compra consolidada;
+      - OCR simulado (rotulo/produto/preco/comprovante) com aplicacao nos destinos;
+      - lotes de producao concluidos e precificacao da marmita baseada em custo de insumo + overhead + markup.
+    - comando endurecido para nao sobrescrever `MenuItem` referenciado por pedidos existentes.
+  - frontend portal/client:
+    - paginas institucionais e de ajuda passaram a ler hero e blocos dinamicos por `PortalSection` (editable no Web Admin);
+    - suporte a imagem dinamica nos intros (`PortalPageIntro`/`ClientPageIntro`);
+    - menu responsivo adaptativo implementado para mobile nos headers de Portal e Web Client (toggle + navegacao compacta).
+  - validacao executada:
+    - backend: `python manage.py migrate --noinput`, `python manage.py check`, `pytest tests/test_portal_services.py -q`, `ruff check` (arquivos alterados) -> OK;
+    - frontend: `npm run lint && npm run build` em `web/portal`, `web/client` e `web/admin` -> OK;
+    - simulacao: `python manage.py seed_paraiba_caseira_week --start-date 2026-04-13` -> OK (7 cardapios, 7 PRs, compra + OCR + producao).

@@ -114,9 +114,11 @@ type PortalPageOption = {
 const TEMPLATE_LABEL_FALLBACK: Record<string, string> = {
   classic: "Classico",
   "letsfit-clean": "LetsFit Clean",
+  "editorial-jp": "Editorial JP",
   "client-classic": "Cliente Classico",
   "client-quentinhas": "Cliente Quentinhas",
   "client-vitrine-fit": "Cliente Vitrine Fit",
+  "client-editorial-jp": "Cliente Editorial JP",
   "admin-classic": "Admin Classico",
   "admin-adminkit": "Admin Operations Kit",
   "admin-admindek": "Admin Dek Prime",
@@ -125,9 +127,17 @@ const TEMPLATE_LABEL_FALLBACK: Record<string, string> = {
 const PORTAL_PAGE_LABELS: Record<string, string> = {
   home: "Home",
   cardapio: "Cardapio",
+  app: "App",
   sobre: "Sobre",
   "como-funciona": "Como funciona",
+  suporte: "Suporte",
+  wiki: "Wiki",
   contato: "Contato",
+  pedidos: "Pedidos",
+  conta: "Conta",
+  privacidade: "Privacidade",
+  termos: "Termos",
+  lgpd: "LGPD",
 };
 
 const PAYMENT_PROVIDER_OPTIONS = [

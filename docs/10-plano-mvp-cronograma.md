@@ -12,6 +12,7 @@ Data de referencia: 01/03/2026.
 - Etapa 6.0, 6.0.1 e 6.1.1: concluida
 - Etapa 6.3.1: concluida
 - Etapa 6.3.2 (A1 ate A7 + A9): concluida
+- Etapa 6.2.1 (consolidacao visual portal + integracao Portal/Web Cliente com contato/suporte/wiki): concluida em 03/03/2026
 - Etapa 7.0: concluida
 - Etapa 7.1 (7.1.1 a 7.1.3): concluida em 25/02/2026
 - Etapa 7.2 (T7.2.1 a T7.2.3): concluida em 26/02/2026
@@ -80,7 +81,7 @@ O MVP operacional foi fechado com o backend cobrindo:
 - Fase de hardening cloud em DEV: `T6.3.2-A14` (sincronizacao automatica de rotacao de dominios no status e suporte de host no backend)
 
 ## Proximas fases (planejado)
-### 6.2 Consolidacao visual do portal (ownership Antigravity)
+### 6.2 Evolucao visual continua do portal (ownership Antigravity)
 Dependencias:
 - estabilizacao de lock de trilha visual no fluxo paralelo
 - validacao final de UX/responsividade dos templates publicados

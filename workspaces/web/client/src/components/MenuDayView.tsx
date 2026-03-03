@@ -18,6 +18,10 @@ type MenuDayViewProps = {
   menu: MenuDayData | null;
   cartQtyByItem: Record<number, number>;
   onAddItem: (item: MenuItemData) => void;
+  heroCopy?: {
+    badge?: string;
+    headline?: string;
+  };
 };
 
 function resolveAvailabilityTone(item: MenuItemData, reachedLimit: boolean): StatusTone {
@@ -56,23 +60,37 @@ export function MenuDayView({
   menu,
   cartQtyByItem,
   onAddItem,
+  heroCopy,
 }: MenuDayViewProps) {
   const { template } = useClientTemplate();
   const isVitrineTemplate = template === "client-vitrine-fit";
+  const isEditorialTemplate = template === "client-editorial-jp";
 
   return (
     <Card
       tone="surface"
       className={[
         "rounded-2xl p-5 shadow-sm",
-        isVitrineTemplate ? "bg-white/80 dark:bg-bg/80" : "",
+        isVitrineTemplate || isEditorialTemplate ? "bg-white/80 dark:bg-bg/80" : "",
       ].join(" ")}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Badge>{isVitrineTemplate ? "Vitrine do dia" : "Pedido por data"}</Badge>
+          <Badge>
+            {heroCopy?.badge ||
+              (isVitrineTemplate
+                ? "Vitrine do dia"
+                : isEditorialTemplate
+                  ? "Colecao do dia"
+                  : "Pedido por data")}
+          </Badge>
           <h1 className="mt-2 text-2xl font-bold text-text">
-            {isVitrineTemplate ? "Selecione suas marmitas" : "Cardapio do dia"}
+            {heroCopy?.headline ||
+              (isVitrineTemplate
+                ? "Selecione suas marmitas"
+                : isEditorialTemplate
+                  ? "Escolha sua colecao de marmitas"
+                  : "Cardapio do dia")}
           </h1>
         </div>
 
@@ -124,6 +142,7 @@ export function MenuDayView({
               className={[
                 "grid gap-3",
                 isVitrineTemplate ? "md:grid-cols-2" : "",
+                isEditorialTemplate ? "md:grid-cols-2 xl:grid-cols-3" : "",
               ].join(" ")}
             >
               {menu.menu_items.map((item) => {
@@ -139,7 +158,7 @@ export function MenuDayView({
                     key={item.id}
                     className={[
                       "rounded-xl border border-border bg-bg p-4 transition hover:border-primary/60",
-                      isVitrineTemplate
+                      isVitrineTemplate || isEditorialTemplate
                         ? "overflow-hidden shadow-sm hover:-translate-y-0.5 hover:shadow-md"
                         : "",
                     ].join(" ")}
@@ -165,7 +184,7 @@ export function MenuDayView({
                         height={320}
                         className={[
                           "mt-3 w-full rounded-md border border-border object-cover",
-                          isVitrineTemplate ? "h-44" : "h-32",
+                          isVitrineTemplate ? "h-44" : isEditorialTemplate ? "h-40" : "h-32",
                         ].join(" ")}
                         unoptimized
                       />

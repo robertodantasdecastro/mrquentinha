@@ -19,7 +19,7 @@ Historico recente:
 16. [x] T9.1.1-HF4 Hotfix Admin rotas: acesso direto `/modulos` e `/prioridades` com redirect para ancora - concluida em 25/02/2026.
 
 Fila atual:
-17. [ ] T6.2.1 Consolidacao visual portal `letsfit-clean` (ownership Antigravity, sem conflito).
+17. [x] T6.2.1 Consolidacao visual portal `letsfit-clean` + integracao Portal/Web Cliente (suporte/wiki/contato padronizados por template) - concluida em 03/03/2026.
 18. [x] T6.3.2 Integracao CMS no portal (Codex) - concluida em 26/02/2026.
 19. [x] T9.1.2 Admin Web relatorios/exportacoes (hotpages, menus contextuais, graficos e exportacao CSV por modulo) - concluida em 25/02/2026.
 20. [x] T6.3.2-A1 Admin Web `Portal CMS`: selecao de template ativo + publicacao da configuracao - concluida em 26/02/2026.
@@ -68,3 +68,9 @@ Fila atual:
 59. [x] Ops/Web-02/03/2026 Hotfix 502: stack de producao movida para `systemd` + alias `web.mrquentinha.com.br`/`mrquentinha.com.br` no Nginx + ajuste de `ALLOWED_HOSTS/CORS/CSRF` para host `web` - concluida em 02/03/2026.
 60. [x] Ops/Web-02/03/2026 Hotfix templates + performance: frontends passaram a enviar `X-Forwarded-Proto=https` no fetch server-side interno, removido cache permanente de fallback de templates e swap 2GB habilitada na EC2 para estabilidade - concluida em 02/03/2026.
 61. [x] Ops/Web-02/03/2026 Ajuste de dominios oficiais: `www` (portal), `app` (web client), `admin` (web admin) consolidados; `web.mrquentinha.com.br` removido da configuracao oficial e bloqueado no Nginx (`404`) - concluida em 02/03/2026.
+62. [x] Web/Ops-03/03/2026 Conteudo dinamico ampliado para portal/web client (paginas institucionais/ajuda), menu responsivo mobile e fallback de secoes por template/canal no Portal CMS - concluida em 03/03/2026.
+63. [x] Ops-03/03/2026 Simulacao operacional semanal de culinaria paraibana (`seed_paraiba_caseira_week`) com OCR de compras, producao (20 marmitas/dia) e precificacao automatica - concluida em 03/03/2026.
+
+Proximos pontos recomendados:
+64. [ ] WebAdmin-03/03/2026 Criar painel guiado no modulo Cardapio/Compras para disparar a simulacao semanal (sem terminal), com escolha de data inicial e relatorio de resultados.
+65. [ ] QA-03/03/2026 Adicionar testes backend para `seed_paraiba_caseira_week` (idempotencia, fallback de menu com pedidos existentes e composicao de preco).

@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     template: "%s | Mr Quentinha",
   },
   description:
-    "Aplicacao web cliente do Mr Quentinha para consultar cardapio e criar pedidos.",
+    "Aplicacao web cliente do Mr Quentinha para vendas, pedidos, suporte e wiki de ajuda.",
   icons: {
     icon: "/brand/png/favicon.ico",
   },

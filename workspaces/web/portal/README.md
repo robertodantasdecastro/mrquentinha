@@ -6,12 +6,15 @@ Frontend institucional em Next.js (App Router) para `www.mrquentinha.com.br`. Ne
 O portal suporta diferentes de layouts via provedor de template embutido. Você pode configurar o comportamento gráfico inicial através da `.env` global `NEXT_PUBLIC_PORTAL_TEMPLATE`:
 - `classic`: (Padrão) O portal tradicional, compatível com o design original unificado.
 - `letsfit-clean`: Uma versão esteticamente baseada em landing pages clean de refeições saudáveis (ex: Liv Up / LetsFit).
+- `editorial-jp`: Template com linguagem editorial, blocos visuais amplos e CTA de vendas integrado ao app.
 
 ## Scripts locais Etapa 6.0
 - Home institucional em `/`
 - Consulta de cardapio em `/cardapio`
-- Pagina do app com QR Code em `/app`
+- Pagina do app/area de vendas com QR Code em `/app`
 - Contato em `/contato`
+- Suporte em `/suporte`
+- Wiki operacional em `/wiki`
 - Links de navegacao para:
   - Gestao web (`admin.mrquentinha.com.br`)
   - Area do cliente (`app.mrquentinha.com.br`)

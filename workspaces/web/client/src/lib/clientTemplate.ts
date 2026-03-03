@@ -1,9 +1,12 @@
 import "server-only";
 
 import type { ClientTemplateType } from "@/types/template";
+import type { ClientPortalSectionData } from "@/types/api";
 
 type ClientPublicConfigPayload = {
   active_template?: string;
+  page?: string;
+  sections?: ClientPortalSectionData[];
 };
 
 function resolveApiBaseUrl(): string {
@@ -25,12 +28,23 @@ function normalizeTemplate(value: unknown): ClientTemplateType {
     return "client-vitrine-fit";
   }
 
+  if (value === "client-editorial-jp") {
+    return "client-editorial-jp";
+  }
+
   return "client-classic";
 }
 
 export async function fetchClientActiveTemplate(): Promise<ClientTemplateType> {
+  const config = await fetchClientConfig("home");
+  return normalizeTemplate(config.active_template);
+}
+
+export async function fetchClientConfig(
+  page: string = "home",
+): Promise<ClientPublicConfigPayload> {
   const apiBaseUrl = resolveApiBaseUrl();
-  const endpoint = `${apiBaseUrl}/api/v1/portal/config/?channel=client&page=home`;
+  const endpoint = `${apiBaseUrl}/api/v1/portal/config/?channel=client&page=${encodeURIComponent(page)}`;
 
   try {
     const response = await fetch(endpoint, {
@@ -41,12 +55,25 @@ export async function fetchClientActiveTemplate(): Promise<ClientTemplateType> {
     });
 
     if (!response.ok) {
-      return "client-classic";
+      return {
+        active_template: "client-classic",
+        page,
+        sections: [],
+      };
     }
 
     const payload = (await response.json()) as ClientPublicConfigPayload;
-    return normalizeTemplate(payload.active_template);
+    return {
+      ...payload,
+      active_template: normalizeTemplate(payload.active_template),
+      page,
+      sections: Array.isArray(payload.sections) ? payload.sections : [],
+    };
   } catch {
-    return "client-classic";
+    return {
+      active_template: "client-classic",
+      page,
+      sections: [],
+    };
   }
 }

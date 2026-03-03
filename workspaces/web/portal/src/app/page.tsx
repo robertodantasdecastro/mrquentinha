@@ -16,12 +16,12 @@ import {
   resolveSectionByKey,
   type PortalConfigPayload,
 } from "@/lib/portalTemplate";
+import { extractHostname, resolveFrontendUrl } from "@/lib/networkHost";
 
 const ADMIN_URL =
   process.env.NEXT_PUBLIC_ADMIN_URL?.trim() || "https://admin.mrquentinha.com.br";
 const CLIENT_AREA_URL =
   process.env.NEXT_PUBLIC_CLIENT_AREA_URL?.trim() || "https://app.mrquentinha.com.br";
-const PRIVATE_IPV4_PATTERN = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/;
 
 type JsonObject = Record<string, unknown>;
 
@@ -53,40 +53,6 @@ function parseCta(
     label: asString(body.label, fallbackLabel),
     href: asString(body.href, fallbackHref),
   };
-}
-
-function extractHostname(hostHeader: string): string {
-  const rawHost = hostHeader.split(",")[0]?.trim() ?? "";
-  if (!rawHost) {
-    return "";
-  }
-  if (rawHost.startsWith("[")) {
-    const ipv6Match = rawHost.match(/^\[([^\]]+)\]/);
-    if (ipv6Match?.[1]) {
-      return ipv6Match[1].toLowerCase();
-    }
-  }
-  return rawHost.replace(/:\d+$/, "").toLowerCase();
-}
-
-function isLocalNetworkHostname(hostname: string): boolean {
-  return (
-    hostname === "localhost" ||
-    hostname === "0.0.0.0" ||
-    hostname.endsWith(".local") ||
-    PRIVATE_IPV4_PATTERN.test(hostname)
-  );
-}
-
-function resolveFrontendUrl(
-  hostname: string,
-  port: number,
-  fallback: string,
-): string {
-  if (!isLocalNetworkHostname(hostname)) {
-    return fallback;
-  }
-  return `http://${hostname}:${port}`;
 }
 
 function resolveLetsFitContent(portalConfig: PortalConfigPayload) {
@@ -307,7 +273,19 @@ function HomeClassic({
             className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
             href="/app"
           >
-            Pagina do App
+            Vendas no app
+          </Link>
+          <Link
+            className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+            href="/suporte"
+          >
+            Central de suporte
+          </Link>
+          <Link
+            className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+            href="/wiki"
+          >
+            Wiki operacional
           </Link>
           <a
             className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-soft"
@@ -331,7 +309,13 @@ function HomeClassic({
   );
 }
 
-function HomeLetsFit({ portalConfig }: { portalConfig: PortalConfigPayload }) {
+function HomeLetsFit({
+  portalConfig,
+  clientAreaUrl,
+}: {
+  portalConfig: PortalConfigPayload;
+  clientAreaUrl: string;
+}) {
   const content = resolveLetsFitContent(portalConfig);
 
   return (
@@ -351,12 +335,166 @@ function HomeLetsFit({ portalConfig }: { portalConfig: PortalConfigPayload }) {
         </div>
         <CardapioList />
       </div>
+      <section className="my-16 rounded-2xl border border-border bg-surface/70 p-6 md:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+          Integracao comercial
+        </p>
+        <h2 className="mt-2 text-2xl font-bold text-text">
+          Vendas no app + suporte em um fluxo unico
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted md:text-base">
+          O portal conecta descoberta de produtos, conversao no app e acompanhamento no
+          suporte sem trocar de ecossistema.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <a
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-soft"
+            href={clientAreaUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Abrir area de vendas (app)
+          </a>
+          <Link
+            className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+            href="/suporte"
+          >
+            Suporte
+          </Link>
+          <Link
+            className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+            href="/wiki"
+          >
+            Wiki
+          </Link>
+        </div>
+      </section>
       <HowToHeat
         title={content.heat.title}
         subtitle={content.heat.subtitle}
         cards={content.heat.cards}
       />
       <Faq title={content.faq.title} items={content.faq.items} />
+    </div>
+  );
+}
+
+function HomeEditorial({
+  portalConfig,
+  clientAreaUrl,
+}: {
+  portalConfig: PortalConfigPayload;
+  clientAreaUrl: string;
+}) {
+  const content = resolveLetsFitContent(portalConfig);
+  const featuredCategories = content.categories.items ?? [];
+  const editorialBenefits = content.benefits ?? [];
+
+  return (
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-2xl border border-border bg-bg">
+        <div className="grid gap-0 lg:grid-cols-[1.3fr_1fr]">
+          <div className="p-6 md:p-8">
+            <p className="inline-flex rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+              {content.hero.kicker ?? "Edicao semanal"}
+            </p>
+            <h1 className="mt-4 text-3xl font-extrabold leading-tight text-text md:text-5xl">
+              {content.hero.headline ?? "Cardapio autoral com ritmo de loja editorial"}
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-muted md:text-base">
+              {content.hero.subheadline ??
+                "Curadoria de marmitas em blocos visuais e fluxo direto para conversao no app."}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-soft"
+                href={clientAreaUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Comprar no app
+              </a>
+              <Link
+                className="rounded-md border border-border bg-bg px-5 py-3 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+                href="/cardapio"
+              >
+                Ver cardapio
+              </Link>
+              <Link
+                className="rounded-md border border-border bg-bg px-5 py-3 text-sm font-semibold text-text transition hover:border-primary hover:text-primary"
+                href="/suporte"
+              >
+                Suporte
+              </Link>
+            </div>
+          </div>
+          <div className="editorial-hero-panel border-l border-border p-6 md:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+              Linha editorial
+            </p>
+            <div className="mt-4 space-y-3">
+              {(editorialBenefits.length > 0
+                ? editorialBenefits
+                : [
+                    { text: "Curadoria por objetivo alimentar" },
+                    { text: "Conversao no app em fluxo unico" },
+                    { text: "Suporte + wiki no mesmo ecossistema" },
+                  ]
+              ).map((item) => (
+                <div
+                  key={item.text}
+                  className="rounded-lg border border-border bg-bg px-3 py-2 text-sm font-medium text-text"
+                >
+                  {item.text}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {(featuredCategories.length > 0
+          ? featuredCategories
+          : [
+              { title: "Performance", description: "Proteina reforcada e rotina intensa." },
+              { title: "Rotina", description: "Marmitas equilibradas para o dia a dia." },
+              { title: "Leves", description: "Selecao de menor densidade calorica." },
+              { title: "Kits", description: "Pacotes fechados para semana." },
+            ]
+        ).map((item) => (
+          <article
+            key={item.title}
+            className="rounded-2xl border border-border bg-surface/70 p-5 transition hover:-translate-y-0.5 hover:border-primary/35"
+          >
+            <h2 className="text-lg font-bold text-text">{item.title}</h2>
+            <p className="mt-2 text-sm text-muted">{item.description}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-border bg-surface/75 p-6 md:p-8">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+              Curadoria diaria
+            </p>
+            <h2 className="mt-2 text-3xl font-bold text-text">
+              {content.cardapio.title}
+            </h2>
+            <p className="mt-2 text-sm text-muted">{content.cardapio.subtitle}</p>
+          </div>
+          <a
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-soft"
+            href={clientAreaUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Finalizar no app
+          </a>
+        </div>
+        <CardapioList />
+      </section>
     </div>
   );
 }
@@ -372,9 +510,13 @@ export default async function HomePage() {
   const portalConfig = await fetchPortalConfig("home");
   const template = portalConfig.active_template;
 
-  return template === "letsfit-clean" ? (
-    <HomeLetsFit portalConfig={portalConfig} />
-  ) : (
-    <HomeClassic adminUrl={adminUrl} clientAreaUrl={clientAreaUrl} />
-  );
+  if (template === "letsfit-clean") {
+    return <HomeLetsFit portalConfig={portalConfig} clientAreaUrl={clientAreaUrl} />;
+  }
+
+  if (template === "editorial-jp") {
+    return <HomeEditorial portalConfig={portalConfig} clientAreaUrl={clientAreaUrl} />;
+  }
+
+  return <HomeClassic adminUrl={adminUrl} clientAreaUrl={clientAreaUrl} />;
 }
