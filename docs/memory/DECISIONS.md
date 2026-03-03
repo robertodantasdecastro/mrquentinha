@@ -601,3 +601,14 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Consequencia:
   - operadores conseguem levantar credenciais e referencias oficiais sem sair do fluxo do Web Admin.
   - menor tempo de setup para primeira configuracao de autenticacao e gateways.
+
+## 03/03/2026 - Paridade GCP no assistente de instalacao (T9.2.7-A5-A3)
+- Status: aceito.
+- Decisao:
+  - adotar endpoint dedicado para validacao GCP:
+    - `POST /api/v1/portal/admin/config/installer-cloud/gcp/validate/`.
+  - manter contrato de retorno da validacao cloud alinhado ao AWS (`connectivity` + checks + warnings) para renderizacao unica no wizard.
+  - executar checks de pre-requisito GCP antes do disparo do job remoto (`gcloud auth`, projeto, DNS, VM, IP estatico e Cloud Deploy).
+- Consequencia:
+  - reduz risco operacional de deploy em GCP por detectar falhas de infraestrutura antes da execucao.
+  - prepara a automacao completa de provisionamento/deploy cloud como proximo incremento de `T9.2.7-A5`.

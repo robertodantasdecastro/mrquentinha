@@ -709,6 +709,27 @@ def test_portal_admin_installer_wizard_endpoints(client, monkeypatch):
         },
     )
     monkeypatch.setattr(
+        "apps.portal.views.validate_installer_gcp_setup",
+        lambda *, payload: {
+            "ok": True,
+            "workflow_version": "2026.02.28",
+            "validated_at": "2026-03-01T00:00:00Z",
+            "normalized_payload": payload,
+            "warnings": [],
+            "cloud_validation": {
+                "provider": "gcp",
+                "checked_at": "2026-03-01T00:00:00Z",
+                "connectivity": {
+                    "name": "gcp_connectivity",
+                    "status": "ok",
+                    "detail": "ok",
+                },
+                "prerequisites": {"checks": [], "warnings": []},
+                "warnings": [],
+            },
+        },
+    )
+    monkeypatch.setattr(
         "apps.portal.views.start_installer_job",
         lambda *, payload, initiated_by: (
             config,
@@ -769,6 +790,21 @@ def test_portal_admin_installer_wizard_endpoints(client, monkeypatch):
     )
     assert aws_validate_response.status_code == 200
     assert aws_validate_response.json()["cloud_validation"]["provider"] == "aws"
+
+    gcp_validate_response = client.post(
+        "/api/v1/portal/admin/config/installer-cloud/gcp/validate/",
+        data={
+            "payload": {
+                "mode": "dev",
+                "stack": "vm",
+                "target": "gcp",
+                "cloud": {"provider": "gcp", "region": "us-central1"},
+            }
+        },
+        format="json",
+    )
+    assert gcp_validate_response.status_code == 200
+    assert gcp_validate_response.json()["cloud_validation"]["provider"] == "gcp"
 
     save_response = client.post(
         "/api/v1/portal/admin/config/installer-wizard-save/",
