@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/workspaces/backend"
 
 DB_USER="${MRQ_DB_USER:-mrq_user}"
-DB_PASS="${MRQ_DB_PASS:-hDgXuv1y*2170tor}"
+DB_PASS="${MRQ_DB_PASS:-CHANGE_ME_SECURE}"
 DB_HOST="${MRQ_DB_HOST:-127.0.0.1}"
 DB_PORT="${MRQ_DB_PORT:-5432}"
 DB_NAME="${MRQ_DB_DEV_NAME:-mrquentinha_dev}"

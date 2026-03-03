@@ -94,3 +94,12 @@ Sempre que executar uma acao, ao final deve testar para garantir o funcionamento
 - Commits pequenos e revisaveis.
 - Em mudancas grandes, preferir separar em commits de infra/docs e feature.
 - Rodar quality gate antes de push.
+
+## Regra global da VM (obrigatoria)
+- Nesta VM, **nao fazer push para `main`**.
+- Toda atualizacao da VM deve ser feita na branch dedicada `vm-atualizacoes`.
+- Fluxo padrao da VM:
+  - `git checkout vm-atualizacoes`
+  - implementar + testar local
+  - `git push origin vm-atualizacoes`
+  - promover para producao somente via prompt controlado no Codex da EC2.
