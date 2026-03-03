@@ -1,19 +1,29 @@
+import { fetchClientConfig } from "@/lib/clientTemplate";
+import { asObject, asString, resolveSectionByKey } from "@/lib/portalContent";
+
 export const metadata = {
   title: "LGPD | Mr Quentinha",
   description: "Direitos, bases legais e operacao LGPD no Mr Quentinha.",
 };
 
-export default function LgpdPage() {
+export default async function LgpdPage() {
+  const config = await fetchClientConfig("lgpd");
+  const heroBody = asObject(resolveSectionByKey(config.sections, "hero")?.body_json);
+
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-border bg-bg p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          LGPD em pratica
+          {asString(heroBody.kicker, "LGPD em pratica")}
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-text">LGPD e seus direitos</h1>
+        <h1 className="mt-2 text-3xl font-bold text-text">
+          {asString(heroBody.headline, "LGPD e seus direitos")}
+        </h1>
         <p className="mt-3 max-w-3xl text-sm text-muted">
-          Entenda como o Mr Quentinha atende as obrigacoes da Lei Geral de Protecao de Dados
-          (Lei nº 13.709/2018) em todo o ecossistema.
+          {asString(
+            heroBody.subheadline,
+            "Entenda como o Mr Quentinha atende as obrigacoes da Lei Geral de Protecao de Dados (Lei nº 13.709/2018) em todo o ecossistema.",
+          )}
         </p>
       </section>
 

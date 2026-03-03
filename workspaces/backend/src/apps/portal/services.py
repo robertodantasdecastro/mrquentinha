@@ -68,12 +68,14 @@ CLOUDFLARE_DEV_CONNECTIVITY_PATHS = {
 DEFAULT_PORTAL_TEMPLATE_ITEMS = [
     {"id": "classic", "label": "Classic"},
     {"id": "letsfit-clean", "label": "LetsFit Clean"},
+    {"id": "editorial-jp", "label": "Editorial JP"},
 ]
 
 DEFAULT_CLIENT_TEMPLATE_ITEMS = [
     {"id": "client-classic", "label": "Cliente Classico"},
     {"id": "client-quentinhas", "label": "Cliente Quentinhas"},
     {"id": "client-vitrine-fit", "label": "Cliente Vitrine Fit"},
+    {"id": "client-editorial-jp", "label": "Cliente Editorial JP"},
 ]
 
 DEFAULT_ADMIN_TEMPLATE_ITEMS = [
@@ -482,6 +484,234 @@ DEFAULT_SECTION_FIXTURES = [
         },
     },
     {
+        "template_id": "classic",
+        "page": PortalPage.SUPORTE,
+        "key": "hero",
+        "title": "Suporte Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Central de suporte",
+            "headline": "Suporte para vendas, pedidos e operacao",
+            "subheadline": (
+                "Clientes devem abrir chamados no app; equipes operacionais podem "
+                "usar os canais institucionais."
+            ),
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.SUPORTE,
+        "key": "channels",
+        "title": "Canais de suporte",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {
+                    "title": "Suporte cliente",
+                    "description": "Abertura de chamado autenticado no app.",
+                    "value": "app.mrquentinha.com.br/suporte",
+                },
+                {
+                    "title": "Suporte operacional",
+                    "description": "Atendimento comercial e operacional.",
+                    "value": "suporte@mrquentinha.com.br",
+                },
+            ]
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.WIKI,
+        "key": "hero",
+        "title": "Wiki Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Wiki operacional",
+            "headline": "Base de conhecimento do ecossistema",
+            "subheadline": (
+                "Documentacao de operacao comercial, suporte e conformidade."
+            ),
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.WIKI,
+        "key": "topics",
+        "title": "Topicos de wiki",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {"title": "Operacao comercial", "href": "/app"},
+                {"title": "Suporte e chamados", "href": "/suporte"},
+                {"title": "Compliance", "href": "/lgpd"},
+            ]
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.CARDAPIO,
+        "key": "hero",
+        "title": "Cardapio Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "API ao vivo",
+            "headline": "Cardapio do dia",
+            "subheadline": (
+                "Selecione a data para consultar itens e precos atualizados "
+                "direto do backend."
+            ),
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.APP,
+        "key": "hero",
+        "title": "App Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Canal de vendas",
+            "headline": "App e Web Cliente no mesmo fluxo comercial",
+            "subheadline": (
+                "A venda acontece no app.mrquentinha.com.br com pedido, "
+                "pagamento e acompanhamento em tempo real."
+            ),
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.SOBRE,
+        "key": "hero",
+        "title": "Sobre Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Quem somos",
+            "headline": "Muito prazer, somos o Mr Quentinha",
+            "subheadline": (
+                "Comida caseira com processo operacional e tecnologia para venda, "
+                "suporte e gestao."
+            ),
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.COMO_FUNCIONA,
+        "key": "hero",
+        "title": "Como funciona Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Jornada completa",
+            "headline": "Como funciona o ecossistema Mr Quentinha",
+            "subheadline": (
+                "Portal institucional, web cliente e operacao administrativa "
+                "em um fluxo integrado."
+            ),
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.COMO_FUNCIONA,
+        "key": "steps",
+        "title": "Etapas da jornada",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {
+                    "title": "Voce escolhe",
+                    "description": "Use o cardapio por data e finalize no app.",
+                },
+                {
+                    "title": "Nos produzimos",
+                    "description": "A cozinha opera com lote, estoque e qualidade.",
+                },
+                {
+                    "title": "Voce acompanha",
+                    "description": "Pedido, pagamento e suporte no mesmo login.",
+                },
+            ]
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.CONTATO,
+        "key": "hero",
+        "title": "Contato Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Fale com o Mr Quentinha",
+            "headline": "Contato institucional e comercial",
+            "subheadline": (
+                "Parcerias, implantacao e suporte operacional centralizados."
+            ),
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.CONTATO,
+        "key": "channels",
+        "title": "Canais de contato",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {
+                    "title": "Comercial e parcerias",
+                    "description": "Implantacao e evolucao de operacao.",
+                    "value": "contato@mrquentinha.com.br",
+                },
+                {
+                    "title": "Suporte operacional",
+                    "description": "Demandas de producao, pedidos e atendimento.",
+                    "value": "suporte@mrquentinha.com.br",
+                },
+                {
+                    "title": "Horario",
+                    "description": "Segunda a sexta, das 08h as 18h.",
+                    "value": "Sao Paulo - SP",
+                },
+            ]
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.PRIVACIDADE,
+        "key": "hero",
+        "title": "Privacidade Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Privacidade e seguranca",
+            "headline": "Politica de Privacidade",
+            "subheadline": (
+                "Transparencia sobre coleta, uso e protecao de dados pessoais "
+                "no ecossistema."
+            ),
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.TERMOS,
+        "key": "hero",
+        "title": "Termos Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Termos e condicoes",
+            "headline": "Termos de Uso",
+            "subheadline": "Condicoes para uso do portal, web client e app.",
+        },
+    },
+    {
+        "template_id": "classic",
+        "page": PortalPage.LGPD,
+        "key": "hero",
+        "title": "LGPD Portal Classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "LGPD em pratica",
+            "headline": "LGPD e seus direitos",
+            "subheadline": (
+                "Direitos do titular, bases legais e operacao de conformidade."
+            ),
+        },
+    },
+    {
         "template_id": "letsfit-clean",
         "page": PortalPage.HOME,
         "key": "hero",
@@ -629,6 +859,202 @@ DEFAULT_SECTION_FIXTURES = [
         },
     },
     {
+        "template_id": "letsfit-clean",
+        "page": PortalPage.SUPORTE,
+        "key": "hero",
+        "title": "Suporte LetsFit",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Ajuda rapida",
+            "headline": "Suporte para clientes e operacao",
+            "subheadline": (
+                "Atendimento multicanal para jornada de compra, pedidos e uso da "
+                "plataforma."
+            ),
+        },
+    },
+    {
+        "template_id": "letsfit-clean",
+        "page": PortalPage.SUPORTE,
+        "key": "channels",
+        "title": "Canais LetsFit",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {
+                    "title": "App do cliente",
+                    "description": "Canal principal para suporte com historico.",
+                    "value": "app.mrquentinha.com.br/suporte",
+                },
+                {
+                    "title": "Canal institucional",
+                    "description": "Demandas comerciais e operacionais.",
+                    "value": "contato@mrquentinha.com.br",
+                },
+            ]
+        },
+    },
+    {
+        "template_id": "letsfit-clean",
+        "page": PortalPage.WIKI,
+        "key": "hero",
+        "title": "Wiki LetsFit",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Documentacao viva",
+            "headline": "Wiki operacional e de suporte",
+            "subheadline": (
+                "Guia rapido para rotinas de venda, atendimento e governanca."
+            ),
+        },
+    },
+    {
+        "template_id": "letsfit-clean",
+        "page": PortalPage.WIKI,
+        "key": "topics",
+        "title": "Topicos LetsFit",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {"title": "Vendas no app", "href": "/app"},
+                {"title": "Fluxo de suporte", "href": "/suporte"},
+                {"title": "Privacidade e LGPD", "href": "/privacidade"},
+            ]
+        },
+    },
+    {
+        "template_id": "editorial-jp",
+        "page": PortalPage.HOME,
+        "key": "hero",
+        "title": "Hero Editorial JP",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Edicao semanal",
+            "headline": "Cardapio autoral com ritmo de loja editorial",
+            "subheadline": (
+                "Layout em blocos largos, foco em curadoria e CTA direto para a "
+                "area de vendas."
+            ),
+            "cta_primary": {"label": "Comprar no app", "href": "/app"},
+            "cta_secondary": {"label": "Ver cardapio", "href": "/cardapio"},
+        },
+    },
+    {
+        "template_id": "editorial-jp",
+        "page": PortalPage.HOME,
+        "key": "benefits",
+        "title": "Diferenciais editorial",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {"text": "Curadoria por objetivo alimentar", "icon": "spark"},
+                {"text": "Vendas no app com jornada curta", "icon": "cart"},
+                {"text": "Suporte e wiki conectados", "icon": "support"},
+                {"text": "Operacao em tempo real", "icon": "chart"},
+            ]
+        },
+    },
+    {
+        "template_id": "editorial-jp",
+        "page": PortalPage.HOME,
+        "key": "categories",
+        "title": "Linhas editoriais",
+        "sort_order": 30,
+        "body_json": {
+            "items": [
+                {
+                    "name": "Performance",
+                    "description": "Marmitas com proteina reforcada para alta rotina.",
+                    "image_url": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd",
+                },
+                {
+                    "name": "Rotina",
+                    "description": (
+                        "Opcao equilibrada para almoco e jantar do dia a dia."
+                    ),
+                    "image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
+                },
+                {
+                    "name": "Leves",
+                    "description": (
+                        "Selecao com menor densidade calorica e alta saciedade."
+                    ),
+                    "image_url": "https://images.unsplash.com/photo-1490645935967-10de6ba17061",
+                },
+                {
+                    "name": "Kits da semana",
+                    "description": "Pacotes prontos para conversao rapida no app.",
+                    "image_url": "https://images.unsplash.com/photo-1467003909585-2f8a72700288",
+                },
+            ]
+        },
+    },
+    {
+        "template_id": "editorial-jp",
+        "page": PortalPage.SUPORTE,
+        "key": "hero",
+        "title": "Suporte Editorial JP",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Suporte em duas frentes",
+            "headline": "Atendimento para cliente e operacao",
+            "subheadline": (
+                "Clientes no app, time operacional em canais institucionais."
+            ),
+        },
+    },
+    {
+        "template_id": "editorial-jp",
+        "page": PortalPage.SUPORTE,
+        "key": "channels",
+        "title": "Canais editorial",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {
+                    "title": "Suporte cliente (app)",
+                    "description": "Abertura de chamados autenticados e historico.",
+                    "value": "app.mrquentinha.com.br/suporte",
+                },
+                {
+                    "title": "Suporte operacional",
+                    "description": (
+                        "Comercial, duvidas de implantacao e jornada de loja."
+                    ),
+                    "value": "suporte@mrquentinha.com.br",
+                },
+            ]
+        },
+    },
+    {
+        "template_id": "editorial-jp",
+        "page": PortalPage.WIKI,
+        "key": "hero",
+        "title": "Wiki Editorial JP",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Base editorial",
+            "headline": "Wiki de apoio para operacao e vendas",
+            "subheadline": (
+                "Conteudo curto e acionavel para manter padrao de atendimento."
+            ),
+        },
+    },
+    {
+        "template_id": "editorial-jp",
+        "page": PortalPage.WIKI,
+        "key": "topics",
+        "title": "Topicos editorial",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {"title": "Curadoria e cardapio", "href": "/cardapio"},
+                {"title": "Conversao no app", "href": "/app"},
+                {"title": "Atendimento e SLA", "href": "/suporte"},
+            ]
+        },
+    },
+    {
         "template_id": "client-classic",
         "page": PortalPage.HOME,
         "key": "hero",
@@ -637,6 +1063,151 @@ DEFAULT_SECTION_FIXTURES = [
         "body_json": {
             "headline": "Cardapio do dia com entrega organizada",
             "subheadline": "Monte seu pedido rapido e acompanhe status em tempo real.",
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.CARDAPIO,
+        "key": "hero",
+        "title": "Cardapio cliente classico",
+        "sort_order": 10,
+        "body_json": {
+            "badge": "Pedido por data",
+            "headline": "Selecione suas marmitas",
+            "subheadline": "Consulte disponibilidade e monte seu carrinho.",
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.PEDIDOS,
+        "key": "hero",
+        "title": "Pedidos cliente classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Meus pedidos",
+            "headline": "Acompanhe seu historico",
+            "subheadline": (
+                "Do login ao recebimento: status de preparo, entrega e confirmacao."
+            ),
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.CONTA,
+        "key": "hero",
+        "title": "Conta cliente classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Conta",
+            "headline": "Acesse ou crie sua conta",
+            "subheadline": (
+                "Centralize login, cadastro, preferencias e atendimento."
+            ),
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.SUPORTE,
+        "key": "hero",
+        "title": "Suporte cliente classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Atendimento",
+            "headline": "Suporte do cliente",
+            "subheadline": (
+                "Abra chamados, acompanhe respostas e mantenha historico no login."
+            ),
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.WIKI,
+        "key": "hero",
+        "title": "Wiki cliente classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Wiki",
+            "headline": "Base de ajuda do cliente",
+            "subheadline": "Guias rapidos para compra, pedidos, conta e suporte.",
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.WIKI,
+        "key": "groups",
+        "title": "Grupos da wiki cliente",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {
+                    "title": "Conta e acesso",
+                    "description": "Cadastro, login e seguranca.",
+                    "links": [
+                        {"label": "Minha conta", "href": "/conta"},
+                        {"label": "Privacidade", "href": "/privacidade"},
+                        {"label": "Termos", "href": "/termos"},
+                    ],
+                },
+                {
+                    "title": "Pedidos e pagamento",
+                    "description": "Compra, pagamento e acompanhamento.",
+                    "links": [
+                        {"label": "Cardapio", "href": "/cardapio"},
+                        {"label": "Meus pedidos", "href": "/pedidos"},
+                        {"label": "Suporte", "href": "/suporte"},
+                    ],
+                },
+                {
+                    "title": "Compliance",
+                    "description": "LGPD, privacidade e governanca de dados.",
+                    "links": [
+                        {"label": "LGPD", "href": "/lgpd"},
+                        {"label": "Privacidade", "href": "/privacidade"},
+                        {"label": "Suporte", "href": "/suporte"},
+                    ],
+                },
+            ]
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.PRIVACIDADE,
+        "key": "hero",
+        "title": "Privacidade cliente classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Privacidade e seguranca",
+            "headline": "Politica de Privacidade",
+            "subheadline": (
+                "Coleta, uso e protecao de dados pessoais no ecossistema "
+                "Mr Quentinha."
+            ),
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.TERMOS,
+        "key": "hero",
+        "title": "Termos cliente classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "Termos e condicoes",
+            "headline": "Termos de Uso",
+            "subheadline": "Condicoes para uso do web client e aplicativo.",
+        },
+    },
+    {
+        "template_id": "client-classic",
+        "page": PortalPage.LGPD,
+        "key": "hero",
+        "title": "LGPD cliente classico",
+        "sort_order": 10,
+        "body_json": {
+            "kicker": "LGPD em pratica",
+            "headline": "LGPD e seus direitos",
+            "subheadline": (
+                "Direitos do titular, bases legais e processos de atendimento."
+            ),
         },
     },
     {
@@ -696,6 +1267,35 @@ DEFAULT_SECTION_FIXTURES = [
                 {"name": "Fit proteico", "description": "Alta proteina e equilibrio"},
                 {"name": "Leves", "description": "Opcoes com menor teor calorico"},
                 {"name": "Kits", "description": "Combos para rotina completa"},
+            ]
+        },
+    },
+    {
+        "template_id": "client-editorial-jp",
+        "page": PortalPage.HOME,
+        "key": "hero",
+        "title": "Web Cliente Editorial JP",
+        "sort_order": 10,
+        "body_json": {
+            "headline": "Area de vendas com visual editorial e foco em conversao",
+            "subheadline": (
+                "Cards amplos, tipografia de impacto e suporte conectado ao login."
+            ),
+            "badge": "Checkout acelerado",
+        },
+    },
+    {
+        "template_id": "client-editorial-jp",
+        "page": PortalPage.HOME,
+        "key": "benefits",
+        "title": "Diferenciais cliente editorial",
+        "sort_order": 20,
+        "body_json": {
+            "items": [
+                {"text": "Navegacao por colecoes", "icon": "grid"},
+                {"text": "Resumo da jornada em uma tela", "icon": "timeline"},
+                {"text": "Suporte integrado por conta", "icon": "support"},
+                {"text": "Checkout com pagamentos online", "icon": "card"},
             ]
         },
     },
@@ -2246,6 +2846,55 @@ def _resolve_active_template(config: PortalConfig, *, channel: PortalChannel) ->
     return config.active_template
 
 
+def _resolve_fallback_template_id(
+    *,
+    channel: PortalChannel,
+    active_template: str,
+) -> str | None:
+    if channel == CHANNEL_CLIENT and active_template != "client-classic":
+        return "client-classic"
+    if channel == CHANNEL_ADMIN and active_template != "admin-classic":
+        return "admin-classic"
+    if channel == CHANNEL_PORTAL and active_template != "classic":
+        return "classic"
+    return None
+
+
+def _resolve_sections_for_payload(
+    *,
+    config: PortalConfig,
+    page: str,
+    channel: PortalChannel,
+    active_template: str,
+) -> list[PortalSection]:
+    primary_sections = list(
+        list_sections_by_template_page(
+            config=config,
+            template_id=active_template,
+            page=page,
+            enabled_only=True,
+        )
+    )
+    fallback_template = _resolve_fallback_template_id(
+        channel=channel,
+        active_template=active_template,
+    )
+    if fallback_template is None:
+        return primary_sections
+
+    fallback_sections = list(
+        list_sections_by_template_page(
+            config=config,
+            template_id=fallback_template,
+            page=page,
+            enabled_only=True,
+        )
+    )
+    if primary_sections:
+        return primary_sections
+    return fallback_sections
+
+
 def build_public_portal_payload(
     *,
     page: str = PortalPage.HOME,
@@ -2257,11 +2906,11 @@ def build_public_portal_payload(
     config = ensure_portal_config()
     mobile_download_urls = build_mobile_download_urls(config)
     active_template = _resolve_active_template(config, channel=channel)
-    sections = list_sections_by_template_page(
+    sections = _resolve_sections_for_payload(
         config=config,
-        template_id=active_template,
         page=page,
-        enabled_only=True,
+        channel=channel,
+        active_template=active_template,
     )
 
     return {

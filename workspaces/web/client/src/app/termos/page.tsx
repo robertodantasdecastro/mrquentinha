@@ -1,18 +1,29 @@
+import { fetchClientConfig } from "@/lib/clientTemplate";
+import { asObject, asString, resolveSectionByKey } from "@/lib/portalContent";
+
 export const metadata = {
   title: "Termos de Uso | Mr Quentinha",
   description: "Termos de uso do ecossistema Mr Quentinha.",
 };
 
-export default function TermosPage() {
+export default async function TermosPage() {
+  const config = await fetchClientConfig("termos");
+  const heroBody = asObject(resolveSectionByKey(config.sections, "hero")?.body_json);
+
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-border bg-bg p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          Termos e condicoes
+          {asString(heroBody.kicker, "Termos e condicoes")}
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-text">Termos de Uso</h1>
+        <h1 className="mt-2 text-3xl font-bold text-text">
+          {asString(heroBody.headline, "Termos de Uso")}
+        </h1>
         <p className="mt-3 max-w-3xl text-sm text-muted">
-          Condicoes para uso do portal, web client, app e servicos do Mr Quentinha.
+          {asString(
+            heroBody.subheadline,
+            "Condicoes para uso do portal, web client, app e servicos do Mr Quentinha.",
+          )}
         </p>
       </section>
 

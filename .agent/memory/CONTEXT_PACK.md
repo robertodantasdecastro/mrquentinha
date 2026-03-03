@@ -13,6 +13,12 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 03/03/2026 (conteudo dinamico ampliado): `PortalSection` passou a cobrir paginas institucionais/ajuda adicionais em Portal e Web Client (`app`, `pedidos`, `conta`, `privacidade`, `termos`, `lgpd`) com fallback automatico de secoes por canal/template (`classic` e `client-classic`) para evitar pagina sem conteudo quando o template ativo nao tiver secao especifica.
+- Atualizacao em 03/03/2026 (UX mobile): headers de `www` e `app` receberam menu responsivo adaptativo com toggle para smartphones, mantendo navegacao horizontal no desktop.
+- Atualizacao em 03/03/2026 (simulacao operacional): comando `python manage.py seed_paraiba_caseira_week --start-date YYYY-MM-DD` implantado para simular semana completa de culinaria paraibana caseira (cardapio -> compras com OCR -> producao -> preco da marmita), com 20 unidades por dia.
+- Atualizacao em 03/03/2026 (T6.2.1): consolidacao visual do portal iniciada com shell padronizado por pagina, variacao de identidade por template (`classic`/`letsfit-clean`) e integracao explicita com a area de vendas do web client (`app.mrquentinha.com.br`).
+- Atualizacao em 03/03/2026 (portal/client): novas rotas `suporte` e `wiki` publicadas em `www` e `app`, com navegacao cruzada entre contato, suporte autenticado e base de conhecimento.
+- Atualizacao em 03/03/2026 (backend/portal): `PortalSection.page` evoluiu para aceitar `suporte` e `wiki` (migration `0011`), com fixtures padrao por template para edicao via Portal CMS.
 - Atualizacao em 02/03/2026 (dominios oficiais): frontends oficiais consolidados para `www` (portal), `app` (cliente) e `admin` (web admin); dominio `web.mrquentinha.com.br` removido da configuracao oficial.
 - Atualizacao em 02/03/2026 (nginx legado): vhost dedicado de bloqueio para `web.mrquentinha.com.br` (`404`) aplicado para evitar roteamento acidental para o portal.
 - Atualizacao em 02/03/2026 (admin servidor): `PortalConfig` de producao alinhado para `mrquentinha.com.br`, `www.mrquentinha.com.br`, `app.mrquentinha.com.br`, `admin.mrquentinha.com.br` e `api.mrquentinha.com.br`.
@@ -66,8 +72,8 @@
 - Atualizacao em 27/02/2026 (`T9.2.1-A2-HF4`): fluxo de confirmacao de e-mail implantado no cadastro do web client com link dinamico por ambiente (origem ativa DEV + fallback `PortalConfig.client_base_url`), endpoint de confirmacao/reenvio no backend e visibilidade de compliance no Admin (`usuarios-rbac`).
 - Atualizacao em 27/02/2026 (`T9.2.1-A2-HF5`): login de conta cliente sem e-mail validado bloqueado no endpoint JWT; reenvio de token liberado por `identifier` no login; token de confirmacao reduzido para 3h com template HTML de e-mail (logo + dados dinâmicos do CMS).
 - Concluido: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `T9.1.1-HF1`, `T9.1.1-HF2`, `T9.1.1-HF3`, `T9.1.1-HF4`.
-- Etapa ativa: `6.2` (ownership Antigravity para consolidacao visual do portal).
-- Proxima subetapa recomendada para Codex: `T9.2.1-A2` (rodada manual E2E completa) com evolucao tecnica paralela em `T9.2.7-A4` (automacao remota SSH/AWS/GCP do assistente).
+- Etapa ativa: `T9.2.1-A2` (rodada manual E2E completa do ecossistema apos consolidacao visual de portal/client).
+- Proxima subetapa recomendada para Codex: `T9.2.7-A5` (evolucao da automacao remota SSH/AWS/GCP no assistente de instalacao/deploy).
 - Entrega parcial de `T6.3.2` concluida em 26/02/2026: Admin Web ganhou modulo `Portal CMS` com selecao de template ativo e acao de publicacao da configuracao.
 - Entrega parcial de `T6.3.2` concluida em 26/02/2026: Portal Web passou a ler `active_template` direto do CMS (`/api/v1/portal/config/`) em runtime.
 - Entrega parcial de `T6.3.2` concluida em 26/02/2026: Portal e Client ganharam fallback automatico de API para host local (`:8000`) quando env nao estiver definida.
@@ -102,5 +108,5 @@
 
 ## Regra critica
 - Sem segredos no repositorio.
-- Evitar conflito de portal enquanto `6.2` estiver ativo no Antigravity.
+- Manter consistencia visual e funcional entre Portal e Web Cliente ao evoluir templates.
 - Branch Codex por tarefa (`main-etapa-*`) e merge rapido de volta em `main` apos quality gate.

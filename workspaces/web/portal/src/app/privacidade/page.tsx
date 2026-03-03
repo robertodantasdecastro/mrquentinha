@@ -1,19 +1,29 @@
+import { fetchPortalConfig } from "@/lib/portalTemplate";
+import { asObject, asString, resolveSectionByKey } from "@/lib/portalContent";
+
 export const metadata = {
   title: "Politica de Privacidade | Mr Quentinha",
   description: "Politica de privacidade do Mr Quentinha.",
 };
 
-export default function PrivacidadePage() {
+export default async function PrivacidadePage() {
+  const portalConfig = await fetchPortalConfig("privacidade");
+  const heroBody = asObject(resolveSectionByKey(portalConfig.sections, "hero")?.body_json);
+
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-border bg-bg p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          Privacidade e seguranca
+          {asString(heroBody.kicker, "Privacidade e seguranca")}
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-text">Politica de Privacidade</h1>
+        <h1 className="mt-2 text-3xl font-bold text-text">
+          {asString(heroBody.headline, "Politica de Privacidade")}
+        </h1>
         <p className="mt-3 max-w-3xl text-sm text-muted">
-          Transparencia sobre coleta, uso e protecao de dados pessoais no ecossistema Mr Quentinha,
-          alinhada a Lei Geral de Protecao de Dados (Lei nº 13.709/2018).
+          {asString(
+            heroBody.subheadline,
+            "Transparencia sobre coleta, uso e protecao de dados pessoais no ecossistema Mr Quentinha, alinhada a Lei Geral de Protecao de Dados (Lei nº 13.709/2018).",
+          )}
         </p>
       </section>
 
@@ -82,7 +92,7 @@ export default function PrivacidadePage() {
         <h2 className="text-lg font-semibold text-text">Contato LGPD</h2>
         <p className="mt-3 text-sm text-muted">
           Para solicitacoes LGPD, utilize o canal oficial no Web Admin ou envie email para
-          contato@mrquentinha.com.br com o assunto "LGPD".
+          contato@mrquentinha.com.br com o assunto &quot;LGPD&quot;.
         </p>
       </section>
     </div>

@@ -19,6 +19,7 @@ Stack:
   - refresh de token (`POST /api/v1/accounts/token/refresh/`)
   - perfil autenticado (`GET /api/v1/accounts/me/`)
 - Tema light/dark com identidade da marca
+- Central de suporte autenticado (`/suporte`) e wiki de ajuda (`/wiki`)
 
 ## Requisitos
 - Node.js 20+

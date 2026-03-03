@@ -5,20 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
+import { isLocalNetworkHostname } from "@/lib/networkHost";
+import { useTemplate } from "./TemplateProvider";
+
 const ADMIN_URL =
   process.env.NEXT_PUBLIC_ADMIN_URL?.trim() || "https://admin.mrquentinha.com.br";
 const CLIENT_AREA_URL =
   process.env.NEXT_PUBLIC_CLIENT_AREA_URL?.trim() || "https://app.mrquentinha.com.br";
-const PRIVATE_IPV4_PATTERN = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/;
-
-function isLocalNetworkHostname(hostname: string): boolean {
-  return (
-    hostname === "localhost" ||
-    hostname === "0.0.0.0" ||
-    hostname.endsWith(".local") ||
-    PRIVATE_IPV4_PATTERN.test(hostname)
-  );
-}
 
 function resolveUrlForCurrentHost(port: number, fallback: string): string {
   if (typeof window === "undefined") {
@@ -47,12 +40,20 @@ function useRuntimeUrl(port: number, fallback: string): string {
 }
 
 export function Footer() {
+  const { template } = useTemplate();
+  const isEditorial = template === "editorial-jp";
   const adminUrl = useRuntimeUrl(3002, ADMIN_URL);
   const clientAreaUrl = useRuntimeUrl(3001, CLIENT_AREA_URL);
   const currentYear = new Date().getFullYear();
 
   return (
-    <AppFooter>
+    <AppFooter
+      className={
+        isEditorial
+          ? "border-t border-primary/25 bg-gradient-to-r from-surface/70 via-bg to-surface/70"
+          : ""
+      }
+    >
       <Container className="flex w-full flex-col gap-6 py-10 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="inline-flex rounded-lg bg-white/95 px-2 py-1 ring-1 ring-border/70 shadow-sm dark:bg-white">
@@ -77,7 +78,13 @@ export function Footer() {
               Cardapio
             </Link>
             <Link className="transition hover:text-primary" href="/app">
-              App
+              Vendas (App)
+            </Link>
+            <Link className="transition hover:text-primary" href="/suporte">
+              Suporte
+            </Link>
+            <Link className="transition hover:text-primary" href="/wiki">
+              Wiki
             </Link>
             <Link className="transition hover:text-primary" href="/contato">
               Contato
@@ -99,7 +106,7 @@ export function Footer() {
               Gestao
             </a>
             <a className="transition hover:text-primary" href={clientAreaUrl} target="_blank" rel="noreferrer">
-              Area do Cliente
+              Area de vendas (App)
             </a>
             <span>© {currentYear} Mr Quentinha. Todos os direitos reservados.</span>
           </div>

@@ -42,6 +42,28 @@
   --mrq-status-info-soft: #15274d;
 }
 
+[data-portal-template="editorial-jp"] {
+  --mrq-primary: #ff6a00;
+  --mrq-primary-2: #ff8f2d;
+  --mrq-bg: #fffcf8;
+  --mrq-surface: #fff3e7;
+  --mrq-text: #1f1712;
+  --mrq-muted: #6f6258;
+  --mrq-border: #efd8bf;
+  --mrq-radius-lg: 20px;
+  --mrq-radius-md: 14px;
+  --mrq-radius-sm: 10px;
+  --font-sans: "Montserrat", "Poppins", "Segoe UI", Arial, sans-serif;
+}
+
+[data-theme="dark"][data-portal-template="editorial-jp"] {
+  --mrq-bg: #13110f;
+  --mrq-surface: #1d1916;
+  --mrq-text: #f4eee8;
+  --mrq-muted: #bea997;
+  --mrq-border: #332920;
+}
+
 @theme inline {
   --color-primary: var(--mrq-primary);
   --color-primary-soft: var(--mrq-primary-2);
@@ -86,6 +108,14 @@ body {
   font-family: var(--font-sans);
 }
 
+[data-portal-template="editorial-jp"] body {
+  background:
+    radial-gradient(circle at 4% 4%, rgb(255 106 0 / 20%), transparent 34%),
+    radial-gradient(circle at 96% 2%, rgb(255 196 138 / 22%), transparent 32%),
+    linear-gradient(180deg, rgb(255 255 255 / 78%), transparent 42%),
+    var(--mrq-bg);
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -96,4 +126,41 @@ select[data-mrq-field-touched="true"]:invalid,
 textarea[data-mrq-field-touched="true"]:invalid {
   border-color: rgb(199 59 59 / 82%);
   box-shadow: 0 0 0 2px rgb(199 59 59 / 18%);
+}
+
+.portal-page-intro {
+  background:
+    radial-gradient(circle at 4% 10%, rgb(255 106 0 / 14%), transparent 32%),
+    radial-gradient(circle at 96% 0%, rgb(31 31 31 / 9%), transparent 28%),
+    var(--mrq-bg);
+}
+
+[data-portal-template="letsfit-clean"] .portal-page-intro {
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 6% 0%, rgb(255 106 0 / 22%), transparent 36%),
+    radial-gradient(circle at 92% 4%, rgb(255 195 130 / 28%), transparent 34%),
+    linear-gradient(135deg, rgb(255 255 255 / 88%), rgb(255 245 232 / 70%)),
+    var(--mrq-bg);
+}
+
+[data-theme="dark"] .portal-page-intro {
+  background:
+    radial-gradient(circle at 6% 8%, rgb(255 106 0 / 25%), transparent 38%),
+    radial-gradient(circle at 96% 4%, rgb(110 110 120 / 14%), transparent 30%),
+    var(--mrq-surface);
+}
+
+.editorial-hero-panel {
+  background:
+    radial-gradient(circle at 92% 8%, rgb(255 106 0 / 20%), transparent 46%),
+    linear-gradient(145deg, rgb(255 250 244 / 86%), rgb(255 240 224 / 65%)),
+    var(--mrq-surface);
+}
+
+[data-theme="dark"] .editorial-hero-panel {
+  background:
+    radial-gradient(circle at 94% 12%, rgb(255 106 0 / 22%), transparent 46%),
+    linear-gradient(145deg, rgb(36 27 20 / 88%), rgb(28 22 18 / 78%)),
+    var(--mrq-surface);
 }

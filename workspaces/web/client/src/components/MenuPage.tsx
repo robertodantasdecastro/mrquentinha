@@ -9,6 +9,7 @@ import {
   ApiError,
   createOrder,
   createPaymentIntent,
+  fetchClientPortalConfig,
   fetchPaymentProvidersConfig,
   fetchMenuByDate,
   getLatestPaymentIntent,
@@ -24,6 +25,7 @@ import {
 } from "@/components/CartDrawer";
 import { useClientTemplate } from "@/components/ClientTemplateProvider";
 import { MenuDayView, type MenuFetchState } from "@/components/MenuDayView";
+import { asObject, asString, resolveSectionByKey } from "@/lib/portalContent";
 import type {
   CreatedOrderResponse,
   MenuDayData,
@@ -260,6 +262,7 @@ export function MenuPage() {
   const { template } = useClientTemplate();
   const isQuentinhasTemplate = template === "client-quentinhas";
   const isVitrineTemplate = template === "client-vitrine-fit";
+  const isEditorialTemplate = template === "client-editorial-jp";
   const [selectedDate, setSelectedDate] = useState<string>(getTodayIsoDate());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     hasStoredAuthSession(),
@@ -281,6 +284,7 @@ export function MenuPage() {
   const [isRefreshingIntent, setIsRefreshingIntent] = useState<boolean>(false);
   const [latestOrder, setLatestOrder] = useState<OrderData | null>(null);
   const [latestOrderMessage, setLatestOrderMessage] = useState<string>("");
+  const [heroCopy, setHeroCopy] = useState<{ badge?: string; headline?: string }>({});
 
   useEffect(() => {
     const syncAuthState = () => {
@@ -343,6 +347,34 @@ export function MenuPage() {
       mounted = false;
     };
   }, [selectedDate]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadHeroCopy() {
+      try {
+        const payload = await fetchClientPortalConfig("cardapio");
+        if (!mounted) {
+          return;
+        }
+        const heroBody = asObject(resolveSectionByKey(payload.sections, "hero")?.body_json);
+        setHeroCopy({
+          badge: asString(heroBody.badge),
+          headline: asString(heroBody.headline),
+        });
+      } catch {
+        if (mounted) {
+          setHeroCopy({});
+        }
+      }
+    }
+
+    void loadHeroCopy();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -735,6 +767,56 @@ export function MenuPage() {
             </div>
           </div>
         </div>
+      ) : isEditorialTemplate ? (
+        <div className="overflow-hidden rounded-2xl border border-primary/25 bg-bg">
+          <div className="bg-gradient-to-r from-primary/18 via-primary/8 to-transparent p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  Web Cliente · Editorial JP
+                </p>
+                <h1 className="mt-1 text-2xl font-bold text-text">
+                  Area de vendas com curadoria visual e fluxo continuo
+                </h1>
+                <p className="mt-2 text-sm text-muted">
+                  Inspirado em layout editorial de ecommerce: blocos amplos, foco em
+                  narrativa visual e conversao no checkout.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-white/70 px-3 py-2 text-xs text-muted shadow-sm dark:bg-bg/70">
+                <p>
+                  Colecoes no dia:{" "}
+                  <strong className="text-text">{vitrineHighlights.itemsCount}</strong>
+                </p>
+                <p className="mt-1">
+                  Itens com imagem:{" "}
+                  <strong className="text-text">{vitrineHighlights.withPhotosCount}</strong>
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-md border border-border bg-white/70 px-3 py-1 text-xs font-semibold text-muted dark:bg-bg/70">
+                Curadoria da semana
+              </span>
+              <span className="rounded-md border border-border bg-white/70 px-3 py-1 text-xs font-semibold text-muted dark:bg-bg/70">
+                Compra recorrente
+              </span>
+              <span className="rounded-md border border-border bg-white/70 px-3 py-1 text-xs font-semibold text-muted dark:bg-bg/70">
+                Suporte conectado
+              </span>
+            </div>
+          </div>
+          <div className="border-t border-border/70 bg-surface/60 p-4">
+            <p className="text-sm text-muted">
+              {isAuthenticated
+                ? "Sessao autenticada. Seus pedidos e pagamentos seguem o escopo da conta ativa."
+                : "Faca login na aba Conta para finalizar pedidos com sua conta real."}
+            </p>
+            <div className="mt-3">
+              <ApiConnectionStatus />
+            </div>
+          </div>
+        </div>
       ) : (
         <div
           className={[
@@ -764,7 +846,9 @@ export function MenuPage() {
       <div
         className={[
           "rounded-2xl border border-border p-4",
-          isVitrineTemplate ? "bg-white/65 shadow-sm dark:bg-bg/75" : "bg-bg/80",
+          isVitrineTemplate || isEditorialTemplate
+            ? "bg-white/65 shadow-sm dark:bg-bg/75"
+            : "bg-bg/80",
         ].join(" ")}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -872,6 +956,7 @@ export function MenuPage() {
           menu={menu}
           cartQtyByItem={cartQtyByItem}
           onAddItem={addToCart}
+          heroCopy={heroCopy}
         />
 
         <CartDrawer

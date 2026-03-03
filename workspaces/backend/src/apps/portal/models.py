@@ -5,9 +5,17 @@ from django.db import models
 class PortalPage(models.TextChoices):
     HOME = "home", "Home"
     CARDAPIO = "cardapio", "Cardapio"
+    APP = "app", "App"
     SOBRE = "sobre", "Sobre"
     COMO_FUNCIONA = "como-funciona", "Como funciona"
+    SUPORTE = "suporte", "Suporte"
+    WIKI = "wiki", "Wiki"
     CONTATO = "contato", "Contato"
+    PEDIDOS = "pedidos", "Pedidos"
+    CONTA = "conta", "Conta"
+    PRIVACIDADE = "privacidade", "Privacidade"
+    TERMOS = "termos", "Termos"
+    LGPD = "lgpd", "LGPD"
 
 
 class PortalConfig(models.Model):

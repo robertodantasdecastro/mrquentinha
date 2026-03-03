@@ -551,13 +551,7 @@ export async function fetchMe(): Promise<AuthUserProfile> {
 
 export async function fetchAuthProvidersConfig(): Promise<PublicAuthProvidersConfig> {
   try {
-    const payload = await requestJson<ClientPortalPublicConfig>(
-      "/api/v1/portal/config/?channel=client&page=home",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
+    const payload = await fetchClientPortalConfig("home");
 
     if (!payload.auth_providers) {
       return DEFAULT_AUTH_PROVIDERS_CONFIG;
@@ -629,13 +623,7 @@ export async function createMySupportTicketMessage(
 
 export async function fetchPaymentProvidersConfig(): Promise<PublicPaymentProvidersConfig> {
   try {
-    const payload = await requestJson<ClientPortalPublicConfig>(
-      "/api/v1/portal/config/?channel=client&page=home",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
+    const payload = await fetchClientPortalConfig("home");
 
     if (!payload.payment_providers) {
       return DEFAULT_PAYMENT_PROVIDERS_CONFIG;
@@ -672,4 +660,16 @@ export async function fetchPaymentProvidersConfig(): Promise<PublicPaymentProvid
 
 export function logoutAccount(): void {
   clearAuthTokens();
+}
+
+export async function fetchClientPortalConfig(
+  page: string = "home",
+): Promise<ClientPortalPublicConfig> {
+  return requestJson<ClientPortalPublicConfig>(
+    `/api/v1/portal/config/?channel=client&page=${encodeURIComponent(page)}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    },
+  );
 }

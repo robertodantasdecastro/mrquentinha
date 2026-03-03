@@ -284,4 +284,17 @@ export type ClientPortalPublicConfig = {
   active_template: string;
   auth_providers: PublicAuthProvidersConfig;
   payment_providers: PublicPaymentProvidersConfig;
+  page?: string;
+  sections?: ClientPortalSectionData[];
+};
+
+export type ClientPortalSectionData = {
+  id: number;
+  template_id: string;
+  page: string;
+  key: string;
+  title: string;
+  body_json: unknown;
+  sort_order: number;
+  updated_at: string;
 };
