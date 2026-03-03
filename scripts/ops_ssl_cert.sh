@@ -31,32 +31,66 @@ normalize_domains() {
   echo "${PORTAL_DOMAIN},${CLIENT_DOMAIN},${ADMIN_DOMAIN},${API_DOMAIN}"
 }
 
+trim_space() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  echo "$value"
+}
+
+build_domain_args() {
+  local -n out_ref="$1"
+  local domains_csv raw_domain domain
+  local -a split_domains=()
+  local -A seen_domains=()
+
+  domains_csv="$(normalize_domains)"
+  IFS=',' read -r -a split_domains <<< "$domains_csv"
+
+  for raw_domain in "${split_domains[@]}"; do
+    domain="$(trim_space "$raw_domain")"
+    if [[ -z "$domain" ]]; then
+      continue
+    fi
+    if [[ -n "${seen_domains[$domain]:-}" ]]; then
+      continue
+    fi
+    seen_domains["$domain"]=1
+    out_ref+=(-d "$domain")
+  done
+
+  if [[ "${#out_ref[@]}" -eq 0 ]]; then
+    echo "[ssl] Nenhum dominio valido para certbot." >&2
+    exit 1
+  fi
+}
+
 apply_certs() {
-  local domains
-  local extra_flags=()
+  local certbot_cmd=()
+  local domain_args=()
 
   if [[ -z "$SSL_EMAIL" ]]; then
     echo "[ssl] MRQ_SSL_EMAIL nao definido." >&2
     exit 1
   fi
 
-  domains="$(normalize_domains)"
-
-  if [[ "$SSL_DRY_RUN" == "1" ]]; then
-    extra_flags+=(--dry-run)
-  fi
+  build_domain_args domain_args
 
   ensure_root
   sudo bash scripts/setup_nginx_prod.sh
 
-  sudo certbot --nginx \
+  if [[ "$SSL_DRY_RUN" == "1" ]]; then
+    certbot_cmd=(sudo certbot certonly --nginx --dry-run)
+  else
+    certbot_cmd=(sudo certbot --nginx --redirect)
+  fi
+
+  "${certbot_cmd[@]}" \
     -m "$SSL_EMAIL" \
     --agree-tos \
     --non-interactive \
-    --redirect \
     --cert-name mrquentinha \
-    -d "${domains//,/ -d }" \
-    "${extra_flags[@]}"
+    "${domain_args[@]}"
 }
 
 main() {
