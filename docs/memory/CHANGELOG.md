@@ -1,6 +1,7 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- T9.2.x (web admin/upload): campos de imagem com captura por camera passaram a aceitar tambem selecao de arquivo local (sem `capture` fixo) nos modulos `Compras`, `Cardapio` e `Perfil`, mantendo o fluxo de upload/ocr com fallback manual.
 - T9.2.x (OCR/compras/web admin): modulo `Compras` evoluido com captura por camera para quatro tipos de imagem por item (`rotulo frente`, `rotulo verso`, `produto` e `etiqueta de preco`), processamento OCR individual por imagem e fallback manual mantido no mesmo formulario.
 - T9.2.x (backend/procurement): `PurchaseItem` ganhou campos `product_image` e `price_tag_image` (migration `0003`), com endpoint de upload por `image_type` (`front|back|product|price`) no fluxo de compras.
 - T9.2.x (backend/ocr): OCR ganhou novos tipos `PRODUCT` e `PRICE_TAG` (migration `0002`) e enriquecimento de `parsed_json` com reconhecimento de ingrediente cadastrado (`recognized_ingredient`) para sugestao automatica no Web Admin.

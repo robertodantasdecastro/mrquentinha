@@ -842,7 +842,6 @@ function ProfilePageContent() {
                 name="document_front_image"
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="block w-full text-sm text-muted"
                 onChange={(event) => handleFileChange("document_front_image", event)}
               />
@@ -850,7 +849,6 @@ function ProfilePageContent() {
                 name="document_back_image"
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="block w-full text-sm text-muted"
                 onChange={(event) => handleFileChange("document_back_image", event)}
               />
@@ -858,7 +856,6 @@ function ProfilePageContent() {
                 name="document_selfie_image"
                 type="file"
                 accept="image/*"
-                capture="user"
                 className="block w-full text-sm text-muted"
                 onChange={(event) => handleFileChange("document_selfie_image", event)}
               />
@@ -871,7 +868,6 @@ function ProfilePageContent() {
               name="biometric_photo"
               type="file"
               accept="image/*"
-              capture="user"
               className="mt-3 block w-full text-sm text-muted"
               onChange={(event) => handleFileChange("biometric_photo", event)}
             />
