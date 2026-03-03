@@ -19,6 +19,26 @@ log() {
   printf '\n[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
 }
 
+append_csv_item() {
+  local file_path="$1"
+  local key="$2"
+  local item="$3"
+  local line_number current_value
+
+  line_number="$(rg -n "^${key}=" "$file_path" | head -n1 | cut -d: -f1 || true)"
+  if [[ -z "$line_number" ]]; then
+    printf '%s=%s\n' "$key" "$item" >> "$file_path"
+    return 0
+  fi
+
+  current_value="$(sed -n "${line_number}p" "$file_path" | cut -d= -f2-)"
+  if [[ ",${current_value}," == *",${item},"* ]]; then
+    return 0
+  fi
+
+  sed -i "${line_number}s|$|,${item}|" "$file_path"
+}
+
 run_dev() {
   local root="${MRQ_DEV_ROOT:-$HOME/mrquentinha}"
   local git_user_name="${MRQ_GIT_USER_NAME:-robertodantasdecastro}"
@@ -41,6 +61,12 @@ run_dev() {
   pip install -U pip setuptools wheel
   pip install -r requirements.txt -r requirements-dev.txt
   [[ -f .env.dev ]] || cp .env.example .env.dev
+  append_csv_item .env.dev CORS_ALLOWED_ORIGINS http://localhost:3002
+  append_csv_item .env.dev CORS_ALLOWED_ORIGINS http://127.0.0.1:3002
+  append_csv_item .env.dev CORS_ALLOWED_ORIGINS http://10.211.55.21:3002
+  append_csv_item .env.dev CSRF_TRUSTED_ORIGINS http://localhost:3002
+  append_csv_item .env.dev CSRF_TRUSTED_ORIGINS http://127.0.0.1:3002
+  append_csv_item .env.dev CSRF_TRUSTED_ORIGINS http://10.211.55.21:3002
   ln -sfn .env.dev .env
   export DJANGO_SETTINGS_MODULE=config.settings.dev
   python manage.py migrate --noinput
