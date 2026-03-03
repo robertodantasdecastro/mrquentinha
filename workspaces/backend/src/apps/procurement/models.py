@@ -138,6 +138,16 @@ class PurchaseItem(models.Model):
         null=True,
         blank=True,
     )
+    product_image = models.ImageField(
+        upload_to="procurement/products/%Y/%m/%d",
+        null=True,
+        blank=True,
+    )
+    price_tag_image = models.ImageField(
+        upload_to="procurement/prices/%Y/%m/%d",
+        null=True,
+        blank=True,
+    )
     metadata = models.JSONField(default=dict, blank=True)
 
     def __str__(self) -> str:

@@ -811,6 +811,9 @@ export type PurchaseItemData = {
   expiry_date: string | null;
   label_front_image_url?: string | null;
   label_back_image_url?: string | null;
+  product_image_url?: string | null;
+  price_tag_image_url?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 export type PurchaseData = {
@@ -841,7 +844,12 @@ export type CreatePurchasePayload = {
   items: CreatePurchaseItemPayload[];
 };
 
-export type OcrKind = "LABEL_FRONT" | "LABEL_BACK" | "RECEIPT";
+export type OcrKind =
+  | "LABEL_FRONT"
+  | "LABEL_BACK"
+  | "PRODUCT"
+  | "PRICE_TAG"
+  | "RECEIPT";
 
 export type OcrJobStatus = "PENDING" | "PROCESSED" | "APPLIED" | "FAILED";
 

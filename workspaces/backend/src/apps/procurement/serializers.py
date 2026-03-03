@@ -120,12 +120,16 @@ class PurchaseItemWriteSerializer(serializers.Serializer):
     expiry_date = serializers.DateField(required=False, allow_null=True)
     label_front_image = serializers.ImageField(required=False, allow_null=True)
     label_back_image = serializers.ImageField(required=False, allow_null=True)
+    product_image = serializers.ImageField(required=False, allow_null=True)
+    price_tag_image = serializers.ImageField(required=False, allow_null=True)
 
 
 class PurchaseItemReadSerializer(serializers.ModelSerializer):
     ingredient = IngredientSummarySerializer(read_only=True)
     label_front_image_url = serializers.SerializerMethodField()
     label_back_image_url = serializers.SerializerMethodField()
+    product_image_url = serializers.SerializerMethodField()
+    price_tag_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = PurchaseItem
@@ -141,6 +145,10 @@ class PurchaseItemReadSerializer(serializers.ModelSerializer):
             "label_front_image_url",
             "label_back_image",
             "label_back_image_url",
+            "product_image",
+            "product_image_url",
+            "price_tag_image",
+            "price_tag_image_url",
             "metadata",
         ]
 
@@ -154,6 +162,18 @@ class PurchaseItemReadSerializer(serializers.ModelSerializer):
         return build_media_url(
             request=self.context.get("request"),
             file_field=obj.label_back_image,
+        )
+
+    def get_product_image_url(self, obj: PurchaseItem) -> str | None:
+        return build_media_url(
+            request=self.context.get("request"),
+            file_field=obj.product_image,
+        )
+
+    def get_price_tag_image_url(self, obj: PurchaseItem) -> str | None:
+        return build_media_url(
+            request=self.context.get("request"),
+            file_field=obj.price_tag_image,
         )
 
 

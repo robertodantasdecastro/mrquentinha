@@ -1320,11 +1320,14 @@ export async function uploadPurchaseItemLabelImageAdmin(
   purchaseId: number,
   purchaseItemId: number,
   file: File,
-  side: "front" | "back" = "front",
+  imageType: "front" | "back" | "product" | "price" = "front",
 ): Promise<PurchaseItemData> {
   const body = new FormData();
   body.append("label_image", file);
-  body.append("side", side);
+  body.append("image_type", imageType);
+  if (imageType === "front" || imageType === "back") {
+    body.append("side", imageType);
+  }
 
   return requestFormData<PurchaseItemData>(
     `/api/v1/procurement/purchases/${purchaseId}/items/${purchaseItemId}/label-image/`,

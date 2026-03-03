@@ -19,6 +19,7 @@ import {
   uploadPurchaseReceiptImageAdmin,
   updatePurchaseRequestStatusAdmin,
 } from "@/lib/api";
+import { containResizeImage } from "@/lib/imageUpload";
 import { formatProcurementStatusLabel } from "@/lib/labels";
 import type {
   IngredientData,
@@ -38,6 +39,20 @@ const REQUEST_STATUS_OPTIONS: ProcurementRequestStatus[] = [
 ];
 
 const UNIT_OPTIONS: IngredientUnit[] = ["g", "kg", "ml", "l", "unidade"];
+const OCR_CAPTURE_TARGET = {
+  width: 1800,
+  height: 1800,
+  mimeType: "image/jpeg",
+  quality: 0.86,
+} as const;
+
+type ItemImageType = "front" | "back" | "product" | "price";
+
+type OcrDraftJobInfo = {
+  jobId: number;
+  kind: "LABEL_FRONT" | "LABEL_BACK" | "PRODUCT" | "PRICE_TAG";
+  status: "PENDING" | "PROCESSED" | "APPLIED" | "FAILED";
+};
 
 type PurchaseItemDraft = {
   ingredientId: string;
@@ -45,7 +60,13 @@ type PurchaseItemDraft = {
   unit: IngredientUnit;
   unitPrice: string;
   taxAmount: string;
-  labelImageFile: File | null;
+  labelFrontImageFile: File | null;
+  labelBackImageFile: File | null;
+  productImageFile: File | null;
+  priceTagImageFile: File | null;
+  ocrJobs: Partial<Record<ItemImageType, OcrDraftJobInfo>>;
+  ocrStatus: "idle" | "processing" | "processed" | "failed";
+  ocrNotes: string[];
 };
 
 function resolveErrorMessage(error: unknown): string {
@@ -135,38 +156,70 @@ function buildStatusDrafts(
 function buildDefaultPurchaseItem(
   ingredients: IngredientData[],
 ): PurchaseItemDraft {
-  const firstIngredient = ingredients[0];
-  const defaultUnit = firstIngredient?.unit ?? "kg";
+  const defaultUnit = ingredients[0]?.unit ?? "kg";
 
   return {
-    ingredientId: firstIngredient ? String(firstIngredient.id) : "",
+    ingredientId: "",
     qty: "",
     unit: defaultUnit,
     unitPrice: "",
     taxAmount: "",
-    labelImageFile: null,
+    labelFrontImageFile: null,
+    labelBackImageFile: null,
+    productImageFile: null,
+    priceTagImageFile: null,
+    ocrJobs: {},
+    ocrStatus: "idle",
+    ocrNotes: [],
   };
 }
 
-function buildReceiptRawText(
-  supplierName: string,
-  invoiceNumber: string,
-  totalAmount: string,
-): string {
-  return [
-    `Fornecedor: ${supplierName || "Fornecedor nao informado"}`,
-    `NF: ${invoiceNumber || "NF nao informada"}`,
-    `Total R$ ${totalAmount}`,
-  ].join("\n");
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+  return value as Record<string, unknown>;
 }
 
-function buildLabelRawText(ingredientName: string): string {
-  return [
-    `Produto: ${ingredientName}`,
-    "Marca: Captura Web Admin",
-    "Peso liquido: 1 kg",
-    "Porcao: 100 g",
-  ].join("\n");
+function parseRecognizedIngredientId(parsed: Record<string, unknown>): number | null {
+  const recognized = asRecord(parsed.recognized_ingredient);
+  const ingredientId = Number(recognized.ingredient_id);
+  if (!Number.isFinite(ingredientId) || ingredientId <= 0) {
+    return null;
+  }
+  return ingredientId;
+}
+
+function parsePackageSize(parsed: Record<string, unknown>): { qty: string; unit: IngredientUnit } | null {
+  const packageSize = asRecord(parsed.package_size);
+  const rawQty = String(packageSize.value ?? "").replace(",", ".").trim();
+  const rawUnit = String(packageSize.unit ?? "").trim().toLowerCase();
+  if (!rawQty || !rawUnit) {
+    return null;
+  }
+  if (!["g", "kg", "ml", "l", "unidade"].includes(rawUnit)) {
+    return null;
+  }
+  return {
+    qty: rawQty,
+    unit: rawUnit as IngredientUnit,
+  };
+}
+
+function parsePriceValue(parsed: Record<string, unknown>): string | null {
+  const candidates = [parsed.unit_price, parsed.total_price];
+  for (const candidate of candidates) {
+    const normalized = String(candidate ?? "").replace(",", ".").trim();
+    if (!normalized) {
+      continue;
+    }
+    const value = Number(normalized);
+    if (Number.isNaN(value) || value < 0) {
+      continue;
+    }
+    return normalized;
+  }
+  return null;
 }
 
 export function ProcurementOpsPanel() {
@@ -193,6 +246,8 @@ export function ProcurementOpsPanel() {
   const [updatingRequestId, setUpdatingRequestId] = useState<number | null>(null);
   const [generating, setGenerating] = useState<boolean>(false);
   const [creatingPurchase, setCreatingPurchase] = useState<boolean>(false);
+  const [processingReceiptOcr, setProcessingReceiptOcr] = useState<boolean>(false);
+  const [processingItemOcrIndex, setProcessingItemOcrIndex] = useState<number | null>(null);
   const [message, setMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -309,13 +364,221 @@ export function ProcurementOpsPanel() {
     );
   }
 
-  function handleReceiptImageChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleReceiptImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0] ?? null;
-    setReceiptImageFile(file);
+    setErrorMessage("");
+
+    if (!file) {
+      setReceiptImageFile(null);
+      return;
+    }
+
+    try {
+      const preparedFile = await containResizeImage(file, OCR_CAPTURE_TARGET);
+      setReceiptImageFile(preparedFile);
+      setMessage("Comprovante otimizado para OCR e armazenamento.");
+    } catch (error) {
+      setReceiptImageFile(null);
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      event.currentTarget.value = "";
+    }
   }
 
-  function handleItemLabelImageChange(index: number, file: File | null) {
-    updatePurchaseItemDraft(index, { labelImageFile: file });
+  async function handleItemImageChange(
+    index: number,
+    type: ItemImageType,
+    file: File | null,
+  ) {
+    if (!file) {
+      const patch: Partial<PurchaseItemDraft> = {};
+      if (type === "front") {
+        patch.labelFrontImageFile = null;
+      } else if (type === "back") {
+        patch.labelBackImageFile = null;
+      } else if (type === "product") {
+        patch.productImageFile = null;
+      } else {
+        patch.priceTagImageFile = null;
+      }
+      updatePurchaseItemDraft(index, patch);
+      return;
+    }
+
+    try {
+      const preparedFile = await containResizeImage(file, OCR_CAPTURE_TARGET);
+      const patch: Partial<PurchaseItemDraft> = {};
+      if (type === "front") {
+        patch.labelFrontImageFile = preparedFile;
+      } else if (type === "back") {
+        patch.labelBackImageFile = preparedFile;
+      } else if (type === "product") {
+        patch.productImageFile = preparedFile;
+      } else {
+        patch.priceTagImageFile = preparedFile;
+      }
+      updatePurchaseItemDraft(index, patch);
+      setMessage("Imagem do item otimizada para OCR e armazenamento.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    }
+  }
+
+  async function runReceiptOcrPreview() {
+    if (!receiptImageFile) {
+      setErrorMessage("Selecione uma imagem de comprovante para processar OCR.");
+      return;
+    }
+
+    setProcessingReceiptOcr(true);
+    setMessage("");
+    setErrorMessage("");
+    try {
+      const receiptJob = await createOcrJobAdmin("RECEIPT", receiptImageFile);
+      if (receiptJob.status === "FAILED") {
+        throw new Error(receiptJob.error_message || "OCR do comprovante falhou.");
+      }
+      const parsed = asRecord(receiptJob.parsed_json);
+      const supplier = String(parsed.supplier_name ?? "").trim();
+      const invoice = String(parsed.invoice_number ?? "").trim();
+      const total = String(parsed.total_amount ?? "").replace(",", ".").trim();
+
+      if (!supplierName.trim() && supplier) {
+        setSupplierName(supplier);
+      }
+      if (!invoiceNumber.trim() && invoice) {
+        setInvoiceNumber(invoice);
+      }
+      setMessage(
+        "OCR do comprovante processado. Revise fornecedor/NF/total antes de salvar.",
+      );
+      if (total && Number.isFinite(Number(total)) && Number(total) > 0) {
+        setMessage(
+          "OCR do comprovante processado. Fornecedor/NF sugeridos; total identificado no OCR.",
+        );
+      }
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setProcessingReceiptOcr(false);
+    }
+  }
+
+  async function runItemOcrPreview(index: number) {
+    const current = purchaseItems[index];
+    if (!current) {
+      return;
+    }
+
+    const images = [
+      {
+        type: "front" as const,
+        kind: "LABEL_FRONT" as const,
+        file: current.labelFrontImageFile,
+      },
+      {
+        type: "back" as const,
+        kind: "LABEL_BACK" as const,
+        file: current.labelBackImageFile,
+      },
+      {
+        type: "product" as const,
+        kind: "PRODUCT" as const,
+        file: current.productImageFile,
+      },
+      {
+        type: "price" as const,
+        kind: "PRICE_TAG" as const,
+        file: current.priceTagImageFile,
+      },
+    ].filter((entry) => Boolean(entry.file));
+
+    if (images.length === 0) {
+      setErrorMessage(
+        "Anexe ao menos uma foto (frente, verso, produto ou preço) para OCR.",
+      );
+      return;
+    }
+
+    setProcessingItemOcrIndex(index);
+    setErrorMessage("");
+    setMessage("");
+    updatePurchaseItemDraft(index, { ocrStatus: "processing", ocrNotes: [] });
+
+    const notes: string[] = [];
+    const ocrJobs: Partial<Record<ItemImageType, OcrDraftJobInfo>> = {
+      ...current.ocrJobs,
+    };
+    let nextIngredientId = current.ingredientId;
+    let nextQty = current.qty;
+    let nextUnit = current.unit;
+    let nextUnitPrice = current.unitPrice;
+
+    try {
+      for (const imageEntry of images) {
+        const job = await createOcrJobAdmin(imageEntry.kind, imageEntry.file as File);
+        ocrJobs[imageEntry.type] = {
+          jobId: job.id,
+          kind: imageEntry.kind,
+          status: job.status,
+        };
+
+        if (job.status === "FAILED") {
+          notes.push(`${imageEntry.kind}: OCR falhou.`);
+          continue;
+        }
+
+        const parsed = asRecord(job.parsed_json);
+        const recognizedIngredientId = parseRecognizedIngredientId(parsed);
+        if (recognizedIngredientId && !nextIngredientId) {
+          const matched = ingredients.find(
+            (candidate) => candidate.id === recognizedIngredientId,
+          );
+          if (matched) {
+            nextIngredientId = String(matched.id);
+            nextUnit = matched.unit;
+            notes.push(`Ingrediente reconhecido: ${matched.name}.`);
+          }
+        }
+
+        const packageSize = parsePackageSize(parsed);
+        if (packageSize && !nextQty.trim()) {
+          nextQty = packageSize.qty;
+          nextUnit = packageSize.unit;
+          notes.push(
+            `Quantidade sugerida pelo OCR: ${packageSize.qty} ${packageSize.unit}.`,
+          );
+        }
+
+        const priceValue = parsePriceValue(parsed);
+        if (priceValue && !nextUnitPrice.trim()) {
+          nextUnitPrice = priceValue;
+          notes.push(`Preco unitario sugerido pelo OCR: ${priceValue}.`);
+        }
+      }
+
+      updatePurchaseItemDraft(index, {
+        ingredientId: nextIngredientId,
+        qty: nextQty,
+        unit: nextUnit,
+        unitPrice: nextUnitPrice,
+        ocrJobs,
+        ocrStatus: "processed",
+        ocrNotes: notes,
+      });
+      setMessage(
+        "OCR do item concluido. Revise os campos sugeridos; o preenchimento manual permanece disponivel.",
+      );
+    } catch (error) {
+      updatePurchaseItemDraft(index, {
+        ocrJobs,
+        ocrStatus: "failed",
+        ocrNotes: notes.length > 0 ? notes : ["Falha ao processar OCR deste item."],
+      });
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setProcessingItemOcrIndex(null);
+    }
   }
 
   async function handleUpdateRequestStatus(requestItem: PurchaseRequestData) {
@@ -387,7 +650,11 @@ export function ProcurementOpsPanel() {
           unit: item.unit,
           unitPrice: item.unitPrice.replace(",", ".").trim(),
           taxAmount: item.taxAmount.replace(",", ".").trim(),
-          labelImageFile: item.labelImageFile,
+          labelFrontImageFile: item.labelFrontImageFile,
+          labelBackImageFile: item.labelBackImageFile,
+          productImageFile: item.productImageFile,
+          priceTagImageFile: item.priceTagImageFile,
+          ocrJobs: item.ocrJobs,
         }))
         .filter(
           (item) =>
@@ -427,15 +694,7 @@ export function ProcurementOpsPanel() {
 
       if (applyOcrFromImages && receiptImageFile) {
         try {
-          const receiptJob = await createOcrJobAdmin(
-            "RECEIPT",
-            receiptImageFile,
-            buildReceiptRawText(
-              supplierName.trim(),
-              invoiceNumber.trim(),
-              createdPurchase.total_amount,
-            ),
-          );
+          const receiptJob = await createOcrJobAdmin("RECEIPT", receiptImageFile);
           if (receiptJob.status === "FAILED") {
             warnings.push("OCR do comprovante nao processou.");
           } else {
@@ -451,10 +710,6 @@ export function ProcurementOpsPanel() {
       }
 
       for (const item of payloadItems) {
-        if (!item.labelImageFile) {
-          continue;
-        }
-
         const purchaseItem = createdPurchase.purchase_items.find(
           (candidate) => candidate.ingredient.id === item.ingredientId,
         );
@@ -465,37 +720,90 @@ export function ProcurementOpsPanel() {
           continue;
         }
 
-        await uploadPurchaseItemLabelImageAdmin(
-          createdPurchase.id,
-          purchaseItem.id,
-          item.labelImageFile,
-          "front",
-        );
+        const imageByType: Array<{ type: ItemImageType; file: File | null }> = [
+          { type: "front", file: item.labelFrontImageFile },
+          { type: "back", file: item.labelBackImageFile },
+          { type: "product", file: item.productImageFile },
+          { type: "price", file: item.priceTagImageFile },
+        ];
+
+        for (const imageEntry of imageByType) {
+          if (!imageEntry.file) {
+            continue;
+          }
+          await uploadPurchaseItemLabelImageAdmin(
+            createdPurchase.id,
+            purchaseItem.id,
+            imageEntry.file,
+            imageEntry.type,
+          );
+        }
 
         if (!applyOcrFromImages) {
           continue;
         }
 
-        try {
-          const labelJob = await createOcrJobAdmin(
-            "LABEL_FRONT",
-            item.labelImageFile,
-            buildLabelRawText(item.ingredientName),
-          );
-          if (labelJob.status === "FAILED") {
-            warnings.push(
-              `OCR do item ${item.ingredientName} nao foi processado.`,
-            );
+        const jobsQueue: Array<{ type: ItemImageType; job: OcrDraftJobInfo }> = [];
+        const kindByType: Record<ItemImageType, OcrDraftJobInfo["kind"]> = {
+          front: "LABEL_FRONT",
+          back: "LABEL_BACK",
+          product: "PRODUCT",
+          price: "PRICE_TAG",
+        };
+        for (const imageEntry of imageByType) {
+          if (!imageEntry.file) {
             continue;
           }
 
-          await applyOcrJobAdmin(labelJob.id, {
-            target_type: "PURCHASE_ITEM",
-            target_id: purchaseItem.id,
-            mode: "merge",
-          });
-        } catch {
-          warnings.push(`Falha ao aplicar OCR no item ${item.ingredientName}.`);
+          const existingJob = item.ocrJobs[imageEntry.type];
+          if (existingJob && existingJob.status !== "FAILED") {
+            jobsQueue.push({ type: imageEntry.type, job: existingJob });
+            continue;
+          }
+
+          try {
+            const generatedJob = await createOcrJobAdmin(
+              kindByType[imageEntry.type],
+              imageEntry.file,
+            );
+            if (generatedJob.status === "FAILED") {
+              warnings.push(
+                `OCR ${generatedJob.kind} do item ${item.ingredientName} falhou.`,
+              );
+              continue;
+            }
+            jobsQueue.push({
+              type: imageEntry.type,
+              job: {
+                jobId: generatedJob.id,
+                kind: kindByType[imageEntry.type],
+                status: generatedJob.status,
+              },
+            });
+          } catch {
+            warnings.push(`Falha ao processar OCR ${imageEntry.type} do item ${item.ingredientName}.`);
+          }
+        }
+
+        for (const queuedJob of jobsQueue) {
+          try {
+            await applyOcrJobAdmin(queuedJob.job.jobId, {
+              target_type: "PURCHASE_ITEM",
+              target_id: purchaseItem.id,
+              mode: "merge",
+            });
+            if (queuedJob.job.kind === "LABEL_FRONT" || queuedJob.job.kind === "LABEL_BACK") {
+              await applyOcrJobAdmin(queuedJob.job.jobId, {
+                target_type: "INGREDIENT",
+                target_id: item.ingredientId,
+                mode: "merge",
+              });
+            }
+          } catch {
+            warnings.push(
+              `Falha ao aplicar OCR ${queuedJob.job.kind} no item ${item.ingredientName}.`,
+            );
+          }
         }
       }
 
@@ -689,6 +997,19 @@ export function ProcurementOpsPanel() {
                       Arquivo selecionado: {receiptImageFile.name}
                     </p>
                   )}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void runReceiptOcrPreview()}
+                      disabled={!receiptImageFile || processingReceiptOcr}
+                      className="rounded-md border border-border bg-bg px-3 py-1 text-xs font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {processingReceiptOcr ? "Processando OCR..." : "Processar OCR do comprovante"}
+                    </button>
+                    <span className="text-[11px] text-muted">
+                      Se nao reconhecer tudo, complete manualmente os campos acima.
+                    </span>
+                  </div>
                   <label className="mt-2 inline-flex items-center gap-2 text-xs text-muted">
                     <input
                       type="checkbox"
@@ -786,22 +1107,125 @@ export function ProcurementOpsPanel() {
                         </button>
                       </div>
                       <label className="mt-2 grid gap-1 text-xs text-muted">
-                        Foto do produto para OCR (upload/camera)
+                        OCR por imagem (camera/upload):
+                        frente, verso, produto e etiqueta de preco
+                      </label>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <label className="grid gap-1 text-[11px] text-muted">
+                          Rotulo frente
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(event) =>
+                              void handleItemImageChange(
+                                index,
+                                "front",
+                                event.currentTarget.files?.[0] ?? null,
+                              )
+                            }
+                            className="rounded-md border border-border bg-bg px-2 py-1.5 text-xs text-text file:mr-2 file:rounded-md file:border-0 file:bg-primary/10 file:px-2 file:py-1 file:text-[11px] file:font-semibold file:text-primary"
+                          />
+                          {item.labelFrontImageFile && (
+                            <span>Selecionado: {item.labelFrontImageFile.name}</span>
+                          )}
+                        </label>
+                        <label className="grid gap-1 text-[11px] text-muted">
+                          Rotulo verso
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(event) =>
+                              void handleItemImageChange(
+                                index,
+                                "back",
+                                event.currentTarget.files?.[0] ?? null,
+                              )
+                            }
+                            className="rounded-md border border-border bg-bg px-2 py-1.5 text-xs text-text file:mr-2 file:rounded-md file:border-0 file:bg-primary/10 file:px-2 file:py-1 file:text-[11px] file:font-semibold file:text-primary"
+                          />
+                          {item.labelBackImageFile && (
+                            <span>Selecionado: {item.labelBackImageFile.name}</span>
+                          )}
+                        </label>
+                        <label className="grid gap-1 text-[11px] text-muted">
+                          Produto completo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(event) =>
+                              void handleItemImageChange(
+                                index,
+                                "product",
+                                event.currentTarget.files?.[0] ?? null,
+                              )
+                            }
+                            className="rounded-md border border-border bg-bg px-2 py-1.5 text-xs text-text file:mr-2 file:rounded-md file:border-0 file:bg-primary/10 file:px-2 file:py-1 file:text-[11px] file:font-semibold file:text-primary"
+                          />
+                          {item.productImageFile && (
+                            <span>Selecionado: {item.productImageFile.name}</span>
+                          )}
+                        </label>
+                        <label className="grid gap-1 text-[11px] text-muted">
+                          Etiqueta de preco
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(event) =>
+                              void handleItemImageChange(
+                                index,
+                                "price",
+                                event.currentTarget.files?.[0] ?? null,
+                              )
+                            }
+                            className="rounded-md border border-border bg-bg px-2 py-1.5 text-xs text-text file:mr-2 file:rounded-md file:border-0 file:bg-primary/10 file:px-2 file:py-1 file:text-[11px] file:font-semibold file:text-primary"
+                          />
+                          {item.priceTagImageFile && (
+                            <span>Selecionado: {item.priceTagImageFile.name}</span>
+                          )}
+                        </label>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void runItemOcrPreview(index)}
+                          disabled={processingItemOcrIndex === index}
+                          className="rounded-md border border-border bg-bg px-3 py-1 text-xs font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                          {processingItemOcrIndex === index
+                            ? "Processando OCR..."
+                            : "Processar OCR deste item"}
+                        </button>
+                        <span className="text-[11px] text-muted">
+                          Status: {item.ocrStatus}
+                        </span>
+                      </div>
+                      {item.ocrNotes.length > 0 && (
+                        <div className="mt-2 rounded-md border border-border bg-bg px-2 py-2 text-[11px] text-muted">
+                          {item.ocrNotes.join(" | ")}
+                        </div>
+                      )}
+                      <label className="mt-2 grid gap-1 text-xs text-muted">
+                        Foto do produto para OCR (compatibilidade)
                         <input
                           type="file"
                           accept="image/*"
                           capture="environment"
                           onChange={(event) =>
-                            handleItemLabelImageChange(
+                            void handleItemImageChange(
                               index,
+                              "front",
                               event.currentTarget.files?.[0] ?? null,
                             )
                           }
                           className="rounded-md border border-border bg-bg px-2 py-1.5 text-xs text-text file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-primary"
                         />
-                        {item.labelImageFile && (
+                        {item.labelFrontImageFile && (
                           <span className="text-[11px] text-muted">
-                            Foto selecionada: {item.labelImageFile.name}
+                            Foto selecionada: {item.labelFrontImageFile.name}
                           </span>
                         )}
                       </label>
@@ -860,6 +1284,8 @@ export function ProcurementOpsPanel() {
                             const iconUrl =
                               item.label_front_image_url ||
                               item.label_back_image_url ||
+                              item.product_image_url ||
+                              item.price_tag_image_url ||
                               item.ingredient.image_url;
                             return (
                               <span

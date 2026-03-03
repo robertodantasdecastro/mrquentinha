@@ -201,3 +201,14 @@ def test_procurement_purchase_item_label_image_endpoint_salva_arquivo(client):
     upload_body = upload_response.json()
     assert upload_body["id"] == purchase_item_id
     assert upload_body["label_front_image_url"] is not None
+
+    upload_price_response = client.post(
+        f"/api/v1/procurement/purchases/{purchase_id}/items/{purchase_item_id}/label-image/",
+        data={
+            "image_type": "price",
+            "label_image": build_test_image(filename="price.png"),
+        },
+    )
+    assert upload_price_response.status_code == 200
+    upload_price_body = upload_price_response.json()
+    assert upload_price_body["price_tag_image_url"] is not None

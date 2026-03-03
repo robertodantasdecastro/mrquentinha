@@ -188,11 +188,26 @@ class PurchaseViewSet(viewsets.ModelViewSet):
         if image is None:
             raise DRFValidationError(["Envie o arquivo em 'label_image'."])
 
+        image_type = str(request.data.get("image_type", "")).strip().lower()
         side = str(request.data.get("side", "front")).strip().lower()
-        if side not in {"front", "back"}:
-            raise DRFValidationError(["Campo 'side' deve ser 'front' ou 'back'."])
+        if not image_type:
+            image_type = side
 
-        field_name = "label_front_image" if side == "front" else "label_back_image"
+        field_map = {
+            "front": "label_front_image",
+            "back": "label_back_image",
+            "product": "product_image",
+            "price": "price_tag_image",
+        }
+        field_name = field_map.get(image_type)
+        if field_name is None:
+            raise DRFValidationError(
+                [
+                    "Campo 'image_type' deve ser "
+                    "'front', 'back', 'product' ou 'price'."
+                ]
+            )
+
         setattr(purchase_item, field_name, image)
         purchase_item.save(update_fields=[field_name])
 
