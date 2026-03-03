@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { InlinePreloader } from "@/components/InlinePreloader";
 
@@ -15,6 +15,7 @@ import {
   uploadDishImageAdmin,
   uploadIngredientImageAdmin,
 } from "@/lib/api";
+import { centerCropResizeImage } from "@/lib/imageUpload";
 import type {
   CreateDishPayload,
   DishData,
@@ -23,6 +24,8 @@ import type {
 } from "@/types/api";
 
 const UNIT_OPTIONS: IngredientUnit[] = ["g", "kg", "ml", "l", "unidade"];
+const INGREDIENT_IMAGE_TARGET = { width: 1000, height: 1000, mimeType: "image/jpeg" } as const;
+const DISH_IMAGE_TARGET = { width: 1200, height: 900, mimeType: "image/jpeg" } as const;
 
 type CompositionRowDraft = {
   ingredientId: string;
@@ -84,6 +87,10 @@ export function DishCompositionPanel() {
   ]);
   const [ingredientImageFile, setIngredientImageFile] = useState<File | null>(null);
   const [dishImageFile, setDishImageFile] = useState<File | null>(null);
+  const [ingredientImagePreviewUrl, setIngredientImagePreviewUrl] = useState<string | null>(
+    null,
+  );
+  const [dishImagePreviewUrl, setDishImagePreviewUrl] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -93,6 +100,8 @@ export function DishCompositionPanel() {
   const [savingDishEdit, setSavingDishEdit] = useState(false);
   const [uploadingIngredientImage, setUploadingIngredientImage] = useState(false);
   const [uploadingDishImage, setUploadingDishImage] = useState(false);
+  const [preparingIngredientImage, setPreparingIngredientImage] = useState(false);
+  const [preparingDishImage, setPreparingDishImage] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -158,6 +167,17 @@ export function DishCompositionPanel() {
   useEffect(() => {
     void loadCompositionData();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (ingredientImagePreviewUrl) {
+        URL.revokeObjectURL(ingredientImagePreviewUrl);
+      }
+      if (dishImagePreviewUrl) {
+        URL.revokeObjectURL(dishImagePreviewUrl);
+      }
+    };
+  }, [dishImagePreviewUrl, ingredientImagePreviewUrl]);
 
   const activeIngredients = useMemo(
     () =>
@@ -287,6 +307,80 @@ export function DishCompositionPanel() {
 
   function removeEditCompositionRow(index: number) {
     setEditCompositionRows((previous) => previous.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  function replaceIngredientPreview(file: File | null) {
+    setIngredientImagePreviewUrl((previous) => {
+      if (previous) {
+        URL.revokeObjectURL(previous);
+      }
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }
+
+  function replaceDishPreview(file: File | null) {
+    setDishImagePreviewUrl((previous) => {
+      if (previous) {
+        URL.revokeObjectURL(previous);
+      }
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }
+
+  async function handleIngredientImageSelection(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0] ?? null;
+    setErrorMessage("");
+
+    if (!file) {
+      setIngredientImageFile(null);
+      replaceIngredientPreview(null);
+      return;
+    }
+
+    setPreparingIngredientImage(true);
+    try {
+      const prepared = await centerCropResizeImage(file, INGREDIENT_IMAGE_TARGET);
+      setIngredientImageFile(prepared);
+      replaceIngredientPreview(prepared);
+      setMessage(
+        "Imagem do insumo preparada automaticamente (corte central 1:1 e redimensionamento).",
+      );
+    } catch (error) {
+      setIngredientImageFile(null);
+      replaceIngredientPreview(null);
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setPreparingIngredientImage(false);
+      event.currentTarget.value = "";
+    }
+  }
+
+  async function handleDishImageSelection(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0] ?? null;
+    setErrorMessage("");
+
+    if (!file) {
+      setDishImageFile(null);
+      replaceDishPreview(null);
+      return;
+    }
+
+    setPreparingDishImage(true);
+    try {
+      const prepared = await centerCropResizeImage(file, DISH_IMAGE_TARGET);
+      setDishImageFile(prepared);
+      replaceDishPreview(prepared);
+      setMessage(
+        "Imagem do prato preparada automaticamente (corte central 4:3 e redimensionamento).",
+      );
+    } catch (error) {
+      setDishImageFile(null);
+      replaceDishPreview(null);
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setPreparingDishImage(false);
+      event.currentTarget.value = "";
+    }
   }
 
   async function handleCreateIngredient(event: FormEvent<HTMLFormElement>) {
@@ -488,6 +582,7 @@ export function DishCompositionPanel() {
 
       await uploadIngredientImageAdmin(ingredientId, ingredientImageFile);
       setIngredientImageFile(null);
+      replaceIngredientPreview(null);
       setMessage("Foto do ingrediente atualizada com sucesso.");
       await loadCompositionData({ silent: true });
     } catch (error) {
@@ -515,6 +610,7 @@ export function DishCompositionPanel() {
 
       await uploadDishImageAdmin(dishId, dishImageFile);
       setDishImageFile(null);
+      replaceDishPreview(null);
       setMessage("Foto do prato atualizada com sucesso.");
       await loadCompositionData({ silent: true });
     } catch (error) {
@@ -926,6 +1022,7 @@ export function DishCompositionPanel() {
             >
               <h4 className="text-base font-semibold text-text">Foto do insumo</h4>
               <p className="mt-1 text-xs text-muted">
+                Corte central automatico + redimensionamento para 1000x1000.
                 Esta imagem sera usada em compras, estoque e composicao.
               </p>
               <div className="mt-3 grid gap-3">
@@ -951,17 +1048,21 @@ export function DishCompositionPanel() {
                     type="file"
                     accept="image/*"
                     capture="environment"
-                    onChange={(event) =>
-                      setIngredientImageFile(event.currentTarget.files?.[0] ?? null)
-                    }
+                    onChange={(event) => void handleIngredientImageSelection(event)}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white"
                   />
                 </label>
 
-                {selectedIngredientForImage?.image_url && (
+                {ingredientImageFile && (
+                  <p className="text-xs text-muted">
+                    Arquivo preparado para upload: {ingredientImageFile.name}
+                  </p>
+                )}
+
+                {(ingredientImagePreviewUrl || selectedIngredientForImage?.image_url) && (
                   <Image
-                    src={selectedIngredientForImage.image_url}
-                    alt={selectedIngredientForImage.name}
+                    src={ingredientImagePreviewUrl || selectedIngredientForImage?.image_url || ""}
+                    alt={selectedIngredientForImage?.name || "Imagem de ingrediente"}
                     width={640}
                     height={320}
                     className="h-36 w-full rounded-lg border border-border object-cover"
@@ -974,12 +1075,17 @@ export function DishCompositionPanel() {
                   type="submit"
                   disabled={
                     uploadingIngredientImage ||
+                    preparingIngredientImage ||
                     !selectedIngredientImageId ||
                     ingredientImageFile === null
                   }
                   className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {uploadingIngredientImage ? "Enviando..." : "Salvar foto do insumo"}
+                  {preparingIngredientImage
+                    ? "Processando imagem..."
+                    : uploadingIngredientImage
+                      ? "Enviando..."
+                      : "Salvar foto do insumo"}
                 </button>
               </div>
             </form>
@@ -990,6 +1096,7 @@ export function DishCompositionPanel() {
             >
               <h4 className="text-base font-semibold text-text">Foto do prato</h4>
               <p className="mt-1 text-xs text-muted">
+                Corte central automatico + redimensionamento para 1200x900.
                 Esta imagem sera usada no cardapio do portal e da area do cliente.
               </p>
               <div className="mt-3 grid gap-3">
@@ -1015,17 +1122,21 @@ export function DishCompositionPanel() {
                     type="file"
                     accept="image/*"
                     capture="environment"
-                    onChange={(event) =>
-                      setDishImageFile(event.currentTarget.files?.[0] ?? null)
-                    }
+                    onChange={(event) => void handleDishImageSelection(event)}
                     className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white"
                   />
                 </label>
 
-                {selectedDishForImage?.image_url && (
+                {dishImageFile && (
+                  <p className="text-xs text-muted">
+                    Arquivo preparado para upload: {dishImageFile.name}
+                  </p>
+                )}
+
+                {(dishImagePreviewUrl || selectedDishForImage?.image_url) && (
                   <Image
-                    src={selectedDishForImage.image_url}
-                    alt={selectedDishForImage.name}
+                    src={dishImagePreviewUrl || selectedDishForImage?.image_url || ""}
+                    alt={selectedDishForImage?.name || "Imagem de prato"}
                     width={640}
                     height={320}
                     className="h-36 w-full rounded-lg border border-border object-cover"
@@ -1036,10 +1147,19 @@ export function DishCompositionPanel() {
               <div className="mt-4 flex justify-end">
                 <button
                   type="submit"
-                  disabled={uploadingDishImage || !selectedDishImageId || dishImageFile === null}
+                  disabled={
+                    uploadingDishImage ||
+                    preparingDishImage ||
+                    !selectedDishImageId ||
+                    dishImageFile === null
+                  }
                   className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {uploadingDishImage ? "Enviando..." : "Salvar foto do prato"}
+                  {preparingDishImage
+                    ? "Processando imagem..."
+                    : uploadingDishImage
+                      ? "Enviando..."
+                      : "Salvar foto do prato"}
                 </button>
               </div>
             </form>

@@ -185,7 +185,8 @@ def test_apply_ocr_job_para_purchase_item_salva_imagem_de_rotulo(
 
     purchase_item.refresh_from_db()
     assert purchase_item.label_front_image.name
-    assert purchase_item.metadata["ocr"]["job_id"] == job_id
+    assert purchase_item.metadata["ocr"]["last_job_id"] == job_id
+    assert purchase_item.metadata["ocr"]["jobs"]["label_front"]["job_id"] == job_id
 
 
 @pytest.mark.django_db
@@ -237,3 +238,87 @@ def test_apply_ocr_job_para_purchase_salva_imagem_de_comprovante(
     assert purchase.receipt_image.name
     assert purchase.invoice_number == "NF-77"
     assert purchase.total_amount == Decimal("58.90")
+
+
+@pytest.mark.django_db
+def test_create_ocr_job_reconhece_ingrediente_cadastrado(client, settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path / "media"
+    ingredient = Ingredient.objects.create(
+        name="arroz branco",
+        unit=IngredientUnit.KILOGRAM,
+    )
+
+    response = client.post(
+        "/api/v1/ocr/jobs/",
+        data={
+            "kind": OCRKind.PRODUCT,
+            "image": build_test_image(filename="produto.png"),
+            "raw_text": "Produto: Arroz Branco tipo 1",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    recognized = body["parsed_json"]["recognized_ingredient"]
+    assert recognized["ingredient_id"] == ingredient.id
+    assert recognized["ingredient_name"] == ingredient.name
+
+
+@pytest.mark.django_db
+def test_apply_ocr_job_price_tag_atualiza_preco_e_imagem_item_compra(
+    client, settings, tmp_path
+):
+    settings.MEDIA_ROOT = tmp_path / "media"
+
+    ingredient = Ingredient.objects.create(
+        name="oleo de soja",
+        unit=IngredientUnit.LITER,
+    )
+    purchase = Purchase.objects.create(
+        supplier_name="Fornecedor OCR",
+        purchase_date=date(2026, 2, 26),
+        total_amount=Decimal("10.00"),
+    )
+    purchase_item = PurchaseItem.objects.create(
+        purchase=purchase,
+        ingredient=ingredient,
+        qty=Decimal("1.000"),
+        unit=IngredientUnit.LITER,
+        unit_price=Decimal("0.00"),
+    )
+
+    create_response = client.post(
+        "/api/v1/ocr/jobs/",
+        data={
+            "kind": OCRKind.PRICE_TAG,
+            "image": build_test_image(filename="price-tag.png"),
+            "raw_text": "\n".join(
+                [
+                    "Produto: Oleo de soja",
+                    "Preco: R$ 12,49",
+                ]
+            ),
+        },
+    )
+    assert create_response.status_code == 201
+    job_id = create_response.json()["id"]
+
+    apply_response = client.post(
+        f"/api/v1/ocr/jobs/{job_id}/apply/",
+        data=json.dumps(
+            {
+                "target_type": "PURCHASE_ITEM",
+                "target_id": purchase_item.id,
+                "mode": "merge",
+            }
+        ),
+        content_type="application/json",
+    )
+
+    assert apply_response.status_code == 200
+    apply_body = apply_response.json()
+    assert apply_body["saved_image_field"] == "price_tag_image"
+
+    purchase_item.refresh_from_db()
+    assert purchase_item.price_tag_image.name
+    assert purchase_item.unit_price == Decimal("12.49")

@@ -1,5 +1,7 @@
 import re
+import unicodedata
 from decimal import Decimal, InvalidOperation
+from difflib import SequenceMatcher
 from pathlib import Path
 
 from django.core.exceptions import ValidationError
@@ -7,7 +9,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.text import slugify
 
-from apps.catalog.models import NutritionFact, NutritionSource
+from apps.catalog.models import Ingredient, NutritionFact, NutritionSource
 from apps.procurement.models import Purchase, PurchaseItem
 
 from .models import OCRJob, OCRJobStatus, OCRKind
@@ -84,9 +86,14 @@ def _extract_nutrient_value(text: str, aliases: list[str]) -> str | None:
     return None
 
 
-def parse_label_text(raw_text: str) -> dict:
-    compact_text = re.sub(r"\s+", " ", raw_text).strip()
+def _normalize_lookup_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "")
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    lowered = ascii_value.lower().strip()
+    return re.sub(r"[^a-z0-9]+", " ", lowered).strip()
 
+
+def _extract_product_name_from_text(raw_text: str) -> str | None:
     product_name = _find_first_match(
         raw_text,
         [
@@ -95,11 +102,76 @@ def parse_label_text(raw_text: str) -> dict:
             r"descricao\s*[:\-]\s*(.+)",
         ],
     )
+    if product_name:
+        return product_name
+
+    first_line = next(
+        (line.strip() for line in raw_text.splitlines() if line.strip()), ""
+    )
+    return first_line or None
+
+
+def _resolve_recognized_ingredient(
+    *, product_name: str | None, raw_text: str
+) -> dict | None:
     if not product_name:
-        first_line = next(
-            (line.strip() for line in raw_text.splitlines() if line.strip()), ""
+        return None
+
+    normalized_product = _normalize_lookup_text(product_name)
+    if not normalized_product:
+        return None
+
+    raw_normalized = _normalize_lookup_text(raw_text)
+    ingredients = Ingredient.objects.all().only("id", "name")
+
+    best_match = None
+    best_score = 0.0
+    product_tokens = set(normalized_product.split())
+    for ingredient in ingredients:
+        normalized_candidate = _normalize_lookup_text(ingredient.name)
+        if not normalized_candidate:
+            continue
+
+        if normalized_candidate == normalized_product:
+            return {
+                "ingredient_id": ingredient.id,
+                "ingredient_name": ingredient.name,
+                "confidence": 1.0,
+                "match_type": "exact",
+            }
+
+        sequence_score = SequenceMatcher(
+            None, normalized_product, normalized_candidate
+        ).ratio()
+        token_set = set(normalized_candidate.split())
+        union = product_tokens | token_set
+        token_score = (len(product_tokens & token_set) / len(union)) if union else 0
+
+        in_text_score = (
+            0.78
+            if re.search(rf"\b{re.escape(normalized_candidate)}\b", raw_normalized)
+            else 0
         )
-        product_name = first_line or None
+        score = max(sequence_score, token_score, in_text_score)
+        if score > best_score:
+            best_score = score
+            best_match = ingredient
+
+    if best_match is None or best_score < 0.62:
+        return None
+
+    return {
+        "ingredient_id": best_match.id,
+        "ingredient_name": best_match.name,
+        "confidence": round(float(best_score), 3),
+        "match_type": "fuzzy",
+    }
+
+
+def parse_label_text(raw_text: str) -> dict:
+    compact_text = re.sub(r"\s+", " ", raw_text).strip()
+
+    product_name = _extract_product_name_from_text(raw_text)
 
     brand = _find_first_match(
         raw_text,
@@ -174,6 +246,51 @@ def parse_label_text(raw_text: str) -> dict:
     }
 
 
+def parse_product_text(raw_text: str) -> dict:
+    base = parse_label_text(raw_text)
+    base["context"] = "product"
+    return base
+
+
+def parse_price_tag_text(raw_text: str) -> dict:
+    product_name = _extract_product_name_from_text(raw_text)
+    compact_text = re.sub(r"\s+", " ", raw_text).strip()
+
+    unit_price_raw = _find_first_match(
+        raw_text,
+        [
+            r"(?:r\$|pre[cç]o)\s*[:\-]?\s*([0-9]+[.,][0-9]{2})",
+            r"valor\s*unit[aá]rio\s*[:\-]?\s*([0-9]+[.,][0-9]{2})",
+        ],
+    )
+    total_price_raw = _find_first_match(
+        raw_text,
+        [
+            r"valor\s*total\s*[:\-]?\s*([0-9]+[.,][0-9]{2})",
+            r"total\s*[:\-]?\s*([0-9]+[.,][0-9]{2})",
+        ],
+    )
+    package_size_raw = _find_first_match(
+        raw_text,
+        [
+            r"peso\s*(?:liquido|líquido)?\s*[:\-]\s*([0-9.,]+\s*(?:kg|g|ml|l))",
+            r"conteudo\s*[:\-]\s*([0-9.,]+\s*(?:kg|g|ml|l))",
+        ],
+    )
+
+    return {
+        "product_name": product_name,
+        "unit_price": (
+            str(_to_decimal(unit_price_raw) or "") if unit_price_raw else None
+        ),
+        "total_price": (
+            str(_to_decimal(total_price_raw) or "") if total_price_raw else None
+        ),
+        "package_size": _parse_size_field(package_size_raw),
+        "raw_excerpt": compact_text[:400],
+    }
+
+
 def parse_receipt_text(raw_text: str) -> dict:
     supplier_name = _find_first_match(
         raw_text,
@@ -212,6 +329,10 @@ def parse_receipt_text(raw_text: str) -> dict:
 def _parse_raw_text(kind: str, raw_text: str) -> dict:
     if kind == OCRKind.RECEIPT:
         return parse_receipt_text(raw_text)
+    if kind == OCRKind.PRICE_TAG:
+        return parse_price_tag_text(raw_text)
+    if kind == OCRKind.PRODUCT:
+        return parse_product_text(raw_text)
     return parse_label_text(raw_text)
 
 
@@ -228,6 +349,11 @@ def process_ocr_job(job: OCRJob, *, raw_text_override: str | None = None) -> OCR
         )
 
     parsed_json = _parse_raw_text(job.kind, raw_text)
+    if isinstance(parsed_json, dict) and job.kind != OCRKind.RECEIPT:
+        parsed_json["recognized_ingredient"] = _resolve_recognized_ingredient(
+            product_name=str(parsed_json.get("product_name") or ""),
+            raw_text=raw_text,
+        )
 
     job.raw_text = raw_text
     job.parsed_json = parsed_json
@@ -272,8 +398,6 @@ def _update_nutrition_fact_field(
 
 
 def _apply_to_ingredient(*, job: OCRJob, ingredient_id: int, mode: str) -> dict:
-    from apps.catalog.models import Ingredient
-
     ingredient = Ingredient.objects.filter(pk=ingredient_id).first()
     if ingredient is None:
         raise ValidationError("Ingrediente de destino nao encontrado.")
@@ -390,8 +514,13 @@ def _resolve_purchase_item_image_field(kind: str) -> str:
         return "label_front_image"
     if kind == OCRKind.LABEL_BACK:
         return "label_back_image"
+    if kind == OCRKind.PRODUCT:
+        return "product_image"
+    if kind == OCRKind.PRICE_TAG:
+        return "price_tag_image"
     raise ValidationError(
-        "Somente LABEL_FRONT/LABEL_BACK podem ser aplicados em PURCHASE_ITEM."
+        "Somente LABEL_FRONT, LABEL_BACK, PRODUCT e PRICE_TAG podem ser "
+        "aplicados em PURCHASE_ITEM."
     )
 
 
@@ -449,12 +578,20 @@ def _apply_to_purchase_item(*, job: OCRJob, purchase_item_id: int, mode: str) ->
     if purchase_item is None:
         raise ValidationError("Item de compra de destino nao encontrado.")
 
+    kind_key = str(job.kind).lower()
     incoming_metadata = {
         "ocr": {
-            "job_id": job.id,
-            "kind": job.kind,
-            "status": job.status,
-            "parsed": job.parsed_json,
+            "last_job_id": job.id,
+            "last_kind": job.kind,
+            "last_status": job.status,
+            "jobs": {
+                kind_key: {
+                    "job_id": job.id,
+                    "kind": job.kind,
+                    "status": job.status,
+                    "parsed": job.parsed_json,
+                }
+            },
         }
     }
 
@@ -473,7 +610,15 @@ def _apply_to_purchase_item(*, job: OCRJob, purchase_item_id: int, mode: str) ->
         mode=mode,
     )
 
+    parsed = job.parsed_json if isinstance(job.parsed_json, dict) else {}
     fields_to_update = ["metadata"]
+    if job.kind == OCRKind.PRICE_TAG:
+        unit_price = _to_decimal(parsed.get("unit_price"))
+        if unit_price is not None and unit_price >= 0:
+            if mode == "overwrite" or purchase_item.unit_price <= 0:
+                purchase_item.unit_price = unit_price
+                fields_to_update.append("unit_price")
+
     if saved_image:
         fields_to_update.append(image_field_name)
 

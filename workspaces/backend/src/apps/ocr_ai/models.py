@@ -4,6 +4,8 @@ from django.db import models
 class OCRKind(models.TextChoices):
     LABEL_FRONT = "LABEL_FRONT", "LABEL_FRONT"
     LABEL_BACK = "LABEL_BACK", "LABEL_BACK"
+    PRODUCT = "PRODUCT", "PRODUCT"
+    PRICE_TAG = "PRICE_TAG", "PRICE_TAG"
     RECEIPT = "RECEIPT", "RECEIPT"
 
 

@@ -1,6 +1,15 @@
 # Changelog (por sprint)
 
 ## 02/03/2026
+- T9.2.x (OCR/compras/web admin): modulo `Compras` evoluido com captura por camera para quatro tipos de imagem por item (`rotulo frente`, `rotulo verso`, `produto` e `etiqueta de preco`), processamento OCR individual por imagem e fallback manual mantido no mesmo formulario.
+- T9.2.x (backend/procurement): `PurchaseItem` ganhou campos `product_image` e `price_tag_image` (migration `0003`), com endpoint de upload por `image_type` (`front|back|product|price`) no fluxo de compras.
+- T9.2.x (backend/ocr): OCR ganhou novos tipos `PRODUCT` e `PRICE_TAG` (migration `0002`) e enriquecimento de `parsed_json` com reconhecimento de ingrediente cadastrado (`recognized_ingredient`) para sugestao automatica no Web Admin.
+- T9.2.x (backend/ocr): aplicacao de OCR em `PURCHASE_ITEM` passou a registrar metadados por tipo de job e atualizar `unit_price` automaticamente quando o OCR de `PRICE_TAG` identifica preco valido.
+- T9.2.x (qa): testes ampliados para OCR e compras cobrindo reconhecimento de ingrediente, aplicacao de `PRICE_TAG` e upload de imagem `image_type=price`.
+- T9.2.x (backend/media): pipeline global de processamento de imagens adicionado em `apps/shared/image_pipeline.py`, com perfis por contexto e execucao automatica via `pre_save` para uploads manuais e fluxos automaticos (`save=False` + `update_fields`).
+- T9.2.x (catalogo/ux): modulo `Cardapio` do Web Admin passou a preparar imagens no cliente com corte central e redimensionamento antes do upload (`1000x1000` para insumos e `1200x900` para pratos), com feedback visual do arquivo preparado.
+- T9.2.x (qa/media): testes de upload ampliados em `tests/test_media_upload_api.py` para validar crop central de prato, resize proporcional de comprovante e fluxo automatico de sincronizacao de imagem.
+- T9.2.x (docs/adr): ADR `0019-pipeline-global-processamento-imagens.md` criada para formalizar a decisao arquitetural.
 - Ajuste de dominios oficiais: `portal` fixado em `www.mrquentinha.com.br`, `web client` em `app.mrquentinha.com.br` e `web admin` em `admin.mrquentinha.com.br`; alias `web.mrquentinha.com.br` removido da lista oficial de frontend.
 - Nginx/hardening de dominio legado: `web.mrquentinha.com.br` passou a responder `404` por vhost dedicado para evitar uso acidental.
 - Admin de servidor (Web Admin): `PortalConfig` em producao foi alinhado para dominios reais (`mrquentinha.com.br`, `www`, `app`, `admin`, `api`) e URLs base correspondentes.

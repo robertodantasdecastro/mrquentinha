@@ -250,6 +250,8 @@ def create_purchase_and_apply_stock(
                 expiry_date=item.get("expiry_date"),
                 label_front_image=item.get("label_front_image"),
                 label_back_image=item.get("label_back_image"),
+                product_image=item.get("product_image"),
+                price_tag_image=item.get("price_tag_image"),
             )
             for item in items_payload
         ]
