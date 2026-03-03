@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
+    "dbbackup",
     "apps.accounts.apps.AccountsConfig",
     "apps.catalog.apps.CatalogConfig",
     "apps.inventory.apps.InventoryConfig",
@@ -95,6 +96,18 @@ STATIC_ROOT = ROOT_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = ROOT_DIR / "media"
+
+DBBACKUP_STORAGE = env(
+    "DBBACKUP_STORAGE",
+    default="django.core.files.storage.FileSystemStorage",
+)
+DBBACKUP_STORAGE_OPTIONS = {
+    "location": env(
+        "DBBACKUP_STORAGE_LOCATION",
+        default=str(ROOT_DIR / ".runtime" / "dbbackup"),
+    )
+}
+DBBACKUP_CONNECTORS = env.list("DBBACKUP_CONNECTORS", default=["postgresql"])
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

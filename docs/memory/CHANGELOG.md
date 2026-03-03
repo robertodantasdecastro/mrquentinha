@@ -3,6 +3,14 @@
 ## 03/03/2026
 - Ops/monitoramento UX: `GestorServidor` teve layout atualizado para seguir o estilo do dashboard dev (`scripts/ops_dashboard.py`/`ops_center.py`), com cabecalho de acoes, barras percentuais + sparklines de sistema/rede e boxes operacionais de servicos/health.
 - Ops/monitoramento: novo aplicativo TUI `GestorServidor` implementado em `GestorServidor/app.py` com monitoramento em tempo real (host/rede/servicos/dominios/API), controle `start|stop|restart` por servico/stack via `systemctl`, eventos persistidos em `.runtime/gestor-servidor` e launcher raiz `gestor_servidor.sh`.
+- T9.2.8 (web admin/servidor): secao `Conectividade e dominio` ganhou area de credenciais SSH de producao (host/porta/usuario, auth por chave ou senha, upload de `.pem` e validacao de conectividade), restrita a admin e bloqueada fora de modo dev/hibrido.
+- T9.2.8 (web admin): novo modulo `Banco de dados` com guia individual, configuracao SSH reaproveitavel, listagem/criacao de backups remotos, restore remoto com confirmacao explicita e sincronizacao de backup para ambiente DEV.
+- T9.2.8 (backend/portal): adicionadas acoes admin para DB Ops em `/api/v1/portal/admin/config/database/*` (salvar SSH, upload de chave, probe SSH, listar/criar backup, restore e sync para DEV) com validacoes de seguranca e sanitizacao de dados sensiveis.
+- T9.2.8 (db ops/metodos): modulo `Banco de dados` evoluido com 3 formas operacionais apos conectividade confirmada: (1) tunel SSH com start/stop/status e configuracao de bind/porta, (2) execucao de comandos `psql` remotos via SSH com modo read-only seguro, (3) sincronizacao por bibliotecas Django (`dumpdata/loaddata`) com opcao de aplicar no DEV.
+- T9.2.8 (db ops/libs): backend passou a suportar execucao remota de `django-dbbackup` (`dbbackup`, `listbackups`, `dbrestore`) com confirmacao para restore e retorno de logs.
+- T9.2.8 (db ops/sync): adicionado fluxo explicito de copia de backup remoto para DEV via `scp` no modulo `Banco de dados` (alem do sync por restore local).
+- T9.2.8 (ux): painel de banco reorganizado em etapas (`Tunnel`, `psql`, `Backups`, `Django libs`, `Comandos`) com experiencia guiada e catalogo de comandos copy-ready.
+- T9.2.8 (workflow): regras globais atualizadas para padrao de backup/restauracao PostgreSQL (`pg_dump -Fc` + `pg_restore --clean --if-exists`) com migrate obrigatorio apos restore.
 - Hotfix dominios (prod): consolidado `app.mrquentinha.com.br` como unico dominio oficial do `mrq_client`; `web.mrquentinha.com.br` mantido apenas como dominio legado explicitamente desativado (`404`) no Nginx.
 - Politica de seguranca operacional reforcada: credenciais/tokens/chaves devem existir somente nas areas seguras locais (`~/.codex/secure` e `~/.mrquentinha-secure`), proibido versionar segredos no Git.
 - Politica de sincronizacao entre agentes reforcada: EC2/producao opera na branch `main`; VM dev opera na branch `vm-atualizacoes`; sincronizacao sempre via `fetch` + integracao controlada + testes obrigatorios.
@@ -1403,3 +1411,18 @@
     - backend: `python manage.py migrate --noinput`, `python manage.py check`, `pytest tests/test_portal_services.py -q`, `ruff check` (arquivos alterados) -> OK;
     - frontend: `npm run lint && npm run build` em `web/portal`, `web/client` e `web/admin` -> OK;
     - simulacao: `python manage.py seed_paraiba_caseira_week --start-date 2026-04-13` -> OK (7 cardapios, 7 PRs, compra + OCR + producao).
+
+- Web/Ops-03/03/2026 (database ops com deteccao automatica de ambiente VM/EC2 e modo dev/prod/hibrido)
+  - backend (`apps.portal.services`):
+    - consolidada deteccao de contexto em `resolve_database_runtime_context` para distinguir `machine_kind` (VM/EC2) e `operation_mode` (dev/prod/hibrido);
+    - operacoes de banco agora alternam automaticamente entre execucao local (EC2 com DB local) e execucao remota via SSH (VM/hibrido), sem exigir tunnel quando nao aplicavel;
+    - `tunnel`, `psql`, `django sync`, `django-dbbackup`, `scp` e catalogo de comandos retornam `runtime` para o frontend adaptar a UI;
+    - removidas dependencias residuais de validacao legada por modo, evitando erro de runtime e comportamento inconsistente.
+  - frontend (`web/admin`):
+    - `DatabaseOpsPanel` passou a ler contexto `runtime` da API e desabilitar automaticamente recursos nao aplicaveis (tunnel/SCP/sync para DEV) em EC2 local;
+    - adicionada sinalizacao de ambiente/modo/transporte de banco no topo do painel.
+  - contratos de API (`types/api.ts`):
+    - novo tipo `PortalDatabaseRuntimeContext` e extensao dos payloads de DB Ops com campo opcional `runtime`.
+  - validacao executada:
+    - backend: `python3 -m py_compile`, `ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_api.py`, `pytest -q tests/test_portal_api.py -k database`, `python manage.py check` -> OK;
+    - frontend admin: `npm run lint && npm run build` -> OK.

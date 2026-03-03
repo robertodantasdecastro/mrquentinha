@@ -29,6 +29,21 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - RBAC de `inventory` e `procurement` ainda esta temporario com `AllowAny` no MVP.
 - Proxima etapa deve substituir por permissoes por perfil (Admin/Compras/Estoque CRUD, Cozinha criacao de solicitacao e leitura, Financeiro leitura).
 
+## 03/03/2026 - DB Ops via Web Admin com SSH e dumps versionados
+- Decisao:
+  - centralizar operacoes de banco de producao no Web Admin com pre-requisito de SSH configurado.
+  - adotar dump PostgreSQL custom (`pg_dump -Fc`) como formato padrao para backup e replicacao.
+  - complementar com `django-dbbackup` para operacao orientada a Django (`dbbackup/listbackups/dbrestore`) quando a equipe precisar fluxo framework-first.
+  - exigir confirmacao explicita (`RESTAURAR`) para restore remoto.
+  - expor tres modos operacionais no modulo `Banco de dados`:
+    - tunnel SSH gerenciavel (start/stop/status);
+    - execucao de comandos `psql` remotos;
+    - sincronizacao via biblioteca Django (`dumpdata/loaddata`) para DEV.
+  - limitar operacoes ao contexto `dev/hybrid` para reduzir risco operacional direto em modo estritamente produtivo.
+- Consequencia:
+  - operador admin consegue manter ciclo de backup/restore/sync sem acesso manual continuo ao terminal.
+  - continuidade de evolucao do schema (novas migrations/tabelas/campos) fica coberta por dump logico + migrate pos-restore.
+
 ## 02/03/2026 - Instalacao hibrida com segredos locais e hardening de host
 - Decisao:
   - executar instalacao no servidor por `installdev.sh` em modo sequencial (baixo consumo) com PostgreSQL local.

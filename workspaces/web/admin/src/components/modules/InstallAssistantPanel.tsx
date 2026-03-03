@@ -267,6 +267,29 @@ function getDefaultSettings(): PortalInstallerSettingsConfig {
       public_ip_base_url: "http://44.192.27.104",
       aws_dns_base_url: "http://ec2-44-192-27-104.compute-1.amazonaws.com",
     },
+    database_ops: {
+      tunnel: {
+        enabled: false,
+        local_bind_host: "127.0.0.1",
+        local_port: 55432,
+        remote_db_host: "127.0.0.1",
+        remote_db_port: 5432,
+        status: "inactive",
+        pid: null,
+        last_started_at: "",
+        last_stopped_at: "",
+        last_error: "",
+      },
+      psql: {
+        last_command: "",
+        last_executed_at: "",
+      },
+      django_sync: {
+        last_dump_file: "",
+        last_synced_at: "",
+        last_synced_by: "",
+      },
+    },
     workflow_version: "2026.02.28",
     last_synced_at: "",
     last_sync_note: "Workflow do instalador ainda nao sincronizado.",
@@ -332,6 +355,22 @@ function normalizeInstallerSettings(
     jobs: {
       ...defaults.jobs,
       ...(value.jobs ?? {}),
+    },
+    database_ops: {
+      ...defaults.database_ops,
+      ...(value.database_ops ?? {}),
+      tunnel: {
+        ...defaults.database_ops.tunnel,
+        ...(value.database_ops?.tunnel ?? {}),
+      },
+      psql: {
+        ...defaults.database_ops.psql,
+        ...(value.database_ops?.psql ?? {}),
+      },
+      django_sync: {
+        ...defaults.database_ops.django_sync,
+        ...(value.database_ops?.django_sync ?? {}),
+      },
     },
   };
 }

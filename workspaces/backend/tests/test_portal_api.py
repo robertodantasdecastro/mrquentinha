@@ -314,6 +314,246 @@ def test_portal_admin_test_payment_provider_action(client, monkeypatch):
 
 
 @pytest.mark.django_db
+def test_portal_admin_database_ssh_probe_action(client, monkeypatch):
+    def fake_probe(*, payload=None):
+        return {
+            "ok": True,
+            "check": {"status": "ok", "detail": "Conectividade SSH validada."},
+            "ssh": {"host": "44.192.27.104"},
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.validate_database_ssh_connectivity",
+        fake_probe,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/database/ssh/probe/",
+        data={"ssh": {"host": "44.192.27.104", "user": "ubuntu"}},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["check"]["status"] == "ok"
+
+
+@pytest.mark.django_db
+def test_portal_admin_database_backups_list_action(client, monkeypatch):
+    def fake_list(*, limit=30):
+        assert limit == 15
+        return {
+            "ok": True,
+            "count": 1,
+            "results": [
+                {
+                    "path": "/tmp/test.dump",
+                    "filename": "test.dump",
+                    "size_bytes": 123,
+                    "updated_at": "2026-03-03T00:00:00",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.list_remote_database_backups",
+        fake_list,
+    )
+
+    response = client.get("/api/v1/portal/admin/config/database/backups/?limit=15")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["count"] == 1
+
+
+@pytest.mark.django_db
+def test_portal_admin_database_backup_create_action(client, monkeypatch):
+    def fake_create(*, payload=None):
+        assert isinstance(payload, dict)
+        return {
+            "ok": True,
+            "label": "manual",
+            "backup_file": "/tmp/backup.dump",
+            "metadata_file": "/tmp/backup.json",
+            "size_bytes": 456,
+            "ssh_target": "ubuntu@44.192.27.104",
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.create_remote_database_backup",
+        fake_create,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/database/backups/create/",
+        data={"label": "manual"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["backup_file"].endswith(".dump")
+
+
+@pytest.mark.django_db
+def test_portal_admin_database_tunnel_action(client, monkeypatch):
+    def fake_manage(*, action):
+        assert action == "status"
+        return {
+            "ok": True,
+            "action": "status",
+            "tunnel": {
+                "status": "inactive",
+                "pid": None,
+            },
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.manage_database_ssh_tunnel",
+        fake_manage,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/database/tunnel/action/",
+        data={"action": "status"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+
+@pytest.mark.django_db
+def test_portal_admin_database_psql_execute_action(client, monkeypatch):
+    def fake_run(*, payload=None):
+        assert payload["read_only"] is True
+        return {
+            "ok": True,
+            "exit_code": 0,
+            "stdout": "ok",
+            "stderr": "",
+            "command_preview": "ssh ...",
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.run_remote_psql_command",
+        fake_run,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/database/psql/execute/",
+        data={"command": "SELECT 1;", "read_only": True},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+
+@pytest.mark.django_db
+def test_portal_admin_database_django_sync_action(client, monkeypatch):
+    def fake_sync(*, payload=None):
+        assert payload["mode"] == "dump"
+        return {
+            "ok": True,
+            "mode": "dump",
+            "local_dump_file": "/tmp/django_dump.json",
+            "synced": False,
+            "exclude_apps": ["contenttypes"],
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.sync_remote_database_via_django",
+        fake_sync,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/database/django/sync/",
+        data={"mode": "dump", "exclude_apps": ["contenttypes"]},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+
+@pytest.mark.django_db
+def test_portal_admin_database_django_dbbackup_action(client, monkeypatch):
+    def fake_dbbackup(*, payload=None):
+        assert payload["mode"] == "list"
+        return {
+            "ok": True,
+            "mode": "list",
+            "exit_code": 0,
+            "stdout": "backup_001",
+            "stderr": "",
+            "command_preview": "ssh ... listbackups",
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.run_remote_django_dbbackup",
+        fake_dbbackup,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/database/django-dbbackup/",
+        data={"mode": "list"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+
+@pytest.mark.django_db
+def test_portal_admin_database_copy_scp_action(client, monkeypatch):
+    def fake_copy(*, payload=None):
+        assert payload["backup_file"] == "/tmp/remote.dump"
+        return {
+            "ok": True,
+            "source_backup_file": payload["backup_file"],
+            "local_dump_file": "/tmp/local.dump",
+            "local_dump_size_bytes": 123,
+            "transfer_method": "scp",
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.copy_remote_backup_to_dev_via_scp",
+        fake_copy,
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/database/backups/fetch-dev/",
+        data={"backup_file": "/tmp/remote.dump"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+
+@pytest.mark.django_db
+def test_portal_admin_database_command_catalog_action(client, monkeypatch):
+    def fake_catalog(*, sample_backup_file=""):
+        assert sample_backup_file == "/tmp/backup.dump"
+        return {
+            "ok": True,
+            "commands": {"tunnel_start": "ssh -N -L ..."},
+            "notes": ["ok"],
+        }
+
+    monkeypatch.setattr(
+        "apps.portal.views.build_database_ops_command_catalog",
+        fake_catalog,
+    )
+
+    response = client.get(
+        "/api/v1/portal/admin/config/database/commands/catalog/?sample_backup_file=/tmp/backup.dump"
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+
+@pytest.mark.django_db
 def test_portal_admin_cloudflare_preview_e_toggle(client):
     preview_response = client.post(
         "/api/v1/portal/admin/config/cloudflare-preview/",

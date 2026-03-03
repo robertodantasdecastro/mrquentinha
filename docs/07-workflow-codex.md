@@ -81,6 +81,13 @@ bash scripts/branch_guard.sh --agent join --strict --codex-primary feature/etapa
 - Toda mudanca em backend/frontend/scripts deve refletir docs/memory e `.agent`.
 - Nunca armazenar segredos em git (`.env` real, tokens, chaves, senhas).
 
+## Backup e restauracao (MVP evolutivo)
+- Para banco de producao, preferir `pg_dump --format=custom` (`.dump`) com metadata de commit/data.
+- Restore remoto deve usar confirmacao explicita e `pg_restore --clean --if-exists --no-owner --no-privileges`.
+- Sempre executar `python manage.py migrate --noinput` apos restore.
+- Sincronizacao para DEV deve transferir dump remoto, criar snapshot local pre-restore (quando `pg_dump` disponivel) e restaurar local seguido de migrate.
+- Operacoes de backup/restauração/sync so podem ser habilitadas no Web Admin quando ambiente estiver em modo `dev` ou `hybrid`.
+
 ## Compatibilidade de paths (Codex x Antigravity)
 - Regra global lida pelo painel Antigravity: `.agent/rules/global.md`.
 - Espelho para ordenacao no topo: `.agent/rules/00_GLOBAL_RULE.md`.

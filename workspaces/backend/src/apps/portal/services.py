@@ -6,6 +6,7 @@ import shlex
 import shutil
 import signal
 import subprocess
+import sys
 import time
 import uuid
 from copy import deepcopy
@@ -248,8 +249,14 @@ INSTALLER_ALLOWED_AWS_AUTH_MODES = {"profile", "access_key"}
 INSTALLER_SAFE_REMOTE_PATH_RE = re.compile(r"^[A-Za-z0-9_./$-]+$")
 INSTALLER_SAFE_GIT_REF_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 SSL_ALLOWED_DOMAIN_RE = re.compile(r"^[A-Za-z0-9.-]+$")
+DBOPS_ALLOWED_LABEL_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
 INSTALLER_RUNTIME_DIR = PROJECT_ROOT / ".runtime" / "install"
 INSTALLER_JOBS_DIR = INSTALLER_RUNTIME_DIR / "jobs"
+DBOPS_RUNTIME_DIR = PROJECT_ROOT / ".runtime" / "db_ops"
+DBOPS_KEYS_DIR = DBOPS_RUNTIME_DIR / "keys"
+DBOPS_SYNC_DIR = DBOPS_RUNTIME_DIR / "sync"
+DBOPS_TUNNEL_PID_FILE = DBOPS_RUNTIME_DIR / "ssh_tunnel.pid"
+DBOPS_TUNNEL_LOG_FILE = DBOPS_RUNTIME_DIR / "ssh_tunnel.log"
 AWS_COST_DEFAULT_EC2_HOURLY_USD = 0.0416
 AWS_COST_EBS_GB_MONTH_USD = 0.10
 AWS_COST_EIP_MONTH_USD = 3.60
@@ -268,6 +275,34 @@ AWS_COST_EC2_HOURLY_BY_INSTANCE = {
     "t4g.medium": 0.0336,
     "t4g.large": 0.0672,
 }
+
+DEFAULT_DATABASE_OPS_SETTINGS = {
+    "tunnel": {
+        "enabled": False,
+        "local_bind_host": "127.0.0.1",
+        "local_port": 55432,
+        "remote_db_host": "127.0.0.1",
+        "remote_db_port": 5432,
+        "status": "inactive",
+        "pid": None,
+        "last_started_at": "",
+        "last_stopped_at": "",
+        "last_error": "",
+    },
+    "psql": {
+        "last_command": "",
+        "last_executed_at": "",
+    },
+    "django_sync": {
+        "last_dump_file": "",
+        "last_synced_at": "",
+        "last_synced_by": "",
+    },
+}
+
+
+def _default_database_ops_settings_payload() -> dict:
+    return deepcopy(DEFAULT_DATABASE_OPS_SETTINGS)
 
 DEFAULT_INSTALLER_SETTINGS = {
     "workflow_version": INSTALLER_WORKFLOW_VERSION,
@@ -302,6 +337,7 @@ DEFAULT_INSTALLER_SETTINGS = {
         "public_ip_base_url": "http://44.192.27.104",
         "aws_dns_base_url": "http://ec2-44-192-27-104.compute-1.amazonaws.com",
     },
+    "database_ops": _default_database_ops_settings_payload(),
 }
 
 
@@ -359,6 +395,85 @@ def _normalize_api_public_access_settings(raw_value: object | None) -> dict:
         "preferred_endpoint": preferred_endpoint,
         "public_ip_base_url": public_ip_base_url,
         "aws_dns_base_url": aws_dns_base_url,
+    }
+
+
+def _normalize_database_ops_settings(raw_value: object | None) -> dict:
+    defaults = _default_database_ops_settings_payload()
+    if not isinstance(raw_value, dict):
+        return defaults
+
+    tunnel = raw_value.get("tunnel")
+    merged_tunnel = defaults["tunnel"]
+    if isinstance(tunnel, dict):
+        merged_tunnel["enabled"] = bool(tunnel.get("enabled", merged_tunnel["enabled"]))
+        merged_tunnel["local_bind_host"] = (
+            str(tunnel.get("local_bind_host", merged_tunnel["local_bind_host"]))
+            .strip()
+            or merged_tunnel["local_bind_host"]
+        )
+        try:
+            local_port = int(tunnel.get("local_port", merged_tunnel["local_port"]))
+        except (TypeError, ValueError):
+            local_port = int(merged_tunnel["local_port"])
+        merged_tunnel["local_port"] = max(1024, min(local_port, 65535))
+        merged_tunnel["remote_db_host"] = (
+            str(tunnel.get("remote_db_host", merged_tunnel["remote_db_host"]))
+            .strip()
+            or merged_tunnel["remote_db_host"]
+        )
+        try:
+            remote_db_port = int(
+                tunnel.get("remote_db_port", merged_tunnel["remote_db_port"])
+            )
+        except (TypeError, ValueError):
+            remote_db_port = int(merged_tunnel["remote_db_port"])
+        merged_tunnel["remote_db_port"] = max(1, min(remote_db_port, 65535))
+        merged_tunnel["status"] = (
+            str(tunnel.get("status", merged_tunnel["status"])).strip() or "inactive"
+        )
+        pid_value = tunnel.get("pid")
+        if isinstance(pid_value, int) and pid_value > 0:
+            merged_tunnel["pid"] = pid_value
+        else:
+            merged_tunnel["pid"] = None
+        merged_tunnel["last_started_at"] = str(
+            tunnel.get("last_started_at", merged_tunnel["last_started_at"])
+        ).strip()
+        merged_tunnel["last_stopped_at"] = str(
+            tunnel.get("last_stopped_at", merged_tunnel["last_stopped_at"])
+        ).strip()
+        merged_tunnel["last_error"] = str(
+            tunnel.get("last_error", merged_tunnel["last_error"])
+        ).strip()
+
+    psql = raw_value.get("psql")
+    merged_psql = defaults["psql"]
+    if isinstance(psql, dict):
+        merged_psql["last_command"] = str(
+            psql.get("last_command", merged_psql["last_command"])
+        ).strip()
+        merged_psql["last_executed_at"] = str(
+            psql.get("last_executed_at", merged_psql["last_executed_at"])
+        ).strip()
+
+    django_sync = raw_value.get("django_sync")
+    merged_django_sync = defaults["django_sync"]
+    if isinstance(django_sync, dict):
+        merged_django_sync["last_dump_file"] = str(
+            django_sync.get("last_dump_file", merged_django_sync["last_dump_file"])
+        ).strip()
+        merged_django_sync["last_synced_at"] = str(
+            django_sync.get("last_synced_at", merged_django_sync["last_synced_at"])
+        ).strip()
+        merged_django_sync["last_synced_by"] = str(
+            django_sync.get("last_synced_by", merged_django_sync["last_synced_by"])
+        ).strip()
+
+    return {
+        "tunnel": merged_tunnel,
+        "psql": merged_psql,
+        "django_sync": merged_django_sync,
     }
 
 
@@ -1722,6 +1837,9 @@ def _normalize_installer_settings(raw_value: object | None) -> dict:
 
     normalized["api_public_access"] = _normalize_api_public_access_settings(
         raw_value.get("api_public_access")
+    )
+    normalized["database_ops"] = _normalize_database_ops_settings(
+        raw_value.get("database_ops")
     )
 
     return normalized
@@ -3785,6 +3903,598 @@ def apply_ssl_certificates(*, payload: dict | None) -> dict:
     }
 
 
+@transaction.atomic
+def save_database_ssh_settings(*, payload: dict | None) -> PortalConfig:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    if bool(context.get("local_db_ops")):
+        raise ValidationError(
+            "SSH/tunnel nao e necessario neste ambiente (EC2 com banco local)."
+        )
+    payload = payload if isinstance(payload, dict) else {}
+    ssh_settings = _validate_dbops_ssh_settings(payload)
+    return _save_dbops_ssh_in_installer_settings(
+        config=config,
+        ssh_settings=ssh_settings,
+        completed_step="database-ssh",
+    )
+
+
+def validate_database_ssh_connectivity(*, payload: dict | None = None) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    if bool(context.get("local_db_ops")):
+        return {
+            "ok": True,
+            "check": {
+                "name": "ssh_not_required",
+                "status": "ok",
+                "detail": "SSH nao requerido neste ambiente (EC2 com banco local).",
+            },
+            "ssh": {},
+            "runtime": context,
+        }
+    incoming = payload if isinstance(payload, dict) else {}
+    source_settings = (
+        incoming if incoming else _extract_dbops_ssh_from_config(config)
+    )
+    ssh_settings = _validate_dbops_ssh_settings(source_settings)
+    check = _run_ssh_connectivity_probe(ssh_settings=ssh_settings)
+    return {
+        "ok": True,
+        "check": check,
+        "ssh": _sanitize_installer_payload({"ssh": ssh_settings}).get("ssh", {}),
+    }
+
+
+@transaction.atomic
+def upload_database_ssh_key(
+    *,
+    filename: str,
+    content: str,
+) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    if bool(context.get("local_db_ops")):
+        raise ValidationError(
+            "Upload de chave SSH nao se aplica neste ambiente (EC2 com banco local)."
+        )
+    normalized_filename = os.path.basename(str(filename or "").strip())
+    if not normalized_filename:
+        raise ValidationError("Arquivo .pem invalido (nome vazio).")
+    if not normalized_filename.lower().endswith(".pem"):
+        raise ValidationError("Arquivo invalido: envie uma chave com extensao .pem.")
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", normalized_filename):
+        raise ValidationError(
+            "Arquivo .pem invalido: nome contem caracteres proibidos."
+        )
+
+    normalized_content = str(content or "").strip()
+    if not normalized_content:
+        raise ValidationError("Conteudo da chave .pem vazio.")
+    if "BEGIN" not in normalized_content or "PRIVATE KEY" not in normalized_content:
+        raise ValidationError(
+            "Conteudo da chave .pem invalido (cabecalho de chave privada ausente)."
+        )
+
+    _ensure_dbops_runtime_dirs()
+    key_path = DBOPS_KEYS_DIR / normalized_filename
+    try:
+        key_path.write_text(normalized_content + "\n", encoding="utf-8")
+        os.chmod(key_path, 0o600)
+    except OSError as exc:
+        raise ValidationError(
+            "Falha ao salvar chave .pem no servidor backend."
+        ) from exc
+
+    return {
+        "ok": True,
+        "key_path": str(key_path),
+        "filename": normalized_filename,
+    }
+
+
+def _local_db_backups_dir() -> Path:
+    backup_dir = PROJECT_ROOT / ".runtime" / "db_backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    return backup_dir
+
+
+def _local_django_manage_env(*, settings_module: str = "config.settings.prod") -> dict:
+    env = os.environ.copy()
+    env["DJANGO_SETTINGS_MODULE"] = settings_module
+    return env
+
+
+def list_remote_database_backups(*, limit: int = 30) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    safe_limit = max(1, min(int(limit or 30), 200))
+    lines: list[str] = []
+
+    if bool(context.get("local_db_ops")):
+        backup_dir = _local_db_backups_dir()
+        entries: list[tuple[float, Path]] = []
+        for file_path in backup_dir.glob("*.dump"):
+            try:
+                mtime = file_path.stat().st_mtime
+            except OSError:
+                continue
+            entries.append((mtime, file_path))
+        entries.sort(key=lambda item: item[0], reverse=True)
+        for mtime, path in entries[:safe_limit]:
+            try:
+                size_value = path.stat().st_size
+            except OSError:
+                size_value = 0
+            lines.append(f"{mtime}|{path}|{size_value}")
+    else:
+        ssh_settings = _validate_dbops_ssh_settings(
+            _extract_dbops_ssh_from_config(config)
+        )
+        repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+        remote_script = f"""
+set -euo pipefail
+REPO_PATH={shlex.quote(repo_path)}
+BACKUP_DIR="$REPO_PATH/.runtime/db_backups"
+mkdir -p "$BACKUP_DIR"
+find "$BACKUP_DIR" -maxdepth 1 -type f -name '*.dump' -printf '%T@|%p|%s\\n' \
+  | sort -nr | head -n {safe_limit}
+"""
+        result, command_preview = _run_remote_dbops_script(
+            ssh_settings=ssh_settings,
+            remote_shell_script=remote_script,
+            timeout_seconds=40,
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()
+            raise ValidationError(
+                "Falha ao listar backups remotos. "
+                f"Comando: {command_preview}. Detalhe: {detail or 'sem detalhe'}"
+            )
+        lines = (result.stdout or "").splitlines()
+
+    backups: list[dict] = []
+    for line in lines:
+        parts = line.strip().split("|", 2)
+        if len(parts) != 3:
+            continue
+        try:
+            ts_float = float(parts[0])
+        except ValueError:
+            ts_float = 0.0
+        path = parts[1].strip()
+        try:
+            size_bytes = int(parts[2].strip())
+        except ValueError:
+            size_bytes = 0
+        backups.append(
+            {
+                "path": path,
+                "size_bytes": size_bytes,
+                "updated_at": datetime.fromtimestamp(ts_float).isoformat()
+                if ts_float > 0
+                else "",
+                "filename": Path(path).name,
+            }
+        )
+
+    return {
+        "ok": True,
+        "count": len(backups),
+        "results": backups,
+        "runtime": context,
+    }
+
+
+def create_remote_database_backup(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    payload = payload if isinstance(payload, dict) else {}
+    label = _normalize_dbops_label(payload.get("label", "manual"))
+    if bool(context.get("local_db_ops")):
+        local_env, local_db_name = _build_local_pg_env()
+        pg_dump_bin = shutil.which("pg_dump")
+        if not pg_dump_bin:
+            raise ValidationError("PG_DUMP_AUSENTE no ambiente local.")
+        backup_dir = _local_db_backups_dir()
+        timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = backup_dir / f"mrq_prod_{timestamp}_{label}.dump"
+        meta_file = backup_dir / f"mrq_prod_{timestamp}_{label}.json"
+        result = subprocess.run(
+            [
+                pg_dump_bin,
+                "--format=custom",
+                "--no-owner",
+                "--no-privileges",
+                "--dbname",
+                local_db_name,
+                "--file",
+                str(backup_file),
+            ],
+            check=False,
+            env=local_env,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()
+            raise ValidationError(
+                f"Falha ao gerar backup local. Detalhe: {detail or 'sem detalhe'}"
+            )
+        commit_hash = (
+            subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=str(PROJECT_ROOT),
+                check=False,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            or "unknown"
+        )
+        meta_payload = {
+            "created_at": timezone.now().isoformat(),
+            "label": label,
+            "dump_file": str(backup_file),
+            "commit": commit_hash,
+        }
+        try:
+            meta_file.write_text(
+                json.dumps(meta_payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
+        size_bytes = backup_file.stat().st_size if backup_file.exists() else 0
+        return {
+            "ok": True,
+            "label": label,
+            "backup_file": str(backup_file),
+            "metadata_file": str(meta_file),
+            "size_bytes": size_bytes,
+            "ssh_target": "",
+            "runtime": context,
+        }
+
+    ssh_settings = _validate_dbops_ssh_settings(_extract_dbops_ssh_from_config(config))
+    repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+
+    remote_script = f"""
+set -euo pipefail
+REPO_PATH={shlex.quote(repo_path)}
+BACKUP_LABEL={shlex.quote(label)}
+BACKUP_DIR="$REPO_PATH/.runtime/db_backups"
+mkdir -p "$BACKUP_DIR"
+TS="$(date +%Y%m%d_%H%M%S)"
+DUMP_FILE="$BACKUP_DIR/mrq_prod_${{TS}}_${{BACKUP_LABEL}}.dump"
+META_FILE="$BACKUP_DIR/mrq_prod_${{TS}}_${{BACKUP_LABEL}}.json"
+if [ -f "$REPO_PATH/workspaces/backend/.env.prod" ]; then
+  set -a
+  . "$REPO_PATH/workspaces/backend/.env.prod"
+  set +a
+fi
+if [ -z "${{DATABASE_URL:-}}" ]; then
+  echo "DATABASE_URL_NAO_DEFINIDA" >&2
+  exit 41
+fi
+if ! command -v pg_dump >/dev/null 2>&1; then
+  echo "PG_DUMP_AUSENTE" >&2
+  exit 42
+fi
+pg_dump --format=custom --no-owner --no-privileges \
+  --dbname="$DATABASE_URL" --file="$DUMP_FILE"
+COMMIT_HASH="$(
+  cd "$REPO_PATH" && git rev-parse --short HEAD 2>/dev/null || echo unknown
+)"
+cat > "$META_FILE" <<EOF
+{"created_at":"$(date -Is)","label":"$BACKUP_LABEL",
+"dump_file":"$DUMP_FILE","commit":"$COMMIT_HASH"}
+EOF
+SIZE_BYTES="$(wc -c < "$DUMP_FILE" | tr -d ' ')"
+echo "MQ_BACKUP_FILE=$DUMP_FILE"
+echo "MQ_BACKUP_META=$META_FILE"
+echo "MQ_BACKUP_SIZE=$SIZE_BYTES"
+"""
+    result, command_preview = _run_remote_dbops_script(
+        ssh_settings=ssh_settings,
+        remote_shell_script=remote_script,
+        timeout_seconds=180,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise ValidationError(
+            "Falha ao gerar backup remoto de producao. "
+            f"Comando: {command_preview}. Detalhe: {detail or 'sem detalhe'}"
+        )
+
+    backup_file = ""
+    meta_file = ""
+    size_bytes = 0
+    for line in (result.stdout or "").splitlines():
+        if line.startswith("MQ_BACKUP_FILE="):
+            backup_file = line.split("=", 1)[1].strip()
+        elif line.startswith("MQ_BACKUP_META="):
+            meta_file = line.split("=", 1)[1].strip()
+        elif line.startswith("MQ_BACKUP_SIZE="):
+            try:
+                size_bytes = int(line.split("=", 1)[1].strip())
+            except ValueError:
+                size_bytes = 0
+
+    if not backup_file:
+        raise ValidationError(
+            "Backup remoto finalizou sem retorno do caminho do arquivo .dump."
+        )
+
+    return {
+        "ok": True,
+        "label": label,
+        "backup_file": backup_file,
+        "metadata_file": meta_file,
+        "size_bytes": size_bytes,
+        "ssh_target": _build_ssh_destination(ssh_settings),
+        "runtime": context,
+    }
+
+
+def restore_remote_database_backup(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    payload = payload if isinstance(payload, dict) else {}
+    confirm = str(payload.get("confirm", "")).strip().upper()
+    if confirm != "RESTAURAR":
+        raise ValidationError(
+            "Confirmacao obrigatoria. "
+            "Informe confirm='RESTAURAR' para executar restore."
+        )
+    backup_file = str(payload.get("backup_file", "")).strip()
+    if not backup_file:
+        raise ValidationError("Informe backup_file para restaurar no ambiente remoto.")
+    if not INSTALLER_SAFE_REMOTE_PATH_RE.fullmatch(backup_file):
+        raise ValidationError("backup_file invalido para execucao remota.")
+
+    if bool(context.get("local_db_ops")):
+        backup_path = Path(backup_file)
+        if not backup_path.exists():
+            raise ValidationError("BACKUP_NAO_ENCONTRADO no ambiente local.")
+        local_env, local_db_name = _build_local_pg_env()
+        pg_restore_bin = shutil.which("pg_restore")
+        if not pg_restore_bin:
+            raise ValidationError("PG_RESTORE_AUSENTE no ambiente local.")
+        restore_result = subprocess.run(
+            [
+                pg_restore_bin,
+                "--clean",
+                "--if-exists",
+                "--no-owner",
+                "--no-privileges",
+                "--dbname",
+                local_db_name,
+                str(backup_path),
+            ],
+            check=False,
+            env=local_env,
+            capture_output=True,
+            text=True,
+        )
+        if restore_result.returncode != 0:
+            detail = (restore_result.stderr or restore_result.stdout or "").strip()
+            raise ValidationError(
+                "Falha ao restaurar backup local. "
+                f"Detalhe: {detail or 'sem detalhe'}"
+            )
+        migrate_result = subprocess.run(
+            [sys.executable, "manage.py", "migrate", "--noinput"],
+            cwd=str(PROJECT_ROOT / "workspaces" / "backend"),
+            check=False,
+            env=_local_django_manage_env(settings_module="config.settings.prod"),
+            capture_output=True,
+            text=True,
+        )
+        if migrate_result.returncode != 0:
+            detail = (migrate_result.stderr or migrate_result.stdout or "").strip()
+            raise ValidationError(
+                "Restore local aplicado, mas migrate falhou. "
+                f"Detalhe: {detail or 'sem detalhe'}"
+            )
+        return {
+            "ok": True,
+            "backup_file": backup_file,
+            "summary": "Restore local concluido e migracoes aplicadas.",
+            "runtime": context,
+        }
+
+    ssh_settings = _validate_dbops_ssh_settings(_extract_dbops_ssh_from_config(config))
+    repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+
+    remote_script = f"""
+set -euo pipefail
+REPO_PATH={shlex.quote(repo_path)}
+BACKUP_FILE={shlex.quote(backup_file)}
+if [ ! -f "$BACKUP_FILE" ]; then
+  echo "BACKUP_NAO_ENCONTRADO" >&2
+  exit 44
+fi
+if [ -f "$REPO_PATH/workspaces/backend/.env.prod" ]; then
+  set -a
+  . "$REPO_PATH/workspaces/backend/.env.prod"
+  set +a
+fi
+if [ -z "${{DATABASE_URL:-}}" ]; then
+  echo "DATABASE_URL_NAO_DEFINIDA" >&2
+  exit 41
+fi
+if ! command -v pg_restore >/dev/null 2>&1; then
+  echo "PG_RESTORE_AUSENTE" >&2
+  exit 45
+fi
+pg_restore --clean --if-exists --no-owner --no-privileges \
+  --dbname="$DATABASE_URL" "$BACKUP_FILE"
+if [ -f "$REPO_PATH/workspaces/backend/.venv/bin/activate" ]; then
+  . "$REPO_PATH/workspaces/backend/.venv/bin/activate"
+fi
+cd "$REPO_PATH/workspaces/backend"
+export DJANGO_SETTINGS_MODULE=config.settings.prod
+python manage.py migrate --noinput
+echo "MQ_RESTORE_OK"
+"""
+    result, command_preview = _run_remote_dbops_script(
+        ssh_settings=ssh_settings,
+        remote_shell_script=remote_script,
+        timeout_seconds=300,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise ValidationError(
+            "Falha ao restaurar backup no ambiente remoto. "
+            f"Comando: {command_preview}. Detalhe: {detail or 'sem detalhe'}"
+        )
+
+    return {
+        "ok": True,
+        "backup_file": backup_file,
+        "summary": "Restore remoto concluido e migracoes aplicadas.",
+        "runtime": context,
+    }
+
+
+def sync_remote_database_backup_to_dev(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    if bool(context.get("local_db_ops")):
+        raise ValidationError(
+            "Sync para DEV a partir de remoto nao se aplica nesta instancia local."
+        )
+    payload = payload if isinstance(payload, dict) else {}
+    backup_file = str(payload.get("backup_file", "")).strip()
+    if not backup_file:
+        raise ValidationError("Informe backup_file para sincronizar no ambiente DEV.")
+    if not INSTALLER_SAFE_REMOTE_PATH_RE.fullmatch(backup_file):
+        raise ValidationError("backup_file invalido para sincronizacao.")
+
+    ssh_settings = _validate_dbops_ssh_settings(_extract_dbops_ssh_from_config(config))
+    _ensure_dbops_runtime_dirs()
+    sync_stamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+    local_dump_path = DBOPS_SYNC_DIR / f"prod_to_dev_{sync_stamp}.dump"
+
+    cat_script = f"set -euo pipefail; cat {shlex.quote(backup_file)}"
+    cat_command = _build_ssh_exec_command(
+        ssh_settings=ssh_settings,
+        remote_shell_script=cat_script,
+        mask_sensitive=False,
+    )
+    preview_command = _render_command_preview(
+        _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=cat_script,
+            mask_sensitive=True,
+        )
+    )
+
+    try:
+        with open(local_dump_path, "wb") as dump_handle:
+            transfer_result = subprocess.run(
+                cat_command,
+                check=False,
+                stdout=dump_handle,
+                stderr=subprocess.PIPE,
+                timeout=240,
+            )
+    except subprocess.TimeoutExpired as exc:
+        raise ValidationError("Sync DEV: timeout ao transferir dump remoto.") from exc
+    except OSError as exc:
+        raise ValidationError("Sync DEV: falha ao salvar dump local.") from exc
+
+    if transfer_result.returncode != 0:
+        stderr_text = (
+            transfer_result.stderr.decode("utf-8", errors="ignore")
+            if transfer_result.stderr
+            else ""
+        )
+        raise ValidationError(
+            "Sync DEV: falha ao transferir backup remoto. "
+            "Comando: "
+            f"{preview_command}. Detalhe: {stderr_text.strip() or 'sem detalhe'}"
+        )
+
+    local_env, local_db_name = _build_local_pg_env()
+    local_backup_before_restore = DBOPS_SYNC_DIR / f"dev_before_sync_{sync_stamp}.dump"
+    pg_dump_bin = shutil.which("pg_dump")
+    if pg_dump_bin:
+        subprocess.run(
+            [
+                pg_dump_bin,
+                "--format=custom",
+                "--no-owner",
+                "--no-privileges",
+                "--dbname",
+                local_db_name,
+                "--file",
+                str(local_backup_before_restore),
+            ],
+            check=False,
+            env=local_env,
+            capture_output=True,
+            text=True,
+        )
+
+    pg_restore_bin = shutil.which("pg_restore")
+    if not pg_restore_bin:
+        raise ValidationError("Sync DEV: utilitario pg_restore nao encontrado.")
+    restore_result = subprocess.run(
+        [
+            pg_restore_bin,
+            "--clean",
+            "--if-exists",
+            "--no-owner",
+            "--no-privileges",
+            "--dbname",
+            local_db_name,
+            str(local_dump_path),
+        ],
+        check=False,
+        env=local_env,
+        capture_output=True,
+        text=True,
+    )
+    if restore_result.returncode != 0:
+        detail = (restore_result.stderr or restore_result.stdout or "").strip()
+        raise ValidationError(
+            "Sync DEV: falha ao restaurar dump no banco local. "
+            f"Detalhe: {detail or 'sem detalhe'}"
+        )
+
+    backend_cwd = PROJECT_ROOT / "workspaces" / "backend"
+    migrate_env = os.environ.copy()
+    migrate_env["DJANGO_SETTINGS_MODULE"] = "config.settings.dev"
+    migrate_result = subprocess.run(
+        [sys.executable, "manage.py", "migrate", "--noinput"],
+        cwd=str(backend_cwd),
+        check=False,
+        env=migrate_env,
+        capture_output=True,
+        text=True,
+    )
+    if migrate_result.returncode != 0:
+        detail = (migrate_result.stderr or migrate_result.stdout or "").strip()
+        raise ValidationError(
+            "Sync DEV: restore aplicado, mas migrate DEV falhou. "
+            f"Detalhe: {detail or 'sem detalhe'}"
+        )
+
+    size_bytes = local_dump_path.stat().st_size if local_dump_path.exists() else 0
+    return {
+        "ok": True,
+        "source_backup_file": backup_file,
+        "local_dump_file": str(local_dump_path),
+        "local_dump_size_bytes": size_bytes,
+        "local_pre_restore_backup": str(local_backup_before_restore)
+        if local_backup_before_restore.exists()
+        else "",
+        "summary": "Banco DEV sincronizado com backup remoto de producao.",
+    }
+
+
 def _ensure_installer_runtime_dirs() -> None:
     INSTALLER_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
     INSTALLER_JOBS_DIR.mkdir(parents=True, exist_ok=True)
@@ -4253,6 +4963,1037 @@ def _run_ssh_connectivity_probe(*, ssh_settings: dict) -> dict:
         "checked_at": timezone.now().isoformat(),
         "target": _build_ssh_destination(ssh_settings),
         "command_preview": _render_command_preview(preview_command),
+    }
+
+
+def _ensure_dbops_runtime_dirs() -> None:
+    DBOPS_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+    DBOPS_KEYS_DIR.mkdir(parents=True, exist_ok=True)
+    DBOPS_SYNC_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _normalize_dbops_label(raw_value: object | None) -> str:
+    value = str(raw_value or "").strip().lower()
+    if not value:
+        return "manual"
+    normalized = re.sub(r"[^a-z0-9_-]+", "-", value).strip("-_")
+    if not normalized:
+        normalized = "manual"
+    if len(normalized) > 40:
+        normalized = normalized[:40]
+    if not DBOPS_ALLOWED_LABEL_RE.fullmatch(normalized):
+        raise ValidationError(
+            "Label de backup invalida. Use letras, numeros, '_' ou '-' (max 40)."
+        )
+    return normalized
+
+
+def _resolve_operation_mode(*, config: PortalConfig) -> str:
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    wizard = installer_settings.get("wizard", {})
+    draft = wizard.get("draft", {}) if isinstance(wizard, dict) else {}
+    mode = str(draft.get("mode", "")).strip().lower()
+    cloudflare_mode = str(config.cloudflare_settings.get("mode", "")).strip().lower()
+    if cloudflare_mode == "hybrid":
+        return "hybrid"
+    if mode in {"dev", "prod"}:
+        return mode
+    root_domain = str(config.root_domain or "").strip().lower()
+    if root_domain.endswith(".local"):
+        return "dev"
+    return "dev"
+
+
+def _detect_runtime_machine_kind() -> str:
+    explicit = str(os.environ.get("MRQ_RUNTIME_MACHINE", "")).strip().lower()
+    if explicit in {"vm", "ec2"}:
+        return explicit
+
+    if os.environ.get("AWS_EXECUTION_ENV") or os.environ.get("EC2_INSTANCE_ID"):
+        return "ec2"
+
+    for probe_path in (
+        "/sys/hypervisor/uuid",
+        "/sys/devices/virtual/dmi/id/board_vendor",
+        "/sys/devices/virtual/dmi/id/sys_vendor",
+    ):
+        try:
+            content = Path(probe_path).read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        normalized = content.strip().lower()
+        if "amazon ec2" in normalized or normalized.startswith("ec2"):
+            return "ec2"
+
+    return "vm"
+
+
+def resolve_database_runtime_context(*, config: PortalConfig) -> dict:
+    machine_kind = _detect_runtime_machine_kind()
+    operation_mode = _resolve_operation_mode(config=config)
+    local_db_ops = machine_kind == "ec2" and operation_mode in {"prod", "hybrid"}
+    return {
+        "machine_kind": machine_kind,
+        "operation_mode": operation_mode,
+        "local_db_ops": local_db_ops,
+        "ssh_required": not local_db_ops,
+        "tunnel_available": not local_db_ops,
+        "psql_transport": "local" if local_db_ops else "ssh",
+        "backup_transport": "local" if local_db_ops else "ssh",
+        "copy_to_dev_via_scp_available": not local_db_ops,
+        "sync_to_dev_available": not local_db_ops,
+    }
+
+
+def _normalize_dbops_ssh_settings(raw_value: object | None) -> dict:
+    payload = {
+        "mode": "dev",
+        "stack": "vm",
+        "target": "ssh",
+        "start_after_install": False,
+        "ssh": raw_value if isinstance(raw_value, dict) else {},
+    }
+    normalized_payload, _warnings = _normalize_installer_wizard_payload(payload)
+    normalized_ssh = normalized_payload.get("ssh", {})
+    if not isinstance(normalized_ssh, dict):
+        normalized_ssh = {}
+    return normalized_ssh
+
+
+def _extract_dbops_ssh_from_config(config: PortalConfig) -> dict:
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    wizard = installer_settings.get("wizard", {})
+    draft = wizard.get("draft", {}) if isinstance(wizard, dict) else {}
+    ssh_settings = draft.get("ssh", {}) if isinstance(draft, dict) else {}
+    return _normalize_dbops_ssh_settings(ssh_settings)
+
+
+def _validate_dbops_ssh_settings(ssh_settings: dict) -> dict:
+    normalized = _normalize_dbops_ssh_settings(ssh_settings)
+    host = str(normalized.get("host", "")).strip()
+    user = str(normalized.get("user", "")).strip()
+    auth_mode = str(normalized.get("auth_mode", "key")).strip().lower()
+
+    if not host:
+        raise ValidationError("SSH: informe o host do ambiente de producao.")
+    if not user:
+        raise ValidationError("SSH: informe o usuario do ambiente de producao.")
+    if auth_mode == "key":
+        key_path = _resolve_ssh_key_path(normalized)
+        if not key_path:
+            raise ValidationError("SSH: key_path obrigatorio para auth_mode=key.")
+        if not os.path.exists(key_path):
+            raise ValidationError(f"SSH: chave nao encontrada em '{key_path}'.")
+    if auth_mode == "password" and not str(normalized.get("password", "")).strip():
+        raise ValidationError("SSH: informe a senha para auth_mode=password.")
+
+    repo_path = str(normalized.get("repo_path", "$HOME/mrquentinha")).strip()
+    if not repo_path:
+        repo_path = "$HOME/mrquentinha"
+    if repo_path.startswith("~/"):
+        repo_path = "$HOME/" + repo_path[2:]
+    elif repo_path == "~":
+        repo_path = "$HOME"
+    if not INSTALLER_SAFE_REMOTE_PATH_RE.fullmatch(repo_path):
+        raise ValidationError(
+            "SSH: repo_path invalido. Use apenas letras, numeros, ., /, _, -, $."
+        )
+    normalized["repo_path"] = repo_path
+    return normalized
+
+
+def _save_dbops_ssh_in_installer_settings(
+    *,
+    config: PortalConfig,
+    ssh_settings: dict,
+    completed_step: str = "database-ssh",
+) -> PortalConfig:
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    wizard = installer_settings.get("wizard", {})
+    if not isinstance(wizard, dict):
+        wizard = {}
+    draft = wizard.get("draft", {})
+    if not isinstance(draft, dict):
+        draft = {}
+    draft["ssh"] = _sanitize_installer_payload({"ssh": ssh_settings}).get("ssh", {})
+    if str(draft.get("target", "")).strip().lower() not in {"ssh", "aws", "gcp"}:
+        draft["target"] = "ssh"
+    wizard["draft"] = draft
+    wizard["last_completed_step"] = str(completed_step or "database-ssh").strip()
+    installer_settings["wizard"] = wizard
+    installer_settings["last_synced_at"] = timezone.now().isoformat()
+    installer_settings["last_sync_note"] = (
+        "Configuracao SSH do modulo Banco de dados atualizada."
+    )
+    config.installer_settings = _normalize_installer_settings(installer_settings)
+    config.save(update_fields=["installer_settings", "updated_at"])
+    return config
+
+
+def _run_remote_dbops_script(
+    *,
+    ssh_settings: dict,
+    remote_shell_script: str,
+    timeout_seconds: int = 120,
+) -> tuple[subprocess.CompletedProcess[str], str]:
+    command = _build_ssh_exec_command(
+        ssh_settings=ssh_settings,
+        remote_shell_script=remote_shell_script,
+        mask_sensitive=False,
+    )
+    preview_command = _build_ssh_exec_command(
+        ssh_settings=ssh_settings,
+        remote_shell_script=remote_shell_script,
+        mask_sensitive=True,
+    )
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValidationError(
+            "DB Ops: timeout ao executar comando remoto via SSH."
+        ) from exc
+    except OSError as exc:
+        raise ValidationError("DB Ops: falha ao executar cliente SSH local.") from exc
+    return result, _render_command_preview(preview_command)
+
+
+def _build_scp_base_command(
+    *,
+    ssh_settings: dict,
+    mask_sensitive: bool = False,
+) -> list[str]:
+    auth_mode = str(ssh_settings.get("auth_mode", "key")).strip().lower()
+    port = int(ssh_settings.get("port", 22) or 22)
+    base_scp = [
+        "scp",
+        "-P",
+        str(port),
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ServerAliveInterval=30",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+    ]
+
+    if auth_mode == "password":
+        password = str(ssh_settings.get("password", "")).strip()
+        if not password:
+            raise ValidationError("SCP: senha nao informada para auth_mode=password.")
+        sshpass_bin = shutil.which("sshpass")
+        if not sshpass_bin:
+            raise ValidationError(
+                "SCP com senha requer 'sshpass' instalado no servidor do backend."
+            )
+        safe_password = "***" if mask_sensitive else password
+        return [sshpass_bin, "-p", safe_password, *base_scp]
+
+    key_path = _resolve_ssh_key_path(ssh_settings)
+    if key_path:
+        base_scp.extend(["-i", key_path])
+    return base_scp
+
+
+def _build_local_pg_env() -> tuple[dict, str]:
+    from django.db import connections
+
+    settings_dict = connections["default"].settings_dict
+    db_name = str(settings_dict.get("NAME", "")).strip()
+    if not db_name:
+        raise ValidationError("DB local: nome do banco nao identificado nas settings.")
+
+    env = os.environ.copy()
+    env["PGHOST"] = str(settings_dict.get("HOST", "") or "127.0.0.1")
+    env["PGPORT"] = str(settings_dict.get("PORT", "") or "5432")
+    env["PGUSER"] = str(settings_dict.get("USER", "") or "")
+    password = str(settings_dict.get("PASSWORD", "") or "")
+    if password:
+        env["PGPASSWORD"] = password
+    return env, db_name
+
+def _dbops_read_tunnel_pid() -> int | None:
+    return _read_pid_from_file(DBOPS_TUNNEL_PID_FILE)
+
+
+def _dbops_store_tunnel_state(
+    *,
+    config: PortalConfig,
+    tunnel_state: dict,
+) -> PortalConfig:
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    database_ops = _normalize_database_ops_settings(
+        installer_settings.get("database_ops")
+    )
+    database_ops["tunnel"] = tunnel_state
+    installer_settings["database_ops"] = database_ops
+    installer_settings["last_synced_at"] = timezone.now().isoformat()
+    installer_settings["last_sync_note"] = "Estado do tunnel SSH de banco atualizado."
+    config.installer_settings = _normalize_installer_settings(installer_settings)
+    config.save(update_fields=["installer_settings", "updated_at"])
+    return config
+
+
+def _dbops_read_tunnel_settings(*, config: PortalConfig) -> dict:
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    database_ops = _normalize_database_ops_settings(
+        installer_settings.get("database_ops")
+    )
+    return database_ops.get(
+        "tunnel",
+        _default_database_ops_settings_payload()["tunnel"],
+    )
+
+
+def _dbops_build_tunnel_state_payload(*, config: PortalConfig) -> dict:
+    tunnel_state = _dbops_read_tunnel_settings(config=config)
+    runtime_pid = _dbops_read_tunnel_pid()
+    running = _is_pid_running(runtime_pid)
+    if not running:
+        runtime_pid = None
+    tunnel_state["pid"] = runtime_pid
+    tunnel_state["status"] = "active" if running else "inactive"
+    return tunnel_state
+
+
+@transaction.atomic
+def save_database_tunnel_settings(*, payload: dict | None) -> PortalConfig:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    if bool(context.get("local_db_ops")):
+        raise ValidationError(
+            "Tunnel SSH nao se aplica neste ambiente (EC2 com banco local)."
+        )
+    payload = payload if isinstance(payload, dict) else {}
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    database_ops = _normalize_database_ops_settings(
+        installer_settings.get("database_ops")
+    )
+    tunnel_state = database_ops.get("tunnel", {})
+    if not isinstance(tunnel_state, dict):
+        tunnel_state = _default_database_ops_settings_payload()["tunnel"]
+
+    local_bind_host = str(
+        payload.get("local_bind_host", tunnel_state["local_bind_host"])
+    ).strip()
+    if not local_bind_host:
+        local_bind_host = "127.0.0.1"
+    remote_db_host = str(
+        payload.get("remote_db_host", tunnel_state["remote_db_host"])
+    ).strip()
+    if not remote_db_host:
+        remote_db_host = "127.0.0.1"
+    try:
+        local_port = int(payload.get("local_port", tunnel_state["local_port"]))
+    except (TypeError, ValueError):
+        local_port = int(tunnel_state["local_port"])
+    try:
+        remote_db_port = int(
+            payload.get("remote_db_port", tunnel_state["remote_db_port"])
+        )
+    except (TypeError, ValueError):
+        remote_db_port = int(tunnel_state["remote_db_port"])
+    tunnel_state["local_bind_host"] = local_bind_host
+    tunnel_state["local_port"] = max(1024, min(local_port, 65535))
+    tunnel_state["remote_db_host"] = remote_db_host
+    tunnel_state["remote_db_port"] = max(1, min(remote_db_port, 65535))
+    database_ops["tunnel"] = tunnel_state
+    installer_settings["database_ops"] = database_ops
+    installer_settings["last_synced_at"] = timezone.now().isoformat()
+    installer_settings["last_sync_note"] = "Configuracao de tunnel SSH atualizada."
+    config.installer_settings = _normalize_installer_settings(installer_settings)
+    config.save(update_fields=["installer_settings", "updated_at"])
+    return config
+
+
+@transaction.atomic
+def manage_database_ssh_tunnel(*, action: str) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    action_name = str(action or "status").strip().lower()
+    if action_name not in {"start", "stop", "status"}:
+        raise ValidationError("Acao de tunnel invalida. Use start, stop ou status.")
+    if bool(context.get("local_db_ops")):
+        tunnel_state = _dbops_build_tunnel_state_payload(config=config)
+        tunnel_state["status"] = "inactive"
+        tunnel_state["pid"] = None
+        tunnel_state["last_error"] = (
+            "Tunnel SSH indisponivel neste ambiente (EC2 com banco local)."
+        )
+        if action_name == "stop":
+            tunnel_state["last_stopped_at"] = timezone.now().isoformat()
+        _dbops_store_tunnel_state(config=config, tunnel_state=tunnel_state)
+        return {
+            "ok": True,
+            "action": action_name,
+            "tunnel": tunnel_state,
+            "runtime": context,
+        }
+
+    ssh_settings = _validate_dbops_ssh_settings(_extract_dbops_ssh_from_config(config))
+    tunnel_state = _dbops_read_tunnel_settings(config=config)
+    now_iso = timezone.now().isoformat()
+
+    _ensure_dbops_runtime_dirs()
+    current_pid = _dbops_read_tunnel_pid()
+    running = _is_pid_running(current_pid)
+
+    if action_name == "start":
+        if running:
+            tunnel_state["status"] = "active"
+            tunnel_state["pid"] = current_pid
+            _dbops_store_tunnel_state(config=config, tunnel_state=tunnel_state)
+            return {
+                "ok": True,
+                "action": action_name,
+                "tunnel": tunnel_state,
+                "runtime": context,
+            }
+
+        local_bind_host = str(tunnel_state.get("local_bind_host", "127.0.0.1")).strip()
+        local_port = int(tunnel_state.get("local_port", 55432) or 55432)
+        remote_db_host = str(tunnel_state.get("remote_db_host", "127.0.0.1")).strip()
+        remote_db_port = int(tunnel_state.get("remote_db_port", 5432) or 5432)
+        ssh_command = _build_ssh_base_command(
+            ssh_settings=ssh_settings,
+            mask_sensitive=False,
+        )
+        ssh_command.extend(
+            [
+                "-N",
+                "-L",
+                f"{local_bind_host}:{local_port}:{remote_db_host}:{remote_db_port}",
+                _build_ssh_destination(ssh_settings),
+            ]
+        )
+        try:
+            log_handle = open(DBOPS_TUNNEL_LOG_FILE, "a", encoding="utf-8")
+        except OSError as exc:
+            raise ValidationError("Falha ao abrir log do tunnel SSH.") from exc
+        try:
+            process = subprocess.Popen(
+                ssh_command,
+                cwd=PROJECT_ROOT,
+                stdout=log_handle,
+                stderr=log_handle,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError as exc:
+            log_handle.close()
+            raise ValidationError("Falha ao iniciar tunnel SSH de banco.") from exc
+        finally:
+            log_handle.close()
+
+        DBOPS_TUNNEL_PID_FILE.write_text(str(process.pid), encoding="utf-8")
+        tunnel_state["status"] = "active"
+        tunnel_state["pid"] = process.pid
+        tunnel_state["last_started_at"] = now_iso
+        tunnel_state["last_error"] = ""
+        _dbops_store_tunnel_state(config=config, tunnel_state=tunnel_state)
+        return {
+            "ok": True,
+            "action": action_name,
+            "tunnel": tunnel_state,
+            "runtime": context,
+        }
+
+    if action_name == "stop":
+        if running and current_pid:
+            try:
+                os.kill(current_pid, signal.SIGTERM)
+            except OSError:
+                pass
+        if DBOPS_TUNNEL_PID_FILE.exists():
+            try:
+                DBOPS_TUNNEL_PID_FILE.unlink()
+            except OSError:
+                pass
+        tunnel_state["status"] = "inactive"
+        tunnel_state["pid"] = None
+        tunnel_state["last_stopped_at"] = now_iso
+        _dbops_store_tunnel_state(config=config, tunnel_state=tunnel_state)
+        return {
+            "ok": True,
+            "action": action_name,
+            "tunnel": tunnel_state,
+            "runtime": context,
+        }
+
+    tunnel_state = _dbops_build_tunnel_state_payload(config=config)
+    _dbops_store_tunnel_state(config=config, tunnel_state=tunnel_state)
+    return {
+        "ok": True,
+        "action": action_name,
+        "tunnel": tunnel_state,
+        "runtime": context,
+    }
+
+
+@transaction.atomic
+def run_remote_psql_command(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    payload = payload if isinstance(payload, dict) else {}
+    command_sql = str(payload.get("command", "")).strip()
+    if not command_sql:
+        raise ValidationError("Informe o comando SQL para execucao remota.")
+    read_only = bool(payload.get("read_only", True))
+    confirm = str(payload.get("confirm", "")).strip().upper()
+    if not read_only and confirm != "EXECUTAR":
+        raise ValidationError(
+            "Para comando com escrita, informe confirm='EXECUTAR'."
+        )
+
+    if read_only:
+        first_token = command_sql.split(None, 1)[0].lower() if command_sql else ""
+        if first_token not in {"select", "show", "explain", "with"}:
+            raise ValidationError(
+                "Comando read_only permite apenas SELECT/SHOW/EXPLAIN/WITH."
+            )
+
+    if bool(context.get("local_db_ops")):
+        local_env, local_db_name = _build_local_pg_env()
+        psql_bin = shutil.which("psql")
+        if not psql_bin:
+            raise ValidationError("PSQL_AUSENTE no ambiente local.")
+        result = subprocess.run(
+            [
+                psql_bin,
+                local_db_name,
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-P",
+                "pager=off",
+                "-c",
+                command_sql,
+            ],
+            check=False,
+            env=local_env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        command_preview = (
+            f"psql {shlex.quote(local_db_name)} -v ON_ERROR_STOP=1 "
+            f"-P pager=off -c {shlex.quote(command_sql)}"
+        )
+    else:
+        ssh_settings = _validate_dbops_ssh_settings(
+            _extract_dbops_ssh_from_config(config)
+        )
+        repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+        remote_script = f"""
+set -euo pipefail
+REPO_PATH={shlex.quote(repo_path)}
+if [ -f "$REPO_PATH/workspaces/backend/.env.prod" ]; then
+  set -a
+  . "$REPO_PATH/workspaces/backend/.env.prod"
+  set +a
+fi
+if [ -z "${{DATABASE_URL:-}}" ]; then
+  echo "DATABASE_URL_NAO_DEFINIDA" >&2
+  exit 41
+fi
+if ! command -v psql >/dev/null 2>&1; then
+  echo "PSQL_AUSENTE" >&2
+  exit 46
+fi
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -P pager=off -c {shlex.quote(command_sql)}
+"""
+        result, command_preview = _run_remote_dbops_script(
+            ssh_settings=ssh_settings,
+            remote_shell_script=remote_script,
+            timeout_seconds=120,
+        )
+
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    database_ops = _normalize_database_ops_settings(
+        installer_settings.get("database_ops")
+    )
+    database_ops["psql"]["last_command"] = command_sql[:500]
+    database_ops["psql"]["last_executed_at"] = timezone.now().isoformat()
+    installer_settings["database_ops"] = database_ops
+    config.installer_settings = _normalize_installer_settings(installer_settings)
+    config.save(update_fields=["installer_settings", "updated_at"])
+
+    return {
+        "ok": result.returncode == 0,
+        "exit_code": result.returncode,
+        "stdout": (result.stdout or "").strip(),
+        "stderr": (result.stderr or "").strip(),
+        "command_preview": command_preview,
+        "runtime": context,
+    }
+
+
+@transaction.atomic
+def sync_remote_database_via_django(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    payload = payload if isinstance(payload, dict) else {}
+    mode = str(payload.get("mode", "dump")).strip().lower()
+    if mode not in {"dump", "sync_dev"}:
+        raise ValidationError("Modo invalido. Use 'dump' ou 'sync_dev'.")
+    exclude_apps = payload.get("exclude_apps", [])
+    excludes: list[str] = []
+    if isinstance(exclude_apps, list):
+        excludes = [str(item).strip() for item in exclude_apps if str(item).strip()]
+    if not excludes:
+        excludes = ["auth.permission", "contenttypes", "admin.logentry", "sessions"]
+
+    _ensure_dbops_runtime_dirs()
+    stamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+    local_dump_file = DBOPS_SYNC_DIR / f"django_dump_{stamp}.json"
+    if bool(context.get("local_db_ops")):
+        if mode == "sync_dev":
+            raise ValidationError(
+                "sync_dev indisponivel nesta instancia (EC2 com banco local)."
+            )
+        backend_cwd = PROJECT_ROOT / "workspaces" / "backend"
+        dump_cmd = [
+            sys.executable,
+            "manage.py",
+            "dumpdata",
+            "--natural-foreign",
+            "--natural-primary",
+            "--indent",
+            "2",
+        ]
+        for excluded in excludes:
+            dump_cmd.extend(["--exclude", excluded])
+        dump_result = subprocess.run(
+            dump_cmd,
+            cwd=str(backend_cwd),
+            check=False,
+            env=_local_django_manage_env(settings_module="config.settings.prod"),
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+        if dump_result.returncode != 0:
+            detail = (dump_result.stderr or dump_result.stdout or "").strip()
+            raise ValidationError(
+                "Falha ao executar dumpdata local. "
+                f"Detalhe: {detail or 'sem detalhe'}"
+            )
+        dump_payload = dump_result.stdout or "[]"
+    else:
+        ssh_settings = _validate_dbops_ssh_settings(
+            _extract_dbops_ssh_from_config(config)
+        )
+        repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+        excludes_cli = " ".join(f"--exclude {shlex.quote(item)}" for item in excludes)
+        remote_script = f"""
+set -euo pipefail
+REPO_PATH={shlex.quote(repo_path)}
+if [ -f "$REPO_PATH/workspaces/backend/.venv/bin/activate" ]; then
+  . "$REPO_PATH/workspaces/backend/.venv/bin/activate"
+fi
+cd "$REPO_PATH/workspaces/backend"
+export DJANGO_SETTINGS_MODULE=config.settings.prod
+python manage.py dumpdata --natural-foreign --natural-primary \
+  {excludes_cli} --indent 2
+"""
+        result, command_preview = _run_remote_dbops_script(
+            ssh_settings=ssh_settings,
+            remote_shell_script=remote_script,
+            timeout_seconds=240,
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()
+            raise ValidationError(
+                "Falha ao executar dumpdata remoto. "
+                f"Comando: {command_preview}. Detalhe: {detail or 'sem detalhe'}"
+            )
+        dump_payload = result.stdout or "[]"
+    try:
+        local_dump_file.write_text(dump_payload, encoding="utf-8")
+    except OSError as exc:
+        raise ValidationError("Falha ao gravar dump Django local.") from exc
+
+    synced = False
+    if mode == "sync_dev":
+        backend_cwd = PROJECT_ROOT / "workspaces" / "backend"
+        env = os.environ.copy()
+        env["DJANGO_SETTINGS_MODULE"] = "config.settings.dev"
+        flush_result = subprocess.run(
+            [sys.executable, "manage.py", "flush", "--noinput"],
+            cwd=str(backend_cwd),
+            check=False,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if flush_result.returncode != 0:
+            detail = (flush_result.stderr or flush_result.stdout or "").strip()
+            raise ValidationError(
+                "Falha ao limpar banco DEV antes do loaddata. "
+                f"Detalhe: {detail or 'sem detalhe'}"
+            )
+        load_result = subprocess.run(
+            [sys.executable, "manage.py", "loaddata", str(local_dump_file)],
+            cwd=str(backend_cwd),
+            check=False,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if load_result.returncode != 0:
+            detail = (load_result.stderr or load_result.stdout or "").strip()
+            raise ValidationError(
+                "Falha ao executar loaddata no DEV. "
+                f"Detalhe: {detail or 'sem detalhe'}"
+            )
+        migrate_result = subprocess.run(
+            [sys.executable, "manage.py", "migrate", "--noinput"],
+            cwd=str(backend_cwd),
+            check=False,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if migrate_result.returncode != 0:
+            detail = (migrate_result.stderr or migrate_result.stdout or "").strip()
+            raise ValidationError(
+                "Sincronizacao Django aplicada, mas migrate DEV falhou. "
+                f"Detalhe: {detail or 'sem detalhe'}"
+            )
+        synced = True
+
+    installer_settings = _normalize_installer_settings(config.installer_settings)
+    database_ops = _normalize_database_ops_settings(
+        installer_settings.get("database_ops")
+    )
+    database_ops["django_sync"]["last_dump_file"] = str(local_dump_file)
+    database_ops["django_sync"]["last_synced_at"] = timezone.now().isoformat()
+    database_ops["django_sync"]["last_synced_by"] = "web-admin"
+    installer_settings["database_ops"] = database_ops
+    config.installer_settings = _normalize_installer_settings(installer_settings)
+    config.save(update_fields=["installer_settings", "updated_at"])
+
+    return {
+        "ok": True,
+        "mode": mode,
+        "local_dump_file": str(local_dump_file),
+        "synced": synced,
+        "exclude_apps": excludes,
+        "runtime": context,
+    }
+
+
+def copy_remote_backup_to_dev_via_scp(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    if bool(context.get("local_db_ops")):
+        raise ValidationError(
+            "Copia SCP nao se aplica nesta instancia (EC2 com banco local)."
+        )
+    payload = payload if isinstance(payload, dict) else {}
+    backup_file = str(payload.get("backup_file", "")).strip()
+    if not backup_file:
+        raise ValidationError("Informe backup_file para copia via scp.")
+    if not INSTALLER_SAFE_REMOTE_PATH_RE.fullmatch(backup_file):
+        raise ValidationError("backup_file invalido para copia via scp.")
+
+    ssh_settings = _validate_dbops_ssh_settings(_extract_dbops_ssh_from_config(config))
+    _ensure_dbops_runtime_dirs()
+    local_filename = (
+        str(payload.get("local_filename", "")).strip() or Path(backup_file).name
+    )
+    local_target_path = DBOPS_SYNC_DIR / local_filename
+
+    src = f"{_build_ssh_destination(ssh_settings)}:{backup_file}"
+    scp_command = _build_scp_base_command(
+        ssh_settings=ssh_settings,
+        mask_sensitive=False,
+    )
+    scp_command.extend([src, str(local_target_path)])
+    preview_command = _build_scp_base_command(
+        ssh_settings=ssh_settings,
+        mask_sensitive=True,
+    )
+    preview_command.extend([src, str(local_target_path)])
+
+    try:
+        result = subprocess.run(
+            scp_command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValidationError("SCP: timeout ao copiar backup remoto para DEV.") from exc
+    except OSError as exc:
+        raise ValidationError("SCP: falha ao executar cliente scp local.") from exc
+
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise ValidationError(
+            "SCP: falha ao copiar backup remoto. "
+            f"Comando: {_render_command_preview(preview_command)}. "
+            f"Detalhe: {detail or 'sem detalhe'}"
+        )
+
+    size_bytes = local_target_path.stat().st_size if local_target_path.exists() else 0
+    return {
+        "ok": True,
+        "source_backup_file": backup_file,
+        "local_dump_file": str(local_target_path),
+        "local_dump_size_bytes": size_bytes,
+        "transfer_method": "scp",
+        "runtime": context,
+    }
+
+
+def run_remote_django_dbbackup(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    payload = payload if isinstance(payload, dict) else {}
+    mode = str(payload.get("mode", "backup")).strip().lower()
+    if mode not in {"backup", "list", "restore"}:
+        raise ValidationError("Modo invalido para django-dbbackup.")
+
+    input_filename = str(payload.get("input_filename", "")).strip()
+    confirm = str(payload.get("confirm", "")).strip().upper()
+    if mode == "restore" and confirm != "RESTAURAR":
+        raise ValidationError(
+            "Confirmacao obrigatoria para dbrestore: use confirm='RESTAURAR'."
+        )
+    if mode == "restore" and not input_filename:
+        raise ValidationError("Informe input_filename para dbrestore.")
+
+    if bool(context.get("local_db_ops")):
+        backend_cwd = PROJECT_ROOT / "workspaces" / "backend"
+        local_env = _local_django_manage_env(settings_module="config.settings.prod")
+        command_args: list[str] = [sys.executable, "manage.py"]
+        if mode == "backup":
+            command_args.extend(
+                ["dbbackup", "--clean", "--compress", "--verbosity", "1"]
+            )
+        elif mode == "list":
+            command_args.append("listbackups")
+        else:
+            if not Path(input_filename).exists():
+                raise ValidationError(
+                    "Arquivo de restore nao encontrado no ambiente local."
+                )
+            command_args.extend(
+                ["dbrestore", "--noinput", "--input-filename", input_filename]
+            )
+        result = subprocess.run(
+            command_args,
+            cwd=str(backend_cwd),
+            check=False,
+            env=local_env,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        command_preview = _render_command_preview(command_args)
+    else:
+        ssh_settings = _validate_dbops_ssh_settings(
+            _extract_dbops_ssh_from_config(config)
+        )
+        repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+        command_line = ""
+        if mode == "backup":
+            command_line = "python manage.py dbbackup --clean --compress --verbosity 1"
+        elif mode == "list":
+            command_line = "python manage.py listbackups"
+        else:
+            command_line = (
+                "python manage.py dbrestore --noinput "
+                f"--input-filename {shlex.quote(input_filename)}"
+            )
+
+        remote_script = f"""
+set -euo pipefail
+REPO_PATH={shlex.quote(repo_path)}
+if [ -f "$REPO_PATH/workspaces/backend/.venv/bin/activate" ]; then
+  . "$REPO_PATH/workspaces/backend/.venv/bin/activate"
+fi
+cd "$REPO_PATH/workspaces/backend"
+export DJANGO_SETTINGS_MODULE=config.settings.prod
+{command_line}
+"""
+        result, command_preview = _run_remote_dbops_script(
+            ssh_settings=ssh_settings,
+            remote_shell_script=remote_script,
+            timeout_seconds=300,
+        )
+    return {
+        "ok": result.returncode == 0,
+        "mode": mode,
+        "exit_code": result.returncode,
+        "stdout": (result.stdout or "").strip(),
+        "stderr": (result.stderr or "").strip(),
+        "command_preview": command_preview,
+        "runtime": context,
+    }
+
+
+def build_database_ops_command_catalog(*, sample_backup_file: str = "") -> dict:
+    config = ensure_portal_config()
+    context = resolve_database_runtime_context(config=config)
+    example_backup = (
+        sample_backup_file
+        or "$HOME/mrquentinha/.runtime/db_backups/backup.dump"
+    )
+    local_file = "$HOME/mrquentinha/.runtime/db_ops/sync/backup.dump"
+    if bool(context.get("local_db_ops")):
+        local_env, local_db_name = _build_local_pg_env()
+        local_host = str(local_env.get("PGHOST", "127.0.0.1"))
+        local_port = str(local_env.get("PGPORT", "5432"))
+        local_user = str(local_env.get("PGUSER", "postgres"))
+        tunnel_cmd = "indisponivel-em-ec2-local-db"
+        list_cmd = "find .runtime/db_backups -maxdepth 1 -type f -name '*.dump' | sort"
+        pg_dump_cmd = (
+            f"PGHOST={shlex.quote(local_host)} PGPORT={shlex.quote(local_port)} "
+            f"PGUSER={shlex.quote(local_user)} pg_dump --format=custom --no-owner "
+            f"--no-privileges --dbname={shlex.quote(local_db_name)} "
+            "--file .runtime/db_backups/manual.dump"
+        )
+        pg_restore_cmd = (
+            f"PGHOST={shlex.quote(local_host)} PGPORT={shlex.quote(local_port)} "
+            f"PGUSER={shlex.quote(local_user)} pg_restore --clean --if-exists "
+            f"--no-owner --no-privileges --dbname={shlex.quote(local_db_name)} "
+            f"{shlex.quote(example_backup)}"
+        )
+        psql_cmd = (
+            f"PGHOST={shlex.quote(local_host)} PGPORT={shlex.quote(local_port)} "
+            f"PGUSER={shlex.quote(local_user)} psql {shlex.quote(local_db_name)} "
+            '-v ON_ERROR_STOP=1 -c "SELECT now();"'
+        )
+        scp_cmd = "indisponivel-em-ec2-local-db"
+        dbbackup_cmd = (
+            "cd workspaces/backend && "
+            "DJANGO_SETTINGS_MODULE=config.settings.prod "
+            "python manage.py dbbackup --clean --compress --verbosity 1"
+        )
+        dbrestore_cmd = (
+            "cd workspaces/backend && "
+            "DJANGO_SETTINGS_MODULE=config.settings.prod "
+            "python manage.py dbrestore --noinput "
+            f"--input-filename {shlex.quote(example_backup)}"
+        )
+    else:
+        ssh_settings = _validate_dbops_ssh_settings(
+            _extract_dbops_ssh_from_config(config)
+        )
+        tunnel_state = _dbops_read_tunnel_settings(config=config)
+        local_bind_host = str(tunnel_state.get("local_bind_host", "127.0.0.1")).strip()
+        local_port = int(tunnel_state.get("local_port", 55432) or 55432)
+        remote_db_host = str(tunnel_state.get("remote_db_host", "127.0.0.1")).strip()
+        remote_db_port = int(tunnel_state.get("remote_db_port", 5432) or 5432)
+        ssh_destination = _build_ssh_destination(ssh_settings)
+        repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+        tunnel_cmd = _render_command_preview(
+            _build_ssh_base_command(ssh_settings=ssh_settings, mask_sensitive=True)
+            + [
+                "-N",
+                "-L",
+                f"{local_bind_host}:{local_port}:{remote_db_host}:{remote_db_port}",
+                ssh_destination,
+            ]
+        )
+        list_cmd = _render_command_preview(
+            _build_ssh_exec_command(
+                ssh_settings=ssh_settings,
+                remote_shell_script=(
+                    f"cd {shlex.quote(repo_path)}; "
+                    "find .runtime/db_backups -maxdepth 1 -type f -name '*.dump' | sort"
+                ),
+                mask_sensitive=True,
+            )
+        )
+        pg_dump_cmd = _render_command_preview(
+            _build_ssh_exec_command(
+                ssh_settings=ssh_settings,
+                remote_shell_script=(
+                    f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                    "set -a; [ -f .env.prod ] && . .env.prod; set +a; "
+                    "pg_dump --format=custom --no-owner --no-privileges "
+                    '--dbname="$DATABASE_URL" --file ".runtime/db_backups/manual.dump"'
+                ),
+                mask_sensitive=True,
+            )
+        )
+        pg_restore_cmd = _render_command_preview(
+            _build_ssh_exec_command(
+                ssh_settings=ssh_settings,
+                remote_shell_script=(
+                    f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                    "set -a; [ -f .env.prod ] && . .env.prod; set +a; "
+                    "pg_restore --clean --if-exists --no-owner --no-privileges "
+                    f'--dbname="$DATABASE_URL" {shlex.quote(example_backup)}'
+                ),
+                mask_sensitive=True,
+            )
+        )
+        psql_cmd = _render_command_preview(
+            _build_ssh_exec_command(
+                ssh_settings=ssh_settings,
+                remote_shell_script=(
+                    f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                    "set -a; [ -f .env.prod ] && . .env.prod; set +a; "
+                    'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT now();"'
+                ),
+                mask_sensitive=True,
+            )
+        )
+        scp_cmd = _render_command_preview(
+            _build_scp_base_command(ssh_settings=ssh_settings, mask_sensitive=True)
+            + [f"{ssh_destination}:{example_backup}", local_file]
+        )
+        dbbackup_cmd = _render_command_preview(
+            _build_ssh_exec_command(
+                ssh_settings=ssh_settings,
+                remote_shell_script=(
+                    f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                    "export DJANGO_SETTINGS_MODULE=config.settings.prod; "
+                    "python manage.py dbbackup --clean --compress --verbosity 1"
+                ),
+                mask_sensitive=True,
+            )
+        )
+        dbrestore_cmd = _render_command_preview(
+            _build_ssh_exec_command(
+                ssh_settings=ssh_settings,
+                remote_shell_script=(
+                    f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                    "export DJANGO_SETTINGS_MODULE=config.settings.prod; "
+                    "python manage.py dbrestore --noinput "
+                    f"--input-filename {shlex.quote(example_backup)}"
+                ),
+                mask_sensitive=True,
+            )
+        )
+
+    return {
+        "ok": True,
+        "commands": {
+            "tunnel_start": tunnel_cmd,
+            "backup_list": list_cmd,
+            "backup_create_pg_dump": pg_dump_cmd,
+            "backup_restore_pg_restore": pg_restore_cmd,
+            "psql_execute": psql_cmd,
+            "backup_copy_scp": scp_cmd,
+            "django_dbbackup": dbbackup_cmd,
+            "django_dbrestore": dbrestore_cmd,
+        },
+        "notes": [
+            "Os comandos usam preview com mascaramento de senha quando aplicavel.",
+            "Para restore com escrita em producao, mantenha confirmacao operacional.",
+            "Depois de restore, execute migrate para alinhar schema.",
+        ],
+        "runtime": context,
     }
 
 

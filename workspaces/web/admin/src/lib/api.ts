@@ -46,6 +46,17 @@ import type {
   PortalCloudflarePreviewData,
   PortalCloudflareRuntimeResult,
   PortalCloudflareToggleResult,
+  PortalDatabaseBackupCreateResult,
+  PortalDatabaseBackupsListResult,
+  PortalDatabaseCommandCatalogResult,
+  PortalDatabaseDjangoDbbackupResult,
+  PortalDatabaseDjangoSyncResult,
+  PortalDatabasePsqlExecuteResult,
+  PortalDatabaseRestoreResult,
+  PortalDatabaseSshKeyUploadResult,
+  PortalDatabaseSshProbeResult,
+  PortalDatabaseSyncDevResult,
+  PortalDatabaseTunnelActionResult,
   PortalEmailTestResult,
   PortalSslCertificatesRequest,
   PortalSslCertificatesResult,
@@ -1538,6 +1549,196 @@ export async function applyPortalSslCertificatesAdmin(
       method: "POST",
       auth: true,
       body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function savePortalDatabaseSshAdmin(
+  ssh: Partial<PortalInstallerDraftPayload["ssh"]>,
+): Promise<PortalConfigData> {
+  return requestJson<PortalConfigData>("/api/v1/portal/admin/config/database/ssh/save/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ ssh }),
+  });
+}
+
+export async function uploadPortalDatabaseSshKeyAdmin(payload: {
+  filename: string;
+  content: string;
+}): Promise<PortalDatabaseSshKeyUploadResult> {
+  return requestJson<PortalDatabaseSshKeyUploadResult>(
+    "/api/v1/portal/admin/config/database/ssh/upload-key/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function probePortalDatabaseSshAdmin(
+  ssh?: Partial<PortalInstallerDraftPayload["ssh"]>,
+): Promise<PortalDatabaseSshProbeResult> {
+  return requestJson<PortalDatabaseSshProbeResult>(
+    "/api/v1/portal/admin/config/database/ssh/probe/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(ssh ? { ssh } : {}),
+    },
+  );
+}
+
+export async function savePortalDatabaseTunnelAdmin(payload: {
+  local_bind_host: string;
+  local_port: number;
+  remote_db_host: string;
+  remote_db_port: number;
+}): Promise<PortalConfigData> {
+  return requestJson<PortalConfigData>("/api/v1/portal/admin/config/database/tunnel/save/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ tunnel: payload }),
+  });
+}
+
+export async function managePortalDatabaseTunnelAdmin(
+  action: "start" | "stop" | "status",
+): Promise<PortalDatabaseTunnelActionResult> {
+  return requestJson<PortalDatabaseTunnelActionResult>(
+    "/api/v1/portal/admin/config/database/tunnel/action/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ action }),
+    },
+  );
+}
+
+export async function executePortalDatabasePsqlAdmin(payload: {
+  command: string;
+  read_only: boolean;
+  confirm?: string;
+}): Promise<PortalDatabasePsqlExecuteResult> {
+  return requestJson<PortalDatabasePsqlExecuteResult>(
+    "/api/v1/portal/admin/config/database/psql/execute/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function runPortalDatabaseDjangoDbbackupAdmin(payload: {
+  mode: "backup" | "list" | "restore";
+  input_filename?: string;
+  confirm?: string;
+}): Promise<PortalDatabaseDjangoDbbackupResult> {
+  return requestJson<PortalDatabaseDjangoDbbackupResult>(
+    "/api/v1/portal/admin/config/database/django-dbbackup/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function listPortalDatabaseBackupsAdmin(
+  limit = 30,
+): Promise<PortalDatabaseBackupsListResult> {
+  return requestJson<PortalDatabaseBackupsListResult>(
+    `/api/v1/portal/admin/config/database/backups/?limit=${encodeURIComponent(String(limit))}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
+    },
+  );
+}
+
+export async function createPortalDatabaseBackupAdmin(payload?: {
+  label?: string;
+}): Promise<PortalDatabaseBackupCreateResult> {
+  return requestJson<PortalDatabaseBackupCreateResult>(
+    "/api/v1/portal/admin/config/database/backups/create/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload || {}),
+    },
+  );
+}
+
+export async function restorePortalDatabaseBackupAdmin(payload: {
+  backup_file: string;
+  confirm: string;
+}): Promise<PortalDatabaseRestoreResult> {
+  return requestJson<PortalDatabaseRestoreResult>(
+    "/api/v1/portal/admin/config/database/backups/restore/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function syncPortalDatabaseToDevAdmin(payload: {
+  backup_file: string;
+}): Promise<PortalDatabaseSyncDevResult> {
+  return requestJson<PortalDatabaseSyncDevResult>(
+    "/api/v1/portal/admin/config/database/sync-dev/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function copyPortalDatabaseBackupToDevViaScpAdmin(payload: {
+  backup_file: string;
+  local_filename?: string;
+}): Promise<PortalDatabaseSyncDevResult> {
+  return requestJson<PortalDatabaseSyncDevResult>(
+    "/api/v1/portal/admin/config/database/backups/fetch-dev/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function syncPortalDatabaseViaDjangoAdmin(payload: {
+  mode: "dump" | "sync_dev";
+  exclude_apps?: string[];
+}): Promise<PortalDatabaseDjangoSyncResult> {
+  return requestJson<PortalDatabaseDjangoSyncResult>(
+    "/api/v1/portal/admin/config/database/django/sync/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function fetchPortalDatabaseCommandCatalogAdmin(
+  sampleBackupFile?: string,
+): Promise<PortalDatabaseCommandCatalogResult> {
+  const query = sampleBackupFile
+    ? `?sample_backup_file=${encodeURIComponent(sampleBackupFile)}`
+    : "";
+  return requestJson<PortalDatabaseCommandCatalogResult>(
+    `/api/v1/portal/admin/config/database/commands/catalog/${query}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
     },
   );
 }

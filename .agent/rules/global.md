@@ -103,3 +103,10 @@ Sempre que executar uma acao, ao final deve testar para garantir o funcionamento
   - implementar + testar local
   - `git push origin vm-atualizacoes`
   - promover para producao somente via prompt controlado no Codex da EC2.
+
+## Regra global de DB Ops (backup/restauracao)
+- Para operacoes de banco entre DEV e producao, usar dump PostgreSQL custom (`pg_dump -Fc`).
+- Restore remoto/local sempre com `pg_restore --clean --if-exists --no-owner --no-privileges`.
+- Sempre executar `python manage.py migrate --noinput` apos restore.
+- Operacoes de backup/restauracao/sync no Web Admin so podem ser habilitadas quando o ambiente estiver em `dev` ou `hybrid`.
+- Nunca registrar senha/chave/token em log ou em commit; qualquer segredo permanece somente fora do Git.

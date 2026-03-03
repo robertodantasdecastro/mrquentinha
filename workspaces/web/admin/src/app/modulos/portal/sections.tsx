@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@mrquentinha/ui";
 import { InlinePreloader } from "@/components/InlinePreloader";
+import { DatabaseSshAccessPanel } from "@/components/modules/DatabaseSshAccessPanel";
 
 import {
   ApiError,
@@ -3163,6 +3164,10 @@ export function PortalSections({
             Configure host local, dominios/subdominios e URLs de cada aplicacao para
             desenvolvimento em rede local.
           </p>
+
+          <div className="mt-4">
+            <DatabaseSshAccessPanel compact />
+          </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <label className="grid gap-1 text-sm text-muted">

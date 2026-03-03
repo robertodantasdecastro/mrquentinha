@@ -3,6 +3,7 @@ import type { AuthUserProfile } from "@/types/api";
 const TECHNICAL_ADMIN_MODULE_SLUGS = new Set([
   "usuarios-rbac",
   "portal",
+  "banco-dados",
   "auditoria-atividade",
   "administracao-servidor",
   "instalacao-deploy",
