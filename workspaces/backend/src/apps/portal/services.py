@@ -4953,6 +4953,43 @@ def _run_remote_dbops_script(
     return result, _render_command_preview(preview_command)
 
 
+def _build_scp_base_command(
+    *,
+    ssh_settings: dict,
+    mask_sensitive: bool = False,
+) -> list[str]:
+    auth_mode = str(ssh_settings.get("auth_mode", "key")).strip().lower()
+    port = int(ssh_settings.get("port", 22) or 22)
+    base_scp = [
+        "scp",
+        "-P",
+        str(port),
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ServerAliveInterval=30",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+    ]
+
+    if auth_mode == "password":
+        password = str(ssh_settings.get("password", "")).strip()
+        if not password:
+            raise ValidationError("SCP: senha nao informada para auth_mode=password.")
+        sshpass_bin = shutil.which("sshpass")
+        if not sshpass_bin:
+            raise ValidationError(
+                "SCP com senha requer 'sshpass' instalado no servidor do backend."
+            )
+        safe_password = "***" if mask_sensitive else password
+        return [sshpass_bin, "-p", safe_password, *base_scp]
+
+    key_path = _resolve_ssh_key_path(ssh_settings)
+    if key_path:
+        base_scp.extend(["-i", key_path])
+    return base_scp
+
+
 def _build_local_pg_env() -> tuple[dict, str]:
     from django.db import connections
 
@@ -5329,6 +5366,244 @@ python manage.py dumpdata --natural-foreign --natural-primary \
         "local_dump_file": str(local_dump_file),
         "synced": synced,
         "exclude_apps": excludes,
+    }
+
+
+def copy_remote_backup_to_dev_via_scp(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    _assert_dev_or_hybrid_mode(config=config)
+    payload = payload if isinstance(payload, dict) else {}
+    backup_file = str(payload.get("backup_file", "")).strip()
+    if not backup_file:
+        raise ValidationError("Informe backup_file para copia via scp.")
+    if not INSTALLER_SAFE_REMOTE_PATH_RE.fullmatch(backup_file):
+        raise ValidationError("backup_file invalido para copia via scp.")
+
+    ssh_settings = _validate_dbops_ssh_settings(_extract_dbops_ssh_from_config(config))
+    _ensure_dbops_runtime_dirs()
+    local_filename = (
+        str(payload.get("local_filename", "")).strip() or Path(backup_file).name
+    )
+    local_target_path = DBOPS_SYNC_DIR / local_filename
+
+    src = f"{_build_ssh_destination(ssh_settings)}:{backup_file}"
+    scp_command = _build_scp_base_command(
+        ssh_settings=ssh_settings,
+        mask_sensitive=False,
+    )
+    scp_command.extend([src, str(local_target_path)])
+    preview_command = _build_scp_base_command(
+        ssh_settings=ssh_settings,
+        mask_sensitive=True,
+    )
+    preview_command.extend([src, str(local_target_path)])
+
+    try:
+        result = subprocess.run(
+            scp_command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValidationError("SCP: timeout ao copiar backup remoto para DEV.") from exc
+    except OSError as exc:
+        raise ValidationError("SCP: falha ao executar cliente scp local.") from exc
+
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise ValidationError(
+            "SCP: falha ao copiar backup remoto. "
+            f"Comando: {_render_command_preview(preview_command)}. "
+            f"Detalhe: {detail or 'sem detalhe'}"
+        )
+
+    size_bytes = local_target_path.stat().st_size if local_target_path.exists() else 0
+    return {
+        "ok": True,
+        "source_backup_file": backup_file,
+        "local_dump_file": str(local_target_path),
+        "local_dump_size_bytes": size_bytes,
+        "transfer_method": "scp",
+    }
+
+
+def run_remote_django_dbbackup(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    _assert_dev_or_hybrid_mode(config=config)
+    payload = payload if isinstance(payload, dict) else {}
+    mode = str(payload.get("mode", "backup")).strip().lower()
+    if mode not in {"backup", "list", "restore"}:
+        raise ValidationError("Modo invalido para django-dbbackup.")
+
+    ssh_settings = _validate_dbops_ssh_settings(_extract_dbops_ssh_from_config(config))
+    repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+
+    input_filename = str(payload.get("input_filename", "")).strip()
+    confirm = str(payload.get("confirm", "")).strip().upper()
+    if mode == "restore" and confirm != "RESTAURAR":
+        raise ValidationError(
+            "Confirmacao obrigatoria para dbrestore: use confirm='RESTAURAR'."
+        )
+    if mode == "restore" and not input_filename:
+        raise ValidationError("Informe input_filename para dbrestore.")
+
+    command_line = ""
+    if mode == "backup":
+        command_line = (
+            "python manage.py dbbackup --clean --compress --verbosity 1"
+        )
+    elif mode == "list":
+        command_line = "python manage.py listbackups"
+    else:
+        command_line = (
+            "python manage.py dbrestore --noinput "
+            f"--input-filename {shlex.quote(input_filename)}"
+        )
+
+    remote_script = f"""
+set -euo pipefail
+REPO_PATH={shlex.quote(repo_path)}
+if [ -f "$REPO_PATH/workspaces/backend/.venv/bin/activate" ]; then
+  . "$REPO_PATH/workspaces/backend/.venv/bin/activate"
+fi
+cd "$REPO_PATH/workspaces/backend"
+export DJANGO_SETTINGS_MODULE=config.settings.prod
+{command_line}
+"""
+
+    result, command_preview = _run_remote_dbops_script(
+        ssh_settings=ssh_settings,
+        remote_shell_script=remote_script,
+        timeout_seconds=300,
+    )
+    return {
+        "ok": result.returncode == 0,
+        "mode": mode,
+        "exit_code": result.returncode,
+        "stdout": (result.stdout or "").strip(),
+        "stderr": (result.stderr or "").strip(),
+        "command_preview": command_preview,
+    }
+
+
+def build_database_ops_command_catalog(*, sample_backup_file: str = "") -> dict:
+    config = ensure_portal_config()
+    _assert_dev_or_hybrid_mode(config=config)
+    ssh_settings = _validate_dbops_ssh_settings(_extract_dbops_ssh_from_config(config))
+    tunnel_state = _dbops_read_tunnel_settings(config=config)
+    local_bind_host = str(tunnel_state.get("local_bind_host", "127.0.0.1")).strip()
+    local_port = int(tunnel_state.get("local_port", 55432) or 55432)
+    remote_db_host = str(tunnel_state.get("remote_db_host", "127.0.0.1")).strip()
+    remote_db_port = int(tunnel_state.get("remote_db_port", 5432) or 5432)
+    ssh_destination = _build_ssh_destination(ssh_settings)
+    repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
+    example_backup = (
+        sample_backup_file
+        or "$HOME/mrquentinha/.runtime/db_backups/backup.dump"
+    )
+    local_file = "$HOME/mrquentinha/.runtime/db_ops/sync/backup.dump"
+
+    tunnel_cmd = _render_command_preview(
+        _build_ssh_base_command(ssh_settings=ssh_settings, mask_sensitive=True)
+        + [
+            "-N",
+            "-L",
+            f"{local_bind_host}:{local_port}:{remote_db_host}:{remote_db_port}",
+            ssh_destination,
+        ]
+    )
+    list_cmd = _render_command_preview(
+        _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=(
+                f"cd {shlex.quote(repo_path)}; "
+                "find .runtime/db_backups -maxdepth 1 -type f -name '*.dump' | sort"
+            ),
+            mask_sensitive=True,
+        )
+    )
+    pg_dump_cmd = _render_command_preview(
+        _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=(
+                f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                "set -a; [ -f .env.prod ] && . .env.prod; set +a; "
+                "pg_dump --format=custom --no-owner --no-privileges "
+                '--dbname="$DATABASE_URL" --file ".runtime/db_backups/manual.dump"'
+            ),
+            mask_sensitive=True,
+        )
+    )
+    pg_restore_cmd = _render_command_preview(
+        _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=(
+                f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                "set -a; [ -f .env.prod ] && . .env.prod; set +a; "
+                "pg_restore --clean --if-exists --no-owner --no-privileges "
+                f'--dbname="$DATABASE_URL" {shlex.quote(example_backup)}'
+            ),
+            mask_sensitive=True,
+        )
+    )
+    psql_cmd = _render_command_preview(
+        _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=(
+                f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                "set -a; [ -f .env.prod ] && . .env.prod; set +a; "
+                'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT now();"'
+            ),
+            mask_sensitive=True,
+        )
+    )
+    scp_cmd = _render_command_preview(
+        _build_scp_base_command(ssh_settings=ssh_settings, mask_sensitive=True)
+        + [f"{ssh_destination}:{example_backup}", local_file]
+    )
+    dbbackup_cmd = _render_command_preview(
+        _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=(
+                f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                "export DJANGO_SETTINGS_MODULE=config.settings.prod; "
+                "python manage.py dbbackup --clean --compress --verbosity 1"
+            ),
+            mask_sensitive=True,
+        )
+    )
+    dbrestore_cmd = _render_command_preview(
+        _build_ssh_exec_command(
+            ssh_settings=ssh_settings,
+            remote_shell_script=(
+                f"cd {shlex.quote(repo_path)}/workspaces/backend; "
+                "export DJANGO_SETTINGS_MODULE=config.settings.prod; "
+                "python manage.py dbrestore --noinput "
+                f"--input-filename {shlex.quote(example_backup)}"
+            ),
+            mask_sensitive=True,
+        )
+    )
+
+    return {
+        "ok": True,
+        "commands": {
+            "tunnel_start": tunnel_cmd,
+            "backup_list": list_cmd,
+            "backup_create_pg_dump": pg_dump_cmd,
+            "backup_restore_pg_restore": pg_restore_cmd,
+            "psql_execute": psql_cmd,
+            "backup_copy_scp": scp_cmd,
+            "django_dbbackup": dbbackup_cmd,
+            "django_dbrestore": dbrestore_cmd,
+        },
+        "notes": [
+            "Os comandos usam preview com mascaramento de senha quando aplicavel.",
+            "Para restore com escrita em producao, mantenha confirmacao operacional.",
+            "Depois de restore, execute migrate para alinhar schema.",
+        ],
     }
 
 

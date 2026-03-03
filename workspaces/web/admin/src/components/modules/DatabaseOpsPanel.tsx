@@ -5,11 +5,14 @@ import { StatusPill } from "@mrquentinha/ui";
 
 import {
   ApiError,
+  copyPortalDatabaseBackupToDevViaScpAdmin,
   createPortalDatabaseBackupAdmin,
   executePortalDatabasePsqlAdmin,
+  fetchPortalDatabaseCommandCatalogAdmin,
   listPortalDatabaseBackupsAdmin,
   managePortalDatabaseTunnelAdmin,
   restorePortalDatabaseBackupAdmin,
+  runPortalDatabaseDjangoDbbackupAdmin,
   savePortalDatabaseTunnelAdmin,
   syncPortalDatabaseToDevAdmin,
   syncPortalDatabaseViaDjangoAdmin,
@@ -67,13 +70,18 @@ function defaultTunnelState(): PortalDatabaseTunnelState {
 }
 
 export function DatabaseOpsPanel() {
+  const [activeStep, setActiveStep] = useState<"tunnel" | "psql" | "backup" | "django" | "commands">(
+    "tunnel",
+  );
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [scpCopying, setScpCopying] = useState(false);
   const [tunnelBusy, setTunnelBusy] = useState(false);
   const [psqlBusy, setPsqlBusy] = useState(false);
   const [djangoBusy, setDjangoBusy] = useState(false);
+  const [dbbackupBusy, setDbbackupBusy] = useState(false);
   const [label, setLabel] = useState("manual");
   const [confirmRestore, setConfirmRestore] = useState("");
   const [selectedBackup, setSelectedBackup] = useState("");
@@ -96,6 +104,11 @@ export function DatabaseOpsPanel() {
     "auth.permission,contenttypes,admin.logentry,sessions",
   );
   const [djangoOutput, setDjangoOutput] = useState("");
+  const [dbbackupMode, setDbbackupMode] = useState<"backup" | "list" | "restore">("backup");
+  const [dbbackupInputFilename, setDbbackupInputFilename] = useState("");
+  const [dbbackupConfirm, setDbbackupConfirm] = useState("");
+  const [dbbackupOutput, setDbbackupOutput] = useState("");
+  const [commandCatalog, setCommandCatalog] = useState<Record<string, string>>({});
 
   const selectedBackupItem = useMemo(
     () => backups.find((item) => item.path === selectedBackup) || null,
@@ -131,10 +144,26 @@ export function DatabaseOpsPanel() {
     }
   }
 
+  async function loadCommandCatalog(sampleBackupFile?: string): Promise<void> {
+    try {
+      const result = await fetchPortalDatabaseCommandCatalogAdmin(sampleBackupFile);
+      setCommandCatalog(result.commands || {});
+    } catch (catalogError) {
+      setError(resolveErrorMessage(catalogError));
+    }
+  }
+
   useEffect(() => {
     void loadBackups();
     void loadTunnelStatus();
+    void loadCommandCatalog();
   }, [loadBackups]);
+
+  useEffect(() => {
+    if (selectedBackup) {
+      void loadCommandCatalog(selectedBackup);
+    }
+  }, [selectedBackup]);
 
   async function handleCreateBackup(): Promise<void> {
     setCreating(true);
@@ -187,6 +216,26 @@ export function DatabaseOpsPanel() {
       setError(resolveErrorMessage(syncError));
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function handleCopyBackupViaScp(): Promise<void> {
+    if (!selectedBackup) {
+      setError("Selecione um backup para copiar via SCP.");
+      return;
+    }
+    setScpCopying(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const result = await copyPortalDatabaseBackupToDevViaScpAdmin({
+        backup_file: selectedBackup,
+      });
+      setFeedback(`Backup copiado via SCP: ${result.local_dump_file}`);
+    } catch (copyError) {
+      setError(resolveErrorMessage(copyError));
+    } finally {
+      setScpCopying(false);
     }
   }
 
@@ -275,6 +324,47 @@ export function DatabaseOpsPanel() {
     }
   }
 
+  async function handleDjangoDbbackup(): Promise<void> {
+    setDbbackupBusy(true);
+    setError(null);
+    setFeedback(null);
+    setDbbackupOutput("");
+    try {
+      const payload: {
+        mode: "backup" | "list" | "restore";
+        input_filename?: string;
+        confirm?: string;
+      } = { mode: dbbackupMode };
+      if (dbbackupMode === "restore") {
+        payload.input_filename = dbbackupInputFilename;
+        payload.confirm = dbbackupConfirm;
+      }
+      const result = await runPortalDatabaseDjangoDbbackupAdmin(payload);
+      setDbbackupOutput([result.stdout, result.stderr].filter(Boolean).join("\n"));
+      if (result.ok) {
+        setFeedback(`django-dbbackup (${result.mode}) executado com sucesso.`);
+      } else {
+        setError(`django-dbbackup (${result.mode}) finalizou com erro.`);
+      }
+    } catch (dbbackupError) {
+      setError(resolveErrorMessage(dbbackupError));
+    } finally {
+      setDbbackupBusy(false);
+    }
+  }
+
+  async function handleCopyCommandToClipboard(command: string): Promise<void> {
+    if (!command.trim()) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(command);
+      setFeedback("Comando copiado para a area de transferencia.");
+    } catch {
+      setError("Nao foi possivel copiar comando automaticamente.");
+    }
+  }
+
   return (
     <section className="rounded-2xl border border-border bg-surface/80 p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -287,182 +377,174 @@ export function DatabaseOpsPanel() {
         <StatusPill tone="info">PostgreSQL + Django</StatusPill>
       </div>
 
-      <article className="mt-4 rounded-xl border border-border bg-bg p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="text-sm font-semibold text-text">1) Tunnel SSH para banco remoto</h4>
-          <StatusPill tone={tunnelState.status === "active" ? "success" : "neutral"}>
-            {tunnelState.status === "active" ? "Ativo" : "Inativo"}
-          </StatusPill>
-        </div>
-        <div className="mt-3 grid gap-3 md:grid-cols-4">
-          <label className="grid gap-1 text-xs text-muted">
-            Bind local
-            <input
-              value={tunnelBindHost}
-              onChange={(event) => setTunnelBindHost(event.currentTarget.value)}
-              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-            />
-          </label>
-          <label className="grid gap-1 text-xs text-muted">
-            Porta local
-            <input
-              value={tunnelLocalPort}
-              onChange={(event) => setTunnelLocalPort(event.currentTarget.value)}
-              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-            />
-          </label>
-          <label className="grid gap-1 text-xs text-muted">
-            Host DB remoto
-            <input
-              value={tunnelRemoteHost}
-              onChange={(event) => setTunnelRemoteHost(event.currentTarget.value)}
-              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-            />
-          </label>
-          <label className="grid gap-1 text-xs text-muted">
-            Porta DB remota
-            <input
-              value={tunnelRemotePort}
-              onChange={(event) => setTunnelRemotePort(event.currentTarget.value)}
-              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-            />
-          </label>
-        </div>
-        <p className="mt-2 text-xs text-muted">
-          PID: <strong className="text-text">{tunnelState.pid || "-"}</strong> ·
-          Start: <strong className="text-text">{formatDate(tunnelState.last_started_at)}</strong> ·
-          Stop: <strong className="text-text">{formatDate(tunnelState.last_stopped_at)}</strong>
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-4 grid gap-2 md:grid-cols-5">
+        {[
+          ["tunnel", "1. Tunnel SSH"],
+          ["psql", "2. psql remoto"],
+          ["backup", "3. Backups"],
+          ["django", "4. Django libs"],
+          ["commands", "5. Comandos"],
+        ].map(([key, label]) => (
           <button
+            key={key}
             type="button"
-            onClick={() => void handleSaveTunnelConfig()}
-            disabled={tunnelBusy}
-            className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
+            onClick={() => setActiveStep(key as typeof activeStep)}
+            className={[
+              "rounded-md border px-3 py-2 text-xs font-semibold transition",
+              activeStep === key
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-bg text-text hover:border-primary",
+            ].join(" ")}
           >
-            Salvar tunnel
+            {label}
           </button>
-          <button
-            type="button"
-            onClick={() => void handleTunnelAction("status")}
-            disabled={tunnelBusy}
-            className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
-          >
-            Status
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleTunnelAction("start")}
-            disabled={tunnelBusy}
-            className="rounded-md border border-emerald-400 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
-          >
-            Ativar tunnel
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleTunnelAction("stop")}
-            disabled={tunnelBusy}
-            className="rounded-md border border-rose-400 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
-          >
-            Desativar tunnel
-          </button>
-        </div>
-      </article>
+        ))}
+      </div>
 
-      <article className="mt-4 rounded-xl border border-border bg-bg p-4">
-        <h4 className="text-sm font-semibold text-text">2) Comandos psql via SSH</h4>
-        <p className="mt-1 text-xs text-muted">
-          Modo seguro: read-only habilitado restringe para SELECT/SHOW/EXPLAIN/WITH.
-        </p>
-        <div className="mt-3 grid gap-3">
-          <label className="grid gap-1 text-xs text-muted">
-            SQL
-            <textarea
-              rows={4}
-              value={psqlCommand}
-              onChange={(event) => setPsqlCommand(event.currentTarget.value)}
-              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-            />
-          </label>
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="inline-flex items-center gap-2 text-xs text-text">
+      {activeStep === "tunnel" && (
+        <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="text-sm font-semibold text-text">Tunnel SSH para banco remoto</h4>
+            <StatusPill tone={tunnelState.status === "active" ? "success" : "neutral"}>
+              {tunnelState.status === "active" ? "Ativo" : "Inativo"}
+            </StatusPill>
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-4">
+            <label className="grid gap-1 text-xs text-muted">
+              Bind local
               <input
-                type="checkbox"
-                checked={psqlReadOnly}
-                onChange={(event) => setPsqlReadOnly(event.currentTarget.checked)}
-                className="h-4 w-4 border-border text-primary"
+                value={tunnelBindHost}
+                onChange={(event) => setTunnelBindHost(event.currentTarget.value)}
+                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
               />
-              Executar em modo read-only
             </label>
-            {!psqlReadOnly && (
-              <label className="grid gap-1 text-xs text-muted">
-                Confirmacao (EXECUTAR)
+            <label className="grid gap-1 text-xs text-muted">
+              Porta local
+              <input
+                value={tunnelLocalPort}
+                onChange={(event) => setTunnelLocalPort(event.currentTarget.value)}
+                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-xs text-muted">
+              Host DB remoto
+              <input
+                value={tunnelRemoteHost}
+                onChange={(event) => setTunnelRemoteHost(event.currentTarget.value)}
+                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="grid gap-1 text-xs text-muted">
+              Porta DB remota
+              <input
+                value={tunnelRemotePort}
+                onChange={(event) => setTunnelRemotePort(event.currentTarget.value)}
+                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+              />
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            PID: <strong className="text-text">{tunnelState.pid || "-"}</strong> · Start:{" "}
+            <strong className="text-text">{formatDate(tunnelState.last_started_at)}</strong> ·
+            Stop: <strong className="text-text">{formatDate(tunnelState.last_stopped_at)}</strong>
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void handleSaveTunnelConfig()}
+              disabled={tunnelBusy}
+              className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
+            >
+              Salvar tunnel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleTunnelAction("status")}
+              disabled={tunnelBusy}
+              className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
+            >
+              Status
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleTunnelAction("start")}
+              disabled={tunnelBusy}
+              className="rounded-md border border-emerald-400 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+            >
+              Ativar tunnel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleTunnelAction("stop")}
+              disabled={tunnelBusy}
+              className="rounded-md border border-rose-400 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+            >
+              Desativar tunnel
+            </button>
+          </div>
+        </article>
+      )}
+
+      {activeStep === "psql" && (
+        <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+          <h4 className="text-sm font-semibold text-text">Comandos psql via SSH</h4>
+          <p className="mt-1 text-xs text-muted">
+            Modo seguro: read-only habilitado restringe para SELECT/SHOW/EXPLAIN/WITH.
+          </p>
+          <div className="mt-3 grid gap-3">
+            <label className="grid gap-1 text-xs text-muted">
+              SQL
+              <textarea
+                rows={5}
+                value={psqlCommand}
+                onChange={(event) => setPsqlCommand(event.currentTarget.value)}
+                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="inline-flex items-center gap-2 text-xs text-text">
                 <input
-                  value={psqlConfirm}
-                  onChange={(event) => setPsqlConfirm(event.currentTarget.value)}
-                  className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-                  placeholder="EXECUTAR"
+                  type="checkbox"
+                  checked={psqlReadOnly}
+                  onChange={(event) => setPsqlReadOnly(event.currentTarget.checked)}
+                  className="h-4 w-4 border-border text-primary"
                 />
+                Executar em modo read-only
               </label>
+              {!psqlReadOnly && (
+                <label className="grid gap-1 text-xs text-muted">
+                  Confirmacao (EXECUTAR)
+                  <input
+                    value={psqlConfirm}
+                    onChange={(event) => setPsqlConfirm(event.currentTarget.value)}
+                    className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                    placeholder="EXECUTAR"
+                  />
+                </label>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleRunPsql()}
+              disabled={psqlBusy}
+              className="w-fit rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
+            >
+              {psqlBusy ? "Executando..." : "Executar psql"}
+            </button>
+            {psqlOutput && (
+              <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface/70 p-2 text-xs text-text">
+                {psqlOutput}
+              </pre>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => void handleRunPsql()}
-            disabled={psqlBusy}
-            className="w-fit rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
-          >
-            {psqlBusy ? "Executando..." : "Executar psql"}
-          </button>
-          {psqlOutput && (
-            <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface/70 p-2 text-xs text-text">
-              {psqlOutput}
-            </pre>
-          )}
-        </div>
-      </article>
+        </article>
+      )}
 
-      <article className="mt-4 rounded-xl border border-border bg-bg p-4">
-        <h4 className="text-sm font-semibold text-text">3) Sincronizacao via bibliotecas Django</h4>
-        <p className="mt-1 text-xs text-muted">
-          Usa `manage.py dumpdata` no remoto e opcionalmente aplica `loaddata` no DEV.
-        </p>
-        <label className="mt-3 grid gap-1 text-xs text-muted">
-          Excluir apps/modelos (CSV)
-          <input
-            value={djangoExcludeApps}
-            onChange={(event) => setDjangoExcludeApps(event.currentTarget.value)}
-            className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
-            placeholder="auth.permission,contenttypes,admin.logentry,sessions"
-          />
-        </label>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void handleDjangoSync("dump")}
-            disabled={djangoBusy}
-            className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
-          >
-            {djangoBusy ? "Processando..." : "Gerar dump Django remoto"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleDjangoSync("sync_dev")}
-            disabled={djangoBusy}
-            className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
-          >
-            {djangoBusy ? "Processando..." : "Sincronizar dump Django para DEV"}
-          </button>
-        </div>
-        {djangoOutput && (
-          <pre className="mt-3 max-h-48 overflow-auto rounded-md border border-border bg-surface/70 p-2 text-xs text-text">
-            {djangoOutput}
-          </pre>
-        )}
-      </article>
-
-      <article className="mt-4 rounded-xl border border-border bg-bg p-4">
-        <h4 className="text-sm font-semibold text-text">Backup/restore por dump PostgreSQL</h4>
+      {activeStep === "backup" && (
+        <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+          <h4 className="text-sm font-semibold text-text">
+            Backup/restore por dump PostgreSQL
+          </h4>
         <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
           <label className="grid gap-1 text-sm text-muted">
             Label do backup (ex.: pre-release, hotfix, manual)
@@ -561,17 +643,159 @@ export function DatabaseOpsPanel() {
               Backup selecionado:{" "}
               <strong className="text-text">{selectedBackupItem?.filename || "-"}</strong>
             </p>
-            <button
-              type="button"
-              onClick={() => void handleSyncToDev()}
-              disabled={!selectedBackup || syncing || creating || restoring}
-              className="mt-3 rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {syncing ? "Sincronizando..." : "Sincronizar backup para DEV"}
-            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handleSyncToDev()}
+                disabled={!selectedBackup || syncing || creating || restoring}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {syncing ? "Sincronizando..." : "Sincronizar backup para DEV"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCopyBackupViaScp()}
+                disabled={!selectedBackup || scpCopying || creating || restoring}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {scpCopying ? "Copiando..." : "Copiar backup via SCP"}
+              </button>
+            </div>
           </article>
         </div>
-      </article>
+        </article>
+      )}
+
+      {activeStep === "django" && (
+        <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+          <h4 className="text-sm font-semibold text-text">Bibliotecas Django (sincronizado)</h4>
+          <p className="mt-1 text-xs text-muted">
+            `dumpdata/loaddata` e `django-dbbackup/dbrestore` para operacao de alto nivel.
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="rounded-md border border-border bg-surface/60 p-3">
+              <p className="text-xs font-semibold text-text">Django dumpdata/loaddata</p>
+              <label className="mt-2 grid gap-1 text-xs text-muted">
+                Excluir apps/modelos (CSV)
+                <input
+                  value={djangoExcludeApps}
+                  onChange={(event) => setDjangoExcludeApps(event.currentTarget.value)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                  placeholder="auth.permission,contenttypes,admin.logentry,sessions"
+                />
+              </label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleDjangoSync("dump")}
+                  disabled={djangoBusy}
+                  className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
+                >
+                  {djangoBusy ? "Processando..." : "Gerar dump remoto"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDjangoSync("sync_dev")}
+                  disabled={djangoBusy}
+                  className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
+                >
+                  {djangoBusy ? "Processando..." : "Aplicar no DEV"}
+                </button>
+              </div>
+              {djangoOutput && (
+                <pre className="mt-2 max-h-40 overflow-auto rounded-md border border-border bg-bg p-2 text-xs text-text">
+                  {djangoOutput}
+                </pre>
+              )}
+            </div>
+
+            <div className="rounded-md border border-border bg-surface/60 p-3">
+              <p className="text-xs font-semibold text-text">django-dbbackup/dbrestore</p>
+              <label className="mt-2 grid gap-1 text-xs text-muted">
+                Modo
+                <select
+                  value={dbbackupMode}
+                  onChange={(event) =>
+                    setDbbackupMode(
+                      event.currentTarget.value as "backup" | "list" | "restore",
+                    )
+                  }
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                >
+                  <option value="backup">dbbackup</option>
+                  <option value="list">listbackups</option>
+                  <option value="restore">dbrestore</option>
+                </select>
+              </label>
+              {dbbackupMode === "restore" && (
+                <div className="mt-2 grid gap-2">
+                  <label className="grid gap-1 text-xs text-muted">
+                    input_filename (remoto)
+                    <input
+                      value={dbbackupInputFilename}
+                      onChange={(event) => setDbbackupInputFilename(event.currentTarget.value)}
+                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      placeholder="/home/ubuntu/mrquentinha/.runtime/dbbackup/..."
+                    />
+                  </label>
+                  <label className="grid gap-1 text-xs text-muted">
+                    Confirmacao (RESTAURAR)
+                    <input
+                      value={dbbackupConfirm}
+                      onChange={(event) => setDbbackupConfirm(event.currentTarget.value)}
+                      className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                      placeholder="RESTAURAR"
+                    />
+                  </label>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => void handleDjangoDbbackup()}
+                disabled={dbbackupBusy}
+                className="mt-2 rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
+              >
+                {dbbackupBusy ? "Executando..." : "Executar django-dbbackup"}
+              </button>
+              {dbbackupOutput && (
+                <pre className="mt-2 max-h-40 overflow-auto rounded-md border border-border bg-bg p-2 text-xs text-text">
+                  {dbbackupOutput}
+                </pre>
+              )}
+            </div>
+          </div>
+        </article>
+      )}
+
+      {activeStep === "commands" && (
+        <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+          <h4 className="text-sm font-semibold text-text">Comandos e scripts prontos</h4>
+          <p className="mt-1 text-xs text-muted">
+            Comandos operacionais gerados com base na configuracao SSH atual (mascarados).
+          </p>
+          <div className="mt-3 grid gap-3">
+            {Object.entries(commandCatalog).map(([key, command]) => (
+              <div key={key} className="rounded-md border border-border bg-surface/60 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.06em] text-text">
+                    {key.replaceAll("_", " ")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void handleCopyCommandToClipboard(command)}
+                    className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-text transition hover:border-primary"
+                  >
+                    Copiar
+                  </button>
+                </div>
+                <pre className="mt-2 overflow-auto rounded-md border border-border bg-bg p-2 text-xs text-text">
+                  {command}
+                </pre>
+              </div>
+            ))}
+          </div>
+        </article>
+      )}
 
       {error && (
         <p className="mt-4 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700">

@@ -22,11 +22,13 @@ from .services import (
     CHANNEL_PORTAL,
     apply_ssl_certificates,
     build_cloudflare_preview,
+    build_database_ops_command_catalog,
     build_latest_mobile_release_payload,
     build_portal_version_payload,
     build_public_portal_payload,
     cancel_installer_job,
     compile_mobile_release,
+    copy_remote_backup_to_dev_via_scp,
     create_mobile_release,
     create_remote_database_backup,
     ensure_portal_config,
@@ -38,6 +40,7 @@ from .services import (
     publish_mobile_release,
     publish_portal_config,
     restore_remote_database_backup,
+    run_remote_django_dbbackup,
     run_remote_psql_command,
     save_database_ssh_settings,
     save_database_tunnel_settings,
@@ -345,6 +348,15 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
             raise DRFValidationError(exc.messages) from exc
         return Response(result, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["post"], url_path="database/django-dbbackup")
+    def database_django_dbbackup(self, request):
+        payload = request.data if isinstance(request.data, dict) else {}
+        try:
+            result = run_remote_django_dbbackup(payload=payload)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        return Response(result, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=["get"], url_path="database/backups")
     def database_backups_list(self, request):
         raw_limit = request.query_params.get("limit")
@@ -385,11 +397,33 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
             raise DRFValidationError(exc.messages) from exc
         return Response(result, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["post"], url_path="database/backups/fetch-dev")
+    def database_backups_fetch_dev(self, request):
+        payload = request.data if isinstance(request.data, dict) else {}
+        try:
+            result = copy_remote_backup_to_dev_via_scp(payload=payload)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        return Response(result, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=["post"], url_path="database/django/sync")
     def database_django_sync(self, request):
         payload = request.data if isinstance(request.data, dict) else {}
         try:
             result = sync_remote_database_via_django(payload=payload)
+        except DjangoValidationError as exc:
+            raise DRFValidationError(exc.messages) from exc
+        return Response(result, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="database/commands/catalog")
+    def database_commands_catalog(self, request):
+        sample_backup_file = str(
+            request.query_params.get("sample_backup_file", "")
+        ).strip()
+        try:
+            result = build_database_ops_command_catalog(
+                sample_backup_file=sample_backup_file
+            )
         except DjangoValidationError as exc:
             raise DRFValidationError(exc.messages) from exc
         return Response(result, status=status.HTTP_200_OK)

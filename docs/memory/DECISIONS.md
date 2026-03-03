@@ -33,6 +33,7 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Decisao:
   - centralizar operacoes de banco de producao no Web Admin com pre-requisito de SSH configurado.
   - adotar dump PostgreSQL custom (`pg_dump -Fc`) como formato padrao para backup e replicacao.
+  - complementar com `django-dbbackup` para operacao orientada a Django (`dbbackup/listbackups/dbrestore`) quando a equipe precisar fluxo framework-first.
   - exigir confirmacao explicita (`RESTAURAR`) para restore remoto.
   - expor tres modos operacionais no modulo `Banco de dados`:
     - tunnel SSH gerenciavel (start/stop/status);

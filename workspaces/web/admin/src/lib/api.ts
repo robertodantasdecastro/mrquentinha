@@ -48,6 +48,8 @@ import type {
   PortalCloudflareToggleResult,
   PortalDatabaseBackupCreateResult,
   PortalDatabaseBackupsListResult,
+  PortalDatabaseCommandCatalogResult,
+  PortalDatabaseDjangoDbbackupResult,
   PortalDatabaseDjangoSyncResult,
   PortalDatabasePsqlExecuteResult,
   PortalDatabaseRestoreResult,
@@ -1629,6 +1631,21 @@ export async function executePortalDatabasePsqlAdmin(payload: {
   );
 }
 
+export async function runPortalDatabaseDjangoDbbackupAdmin(payload: {
+  mode: "backup" | "list" | "restore";
+  input_filename?: string;
+  confirm?: string;
+}): Promise<PortalDatabaseDjangoDbbackupResult> {
+  return requestJson<PortalDatabaseDjangoDbbackupResult>(
+    "/api/v1/portal/admin/config/database/django-dbbackup/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export async function listPortalDatabaseBackupsAdmin(
   limit = 30,
 ): Promise<PortalDatabaseBackupsListResult> {
@@ -1682,6 +1699,20 @@ export async function syncPortalDatabaseToDevAdmin(payload: {
   );
 }
 
+export async function copyPortalDatabaseBackupToDevViaScpAdmin(payload: {
+  backup_file: string;
+  local_filename?: string;
+}): Promise<PortalDatabaseSyncDevResult> {
+  return requestJson<PortalDatabaseSyncDevResult>(
+    "/api/v1/portal/admin/config/database/backups/fetch-dev/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export async function syncPortalDatabaseViaDjangoAdmin(payload: {
   mode: "dump" | "sync_dev";
   exclude_apps?: string[];
@@ -1692,6 +1723,22 @@ export async function syncPortalDatabaseViaDjangoAdmin(payload: {
       method: "POST",
       auth: true,
       body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function fetchPortalDatabaseCommandCatalogAdmin(
+  sampleBackupFile?: string,
+): Promise<PortalDatabaseCommandCatalogResult> {
+  const query = sampleBackupFile
+    ? `?sample_backup_file=${encodeURIComponent(sampleBackupFile)}`
+    : "";
+  return requestJson<PortalDatabaseCommandCatalogResult>(
+    `/api/v1/portal/admin/config/database/commands/catalog/${query}`,
+    {
+      method: "GET",
+      auth: true,
+      cache: "no-store",
     },
   );
 }

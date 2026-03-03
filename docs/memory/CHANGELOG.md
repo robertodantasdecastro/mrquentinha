@@ -5,6 +5,9 @@
 - T9.2.8 (web admin): novo modulo `Banco de dados` com guia individual, configuracao SSH reaproveitavel, listagem/criacao de backups remotos, restore remoto com confirmacao explicita e sincronizacao de backup para ambiente DEV.
 - T9.2.8 (backend/portal): adicionadas acoes admin para DB Ops em `/api/v1/portal/admin/config/database/*` (salvar SSH, upload de chave, probe SSH, listar/criar backup, restore e sync para DEV) com validacoes de seguranca e sanitizacao de dados sensiveis.
 - T9.2.8 (db ops/metodos): modulo `Banco de dados` evoluido com 3 formas operacionais apos conectividade confirmada: (1) tunel SSH com start/stop/status e configuracao de bind/porta, (2) execucao de comandos `psql` remotos via SSH com modo read-only seguro, (3) sincronizacao por bibliotecas Django (`dumpdata/loaddata`) com opcao de aplicar no DEV.
+- T9.2.8 (db ops/libs): backend passou a suportar execucao remota de `django-dbbackup` (`dbbackup`, `listbackups`, `dbrestore`) com confirmacao para restore e retorno de logs.
+- T9.2.8 (db ops/sync): adicionado fluxo explicito de copia de backup remoto para DEV via `scp` no modulo `Banco de dados` (alem do sync por restore local).
+- T9.2.8 (ux): painel de banco reorganizado em etapas (`Tunnel`, `psql`, `Backups`, `Django libs`, `Comandos`) com experiencia guiada e catalogo de comandos copy-ready.
 - T9.2.8 (workflow): regras globais atualizadas para padrao de backup/restauracao PostgreSQL (`pg_dump -Fc` + `pg_restore --clean --if-exists`) com migrate obrigatorio apos restore.
 - Hotfix dominios (prod): consolidado `app.mrquentinha.com.br` como unico dominio oficial do `mrq_client`; `web.mrquentinha.com.br` mantido apenas como dominio legado explicitamente desativado (`404`) no Nginx.
 - T6.2.1 (portal/web client): consolidacao visual iniciada com padronizacao de shell institucional (`PortalPageIntro` e `ClientPageIntro`) e variacoes de identidade por template em CSS.

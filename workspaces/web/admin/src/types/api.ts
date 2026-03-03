@@ -1185,6 +1185,7 @@ export type PortalDatabaseSyncDevResult = {
   local_dump_size_bytes: number;
   local_pre_restore_backup: string;
   summary: string;
+  transfer_method?: string;
 };
 
 export type PortalDatabaseTunnelState = {
@@ -1220,6 +1221,21 @@ export type PortalDatabaseDjangoSyncResult = {
   local_dump_file: string;
   synced: boolean;
   exclude_apps: string[];
+};
+
+export type PortalDatabaseDjangoDbbackupResult = {
+  ok: boolean;
+  mode: "backup" | "list" | "restore";
+  exit_code: number;
+  stdout: string;
+  stderr: string;
+  command_preview: string;
+};
+
+export type PortalDatabaseCommandCatalogResult = {
+  ok: boolean;
+  commands: Record<string, string>;
+  notes: string[];
 };
 
 export type PortalCloudflareRuntimeData = {
