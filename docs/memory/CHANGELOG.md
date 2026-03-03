@@ -1,6 +1,8 @@
 # Changelog (por sprint)
 
 ## 03/03/2026
+- Ops/monitoramento UX: `GestorServidor` teve layout atualizado para seguir o estilo do dashboard dev (`scripts/ops_dashboard.py`/`ops_center.py`), com cabecalho de acoes, barras percentuais + sparklines de sistema/rede e boxes operacionais de servicos/health.
+- Ops/monitoramento: novo aplicativo TUI `GestorServidor` implementado em `GestorServidor/app.py` com monitoramento em tempo real (host/rede/servicos/dominios/API), controle `start|stop|restart` por servico/stack via `systemctl`, eventos persistidos em `.runtime/gestor-servidor` e launcher raiz `gestor_servidor.sh`.
 - Hotfix dominios (prod): consolidado `app.mrquentinha.com.br` como unico dominio oficial do `mrq_client`; `web.mrquentinha.com.br` mantido apenas como dominio legado explicitamente desativado (`404`) no Nginx.
 - Politica de seguranca operacional reforcada: credenciais/tokens/chaves devem existir somente nas areas seguras locais (`~/.codex/secure` e `~/.mrquentinha-secure`), proibido versionar segredos no Git.
 - Politica de sincronizacao entre agentes reforcada: EC2/producao opera na branch `main`; VM dev opera na branch `vm-atualizacoes`; sincronizacao sempre via `fetch` + integracao controlada + testes obrigatorios.
