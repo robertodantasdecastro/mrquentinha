@@ -22,6 +22,26 @@ die() {
   exit 1
 }
 
+append_csv_item() {
+  local file_path="$1"
+  local key="$2"
+  local item="$3"
+  local line_number current_value
+
+  line_number="$(rg -n "^${key}=" "$file_path" | head -n1 | cut -d: -f1 || true)"
+  if [[ -z "$line_number" ]]; then
+    printf '%s=%s\n' "$key" "$item" >> "$file_path"
+    return 0
+  fi
+
+  current_value="$(sed -n "${line_number}p" "$file_path" | cut -d= -f2-)"
+  if [[ ",${current_value}," == *",${item},"* ]]; then
+    return 0
+  fi
+
+  sed -i "${line_number}s|$|,${item}|" "$file_path"
+}
+
 ensure_repo() {
   [[ -d "$ROOT_DIR/.git" ]] || die "Repositorio git nao encontrado em $ROOT_DIR"
 }
@@ -56,6 +76,12 @@ ensure_env_file() {
   grep -q '^DJANGO_SETTINGS_MODULE=' .env.dev || echo 'DJANGO_SETTINGS_MODULE=config.settings.dev' >> .env.dev
   grep -q '^DEBUG=' .env.dev || echo 'DEBUG=True' >> .env.dev
   grep -q '^SECRET_KEY=' .env.dev || echo "SECRET_KEY=dev-$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')" >> .env.dev
+  append_csv_item .env.dev CORS_ALLOWED_ORIGINS http://localhost:3002
+  append_csv_item .env.dev CORS_ALLOWED_ORIGINS http://127.0.0.1:3002
+  append_csv_item .env.dev CORS_ALLOWED_ORIGINS http://10.211.55.21:3002
+  append_csv_item .env.dev CSRF_TRUSTED_ORIGINS http://localhost:3002
+  append_csv_item .env.dev CSRF_TRUSTED_ORIGINS http://127.0.0.1:3002
+  append_csv_item .env.dev CSRF_TRUSTED_ORIGINS http://10.211.55.21:3002
 
   ln -sfn .env.dev .env
 }
