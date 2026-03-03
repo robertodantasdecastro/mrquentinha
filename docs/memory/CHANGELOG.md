@@ -1407,3 +1407,18 @@
     - backend: `python manage.py migrate --noinput`, `python manage.py check`, `pytest tests/test_portal_services.py -q`, `ruff check` (arquivos alterados) -> OK;
     - frontend: `npm run lint && npm run build` em `web/portal`, `web/client` e `web/admin` -> OK;
     - simulacao: `python manage.py seed_paraiba_caseira_week --start-date 2026-04-13` -> OK (7 cardapios, 7 PRs, compra + OCR + producao).
+
+- Web/Ops-03/03/2026 (database ops com deteccao automatica de ambiente VM/EC2 e modo dev/prod/hibrido)
+  - backend (`apps.portal.services`):
+    - consolidada deteccao de contexto em `resolve_database_runtime_context` para distinguir `machine_kind` (VM/EC2) e `operation_mode` (dev/prod/hibrido);
+    - operacoes de banco agora alternam automaticamente entre execucao local (EC2 com DB local) e execucao remota via SSH (VM/hibrido), sem exigir tunnel quando nao aplicavel;
+    - `tunnel`, `psql`, `django sync`, `django-dbbackup`, `scp` e catalogo de comandos retornam `runtime` para o frontend adaptar a UI;
+    - removidas dependencias residuais de validacao legada por modo, evitando erro de runtime e comportamento inconsistente.
+  - frontend (`web/admin`):
+    - `DatabaseOpsPanel` passou a ler contexto `runtime` da API e desabilitar automaticamente recursos nao aplicaveis (tunnel/SCP/sync para DEV) em EC2 local;
+    - adicionada sinalizacao de ambiente/modo/transporte de banco no topo do painel.
+  - contratos de API (`types/api.ts`):
+    - novo tipo `PortalDatabaseRuntimeContext` e extensao dos payloads de DB Ops com campo opcional `runtime`.
+  - validacao executada:
+    - backend: `python3 -m py_compile`, `ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_api.py`, `pytest -q tests/test_portal_api.py -k database`, `python manage.py check` -> OK;
+    - frontend admin: `npm run lint && npm run build` -> OK.

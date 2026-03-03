@@ -17,7 +17,11 @@ import {
   syncPortalDatabaseToDevAdmin,
   syncPortalDatabaseViaDjangoAdmin,
 } from "@/lib/api";
-import type { PortalDatabaseBackupItem, PortalDatabaseTunnelState } from "@/types/api";
+import type {
+  PortalDatabaseBackupItem,
+  PortalDatabaseRuntimeContext,
+  PortalDatabaseTunnelState,
+} from "@/types/api";
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -109,11 +113,16 @@ export function DatabaseOpsPanel() {
   const [dbbackupConfirm, setDbbackupConfirm] = useState("");
   const [dbbackupOutput, setDbbackupOutput] = useState("");
   const [commandCatalog, setCommandCatalog] = useState<Record<string, string>>({});
+  const [runtimeContext, setRuntimeContext] = useState<PortalDatabaseRuntimeContext | null>(null);
 
   const selectedBackupItem = useMemo(
     () => backups.find((item) => item.path === selectedBackup) || null,
     [backups, selectedBackup],
   );
+  const isLocalDbOps = runtimeContext?.local_db_ops === true;
+  const canUseTunnel = runtimeContext ? runtimeContext.tunnel_available : true;
+  const canSyncToDev = runtimeContext ? runtimeContext.sync_to_dev_available : true;
+  const canCopyToDev = runtimeContext ? runtimeContext.copy_to_dev_via_scp_available : true;
 
   const loadBackups = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -121,6 +130,9 @@ export function DatabaseOpsPanel() {
     try {
       const payload = await listPortalDatabaseBackupsAdmin(50);
       setBackups(payload.results || []);
+      if (payload.runtime) {
+        setRuntimeContext(payload.runtime);
+      }
       if (!selectedBackup && payload.results.length > 0) {
         setSelectedBackup(payload.results[0].path);
       }
@@ -135,6 +147,9 @@ export function DatabaseOpsPanel() {
     try {
       const result = await managePortalDatabaseTunnelAdmin("status");
       setTunnelState(result.tunnel);
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setTunnelBindHost(result.tunnel.local_bind_host);
       setTunnelLocalPort(String(result.tunnel.local_port));
       setTunnelRemoteHost(result.tunnel.remote_db_host);
@@ -148,6 +163,9 @@ export function DatabaseOpsPanel() {
     try {
       const result = await fetchPortalDatabaseCommandCatalogAdmin(sampleBackupFile);
       setCommandCatalog(result.commands || {});
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
     } catch (catalogError) {
       setError(resolveErrorMessage(catalogError));
     }
@@ -171,6 +189,9 @@ export function DatabaseOpsPanel() {
     setFeedback(null);
     try {
       const result = await createPortalDatabaseBackupAdmin({ label });
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setFeedback(`Backup criado: ${result.backup_file}`);
       await loadBackups();
     } catch (createError) {
@@ -193,6 +214,9 @@ export function DatabaseOpsPanel() {
         backup_file: selectedBackup,
         confirm: confirmRestore,
       });
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setFeedback(result.summary);
     } catch (restoreError) {
       setError(resolveErrorMessage(restoreError));
@@ -211,6 +235,9 @@ export function DatabaseOpsPanel() {
     setFeedback(null);
     try {
       const result = await syncPortalDatabaseToDevAdmin({ backup_file: selectedBackup });
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setFeedback(result.summary);
     } catch (syncError) {
       setError(resolveErrorMessage(syncError));
@@ -231,6 +258,9 @@ export function DatabaseOpsPanel() {
       const result = await copyPortalDatabaseBackupToDevViaScpAdmin({
         backup_file: selectedBackup,
       });
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setFeedback(`Backup copiado via SCP: ${result.local_dump_file}`);
     } catch (copyError) {
       setError(resolveErrorMessage(copyError));
@@ -266,6 +296,9 @@ export function DatabaseOpsPanel() {
     try {
       const result = await managePortalDatabaseTunnelAdmin(action);
       setTunnelState(result.tunnel);
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setFeedback(`Tunnel: acao ${action} executada.`);
     } catch (actionError) {
       setError(resolveErrorMessage(actionError));
@@ -285,6 +318,9 @@ export function DatabaseOpsPanel() {
         read_only: psqlReadOnly,
         confirm: psqlConfirm,
       });
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setPsqlOutput([result.stdout, result.stderr].filter(Boolean).join("\n"));
       if (result.ok) {
         setFeedback("Comando psql executado com sucesso.");
@@ -309,6 +345,9 @@ export function DatabaseOpsPanel() {
         .map((item) => item.trim())
         .filter((item) => item.length > 0);
       const result = await syncPortalDatabaseViaDjangoAdmin({ mode, exclude_apps: excludeApps });
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setDjangoOutput(
         `Arquivo: ${result.local_dump_file}\nModo: ${result.mode}\nSynced: ${String(result.synced)}`,
       );
@@ -340,6 +379,9 @@ export function DatabaseOpsPanel() {
         payload.confirm = dbbackupConfirm;
       }
       const result = await runPortalDatabaseDjangoDbbackupAdmin(payload);
+      if (result.runtime) {
+        setRuntimeContext(result.runtime);
+      }
       setDbbackupOutput([result.stdout, result.stderr].filter(Boolean).join("\n"));
       if (result.ok) {
         setFeedback(`django-dbbackup (${result.mode}) executado com sucesso.`);
@@ -373,6 +415,13 @@ export function DatabaseOpsPanel() {
           <p className="mt-1 text-xs text-muted">
             1) Tunnel SSH, 2) comandos psql via SSH, 3) sync Django (dumpdata/loaddata).
           </p>
+          {runtimeContext && (
+            <p className="mt-1 text-xs text-muted">
+              Ambiente: <strong className="text-text">{runtimeContext.machine_kind.toUpperCase()}</strong> ·
+              Modo: <strong className="text-text">{runtimeContext.operation_mode}</strong> ·
+              Transporte DB: <strong className="text-text">{runtimeContext.psql_transport}</strong>
+            </p>
+          )}
         </div>
         <StatusPill tone="info">PostgreSQL + Django</StatusPill>
       </div>
@@ -452,7 +501,7 @@ export function DatabaseOpsPanel() {
             <button
               type="button"
               onClick={() => void handleSaveTunnelConfig()}
-              disabled={tunnelBusy}
+              disabled={tunnelBusy || !canUseTunnel}
               className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
             >
               Salvar tunnel
@@ -460,7 +509,7 @@ export function DatabaseOpsPanel() {
             <button
               type="button"
               onClick={() => void handleTunnelAction("status")}
-              disabled={tunnelBusy}
+              disabled={tunnelBusy || !canUseTunnel}
               className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:opacity-60"
             >
               Status
@@ -468,7 +517,7 @@ export function DatabaseOpsPanel() {
             <button
               type="button"
               onClick={() => void handleTunnelAction("start")}
-              disabled={tunnelBusy}
+              disabled={tunnelBusy || !canUseTunnel}
               className="rounded-md border border-emerald-400 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
             >
               Ativar tunnel
@@ -476,7 +525,7 @@ export function DatabaseOpsPanel() {
             <button
               type="button"
               onClick={() => void handleTunnelAction("stop")}
-              disabled={tunnelBusy}
+              disabled={tunnelBusy || !canUseTunnel}
               className="rounded-md border border-rose-400 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
             >
               Desativar tunnel
@@ -491,6 +540,11 @@ export function DatabaseOpsPanel() {
           <p className="mt-1 text-xs text-muted">
             Modo seguro: read-only habilitado restringe para SELECT/SHOW/EXPLAIN/WITH.
           </p>
+          {isLocalDbOps && (
+            <p className="mt-1 text-xs text-muted">
+              Execucao local ativa: comandos psql rodam no banco local desta instância.
+            </p>
+          )}
           <div className="mt-3 grid gap-3">
             <label className="grid gap-1 text-xs text-muted">
               SQL
@@ -647,7 +701,7 @@ export function DatabaseOpsPanel() {
               <button
                 type="button"
                 onClick={() => void handleSyncToDev()}
-                disabled={!selectedBackup || syncing || creating || restoring}
+                disabled={!selectedBackup || syncing || creating || restoring || !canSyncToDev}
                 className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {syncing ? "Sincronizando..." : "Sincronizar backup para DEV"}
@@ -655,12 +709,17 @@ export function DatabaseOpsPanel() {
               <button
                 type="button"
                 onClick={() => void handleCopyBackupViaScp()}
-                disabled={!selectedBackup || scpCopying || creating || restoring}
+                disabled={!selectedBackup || scpCopying || creating || restoring || !canCopyToDev}
                 className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {scpCopying ? "Copiando..." : "Copiar backup via SCP"}
               </button>
             </div>
+            {!canSyncToDev && (
+              <p className="mt-2 text-xs text-muted">
+                Sincronizacao para DEV indisponivel neste ambiente (banco local em EC2/producao).
+              </p>
+            )}
           </article>
         </div>
         </article>

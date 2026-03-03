@@ -1161,6 +1161,7 @@ export type PortalDatabaseBackupsListResult = {
   ok: boolean;
   count: number;
   results: PortalDatabaseBackupItem[];
+  runtime?: PortalDatabaseRuntimeContext;
 };
 
 export type PortalDatabaseBackupCreateResult = {
@@ -1170,12 +1171,14 @@ export type PortalDatabaseBackupCreateResult = {
   metadata_file: string;
   size_bytes: number;
   ssh_target: string;
+  runtime?: PortalDatabaseRuntimeContext;
 };
 
 export type PortalDatabaseRestoreResult = {
   ok: boolean;
   backup_file: string;
   summary: string;
+  runtime?: PortalDatabaseRuntimeContext;
 };
 
 export type PortalDatabaseSyncDevResult = {
@@ -1186,6 +1189,19 @@ export type PortalDatabaseSyncDevResult = {
   local_pre_restore_backup: string;
   summary: string;
   transfer_method?: string;
+  runtime?: PortalDatabaseRuntimeContext;
+};
+
+export type PortalDatabaseRuntimeContext = {
+  machine_kind: string;
+  operation_mode: string;
+  local_db_ops: boolean;
+  ssh_required: boolean;
+  tunnel_available: boolean;
+  psql_transport: string;
+  backup_transport: string;
+  copy_to_dev_via_scp_available: boolean;
+  sync_to_dev_available: boolean;
 };
 
 export type PortalDatabaseTunnelState = {
@@ -1205,6 +1221,7 @@ export type PortalDatabaseTunnelActionResult = {
   ok: boolean;
   action: "start" | "stop" | "status";
   tunnel: PortalDatabaseTunnelState;
+  runtime?: PortalDatabaseRuntimeContext;
 };
 
 export type PortalDatabasePsqlExecuteResult = {
@@ -1213,6 +1230,7 @@ export type PortalDatabasePsqlExecuteResult = {
   stdout: string;
   stderr: string;
   command_preview: string;
+  runtime?: PortalDatabaseRuntimeContext;
 };
 
 export type PortalDatabaseDjangoSyncResult = {
@@ -1221,6 +1239,7 @@ export type PortalDatabaseDjangoSyncResult = {
   local_dump_file: string;
   synced: boolean;
   exclude_apps: string[];
+  runtime?: PortalDatabaseRuntimeContext;
 };
 
 export type PortalDatabaseDjangoDbbackupResult = {
@@ -1230,12 +1249,14 @@ export type PortalDatabaseDjangoDbbackupResult = {
   stdout: string;
   stderr: string;
   command_preview: string;
+  runtime?: PortalDatabaseRuntimeContext;
 };
 
 export type PortalDatabaseCommandCatalogResult = {
   ok: boolean;
   commands: Record<string, string>;
   notes: string[];
+  runtime?: PortalDatabaseRuntimeContext;
 };
 
 export type PortalCloudflareRuntimeData = {
