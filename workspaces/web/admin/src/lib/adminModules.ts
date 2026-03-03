@@ -113,6 +113,14 @@ export const ADMIN_MODULES: AdminModule[] = [
     path: "/modulos/administracao-servidor",
   },
   {
+    slug: "banco-dados",
+    title: "Banco de dados",
+    description: "Backup, restauracao remota e sincronizacao de dados para DEV.",
+    stage: "T9.2.8",
+    status: "ativo",
+    path: "/modulos/banco-dados",
+  },
+  {
     slug: "instalacao-deploy",
     title: "Instalacao / Deploy",
     description: "Assistente de instalacao e deploy com pre-requisitos de DNS e pagamentos para producao.",

@@ -1,6 +1,11 @@
 # Changelog (por sprint)
 
 ## 03/03/2026
+- T9.2.8 (web admin/servidor): secao `Conectividade e dominio` ganhou area de credenciais SSH de producao (host/porta/usuario, auth por chave ou senha, upload de `.pem` e validacao de conectividade), restrita a admin e bloqueada fora de modo dev/hibrido.
+- T9.2.8 (web admin): novo modulo `Banco de dados` com guia individual, configuracao SSH reaproveitavel, listagem/criacao de backups remotos, restore remoto com confirmacao explicita e sincronizacao de backup para ambiente DEV.
+- T9.2.8 (backend/portal): adicionadas acoes admin para DB Ops em `/api/v1/portal/admin/config/database/*` (salvar SSH, upload de chave, probe SSH, listar/criar backup, restore e sync para DEV) com validacoes de seguranca e sanitizacao de dados sensiveis.
+- T9.2.8 (db ops/metodos): modulo `Banco de dados` evoluido com 3 formas operacionais apos conectividade confirmada: (1) tunel SSH com start/stop/status e configuracao de bind/porta, (2) execucao de comandos `psql` remotos via SSH com modo read-only seguro, (3) sincronizacao por bibliotecas Django (`dumpdata/loaddata`) com opcao de aplicar no DEV.
+- T9.2.8 (workflow): regras globais atualizadas para padrao de backup/restauracao PostgreSQL (`pg_dump -Fc` + `pg_restore --clean --if-exists`) com migrate obrigatorio apos restore.
 - Hotfix dominios (prod): consolidado `app.mrquentinha.com.br` como unico dominio oficial do `mrq_client`; `web.mrquentinha.com.br` mantido apenas como dominio legado explicitamente desativado (`404`) no Nginx.
 - T6.2.1 (portal/web client): consolidacao visual iniciada com padronizacao de shell institucional (`PortalPageIntro` e `ClientPageIntro`) e variacoes de identidade por template em CSS.
 - T6.2.1 (portal): navegacao principal/rodape atualizados para incluir `Suporte` e `Wiki`, com ponte comercial explicita para `app.mrquentinha.com.br`.

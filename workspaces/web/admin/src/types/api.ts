@@ -1138,6 +1138,90 @@ export type PortalCloudflareToggleResult = {
   enabled: boolean;
 };
 
+export type PortalDatabaseSshKeyUploadResult = {
+  ok: boolean;
+  key_path: string;
+  filename: string;
+};
+
+export type PortalDatabaseSshProbeResult = {
+  ok: boolean;
+  check: Record<string, unknown>;
+  ssh: PortalInstallerSshConfig;
+};
+
+export type PortalDatabaseBackupItem = {
+  path: string;
+  filename: string;
+  size_bytes: number;
+  updated_at: string;
+};
+
+export type PortalDatabaseBackupsListResult = {
+  ok: boolean;
+  count: number;
+  results: PortalDatabaseBackupItem[];
+};
+
+export type PortalDatabaseBackupCreateResult = {
+  ok: boolean;
+  label: string;
+  backup_file: string;
+  metadata_file: string;
+  size_bytes: number;
+  ssh_target: string;
+};
+
+export type PortalDatabaseRestoreResult = {
+  ok: boolean;
+  backup_file: string;
+  summary: string;
+};
+
+export type PortalDatabaseSyncDevResult = {
+  ok: boolean;
+  source_backup_file: string;
+  local_dump_file: string;
+  local_dump_size_bytes: number;
+  local_pre_restore_backup: string;
+  summary: string;
+};
+
+export type PortalDatabaseTunnelState = {
+  enabled: boolean;
+  local_bind_host: string;
+  local_port: number;
+  remote_db_host: string;
+  remote_db_port: number;
+  status: string;
+  pid: number | null;
+  last_started_at: string;
+  last_stopped_at: string;
+  last_error: string;
+};
+
+export type PortalDatabaseTunnelActionResult = {
+  ok: boolean;
+  action: "start" | "stop" | "status";
+  tunnel: PortalDatabaseTunnelState;
+};
+
+export type PortalDatabasePsqlExecuteResult = {
+  ok: boolean;
+  exit_code: number;
+  stdout: string;
+  stderr: string;
+  command_preview: string;
+};
+
+export type PortalDatabaseDjangoSyncResult = {
+  ok: boolean;
+  mode: "dump" | "sync_dev";
+  local_dump_file: string;
+  synced: boolean;
+  exclude_apps: string[];
+};
+
 export type PortalCloudflareRuntimeData = {
   state: string;
   pid: number | null;
@@ -1331,6 +1415,18 @@ export type PortalInstallerSettingsConfig = {
     preferred_endpoint: "public_ip" | "aws_dns";
     public_ip_base_url: string;
     aws_dns_base_url: string;
+  };
+  database_ops: {
+    tunnel: PortalDatabaseTunnelState;
+    psql: {
+      last_command: string;
+      last_executed_at: string;
+    };
+    django_sync: {
+      last_dump_file: string;
+      last_synced_at: string;
+      last_synced_by: string;
+    };
   };
   workflow_version: string;
   last_synced_at: string;
