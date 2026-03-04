@@ -1446,3 +1446,20 @@
     - `docs/memory/AGENT_SYNC_BOARD.md`
     - `docs/memory/PARALLEL_DEV_RULES.md`
     - `docs/memory/DECISIONS.md`
+
+- Ops-04/03/2026 (hotfix admin + sincronizacao final dos tres agentes)
+  - bug corrigido no Web Admin: menu passou a sincronizar imediatamente com login/logoff, sem exigir refresh da pagina.
+  - escopo tecnico do hotfix:
+    - `workspaces/web/admin/src/lib/storage.ts`
+    - `workspaces/web/admin/src/lib/api.ts`
+    - `workspaces/web/admin/src/components/AdminShell.tsx`
+  - validacao:
+    - VM: `npm run build` e `npm run lint` em `workspaces/web/admin` -> OK.
+    - EC2: build do admin + restart controlado de `mrq-admin-prod` + smoke (`api/web/app/admin`) -> OK.
+  - publicacao por agente:
+    - Mac (`codex/AgenteMac`): `1dead57`
+    - VM (`vm-atualizacoes`): `c90b2ad`
+    - EC2 (`main`): `14abf63`
+  - autenticacao operacional sincronizada:
+    - acesso SSH/Git validado para `github.com`, `mrquentinha` e `mrquentinha_web`;
+    - chave do Mac autorizada na VM para eliminar dependencia de senha interativa.

@@ -629,3 +629,17 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Consequencia:
   - reduz conflito entre trabalhos individuais e evita promocao de mudanca sem validacao previa no ambiente dev.
   - melhora rastreabilidade entre pedido, validacao, aprovacao e publicacao final.
+
+## 04/03/2026 - Autenticacao operacional dos agentes e promocao controlada do hotfix de sessao no Admin
+- Status: aceito.
+- Decisao:
+  - padronizar acesso operacional dos agentes por chave SSH (sem dependencia de senha interativa):
+    - `github.com` com chaves locais do operador;
+    - `mrquentinha` e `mrquentinha_web` com `IdentityFile` explicito e `ForwardAgent` habilitado no Mac;
+    - chave publica do Mac registrada no `authorized_keys` da VM para eliminar prompt de senha.
+  - promover o hotfix de menu/sessao do Admin em ordem obrigatoria:
+    - VM (`vm-atualizacoes`) validada primeiro;
+    - EC2 (`main`) somente apos build e smoke checks de producao.
+- Consequencia:
+  - fluxo de coordenacao entre agentes fica mais rapido e previsivel, com menos risco de bloqueio por autenticacao.
+  - publicacao em producao preserva o principio de aprovacao previa na VM e impacto minimo de disponibilidade.
