@@ -72,5 +72,5 @@ Fila atual:
 63. [x] Ops-03/03/2026 Simulacao operacional semanal de culinaria paraibana (`seed_paraiba_caseira_week`) com OCR de compras, producao (20 marmitas/dia) e precificacao automatica - concluida em 03/03/2026.
 
 Proximos pontos recomendados:
-64. [ ] WebAdmin-03/03/2026 Criar painel guiado no modulo Cardapio/Compras para disparar a simulacao semanal (sem terminal), com escolha de data inicial e relatorio de resultados.
-65. [ ] QA-03/03/2026 Adicionar testes backend para `seed_paraiba_caseira_week` (idempotencia, fallback de menu com pedidos existentes e composicao de preco).
+64. [x] WebAdmin-03/03/2026 Criar painel guiado no modulo Cardapio/Compras para disparar a simulacao semanal (sem terminal), com escolha de data inicial e relatorio de resultados - concluida em 03/03/2026.
+65. [x] QA-03/03/2026 Adicionar testes backend para `seed_paraiba_caseira_week` (idempotencia, fallback de menu com pedidos existentes e composicao de preco) - concluida em 03/03/2026.

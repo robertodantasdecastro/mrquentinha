@@ -162,6 +162,45 @@ def test_procurement_request_from_menu_endpoint_gera_purchase_request(client):
 
 
 @pytest.mark.django_db
+def test_procurement_seed_paraiba_week_endpoint_dispara_comando_e_retorna_relatorio(
+    client,
+    monkeypatch,
+):
+    def fake_call_command(command_name, **kwargs):
+        assert command_name == "seed_paraiba_caseira_week"
+        assert kwargs["start_date"] == "2026-03-09"
+
+        output = kwargs["stdout"]
+        output.write("Fluxo paraibano semanal concluido.\n")
+        output.write("- Semana: 2026-03-09 a 2026-03-15\n")
+        output.write("- Cardapios processados: 7\n")
+        output.write("- Purchase requests simuladas: 3\n")
+        output.write("- Compra utilizada: #42 (PB-CASEIRA-20260309)\n")
+        output.write("- Lotes de producao processados: 7\n")
+
+    monkeypatch.setattr("apps.procurement.views.call_command", fake_call_command)
+
+    response = client.post(
+        "/api/v1/procurement/ops/seed-paraiba-week/",
+        data=json.dumps({"start_date": "2026-03-09"}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["start_date"] == "2026-03-09"
+    assert payload["end_date"] == "2026-03-15"
+    assert payload["menu_days_processed"] == 7
+    assert payload["purchase_requests_created"] == 3
+    assert payload["production_batches_processed"] == 7
+    assert payload["purchase"] == {
+        "id": 42,
+        "invoice_number": "PB-CASEIRA-20260309",
+    }
+    assert "- Semana: 2026-03-09 a 2026-03-15" in payload["command_log"]
+
+
+@pytest.mark.django_db
 def test_procurement_purchase_item_label_image_endpoint_salva_arquivo(client):
     ingredient = Ingredient.objects.create(name="cenoura", unit=IngredientUnit.KILOGRAM)
 

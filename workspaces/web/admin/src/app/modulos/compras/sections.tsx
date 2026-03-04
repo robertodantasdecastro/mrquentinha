@@ -25,13 +25,14 @@ import { MiniBarChart } from "@/components/charts/MiniBarChart";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { ProcurementOpsPanel } from "@/components/modules/ProcurementOpsPanel";
 import { ModuleGuide } from "@/components/modules/ModuleGuide";
+import { WeeklySimulationPanel } from "@/components/modules/WeeklySimulationPanel";
 
 export const COMPRAS_BASE_PATH = "/modulos/compras";
-
 export const COMPRAS_MENU_ITEMS = [
   { key: "all", label: "Todos", href: COMPRAS_BASE_PATH },
   { key: "guia", label: "Guia do modulo", href: `${COMPRAS_BASE_PATH}/guia#guia` },
   { key: "visao-geral", label: "Visão geral", href: `${COMPRAS_BASE_PATH}/visao-geral#visao-geral` },
+  { key: "simulacao", label: "Simulacao", href: `${COMPRAS_BASE_PATH}/simulacao#simulacao` },
   { key: "operacao", label: "Operação", href: `${COMPRAS_BASE_PATH}/operacao#operacao` },
   { key: "impacto", label: "Impacto", href: `${COMPRAS_BASE_PATH}/impacto#impacto` },
   { key: "exportacao", label: "Exportação", href: `${COMPRAS_BASE_PATH}/exportacao#exportacao` },
@@ -41,6 +42,7 @@ export type ComprasSectionKey =
   | "all"
   | "guia"
   | "visao-geral"
+  | "simulacao"
   | "operacao"
   | "impacto"
   | "exportacao";
@@ -267,12 +269,17 @@ export function ComprasSections({ activeSection = "all" }: ComprasSectionsProps)
         </section>
       )}
 
+      {(showAll || activeSection === "simulacao") && (
+        <section id="simulacao" className="scroll-mt-24">
+          <WeeklySimulationPanel context="compras" />
+        </section>
+      )}
+
       {(showAll || activeSection === "operacao") && (
         <section id="operacao" className="scroll-mt-24">
           <ProcurementOpsPanel />
         </section>
       )}
-
       {(showAll || activeSection === "impacto") && (
         <section id="impacto" className="rounded-2xl border border-border bg-surface/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
