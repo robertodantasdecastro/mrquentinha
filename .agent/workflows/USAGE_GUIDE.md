@@ -1,10 +1,17 @@
 # Guia de Uso dos Workflows (Codex + Antigravity)
 
 ## Principios
-- Fonte de verdade: workflows `W09..W25`.
+- Fonte de verdade: workflows `W09..W27`.
 - Wrappers `00..06` existem para atalhos e onboarding.
-- Fonte global unica: `/home/roberto/.gemini/GEMINI.md`.
+- Fonte global unica: `~/.gemini/GEMINI.md`.
 - Nunca iniciar tarefa sem ler `AGENTS.md`, `GEMINI` global e rodar `bash scripts/gemini_check.sh`.
+
+## Topologia triagente (NovoProjeto)
+- `Agente Mac` (gestor): maquina principal local.
+- `Agente VM` (dev principal): `ssh mrquentinha`.
+- `Agente EC2` (producao): `ssh mrquentinha_web`.
+- Workflow dedicado de coordenacao: `W26_gestao_triagente_novoprojeto`.
+- Workflow dedicado de sincronizacao operacional: `W27_sync_mac_vm_ec2`.
 
 ## Politica de branches
 - Codex: `main` (ou `main-etapa-*` em desenvolvimento por etapa).
@@ -23,7 +30,8 @@
 4. `W16_auditoria_qualidade`
 5. `W17_atualizar_documentacao_memoria`
 6. `W21_sync_codex_antigravity`
-7. `W12_salvar_checkpoint`
+7. `W27_sync_mac_vm_ec2`
+8. `W12_salvar_checkpoint`
 
 Comando obrigatorio para trilhas de instalacao/deploy:
 - `bash scripts/check_installer_workflow.sh --check`
@@ -44,6 +52,8 @@ Regra adicional para tarefas com formularios:
 - `W23_design_system_sync`: auditar uso de `ui/` e tokens em `docs/memory/DESIGN_SYSTEM_STATUS.md`.
 - `W24_git_comparison_review`: comparar `main`, `AntigravityIDE`, `Antigravity_Codex` em `docs/memory/GIT_COMPARE_REPORT.md`.
 - `W25_recovery_readonly`: executar recovery sem alteracoes e registrar `docs/memory/RECOVERY_TEMPLATE.md`.
+- `W26_gestao_triagente_novoprojeto`: consolidar estado local/VM/EC2 com ata e sync de memoria.
+- `W27_sync_mac_vm_ec2`: impor regra Mac->VM->EC2, sincronizar alteracoes diretas e preservar branch por agente.
 
 ## PR e release
 - PR/merge: `W18_preparar_pr_merge`.

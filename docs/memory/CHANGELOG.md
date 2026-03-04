@@ -1,9 +1,11 @@
 # Changelog (por sprint)
 
 ## 03/03/2026
-- WebAdmin/procurement: novo endpoint administrativo `POST /api/v1/procurement/ops/seed-paraiba-week/` para disparar a simulacao semanal paraibana sem terminal, com payload opcional `start_date` e retorno estruturado de periodo, volume processado, compra utilizada e log do comando.
-- WebAdmin/modulos: novo painel reutilizavel `WeeklySimulationPanel` publicado em `Cardapio` e `Compras` (secoes `simulacao`) com seletor de data inicial, execucao guiada e relatorio em tela.
-- QA/backend: cobertura adicionada para `seed_paraiba_caseira_week` em `tests/test_seed_paraiba_caseira_week_command.py` (idempotencia, preservacao de menu com pedido existente e formula de precificacao) + teste de API em `tests/test_procurement_api.py`.
+- Workflow/governanca: publicado `W26_gestao_triagente_novoprojeto` em `.agent/workflows/` para coordenacao de `Mac` (gestor), `VM` (dev) e `EC2` (producao).
+- Workflow/governanca: criado `docs/memory/AGENT_SYNC_BOARD.md` como quadro unico de sincronizacao entre os 3 agentes.
+- Workflow/governanca: criada trilha de atas em `docs/memory/reunioes/` com `README` e `TEMPLATE_REUNIAO.md` para registro formal de reunioes.
+- Template/reuso: publicado `docs/templates/novoprojeto/workflow_triagente_novoprojeto.md` para replicar o modelo em novos projetos.
+- Tooling/workflow: `scripts/gemini_check.sh` passou a resolver `~/.gemini/GEMINI.md` com fallback Linux/macOS, removendo bloqueio de execucao no agente Mac.
 - Ops/monitoramento UX: `GestorServidor` teve layout atualizado para seguir o estilo do dashboard dev (`scripts/ops_dashboard.py`/`ops_center.py`), com cabecalho de acoes, barras percentuais + sparklines de sistema/rede e boxes operacionais de servicos/health.
 - Ops/monitoramento: novo aplicativo TUI `GestorServidor` implementado em `GestorServidor/app.py` com monitoramento em tempo real (host/rede/servicos/dominios/API), controle `start|stop|restart` por servico/stack via `systemctl`, eventos persistidos em `.runtime/gestor-servidor` e launcher raiz `gestor_servidor.sh`.
 - T9.2.8 (web admin/servidor): secao `Conectividade e dominio` ganhou area de credenciais SSH de producao (host/porta/usuario, auth por chave ou senha, upload de `.pem` e validacao de conectividade), restrita a admin e bloqueada fora de modo dev/hibrido.
@@ -1430,14 +1432,17 @@
     - backend: `python3 -m py_compile`, `ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_api.py`, `pytest -q tests/test_portal_api.py -k database`, `python manage.py check` -> OK;
     - frontend admin: `npm run lint && npm run build` -> OK.
 
-- WebAdmin/Backend-03/03/2026 (`T9.2.7-A5-A3`): paridade GCP no assistente de instalacao
-  - backend:
-    - novo endpoint `POST /api/v1/portal/admin/config/installer-cloud/gcp/validate/`.
-    - validacao GCP dedicada com checks de CLI/autenticacao/projeto + Cloud DNS + Compute VM + IP estatico + Cloud Deploy.
-    - `start_installer_job` para `provider=gcp` passou a anexar `cloud_validation`, `connectivity_checks` e `warnings` no payload do job.
-  - frontend admin:
-    - painel `Instalacao / Deploy` passou a validar GCP no wizard (inputs de DNS/VM/IP/pipeline/target e visualizacao de status).
-    - contratos de API/tipos evoluiram para suportar `cloud_validation` unificado (`aws | gcp`).
-  - validacao executada:
-    - backend: `ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_api.py tests/test_portal_services.py`, `python manage.py check`, `pytest tests/test_portal_api.py tests/test_portal_services.py -q` -> OK;
-    - web admin: `npm run lint`, `npm run build` -> OK.
+- Ops-04/03/2026 (governanca triagente): protocolo Mac/VM/EC2 oficializado
+  - workflow novo publicado: `.agent/workflows/W27_sync_mac_vm_ec2.md`.
+  - mapamento de macros e guia oficial atualizados para incluir `W27`:
+    - `.agent/workflows/SESSION_COMMANDS.md`
+    - `.agent/workflows/WORKFLOW_MAP.md`
+    - `.agent/workflows/USAGE_GUIDE.md`
+  - regra operacional formalizada:
+    - toda demanda do Mac executa/testa primeiro na VM;
+    - somente apos aprovacao na VM segue para EC2;
+    - alteracao direta em VM/EC2 obriga sincronizacao do Mac no primeiro contato seguinte.
+  - memoria atualizada:
+    - `docs/memory/AGENT_SYNC_BOARD.md`
+    - `docs/memory/PARALLEL_DEV_RULES.md`
+    - `docs/memory/DECISIONS.md`
