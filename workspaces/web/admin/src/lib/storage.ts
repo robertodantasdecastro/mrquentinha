@@ -1,4 +1,5 @@
-const AUTH_TOKENS_STORAGE_KEY = "mrq-admin-auth-tokens";
+export const AUTH_TOKENS_STORAGE_KEY = "mrq-admin-auth-tokens";
+export const AUTH_SESSION_CHANGED_EVENT = "mrq-admin-auth-session-changed";
 
 export type StoredAuthTokens = {
   access: string;
@@ -7,6 +8,14 @@ export type StoredAuthTokens = {
 
 function hasBrowserStorage(): boolean {
   return typeof window !== "undefined";
+}
+
+export function emitAuthSessionChanged(): void {
+  if (!hasBrowserStorage()) {
+    return;
+  }
+
+  window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
 }
 
 export function persistAuthTokens(tokens: StoredAuthTokens): void {
@@ -73,4 +82,5 @@ export function clearAuthTokens(): void {
   }
 
   window.localStorage.removeItem(AUTH_TOKENS_STORAGE_KEY);
+  emitAuthSessionChanged();
 }
