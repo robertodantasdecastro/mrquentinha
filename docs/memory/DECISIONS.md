@@ -29,6 +29,20 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - RBAC de `inventory` e `procurement` ainda esta temporario com `AllowAny` no MVP.
 - Proxima etapa deve substituir por permissoes por perfil (Admin/Compras/Estoque CRUD, Cozinha criacao de solicitacao e leitura, Financeiro leitura).
 
+## 03/03/2026 - Governanca triagente (Mac + VM + EC2) para NovoProjeto
+- Decisao:
+  - institucionalizar o modelo de 3 agentes com papeis fixos:
+    - `Mac` como gestor de projeto e consolidacao de memoria;
+    - `VM` como ambiente principal de desenvolvimento;
+    - `EC2` como ambiente de producao e validacao operacional.
+  - criar workflow dedicado `W26_gestao_triagente_novoprojeto` para coordenar snapshot de estado, registro de reunioes e sincronizacao de memoria.
+  - adotar artefatos obrigatorios de governanca:
+    - `docs/memory/AGENT_SYNC_BOARD.md` (quadro consolidado dos 3 agentes);
+    - `docs/memory/reunioes/*.md` (atas com decisoes, acoes, dono e prazo).
+- Consequencia:
+  - toda evolucao passa a ter rastreabilidade cruzada entre local, VM e producao.
+  - reducao de perda de contexto entre agentes e maior previsibilidade de entrega para novos projetos que reutilizem a arquitetura.
+
 ## 03/03/2026 - DB Ops via Web Admin com SSH e dumps versionados
 - Decisao:
   - centralizar operacoes de banco de producao no Web Admin com pre-requisito de SSH configurado.
@@ -602,13 +616,16 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
   - operadores conseguem levantar credenciais e referencias oficiais sem sair do fluxo do Web Admin.
   - menor tempo de setup para primeira configuracao de autenticacao e gateways.
 
-## 03/03/2026 - Paridade GCP no assistente de instalacao (T9.2.7-A5-A3)
+## 04/03/2026 - Protocolo operacional triagente Mac->VM->EC2
 - Status: aceito.
 - Decisao:
-  - adotar endpoint dedicado para validacao GCP:
-    - `POST /api/v1/portal/admin/config/installer-cloud/gcp/validate/`.
-  - manter contrato de retorno da validacao cloud alinhado ao AWS (`connectivity` + checks + warnings) para renderizacao unica no wizard.
-  - executar checks de pre-requisito GCP antes do disparo do job remoto (`gcloud auth`, projeto, DNS, VM, IP estatico e Cloud Deploy).
+  - formalizar workflow dedicado `W27_sync_mac_vm_ec2` para coordenacao continua entre agentes.
+  - toda demanda iniciada pelo Agente Mac deve ser implementada e testada primeiro na VM (`vm-atualizacoes`), com aplicacao em EC2 somente apos aprovacao.
+  - quando operador atuar diretamente na VM ou EC2, o Mac deve sincronizar no primeiro contato seguinte e registrar no `AGENT_SYNC_BOARD`.
+  - preservar publicacao por branch fixa:
+    - Mac -> `codex/AgenteMac`
+    - VM -> `vm-atualizacoes`
+    - EC2 -> `main`
 - Consequencia:
-  - reduz risco operacional de deploy em GCP por detectar falhas de infraestrutura antes da execucao.
-  - prepara a automacao completa de provisionamento/deploy cloud como proximo incremento de `T9.2.7-A5`.
+  - reduz conflito entre trabalhos individuais e evita promocao de mudanca sem validacao previa no ambiente dev.
+  - melhora rastreabilidade entre pedido, validacao, aprovacao e publicacao final.
