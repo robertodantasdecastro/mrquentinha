@@ -366,5 +366,6 @@ Referencia de atualizacao: 02/03/2026.
 - T9.2.7-A1 concluida (modulo completo de gestao de clientes no Web Admin + governanca LGPD/KYC + bloqueio de checkout por status de conta no backend).
 - T9.2.7-A2 concluida (novo modulo `Administracao do servidor` com realocacao dos paineis operacionais do `Portal CMS` sem duplicacao de logica).
 - T9.2.8-A1 concluida (novo modulo `Instalacao / Deploy` + pre-requisitos de producao no assistente com validacao de DNS/servidor e gateway).
+- Hotfix operacional aplicado em 04/03/2026: sincronizacao imediata de sessao no Web Admin (menu atualiza no login/logoff sem refresh), validado em VM e promovido para EC2 apos smoke checks.
 - Proxima subetapa unica: executar `T7.2.4-A4` (homologacao externa dos tres gateways com credenciais reais, assinatura de webhook por provider e validacao fim a fim de webhook/status).
 - Trilhas correlatas apos 9.1: `T6.2.1` (Antigravity), `T8.2.3` (hardening backend) e `T9.2.1` (qualidade operacional manual).
