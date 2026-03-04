@@ -51,13 +51,21 @@ Manter um unico estado confiavel da aplicacao entre desenvolvimento e producao, 
 - `Mac (gestor)`:
   - coordenar prioridade, escopo e sequencia de entrega;
   - consolidar estado em memoria viva;
-  - abrir/fechar reunioes e cobrar acoes.
+  - abrir/fechar reunioes e cobrar acoes;
+  - garantir fluxo obrigatorio `Mac -> VM (execucao/teste) -> EC2 (aprovado)`.
 - `VM (dev principal)`:
   - implementar features e correcao no ambiente de desenvolvimento;
-  - executar qualidade/smoke no ciclo tecnico.
+  - executar qualidade/smoke no ciclo tecnico;
+  - manter branch dedicada `vm-atualizacoes`.
 - `EC2 (producao)`:
   - validar impacto operacional e disponibilidade;
-  - executar smokes e checks de operacao em producao.
+  - executar smokes e checks de operacao em producao;
+  - manter branch dedicada `main`.
+
+## Regra de precedencia operacional
+1. Toda demanda iniciada no Mac e executada/testada primeiro na VM.
+2. Somente demanda aprovada na VM segue para EC2.
+3. Se houver mudanca direta feita por operador em VM/EC2, o Mac sincroniza no primeiro contato seguinte.
 
 ## Artefatos obrigatorios
 1. `docs/memory/AGENT_SYNC_BOARD.md` atualizado em todo ciclo.

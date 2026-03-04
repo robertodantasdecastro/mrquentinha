@@ -1431,3 +1431,18 @@
   - validacao executada:
     - backend: `python3 -m py_compile`, `ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_api.py`, `pytest -q tests/test_portal_api.py -k database`, `python manage.py check` -> OK;
     - frontend admin: `npm run lint && npm run build` -> OK.
+
+- Ops-04/03/2026 (governanca triagente): protocolo Mac/VM/EC2 oficializado
+  - workflow novo publicado: `.agent/workflows/W27_sync_mac_vm_ec2.md`.
+  - mapamento de macros e guia oficial atualizados para incluir `W27`:
+    - `.agent/workflows/SESSION_COMMANDS.md`
+    - `.agent/workflows/WORKFLOW_MAP.md`
+    - `.agent/workflows/USAGE_GUIDE.md`
+  - regra operacional formalizada:
+    - toda demanda do Mac executa/testa primeiro na VM;
+    - somente apos aprovacao na VM segue para EC2;
+    - alteracao direta em VM/EC2 obriga sincronizacao do Mac no primeiro contato seguinte.
+  - memoria atualizada:
+    - `docs/memory/AGENT_SYNC_BOARD.md`
+    - `docs/memory/PARALLEL_DEV_RULES.md`
+    - `docs/memory/DECISIONS.md`

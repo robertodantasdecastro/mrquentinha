@@ -615,3 +615,17 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Consequencia:
   - operadores conseguem levantar credenciais e referencias oficiais sem sair do fluxo do Web Admin.
   - menor tempo de setup para primeira configuracao de autenticacao e gateways.
+
+## 04/03/2026 - Protocolo operacional triagente Mac->VM->EC2
+- Status: aceito.
+- Decisao:
+  - formalizar workflow dedicado `W27_sync_mac_vm_ec2` para coordenacao continua entre agentes.
+  - toda demanda iniciada pelo Agente Mac deve ser implementada e testada primeiro na VM (`vm-atualizacoes`), com aplicacao em EC2 somente apos aprovacao.
+  - quando operador atuar diretamente na VM ou EC2, o Mac deve sincronizar no primeiro contato seguinte e registrar no `AGENT_SYNC_BOARD`.
+  - preservar publicacao por branch fixa:
+    - Mac -> `codex/AgenteMac`
+    - VM -> `vm-atualizacoes`
+    - EC2 -> `main`
+- Consequencia:
+  - reduz conflito entre trabalhos individuais e evita promocao de mudanca sem validacao previa no ambiente dev.
+  - melhora rastreabilidade entre pedido, validacao, aprovacao e publicacao final.

@@ -4,7 +4,7 @@
 - Ler `AGENTS.md` e `~/.gemini/GEMINI.md` antes de qualquer macro.
 - Em fluxos com commit/push/merge, executar `scripts/branch_guard.sh`.
 
-## Mapeamento de macros (fonte de verdade W09..W26)
+## Mapeamento de macros (fonte de verdade W09..W27)
 - `PREFLIGHT` -> `W09_preflight_antigravity.md`
 - `INICIAR_SESSAO` -> `W10_iniciar_sessao.md`
 - `CONTINUAR_SESSAO` -> `W11_continuar_sessao.md`
@@ -23,6 +23,7 @@
 - `COMPARAR_BRANCHES` -> `W24_git_comparison_review.md`
 - `RECOVERY_READONLY` -> `W25_recovery_readonly.md`
 - `GESTAO_TRIAGENTE_NOVOPROJETO` -> `W26_gestao_triagente_novoprojeto.md`
+- `SYNC_MAC_VM_EC2` -> `W27_sync_mac_vm_ec2.md`
 
 ## Wrappers (00..06)
 - `BOOTSTRAP` -> `00_bootstrap.md`
@@ -40,4 +41,5 @@
 4. `AUDITAR_QUALIDADE`
 5. `ATUALIZAR_DOCS_MEMORIA`
 6. `SYNC_CODEX_ANTIGRAVITY`
-7. `SALVAR_CHECKPOINT`
+7. `SYNC_MAC_VM_EC2`
+8. `SALVAR_CHECKPOINT`
