@@ -21,6 +21,9 @@ Quadro unico de sincronizacao entre os agentes `Mac`, `VM` e `EC2`.
 ## Snapshot consolidado
 | Data/Hora | Agente | Ambiente | Branch | Ultimo commit | Smoke | Status | Riscos/Bloqueios | Proxima acao | Dono | Prazo |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 2026-03-04 12:25 | Mac | Local | codex/AgenteMac | 1dead57 | build+lint admin OK | Sincronizado | Nenhum | Registrar memoria final do ciclo e manter coordenacao triagente | Mac | 2026-03-04 |
+| 2026-03-04 12:25 | VM | Desenvolvimento | vm-atualizacoes | c90b2ad | build+lint admin OK | Sincronizado | Nenhum | Manter VM como primeira etapa de execucao/teste | VM | continuo |
+| 2026-03-04 12:25 | EC2 | Producao | main | 14abf63 | health API + web/app/admin HTTP 200 | Sincronizado | `btop.png` untracked local | Seguir publicacao controlada apos aprovacao VM | EC2 | continuo |
 | 2026-03-04 12:00 | Mac | Coordenacao | codex/AgenteMac | em andamento | n/a | Ativo | Formalizar protocolo triagente continuo | Publicar W27 e propagar regras em VM/EC2 | Mac | 2026-03-04 |
 | 2026-03-03 00:00 | Mac | Local | main | n/a | n/a | Ativo | Configurar fluxo triagente oficial | Publicar W26 e iniciar primeira reuniao | Mac | 2026-03-03 |
 
