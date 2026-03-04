@@ -1,5 +1,6 @@
 import {
   clearAuthTokens,
+  emitAuthSessionChanged,
   getStoredAccessToken,
   getStoredAuthTokens,
   persistAuthTokens,
@@ -526,6 +527,7 @@ export async function loginAccount(username: string, password: string): Promise<
   });
 
   persistAuthTokens(payload);
+  emitAuthSessionChanged();
   return payload;
 }
 

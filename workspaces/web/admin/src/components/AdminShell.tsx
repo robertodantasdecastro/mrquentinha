@@ -9,7 +9,11 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAdminTemplate } from "@/components/AdminTemplateProvider";
 import { canAccessAdminModule } from "@/lib/adminAccess";
 import { fetchMe, logoutAccount } from "@/lib/api";
-import { hasStoredAuthSession } from "@/lib/storage";
+import {
+  AUTH_SESSION_CHANGED_EVENT,
+  AUTH_TOKENS_STORAGE_KEY,
+  hasStoredAuthSession,
+} from "@/lib/storage";
 import type { AuthUserProfile } from "@/types/api";
 
 type NavItem = {
@@ -457,8 +461,25 @@ export function AdminShell({ children }: { children: ReactNode }) {
     }
 
     void bootstrap();
+
+    function handleAuthSessionChanged() {
+      void bootstrap();
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== AUTH_TOKENS_STORAGE_KEY) {
+        return;
+      }
+      void bootstrap();
+    }
+
+    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, handleAuthSessionChanged);
+    window.addEventListener("storage", handleStorage);
+
     return () => {
       mounted = false;
+      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, handleAuthSessionChanged);
+      window.removeEventListener("storage", handleStorage);
     };
   }, [pathname]);
 
