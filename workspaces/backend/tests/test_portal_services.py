@@ -968,6 +968,41 @@ def test_validate_installer_aws_setup_sanitiza_segredos(monkeypatch):
 
 
 @pytest.mark.django_db
+def test_validate_installer_gcp_setup_retorna_cloud_validation(monkeypatch):
+    monkeypatch.setattr(
+        portal_services,
+        "_build_gcp_cloud_report",
+        lambda *, payload: {
+            "provider": "gcp",
+            "checked_at": "2026-03-01T00:00:00Z",
+            "connectivity": {
+                "name": "gcp_connectivity",
+                "status": "ok",
+                "detail": "ok",
+            },
+            "prerequisites": {"checks": [], "warnings": []},
+            "warnings": [],
+        },
+    )
+
+    result = portal_services.validate_installer_gcp_setup(
+        payload={
+            "mode": "dev",
+            "stack": "vm",
+            "target": "gcp",
+            "cloud": {
+                "provider": "gcp",
+                "region": "us-central1",
+            },
+        }
+    )
+
+    assert result["ok"] is True
+    assert result["cloud_validation"]["provider"] == "gcp"
+    assert result["normalized_payload"]["cloud"]["secret_access_key"] == ""
+
+
+@pytest.mark.django_db
 def test_start_installer_job_aws_sanitiza_secret_e_expoe_cloud_validation(monkeypatch):
     config = ensure_portal_config()
     save_portal_config(
@@ -1054,6 +1089,76 @@ def test_start_installer_job_aws_sanitiza_secret_e_expoe_cloud_validation(monkey
     assert job_payload["cloud_validation"]["provider"] == "aws"
     assert job_payload["payload"]["cloud"]["secret_access_key"] == ""
     assert job_payload["summary"].startswith("Plano AWS validado")
+
+
+@pytest.mark.django_db
+def test_start_installer_job_gcp_expoe_cloud_validation(monkeypatch):
+    config = ensure_portal_config()
+    save_portal_config(
+        instance=config,
+        payload={
+            "payment_providers": {
+                "default_provider": "asaas",
+                "enabled_providers": ["asaas"],
+                "frontend_provider": {"web": "asaas", "mobile": "asaas"},
+                "receiver": {
+                    "person_type": "CNPJ",
+                    "document": "12345678000195",
+                    "name": "Mr Quentinha LTDA",
+                    "email": "financeiro@mrquentinha.com.br",
+                },
+                "asaas": {
+                    "enabled": True,
+                    "api_key": "asaas-prod-key",
+                },
+            }
+        },
+    )
+
+    monkeypatch.setattr(
+        portal_services,
+        "_build_gcp_cloud_report",
+        lambda *, payload: {
+            "provider": "gcp",
+            "checked_at": "2026-03-01T00:00:00Z",
+            "connectivity": {
+                "name": "gcp_connectivity",
+                "status": "ok",
+                "detail": "ok",
+                "region": payload.get("cloud", {}).get("region", ""),
+            },
+            "prerequisites": {
+                "checks": [
+                    {
+                        "name": "gcp_compute_instance",
+                        "status": "ok",
+                        "detail": "instancia valida",
+                    }
+                ],
+                "warnings": [],
+            },
+            "warnings": [],
+        },
+    )
+
+    _updated_config, job_payload = portal_services.start_installer_job(
+        payload={
+            "mode": "prod",
+            "stack": "vm",
+            "target": "gcp",
+            "cloud": {
+                "provider": "gcp",
+                "region": "us-central1",
+                "ec2_instance_id": "mrq-vm-01",
+            },
+        },
+        initiated_by="qa",
+    )
+
+    assert job_payload["status"] == "planned"
+    assert job_payload["target"] == "gcp"
+    assert job_payload["cloud_validation"]["provider"] == "gcp"
+    assert job_payload["summary"].startswith("Plano GCP validado")
 
 
 @pytest.mark.django_db

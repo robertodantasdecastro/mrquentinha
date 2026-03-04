@@ -1429,3 +1429,15 @@
   - validacao executada:
     - backend: `python3 -m py_compile`, `ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_api.py`, `pytest -q tests/test_portal_api.py -k database`, `python manage.py check` -> OK;
     - frontend admin: `npm run lint && npm run build` -> OK.
+
+- WebAdmin/Backend-03/03/2026 (`T9.2.7-A5-A3`): paridade GCP no assistente de instalacao
+  - backend:
+    - novo endpoint `POST /api/v1/portal/admin/config/installer-cloud/gcp/validate/`.
+    - validacao GCP dedicada com checks de CLI/autenticacao/projeto + Cloud DNS + Compute VM + IP estatico + Cloud Deploy.
+    - `start_installer_job` para `provider=gcp` passou a anexar `cloud_validation`, `connectivity_checks` e `warnings` no payload do job.
+  - frontend admin:
+    - painel `Instalacao / Deploy` passou a validar GCP no wizard (inputs de DNS/VM/IP/pipeline/target e visualizacao de status).
+    - contratos de API/tipos evoluiram para suportar `cloud_validation` unificado (`aws | gcp`).
+  - validacao executada:
+    - backend: `ruff check src/apps/portal/services.py src/apps/portal/views.py tests/test_portal_api.py tests/test_portal_services.py`, `python manage.py check`, `pytest tests/test_portal_api.py tests/test_portal_services.py -q` -> OK;
+    - web admin: `npm run lint`, `npm run build` -> OK.

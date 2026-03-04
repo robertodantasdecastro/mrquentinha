@@ -304,6 +304,7 @@ DEFAULT_DATABASE_OPS_SETTINGS = {
 def _default_database_ops_settings_payload() -> dict:
     return deepcopy(DEFAULT_DATABASE_OPS_SETTINGS)
 
+
 DEFAULT_INSTALLER_SETTINGS = {
     "workflow_version": INSTALLER_WORKFLOW_VERSION,
     "last_synced_at": "",
@@ -408,8 +409,7 @@ def _normalize_database_ops_settings(raw_value: object | None) -> dict:
     if isinstance(tunnel, dict):
         merged_tunnel["enabled"] = bool(tunnel.get("enabled", merged_tunnel["enabled"]))
         merged_tunnel["local_bind_host"] = (
-            str(tunnel.get("local_bind_host", merged_tunnel["local_bind_host"]))
-            .strip()
+            str(tunnel.get("local_bind_host", merged_tunnel["local_bind_host"])).strip()
             or merged_tunnel["local_bind_host"]
         )
         try:
@@ -418,8 +418,7 @@ def _normalize_database_ops_settings(raw_value: object | None) -> dict:
             local_port = int(merged_tunnel["local_port"])
         merged_tunnel["local_port"] = max(1024, min(local_port, 65535))
         merged_tunnel["remote_db_host"] = (
-            str(tunnel.get("remote_db_host", merged_tunnel["remote_db_host"]))
-            .strip()
+            str(tunnel.get("remote_db_host", merged_tunnel["remote_db_host"])).strip()
             or merged_tunnel["remote_db_host"]
         )
         try:
@@ -1215,9 +1214,7 @@ DEFAULT_SECTION_FIXTURES = [
         "body_json": {
             "kicker": "Conta",
             "headline": "Acesse ou crie sua conta",
-            "subheadline": (
-                "Centralize login, cadastro, preferencias e atendimento."
-            ),
+            "subheadline": ("Centralize login, cadastro, preferencias e atendimento."),
         },
     },
     {
@@ -2266,9 +2263,7 @@ def _build_public_cloudflare_settings(config: PortalConfig) -> dict:
         "dev_url_mode": _normalize_cloudflare_dev_url_mode(
             normalized.get("dev_url_mode")
         ),
-        "dev_official_domain": str(
-            normalized.get("dev_official_domain", "")
-        ).strip(),
+        "dev_official_domain": str(normalized.get("dev_official_domain", "")).strip(),
         "scheme": normalized["scheme"],
         "root_domain": normalized["root_domain"],
         "subdomains": normalized["subdomains"],
@@ -3935,9 +3930,7 @@ def validate_database_ssh_connectivity(*, payload: dict | None = None) -> dict:
             "runtime": context,
         }
     incoming = payload if isinstance(payload, dict) else {}
-    source_settings = (
-        incoming if incoming else _extract_dbops_ssh_from_config(config)
-    )
+    source_settings = incoming if incoming else _extract_dbops_ssh_from_config(config)
     ssh_settings = _validate_dbops_ssh_settings(source_settings)
     check = _run_ssh_connectivity_probe(ssh_settings=ssh_settings)
     return {
@@ -4072,9 +4065,9 @@ find "$BACKUP_DIR" -maxdepth 1 -type f -name '*.dump' -printf '%T@|%p|%s\\n' \
             {
                 "path": path,
                 "size_bytes": size_bytes,
-                "updated_at": datetime.fromtimestamp(ts_float).isoformat()
-                if ts_float > 0
-                else "",
+                "updated_at": (
+                    datetime.fromtimestamp(ts_float).isoformat() if ts_float > 0 else ""
+                ),
                 "filename": Path(path).name,
             }
         )
@@ -4488,9 +4481,11 @@ def sync_remote_database_backup_to_dev(*, payload: dict | None) -> dict:
         "source_backup_file": backup_file,
         "local_dump_file": str(local_dump_path),
         "local_dump_size_bytes": size_bytes,
-        "local_pre_restore_backup": str(local_backup_before_restore)
-        if local_backup_before_restore.exists()
-        else "",
+        "local_pre_restore_backup": (
+            str(local_backup_before_restore)
+            if local_backup_before_restore.exists()
+            else ""
+        ),
         "summary": "Banco DEV sincronizado com backup remoto de producao.",
     }
 
@@ -5217,6 +5212,7 @@ def _build_local_pg_env() -> tuple[dict, str]:
         env["PGPASSWORD"] = password
     return env, db_name
 
+
 def _dbops_read_tunnel_pid() -> int | None:
     return _read_pid_from_file(DBOPS_TUNNEL_PID_FILE)
 
@@ -5446,9 +5442,7 @@ def run_remote_psql_command(*, payload: dict | None) -> dict:
     read_only = bool(payload.get("read_only", True))
     confirm = str(payload.get("confirm", "")).strip().upper()
     if not read_only and confirm != "EXECUTAR":
-        raise ValidationError(
-            "Para comando com escrita, informe confirm='EXECUTAR'."
-        )
+        raise ValidationError("Para comando com escrita, informe confirm='EXECUTAR'.")
 
     if read_only:
         first_token = command_sql.split(None, 1)[0].lower() if command_sql else ""
@@ -5843,8 +5837,7 @@ def build_database_ops_command_catalog(*, sample_backup_file: str = "") -> dict:
     config = ensure_portal_config()
     context = resolve_database_runtime_context(config=config)
     example_backup = (
-        sample_backup_file
-        or "$HOME/mrquentinha/.runtime/db_backups/backup.dump"
+        sample_backup_file or "$HOME/mrquentinha/.runtime/db_backups/backup.dump"
     )
     local_file = "$HOME/mrquentinha/.runtime/db_ops/sync/backup.dump"
     if bool(context.get("local_db_ops")):
@@ -6221,6 +6214,110 @@ def _run_aws_cli_text(
         raise ValidationError(message)
 
     return str(result.stdout or "").strip(), ""
+
+
+def _run_gcloud_cli_json(
+    *,
+    gcloud_bin: str,
+    args: list[str],
+    timeout: int = 20,
+    allow_failure: bool = False,
+    error_label: str = "GCP CLI",
+) -> tuple[dict | list | None, str]:
+    command = [gcloud_bin, *args]
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        message = f"{error_label}: timeout ao executar comando gcloud."
+        if allow_failure:
+            return None, message
+        raise ValidationError(message) from exc
+    except OSError as exc:
+        message = f"{error_label}: falha ao executar comando gcloud local."
+        if allow_failure:
+            return None, message
+        raise ValidationError(message) from exc
+
+    if result.returncode != 0:
+        detail = str(result.stderr or result.stdout or "").strip() or "sem detalhe"
+        message = f"{error_label}: {detail}"
+        if allow_failure:
+            return None, message
+        raise ValidationError(message) from None
+
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        message = f"{error_label}: resposta JSON invalida do gcloud."
+        if allow_failure:
+            return None, message
+        raise ValidationError(message) from None
+
+    if not isinstance(payload, (dict, list)):
+        payload = {}
+    return payload, ""
+
+
+def _run_gcloud_cli_text(
+    *,
+    gcloud_bin: str,
+    args: list[str],
+    timeout: int = 20,
+    allow_failure: bool = False,
+    error_label: str = "GCP CLI",
+) -> tuple[str, str]:
+    command = [gcloud_bin, *args]
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        message = f"{error_label}: timeout ao executar comando gcloud."
+        if allow_failure:
+            return "", message
+        raise ValidationError(message) from exc
+    except OSError as exc:
+        message = f"{error_label}: falha ao executar comando gcloud local."
+        if allow_failure:
+            return "", message
+        raise ValidationError(message) from exc
+
+    if result.returncode != 0:
+        detail = str(result.stderr or result.stdout or "").strip() or "sem detalhe"
+        message = f"{error_label}: {detail}"
+        if allow_failure:
+            return "", message
+        raise ValidationError(message)
+
+    return str(result.stdout or "").strip(), ""
+
+
+def _normalize_gcp_project_value(raw_value: str) -> str:
+    value = str(raw_value or "").strip()
+    if not value:
+        return ""
+    if value.lower() in {"(unset)", "unset", "none", "null"}:
+        return ""
+    return value
+
+
+def _extract_gcp_resource_name(raw_value: str) -> str:
+    value = str(raw_value or "").strip()
+    if not value:
+        return ""
+    if "/" not in value:
+        return value
+    return value.rstrip("/").rsplit("/", 1)[-1]
 
 
 def _coerce_float(raw_value: object) -> float:
@@ -6748,6 +6845,324 @@ def _build_aws_cloud_report(*, payload: dict, include_costs: bool = True) -> dic
     }
 
 
+def _run_gcp_prerequisite_checks(
+    *, gcloud_bin: str, payload: dict, project_id: str
+) -> dict:
+    cloud = payload.get("cloud", {})
+    checks: list[dict] = []
+    warnings: list[str] = []
+
+    dns_zone = str(cloud.get("route53_hosted_zone_id", "")).strip()
+    dns_check = {
+        "name": "gcp_dns",
+        "status": "pending",
+        "detail": "Informe a zona Cloud DNS para validar no projeto ativo.",
+    }
+    if dns_zone:
+        payload_zone, error_detail = _run_gcloud_cli_json(
+            gcloud_bin=gcloud_bin,
+            args=[
+                "dns",
+                "managed-zones",
+                "describe",
+                dns_zone,
+                "--project",
+                project_id,
+                "--format=json",
+            ],
+            allow_failure=True,
+            error_label="GCP Cloud DNS",
+        )
+        if payload_zone is None:
+            dns_check["status"] = "error"
+            dns_check["detail"] = error_detail
+        elif isinstance(payload_zone, dict):
+            dns_name = str(payload_zone.get("dnsName", "")).strip()
+            dns_check["status"] = "ok"
+            dns_name_display = dns_name or "dnsName nao informado"
+            dns_check["detail"] = (
+                f"Zona Cloud DNS '{dns_zone}' localizada ({dns_name_display})."
+            )
+            dns_check["dns_name"] = dns_name
+    checks.append(dns_check)
+
+    instance_name = str(cloud.get("ec2_instance_id", "")).strip()
+    compute_check = {
+        "name": "gcp_compute_instance",
+        "status": "pending",
+        "detail": (
+            "Informe a VM do Compute Engine para validar "
+            "conectividade de deploy."
+        ),
+    }
+    if instance_name:
+        instances_payload, error_detail = _run_gcloud_cli_json(
+            gcloud_bin=gcloud_bin,
+            args=[
+                "compute",
+                "instances",
+                "list",
+                "--filter",
+                f"name={instance_name}",
+                "--project",
+                project_id,
+                "--format=json",
+            ],
+            allow_failure=True,
+            error_label="GCP Compute Engine",
+        )
+        if instances_payload is None:
+            compute_check["status"] = "error"
+            compute_check["detail"] = error_detail
+        elif isinstance(instances_payload, list):
+            matching = [
+                item
+                for item in instances_payload
+                if isinstance(item, dict)
+                and str(item.get("name", "")).strip() == instance_name
+            ]
+            if matching:
+                instance_item = matching[0]
+                zone_name = _extract_gcp_resource_name(instance_item.get("zone", ""))
+                status_name = str(instance_item.get("status", "")).strip() or "UNKNOWN"
+                compute_check["status"] = "ok"
+                compute_check["detail"] = (
+                    f"VM '{instance_name}' localizada "
+                    f"(zone={zone_name or 'nao-informada'}, status={status_name})."
+                )
+                compute_check["zone"] = zone_name
+                compute_check["instance_status"] = status_name
+            else:
+                compute_check["status"] = "error"
+                compute_check["detail"] = (
+                    f"VM '{instance_name}' nao encontrada no projeto '{project_id}'."
+                )
+    checks.append(compute_check)
+
+    use_static_ip = bool(cloud.get("use_elastic_ip", True))
+    static_ip_name = str(cloud.get("elastic_ip_allocation_id", "")).strip()
+    region = str(cloud.get("region", "")).strip()
+    static_ip_check = {
+        "name": "gcp_static_ip",
+        "status": "pending",
+        "detail": "IP estatico opcional para DNS previsivel em producao.",
+    }
+    if use_static_ip:
+        if not static_ip_name:
+            static_ip_check["status"] = "warning"
+            static_ip_check["detail"] = (
+                "IP estatico habilitado sem nome de endereco configurado."
+            )
+            warnings.append(
+                "GCP: defina o nome do endereco estatico para validar custo/roteamento."
+            )
+        elif not region:
+            static_ip_check["status"] = "warning"
+            static_ip_check["detail"] = (
+                "Informe a regiao para validar o endereco estatico no Compute Engine."
+            )
+            warnings.append(
+                "GCP: regiao obrigatoria para validar endereco estatico regional."
+            )
+        else:
+            address_payload, error_detail = _run_gcloud_cli_json(
+                gcloud_bin=gcloud_bin,
+                args=[
+                    "compute",
+                    "addresses",
+                    "describe",
+                    static_ip_name,
+                    "--region",
+                    region,
+                    "--project",
+                    project_id,
+                    "--format=json",
+                ],
+                allow_failure=True,
+                error_label="GCP Static IP",
+            )
+            if address_payload is None:
+                static_ip_check["status"] = "error"
+                static_ip_check["detail"] = error_detail
+            elif isinstance(address_payload, dict):
+                address = str(address_payload.get("address", "")).strip()
+                static_ip_check["status"] = "ok"
+                address_display = address or "sem IP"
+                static_ip_check["detail"] = (
+                    f"Endereco estatico '{static_ip_name}' localizado "
+                    f"({address_display})."
+                )
+                static_ip_check["address"] = address
+    else:
+        static_ip_check["status"] = "warning"
+        static_ip_check["detail"] = (
+            "Operacao configurada sem IP estatico; "
+            "DNS pode variar apos reprovisionamento."
+        )
+    checks.append(static_ip_check)
+
+    use_cloud_deploy = bool(cloud.get("use_codedeploy", False))
+    pipeline_name = str(cloud.get("codedeploy_application_name", "")).strip()
+    target_name = str(cloud.get("codedeploy_deployment_group", "")).strip()
+    deploy_check = {
+        "name": "gcp_cloud_deploy",
+        "status": "pending",
+        "detail": (
+            "Cloud Deploy opcional; "
+            "use SSH quando pipeline nao estiver configurada."
+        ),
+    }
+    if use_cloud_deploy:
+        if not pipeline_name:
+            deploy_check["status"] = "warning"
+            deploy_check["detail"] = (
+                "Cloud Deploy habilitado sem delivery pipeline informada."
+            )
+            warnings.append(
+                "GCP: preencha delivery pipeline para habilitar "
+                "deploy assistido no Cloud Deploy."
+            )
+        elif not region:
+            deploy_check["status"] = "warning"
+            deploy_check["detail"] = (
+                "Informe a regiao para validar delivery pipeline no Cloud Deploy."
+            )
+            warnings.append(
+                "GCP: regiao obrigatoria para validacao de pipeline do Cloud Deploy."
+            )
+        else:
+            pipeline_payload, error_detail = _run_gcloud_cli_json(
+                gcloud_bin=gcloud_bin,
+                args=[
+                    "deploy",
+                    "delivery-pipelines",
+                    "describe",
+                    pipeline_name,
+                    "--region",
+                    region,
+                    "--project",
+                    project_id,
+                    "--format=json",
+                ],
+                allow_failure=True,
+                error_label="GCP Cloud Deploy",
+            )
+            if pipeline_payload is None:
+                deploy_check["status"] = "error"
+                deploy_check["detail"] = error_detail
+            elif isinstance(pipeline_payload, dict):
+                deploy_check["status"] = "ok"
+                deploy_check["detail"] = (
+                    f"Delivery pipeline '{pipeline_name}' localizada."
+                )
+                deploy_check["pipeline"] = pipeline_name
+                if target_name:
+                    target_payload, target_error = _run_gcloud_cli_json(
+                        gcloud_bin=gcloud_bin,
+                        args=[
+                            "deploy",
+                            "targets",
+                            "describe",
+                            target_name,
+                            "--region",
+                            region,
+                            "--project",
+                            project_id,
+                            "--format=json",
+                        ],
+                        allow_failure=True,
+                        error_label="GCP Cloud Deploy",
+                    )
+                    if target_payload is None:
+                        deploy_check["status"] = "warning"
+                        deploy_check["detail"] = (
+                            "Pipeline encontrada, mas target invalido "
+                            f"({target_error})."
+                        )
+                    else:
+                        deploy_check["target"] = target_name
+    checks.append(deploy_check)
+
+    return {
+        "checks": checks,
+        "warnings": warnings,
+    }
+
+
+def _build_gcp_cloud_report(*, payload: dict) -> dict:
+    cloud = payload.get("cloud", {})
+    gcloud_bin = shutil.which("gcloud")
+    if not gcloud_bin:
+        raise ValidationError(
+            "GCP: CLI gcloud nao encontrada. "
+            "Instale o Google Cloud SDK no servidor do backend."
+        )
+
+    cli_version, _ = _run_gcloud_cli_text(
+        gcloud_bin=gcloud_bin,
+        args=["version", "--format=value(Google Cloud SDK)"],
+        allow_failure=True,
+        error_label="GCP CLI version",
+    )
+    active_account, account_error = _run_gcloud_cli_text(
+        gcloud_bin=gcloud_bin,
+        args=[
+            "auth",
+            "list",
+            "--filter=status:ACTIVE",
+            "--format=value(account)",
+        ],
+        allow_failure=True,
+        error_label="GCP Auth",
+    )
+    if not active_account:
+        detail = account_error or "sem detalhe"
+        raise ValidationError(
+            "GCP: falha ao validar autenticacao ativa no gcloud " f"({detail})."
+        )
+
+    project_value, project_error = _run_gcloud_cli_text(
+        gcloud_bin=gcloud_bin,
+        args=["config", "get-value", "project", "--quiet"],
+        allow_failure=True,
+        error_label="GCP Config",
+    )
+    project_id = _normalize_gcp_project_value(project_value)
+    if not project_id:
+        detail = project_error or "configure via 'gcloud config set project <id>'"
+        raise ValidationError(
+            "GCP: projeto ativo nao definido no gcloud " f"({detail})."
+        )
+
+    connectivity_check = {
+        "name": "gcp_connectivity",
+        "status": "ok",
+        "detail": "Google Cloud SDK validado com sucesso.",
+        "checked_at": timezone.now().isoformat(),
+        "cli_installed": True,
+        "cli_version": cli_version,
+        "account": active_account,
+        "project": project_id,
+        "region": str(cloud.get("region", "")).strip(),
+    }
+
+    prerequisites = _run_gcp_prerequisite_checks(
+        gcloud_bin=gcloud_bin,
+        payload=payload,
+        project_id=project_id,
+    )
+    warnings: list[str] = []
+    warnings.extend(prerequisites.get("warnings", []))
+
+    return {
+        "provider": "gcp",
+        "checked_at": timezone.now().isoformat(),
+        "connectivity": connectivity_check,
+        "prerequisites": prerequisites,
+        "warnings": warnings,
+    }
+
+
 def _run_cloud_connectivity_probe(*, payload: dict) -> dict:
     cloud = payload.get("cloud", {})
     provider = str(cloud.get("provider", "aws")).strip().lower()
@@ -6759,49 +7174,10 @@ def _run_cloud_connectivity_probe(*, payload: dict) -> dict:
             return connectivity
 
     if provider == "gcp":
-        gcloud_bin = shutil.which("gcloud")
-        if not gcloud_bin:
-            raise ValidationError(
-                "GCP: CLI gcloud nao encontrada. Instale o Google Cloud SDK."
-            )
-        account_result = subprocess.run(
-            [
-                gcloud_bin,
-                "auth",
-                "list",
-                "--filter=status:ACTIVE",
-                "--format=value(account)",
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
-        active_account = str(account_result.stdout or "").strip()
-        if account_result.returncode != 0 or not active_account:
-            detail = (
-                str(account_result.stderr or account_result.stdout or "").strip()
-                or "sem detalhe"
-            )
-            raise ValidationError(
-                f"GCP: falha ao validar autenticacao ativa no gcloud ({detail})."
-            )
-        project_result = subprocess.run(
-            [gcloud_bin, "config", "get-value", "project"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
-        project_id = str(project_result.stdout or "").strip()
-        return {
-            "name": "gcp_connectivity",
-            "status": "ok",
-            "detail": "Google Cloud SDK validado com sucesso.",
-            "checked_at": timezone.now().isoformat(),
-            "account": active_account,
-            "project": project_id,
-        }
+        gcp_report = _build_gcp_cloud_report(payload=payload)
+        connectivity = gcp_report.get("connectivity", {})
+        if isinstance(connectivity, dict):
+            return connectivity
 
     raise ValidationError("Cloud: provider invalido para validacao de conectividade.")
 
@@ -7090,6 +7466,39 @@ def validate_installer_aws_setup(*, payload: dict | None) -> dict:
     }
 
 
+def validate_installer_gcp_setup(*, payload: dict | None) -> dict:
+    config = ensure_portal_config()
+    normalized_payload, warnings = _normalize_installer_wizard_payload(payload)
+    normalized_payload = _sync_installer_deployment_with_server_config(
+        config=config,
+        normalized_payload=normalized_payload,
+    )
+    normalized_payload["target"] = "gcp"
+    cloud = normalized_payload.get("cloud", {})
+    if not isinstance(cloud, dict):
+        cloud = {}
+    cloud["provider"] = "gcp"
+    normalized_payload["cloud"] = cloud
+
+    gcp_report = _build_gcp_cloud_report(payload=normalized_payload)
+    warnings.extend(
+        [
+            str(item).strip()
+            for item in gcp_report.get("warnings", [])
+            if str(item).strip()
+        ]
+    )
+
+    return {
+        "ok": True,
+        "workflow_version": INSTALLER_WORKFLOW_VERSION,
+        "validated_at": timezone.now().isoformat(),
+        "normalized_payload": _sanitize_installer_payload(normalized_payload),
+        "warnings": warnings,
+        "cloud_validation": gcp_report,
+    }
+
+
 @transaction.atomic
 def save_installer_wizard_settings(
     *,
@@ -7330,16 +7739,38 @@ def start_installer_job(
                 ]
             )
             job_payload["warnings"] = warnings
-        else:
-            cloud_check = _run_cloud_connectivity_probe(payload=normalized_payload)
-            job_payload["connectivity_checks"] = [cloud_check]
-            provider_label = provider.upper()
+        elif provider == "gcp":
+            gcp_report = _build_gcp_cloud_report(payload=normalized_payload)
+            connectivity = gcp_report.get("connectivity", {})
+            prerequisite_checks = (
+                gcp_report.get("prerequisites", {}).get("checks", [])
+                if isinstance(gcp_report.get("prerequisites", {}), dict)
+                else []
+            )
+            checks: list[dict] = []
+            if isinstance(connectivity, dict):
+                checks.append(connectivity)
+            if isinstance(prerequisite_checks, list):
+                checks.extend(
+                    item for item in prerequisite_checks if isinstance(item, dict)
+                )
+            job_payload["connectivity_checks"] = checks
+            job_payload["cloud_validation"] = gcp_report
             region = str(normalized_payload.get("cloud", {}).get("region", "")).strip()
             region_label = f"regiao={region}" if region else "regiao=nao-informada"
             job_payload["summary"] = (
-                f"Plano {provider_label} validado ({region_label}). "
-                "Provisionamento automatico completo segue na proxima fase cloud."
+                "Plano GCP validado com sucesso " f"({region_label})."
             )
+            warnings.extend(
+                [
+                    str(item).strip()
+                    for item in gcp_report.get("warnings", [])
+                    if str(item).strip()
+                ]
+            )
+            job_payload["warnings"] = warnings
+        else:
+            raise ValidationError("Cloud provider invalido para target cloud.")
     else:
         raise ValidationError("Target de instalacao invalido.")
 

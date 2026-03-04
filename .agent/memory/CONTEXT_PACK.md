@@ -13,6 +13,7 @@
 - `.agent/workflows/*` (mapa operacional)
 
 ## Estado atual
+- Atualizacao em 03/03/2026 (`T9.2.7-A5-A3`): assistente de instalacao ganhou paridade GCP com endpoint dedicado `POST /api/v1/portal/admin/config/installer-cloud/gcp/validate/`, checks de infraestrutura (DNS/VM/IP estatico/Cloud Deploy) e integracao no job (`cloud_validation` + `connectivity_checks` + `warnings`).
 - Atualizacao em 03/03/2026 (conteudo dinamico ampliado): `PortalSection` passou a cobrir paginas institucionais/ajuda adicionais em Portal e Web Client (`app`, `pedidos`, `conta`, `privacidade`, `termos`, `lgpd`) com fallback automatico de secoes por canal/template (`classic` e `client-classic`) para evitar pagina sem conteudo quando o template ativo nao tiver secao especifica.
 - Atualizacao em 03/03/2026 (UX mobile): headers de `www` e `app` receberam menu responsivo adaptativo com toggle para smartphones, mantendo navegacao horizontal no desktop.
 - Atualizacao em 03/03/2026 (simulacao operacional): comando `python manage.py seed_paraiba_caseira_week --start-date YYYY-MM-DD` implantado para simular semana completa de culinaria paraibana caseira (cardapio -> compras com OCR -> producao -> preco da marmita), com 20 unidades por dia.

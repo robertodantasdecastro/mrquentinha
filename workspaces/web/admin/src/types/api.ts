@@ -1510,7 +1510,7 @@ export type PortalInstallerWizardValidateResult = {
   validated_at: string;
 };
 
-export type PortalInstallerAwsValidationCheck = {
+export type PortalInstallerCloudValidationCheck = {
   name: string;
   status: string;
   detail: string;
@@ -1550,14 +1550,29 @@ export type PortalInstallerAwsCostEstimate = {
 export type PortalInstallerAwsCloudValidation = {
   provider: "aws";
   checked_at: string;
-  connectivity: PortalInstallerAwsValidationCheck;
+  connectivity: PortalInstallerCloudValidationCheck;
   prerequisites: {
-    checks: PortalInstallerAwsValidationCheck[];
+    checks: PortalInstallerCloudValidationCheck[];
     warnings: string[];
   };
   costs: PortalInstallerAwsCostEstimate;
   warnings: string[];
 };
+
+export type PortalInstallerGcpCloudValidation = {
+  provider: "gcp";
+  checked_at: string;
+  connectivity: PortalInstallerCloudValidationCheck;
+  prerequisites: {
+    checks: PortalInstallerCloudValidationCheck[];
+    warnings: string[];
+  };
+  warnings: string[];
+};
+
+export type PortalInstallerCloudValidation =
+  | PortalInstallerAwsCloudValidation
+  | PortalInstallerGcpCloudValidation;
 
 export type PortalInstallerAwsValidateResult = {
   ok: boolean;
@@ -1566,6 +1581,15 @@ export type PortalInstallerAwsValidateResult = {
   normalized_payload: PortalInstallerDraftPayload;
   warnings: string[];
   cloud_validation: PortalInstallerAwsCloudValidation;
+};
+
+export type PortalInstallerGcpValidateResult = {
+  ok: boolean;
+  workflow_version: string;
+  validated_at: string;
+  normalized_payload: PortalInstallerDraftPayload;
+  warnings: string[];
+  cloud_validation: PortalInstallerGcpCloudValidation;
 };
 
 export type PortalInstallerPrerequisiteField = {
@@ -1614,7 +1638,7 @@ export type PortalInstallerJobData = {
     checked_at: string;
     [key: string]: unknown;
   }>;
-  cloud_validation?: PortalInstallerAwsCloudValidation;
+  cloud_validation?: PortalInstallerCloudValidation;
   last_log_lines?: string[];
   running?: boolean;
 };
