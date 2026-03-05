@@ -643,3 +643,17 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Consequencia:
   - fluxo de coordenacao entre agentes fica mais rapido e previsivel, com menos risco de bloqueio por autenticacao.
   - publicacao em producao preserva o principio de aprovacao previa na VM e impacto minimo de disponibilidade.
+
+
+## 05/03/2026 - Alinhamento de governanca triagente com baseline de commits do hotfix admin
+- Status: aceito.
+- Decisao:
+  - adotar como baseline oficial do ciclo de sincronizacao os commits informados pelo Agente Mac:
+    - Mac (`codex/AgenteMac`): `b8acf4b`;
+    - VM (`vm-atualizacoes`): `8a4e81b`;
+    - EC2 (`main`): `abda7d1`.
+  - manter regra obrigatoria de promocao `Mac -> VM (execucao/teste) -> EC2 (promocao)`.
+  - tratar indisponibilidade de SSH/DNS no ambiente de coordenacao como risco operacional temporario, sem promover nova mudanca ate evidencia remota da VM.
+- Consequencia:
+  - memoria viva fica alinhada ao estado mais recente esperado para os tres agentes.
+  - proxima acao unica passa a ser a validacao remota da VM com smoke antes de qualquer nova promocao em EC2.
