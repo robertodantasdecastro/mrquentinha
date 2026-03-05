@@ -1463,3 +1463,15 @@
   - autenticacao operacional sincronizada:
     - acesso SSH/Git validado para `github.com`, `mrquentinha` e `mrquentinha_web`;
     - chave do Mac autorizada na VM para eliminar dependencia de senha interativa.
+
+
+- Ops-05/03/2026 (relatorio de alinhamento triagente Mac/VM/EC2)
+  - leitura/checagem de governanca executada em `AGENTS.md`, workflow `W26/W27` e memoria ativa (`AGENT_SYNC_BOARD`, `DECISIONS`, `CHANGELOG`, ata de 04/03).
+  - snapshot esperado de commits do hotfix de sessao/menu admin consolidado:
+    - Mac (`codex/AgenteMac`): `b8acf4b`;
+    - VM (`vm-atualizacoes`): `8a4e81b`;
+    - EC2 (`main`): `abda7d1`.
+  - validacao tecnica local:
+    - repositorio de coordenacao neste ambiente em `work` com `HEAD=abda7d1` e sem alteracoes locais antes desta atualizacao de memoria;
+    - tentativa de acesso remoto via SSH para VM/EC2 indisponivel por falha de resolucao DNS dos aliases `mrquentinha`/`mrquentinha_web`.
+  - proximo passo unico recomendado: receber sinal do Agente Mac e executar checklist remoto na VM (status git + smoke) antes de qualquer acao em EC2/main.
