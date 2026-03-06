@@ -1475,3 +1475,15 @@
     - repositorio de coordenacao neste ambiente em `work` com `HEAD=abda7d1` e sem alteracoes locais antes desta atualizacao de memoria;
     - tentativa de acesso remoto via SSH para VM/EC2 indisponivel por falha de resolucao DNS dos aliases `mrquentinha`/`mrquentinha_web`.
   - proximo passo unico recomendado: receber sinal do Agente Mac e executar checklist remoto na VM (status git + smoke) antes de qualquer acao em EC2/main.
+
+- Ops-06/03/2026 (higiene operacional): remocao de `btop.png` e prevencao no Git
+  - arquivo local desnecessario `btop.png` removido da EC2 (`/home/ubuntu/mrquentinha/btop.png`).
+  - protecao adicionada em repositorio: `.gitignore` agora ignora `btop.png` na raiz.
+  - ciclo propagado por branch de agente:
+    - Mac (`codex/AgenteMac`) -> commit/push da regra de ignore e memoria;
+    - VM (`vm-atualizacoes`) -> integracao do commit;
+    - EC2 (`main`) -> integracao do commit + validacao de runtime.
+  - validacao final:
+    - `git ls-files` sem `btop.png` em todos os ambientes;
+    - `git status -sb` sem `btop.png` em todos os ambientes;
+    - producao manteve health OK (`/api/v1/health`) e admin HTTP 200.

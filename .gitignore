@@ -40,3 +40,4 @@ out/
 
 # Runtime local (ops dashboard)
 .runtime/
+btop.png
