@@ -21,6 +21,9 @@ Quadro unico de sincronizacao entre os agentes `Mac`, `VM` e `EC2`.
 ## Snapshot consolidado
 | Data/Hora | Agente | Ambiente | Branch | Ultimo commit | Smoke | Status | Riscos/Bloqueios | Proxima acao | Dono | Prazo |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 2026-03-06 13:02 | Mac | Local | codex/AgenteMac | 6beb761 | status/gitignore OK | Sincronizado | Nenhum | Manter regra de higiene: artefatos locais fora do Git | Mac | continuo |
+| 2026-03-06 13:02 | VM | Desenvolvimento | vm-atualizacoes | 1d0c895 | status/gitignore OK | Sincronizado | Nenhum | Seguir fluxo Mac->VM->EC2 para novas mudancas | VM | continuo |
+| 2026-03-06 13:02 | EC2 | Producao | main | 59cbced | health API OK / admin HTTP 200 | Sincronizado | Nenhum | Operacao normal com monitoramento padrao | EC2 | continuo |
 | 2026-03-06 12:55 | Mac | Local | codex/AgenteMac | 8b08e6e | checklist git OK | Em sincronizacao | Nenhum | Propagar endurecimento de `.gitignore` para VM/EC2 e concluir limpeza operacional | Mac | 2026-03-06 |
 | 2026-03-06 12:55 | VM | Desenvolvimento | vm-atualizacoes | 2ff1efb | checklist git OK | Em sincronizacao | Nenhum | Receber commit de limpeza (`btop.png`) e validar status limpo | VM | 2026-03-06 |
 | 2026-03-06 12:55 | EC2 | Producao | main | 9b268fd | API health OK / admin HTTP 200 | Em sincronizacao | `btop.png` local (nao versionado) | Remover arquivo local e sincronizar regra de ignore no `main` | EC2 | 2026-03-06 |
@@ -34,6 +37,6 @@ Quadro unico de sincronizacao entre os agentes `Mac`, `VM` e `EC2`.
 | 2026-03-03 00:00 | Mac | Local | main | n/a | n/a | Ativo | Configurar fluxo triagente oficial | Publicar W26 e iniciar primeira reuniao | Mac | 2026-03-03 |
 
 ## Divergencias abertas
-- Pendencia operacional de `btop.png` local na EC2 em tratamento no ciclo 06/03/2026.
+- Pendencia operacional de `btop.png` local na EC2 foi resolvida no ciclo 06/03/2026 (arquivo removido + regra de ignore propagada).
 - Snapshot anterior (04/03) registrava commits `1dead57`/`c90b2ad`/`14abf63`; estado esperado atualizou para `b8acf4b`/`8a4e81b`/`abda7d1` e foi registrado como baseline do ciclo 05/03.
 - Validacao remota de VM/EC2 bloqueada neste ambiente por falha de resolucao DNS dos aliases SSH (`mrquentinha`, `mrquentinha_web`).
