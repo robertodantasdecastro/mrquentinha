@@ -21,6 +21,9 @@ Quadro unico de sincronizacao entre os agentes `Mac`, `VM` e `EC2`.
 ## Snapshot consolidado
 | Data/Hora | Agente | Ambiente | Branch | Ultimo commit | Smoke | Status | Riscos/Bloqueios | Proxima acao | Dono | Prazo |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 2026-03-06 12:55 | Mac | Local | codex/AgenteMac | 8b08e6e | checklist git OK | Em sincronizacao | Nenhum | Propagar endurecimento de `.gitignore` para VM/EC2 e concluir limpeza operacional | Mac | 2026-03-06 |
+| 2026-03-06 12:55 | VM | Desenvolvimento | vm-atualizacoes | 2ff1efb | checklist git OK | Em sincronizacao | Nenhum | Receber commit de limpeza (`btop.png`) e validar status limpo | VM | 2026-03-06 |
+| 2026-03-06 12:55 | EC2 | Producao | main | 9b268fd | API health OK / admin HTTP 200 | Em sincronizacao | `btop.png` local (nao versionado) | Remover arquivo local e sincronizar regra de ignore no `main` | EC2 | 2026-03-06 |
 | 2026-03-05 09:40 | Mac | Local (gestao) | codex/AgenteMac | b8acf4b | validacao documental OK (sem acesso SSH aos hosts) | Parcialmente sincronizado | Hostnames `mrquentinha` e `mrquentinha_web` indisponiveis neste ambiente de coordenacao | Aguardar retorno do Agente Mac para executar checklist remoto na VM e confirmar smokes | Mac | 2026-03-05 |
 | 2026-03-05 09:40 | VM | Desenvolvimento | vm-atualizacoes | 8a4e81b (informado) | pendente de comprovacao remota neste ambiente | Aguardando confirmacao operacional | Sem resolucao DNS/SSH para `mrquentinha` neste ambiente | Executar `git status` + smoke stack na VM no proximo contato do Mac | VM | proximo ciclo |
 | 2026-03-05 09:40 | EC2 | Producao | main | abda7d1 (local atual) | pendente de comprovacao remota neste ambiente | Aguardando confirmacao operacional | Sem resolucao DNS/SSH para `mrquentinha_web` neste ambiente | Confirmar smokes HTTP 200 em producao apos checklist VM | EC2 | proximo ciclo |
@@ -31,5 +34,6 @@ Quadro unico de sincronizacao entre os agentes `Mac`, `VM` e `EC2`.
 | 2026-03-03 00:00 | Mac | Local | main | n/a | n/a | Ativo | Configurar fluxo triagente oficial | Publicar W26 e iniciar primeira reuniao | Mac | 2026-03-03 |
 
 ## Divergencias abertas
+- Pendencia operacional de `btop.png` local na EC2 em tratamento no ciclo 06/03/2026.
 - Snapshot anterior (04/03) registrava commits `1dead57`/`c90b2ad`/`14abf63`; estado esperado atualizou para `b8acf4b`/`8a4e81b`/`abda7d1` e foi registrado como baseline do ciclo 05/03.
 - Validacao remota de VM/EC2 bloqueada neste ambiente por falha de resolucao DNS dos aliases SSH (`mrquentinha`, `mrquentinha_web`).
