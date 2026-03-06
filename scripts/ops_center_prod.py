@@ -41,6 +41,7 @@ SERVICES: tuple[ServiceSpec, ...] = (
         "source '/home/ubuntu/mrquentinha/workspaces/backend/.venv/bin/activate' "
         "&& cd '/home/ubuntu/mrquentinha/workspaces/backend' "
         "&& DJANGO_SETTINGS_MODULE=config.settings.prod DEBUG=False python manage.py migrate --noinput "
+        "&& python manage.py collectstatic --noinput "
         "&& gunicorn config.wsgi:application --chdir '/home/ubuntu/mrquentinha/workspaces/backend/src' "
         "--bind 0.0.0.0:8000 --workers 3 --timeout 120",
     ),

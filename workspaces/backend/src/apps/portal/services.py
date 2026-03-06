@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
 from urllib import error as urllib_error
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from django.conf import settings
@@ -65,6 +65,28 @@ CLOUDFLARE_DEV_CONNECTIVITY_PATHS = {
     "admin": "/",
     "api": "/api/v1/health",
 }
+CLOUDFLARE_API_BASE_URL = "https://api.cloudflare.com/client/v4"
+CLOUDFLARE_API_TIMEOUT_SECONDS = 12
+CLOUDFLARE_API_DOC_LINKS = (
+    {
+        "label": "Verificar token API",
+        "url": (
+            "https://developers.cloudflare.com/api/resources/user/"
+            "subresources/tokens/methods/verify/"
+        ),
+    },
+    {
+        "label": "Listar zonas",
+        "url": "https://developers.cloudflare.com/api/resources/zones/methods/list/",
+    },
+    {
+        "label": "Listar registros DNS",
+        "url": (
+            "https://developers.cloudflare.com/api/resources/dns/"
+            "subresources/records/methods/list/"
+        ),
+    },
+)
 
 DEFAULT_PORTAL_TEMPLATE_ITEMS = [
     {"id": "classic", "label": "Classic"},
@@ -3337,6 +3359,283 @@ def _append_unique_origins(origins: list[str], extra: list[str]) -> list[str]:
         output.append(normalized)
 
     return output
+
+
+def _cloudflare_api_extract_errors(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
+
+    raw_errors = payload.get("errors")
+    if not isinstance(raw_errors, list):
+        return []
+
+    errors: list[str] = []
+    for item in raw_errors:
+        if isinstance(item, dict):
+            code = str(item.get("code", "")).strip()
+            message = str(item.get("message", "")).strip()
+            if code and message:
+                errors.append(f"{code}: {message}")
+            elif message:
+                errors.append(message)
+        elif isinstance(item, str) and item.strip():
+            errors.append(item.strip())
+    return errors
+
+
+def _cloudflare_api_request(
+    *,
+    token: str,
+    path: str,
+    query: dict[str, str] | None = None,
+) -> dict:
+    query_string = ""
+    if isinstance(query, dict):
+        clean_query = {
+            str(key): str(value)
+            for key, value in query.items()
+            if str(value).strip()
+        }
+        if clean_query:
+            query_string = urlencode(clean_query)
+
+    url = f"{CLOUDFLARE_API_BASE_URL}{path}"
+    if query_string:
+        separator = "&" if "?" in url else "?"
+        url = f"{url}{separator}{query_string}"
+
+    request = Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        },
+    )
+
+    try:
+        with urlopen(request, timeout=CLOUDFLARE_API_TIMEOUT_SECONDS) as response:
+            body = response.read().decode("utf-8")
+            payload = json.loads(body or "{}")
+            errors = _cloudflare_api_extract_errors(payload)
+            return {
+                "ok": bool(payload.get("success", False) and not errors),
+                "status": int(response.status),
+                "payload": payload,
+                "errors": errors,
+            }
+    except urllib_error.HTTPError as exc:
+        raw_body = exc.read().decode("utf-8", errors="ignore")
+        try:
+            payload = json.loads(raw_body or "{}")
+        except json.JSONDecodeError:
+            payload = {}
+        errors = _cloudflare_api_extract_errors(payload)
+        if not errors:
+            errors = [f"HTTP {exc.code} ao consultar Cloudflare API."]
+        return {
+            "ok": False,
+            "status": int(exc.code),
+            "payload": payload,
+            "errors": errors,
+        }
+    except (urllib_error.URLError, TimeoutError, OSError) as exc:
+        return {
+            "ok": False,
+            "status": 0,
+            "payload": {},
+            "errors": [f"Falha de conectividade com Cloudflare API: {exc}"],
+        }
+
+
+def _build_cloudflare_api_guide_payload() -> dict:
+    return {
+        "required_permissions": [
+            "User -> API Tokens -> Read",
+            "Zone -> Zone -> Read",
+            "Zone -> DNS -> Read",
+            "Zone -> DNS -> Edit (para aplicar/alterar registros)",
+        ],
+        "steps": [
+            "1. Criar API Token no Cloudflare com escopo minimo de leitura.",
+            "2. Verificar token via endpoint /user/tokens/verify.",
+            "3. Resolver Zone ID (manual ou automatico por root_domain).",
+            "4. Validar se os registros DNS esperados existem (portal/client/admin/api).",
+            "5. Em producao, confirmar proxied=true apenas quando realmente usar proxy Cloudflare.",
+        ],
+        "docs": list(CLOUDFLARE_API_DOC_LINKS),
+    }
+
+
+def inspect_cloudflare_api_status(*, overrides: dict | None = None) -> dict:
+    config = ensure_portal_config()
+    settings = _normalize_cloudflare_settings(config.cloudflare_settings)
+    if isinstance(overrides, dict):
+        settings = _normalize_cloudflare_settings({**settings, **overrides})
+
+    token = str(settings.get("api_token", "")).strip()
+    zone_id_input = str(settings.get("zone_id", "")).strip()
+    account_id = str(settings.get("account_id", "")).strip()
+
+    preview = _build_cloudflare_preview_payload(config, settings)
+    expected_domains = {
+        channel: str(preview.get("domains", {}).get(channel, "")).strip().lower()
+        for channel in ("portal", "client", "admin", "api")
+    }
+
+    result = {
+        "checked_at": timezone.now().isoformat(),
+        "configured": bool(token),
+        "mode": str(settings.get("mode", "hybrid")).strip().lower() or "hybrid",
+        "dev_mode": bool(settings.get("dev_mode", False)),
+        "expected_domains": expected_domains,
+        "token": {
+            "configured": bool(token),
+            "valid": False,
+            "status": "missing" if not token else "pending",
+            "expires_on": "",
+            "not_before": "",
+            "id": "",
+            "errors": [],
+        },
+        "zone": {
+            "configured": bool(zone_id_input),
+            "resolved": False,
+            "id": zone_id_input,
+            "name": "",
+            "status": "not_checked",
+            "errors": [],
+        },
+        "dns": {
+            "checked": False,
+            "records": {
+                "portal": {"domain": expected_domains["portal"], "found": False, "type": "", "content": "", "proxied": None},
+                "client": {"domain": expected_domains["client"], "found": False, "type": "", "content": "", "proxied": None},
+                "admin": {"domain": expected_domains["admin"], "found": False, "type": "", "content": "", "proxied": None},
+                "api": {"domain": expected_domains["api"], "found": False, "type": "", "content": "", "proxied": None},
+            },
+            "missing": [],
+            "errors": [],
+        },
+        "tunnel": {
+            "checked": False,
+            "account_id": account_id,
+            "total": 0,
+            "errors": [],
+        },
+        "guide": _build_cloudflare_api_guide_payload(),
+    }
+
+    if not token:
+        result["token"]["errors"] = [
+            "Informe API Token para diagnosticar Cloudflare via API."
+        ]
+        return result
+
+    token_check = _cloudflare_api_request(token=token, path="/user/tokens/verify")
+    token_payload = token_check.get("payload", {})
+    token_info = token_payload.get("result", {}) if isinstance(token_payload, dict) else {}
+    result["token"]["errors"] = token_check.get("errors", [])
+    if token_check.get("ok") and isinstance(token_info, dict):
+        result["token"]["valid"] = True
+        result["token"]["status"] = str(token_info.get("status", "active")).strip() or "active"
+        result["token"]["expires_on"] = str(token_info.get("expires_on", "")).strip()
+        result["token"]["not_before"] = str(token_info.get("not_before", "")).strip()
+        result["token"]["id"] = str(token_info.get("id", "")).strip()
+    else:
+        result["token"]["status"] = "invalid"
+        return result
+
+    resolved_zone_id = zone_id_input
+    root_domain = str(settings.get("root_domain", "")).strip().lower().strip(".")
+    if resolved_zone_id:
+        zone_check = _cloudflare_api_request(
+            token=token,
+            path=f"/zones/{resolved_zone_id}",
+        )
+        zone_payload = zone_check.get("payload", {})
+        zone_info = zone_payload.get("result", {}) if isinstance(zone_payload, dict) else {}
+    else:
+        zone_check = _cloudflare_api_request(
+            token=token,
+            path="/zones",
+            query={"name": root_domain, "status": "active", "per_page": "1", "page": "1"},
+        )
+        zone_payload = zone_check.get("payload", {})
+        zone_list = zone_payload.get("result", []) if isinstance(zone_payload, dict) else []
+        zone_info = zone_list[0] if isinstance(zone_list, list) and zone_list else {}
+        resolved_zone_id = str(zone_info.get("id", "")).strip()
+
+    result["zone"]["errors"] = zone_check.get("errors", [])
+    result["zone"]["id"] = resolved_zone_id
+    result["zone"]["name"] = str(zone_info.get("name", "")).strip()
+    result["zone"]["status"] = str(zone_info.get("status", "")).strip() or (
+        "active" if resolved_zone_id else "missing"
+    )
+    result["zone"]["resolved"] = bool(resolved_zone_id)
+
+    if not resolved_zone_id:
+        if not result["zone"]["errors"]:
+            result["zone"]["errors"] = [
+                "Nao foi possivel resolver Zone ID com os dados informados."
+            ]
+        return result
+
+    for channel, hostname in expected_domains.items():
+        if not hostname:
+            continue
+
+        dns_check = _cloudflare_api_request(
+            token=token,
+            path=f"/zones/{resolved_zone_id}/dns_records",
+            query={"name": hostname, "per_page": "10", "page": "1"},
+        )
+        if not dns_check.get("ok"):
+            result["dns"]["errors"].extend(dns_check.get("errors", []))
+            continue
+
+        dns_payload = dns_check.get("payload", {})
+        records = dns_payload.get("result", []) if isinstance(dns_payload, dict) else []
+        if not isinstance(records, list) or not records:
+            continue
+
+        picked = records[0] if isinstance(records[0], dict) else {}
+        result["dns"]["records"][channel] = {
+            "domain": hostname,
+            "found": True,
+            "type": str(picked.get("type", "")).strip(),
+            "content": str(picked.get("content", "")).strip(),
+            "proxied": bool(picked.get("proxied", False))
+            if picked.get("proxied") is not None
+            else None,
+        }
+
+    result["dns"]["checked"] = True
+    missing = [
+        channel
+        for channel, payload in result["dns"]["records"].items()
+        if not bool(payload.get("found"))
+    ]
+    result["dns"]["missing"] = missing
+
+    if account_id:
+        tunnel_check = _cloudflare_api_request(
+            token=token,
+            path=f"/accounts/{account_id}/cfd_tunnel",
+            query={"is_deleted": "false", "per_page": "50", "page": "1"},
+        )
+        result["tunnel"]["checked"] = True
+        result["tunnel"]["errors"] = tunnel_check.get("errors", [])
+        if tunnel_check.get("ok"):
+            tunnel_payload = tunnel_check.get("payload", {})
+            tunnel_items = (
+                tunnel_payload.get("result", [])
+                if isinstance(tunnel_payload, dict)
+                else []
+            )
+            if isinstance(tunnel_items, list):
+                result["tunnel"]["total"] = len(tunnel_items)
+
+    return result
 
 
 def _build_cloudflare_dev_run_command_display() -> str:

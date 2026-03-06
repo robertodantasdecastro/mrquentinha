@@ -51,6 +51,7 @@ from .services import (
     sync_remote_database_backup_to_dev,
     sync_remote_database_via_django,
     toggle_cloudflare_mode,
+    inspect_cloudflare_api_status,
     upload_database_ssh_key,
     validate_database_ssh_connectivity,
     validate_installer_aws_setup,
@@ -228,6 +229,17 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["post"], url_path="cloudflare-api-status")
+    def cloudflare_api_status(self, request):
+        settings = request.data.get("settings", {})
+        if settings is None:
+            settings = {}
+        if not isinstance(settings, dict):
+            raise DRFValidationError(["Campo settings precisa ser um objeto JSON."])
+
+        payload = inspect_cloudflare_api_status(overrides=settings)
+        return Response(payload, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["post"], url_path="ssl-certificates/apply")
     def ssl_certificates_apply(self, request):

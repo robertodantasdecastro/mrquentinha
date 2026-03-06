@@ -655,6 +655,41 @@ def test_portal_admin_cloudflare_runtime_action(client, monkeypatch):
 
 
 @pytest.mark.django_db
+def test_portal_admin_cloudflare_api_status_action(client, monkeypatch):
+    monkeypatch.setattr(
+        "apps.portal.views.inspect_cloudflare_api_status",
+        lambda *, overrides=None: {
+            "checked_at": "2026-03-06T00:00:00+00:00",
+            "configured": True,
+            "mode": "hybrid",
+            "dev_mode": False,
+            "expected_domains": {
+                "portal": "www.mrquentinha.com.br",
+                "client": "app.mrquentinha.com.br",
+                "admin": "admin.mrquentinha.com.br",
+                "api": "api.mrquentinha.com.br",
+            },
+            "token": {"configured": True, "valid": True, "status": "active", "errors": []},
+            "zone": {"configured": True, "resolved": True, "id": "zone-1", "name": "mrquentinha.com.br", "status": "active", "errors": []},
+            "dns": {"checked": True, "records": {}, "missing": [], "errors": []},
+            "tunnel": {"checked": False, "account_id": "", "total": 0, "errors": []},
+            "guide": {"required_permissions": [], "steps": [], "docs": []},
+        },
+    )
+
+    response = client.post(
+        "/api/v1/portal/admin/config/cloudflare-api-status/",
+        data={"settings": {"root_domain": "mrquentinha.com.br"}},
+        format="json",
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["configured"] is True
+    assert payload["token"]["valid"] is True
+    assert payload["zone"]["resolved"] is True
+
+
+@pytest.mark.django_db
 def test_portal_admin_installer_wizard_endpoints(client, monkeypatch):
     config = ensure_portal_config()
 

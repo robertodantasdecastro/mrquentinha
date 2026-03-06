@@ -21,6 +21,9 @@ Quadro unico de sincronizacao entre os agentes `Mac`, `VM` e `EC2`.
 ## Snapshot consolidado
 | Data/Hora | Agente | Ambiente | Branch | Ultimo commit | Smoke | Status | Riscos/Bloqueios | Proxima acao | Dono | Prazo |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 2026-03-06 13:55 | Mac | Local (gestao) | codex/AgenteMac | 4def788 | snapshot coletado | Sincronizado (baseline) | Worktree local com alteracoes antigas fora do escopo atual | Aguardar aprovacao do ciclo dev para receber consolidacao final | Mac | 2026-03-06 |
+| 2026-03-06 13:55 | VM | Desenvolvimento | vm-atualizacoes | em progresso (fix static + webadmin modes/cloudflare api) | pytest cloudflare OK + admin build OK | Em validacao dev | Nenhum bloqueio tecnico no dev | Commitar/push e abrir checklist manual no modulo Administracao do servidor | VM | 2026-03-06 |
+| 2026-03-06 13:55 | EC2 | Producao | main | 7dad181 | smoke anterior OK | Estavel (aguardando promocao) | Nao promover antes da aprovacao do dev | Executar simulacao/preflight e promocao controlada apos aprovacao do Mac | EC2 | proximo ciclo |
 | 2026-03-06 13:02 | Mac | Local | codex/AgenteMac | 6beb761 | status/gitignore OK | Sincronizado | Nenhum | Manter regra de higiene: artefatos locais fora do Git | Mac | continuo |
 | 2026-03-06 13:02 | VM | Desenvolvimento | vm-atualizacoes | 1d0c895 | status/gitignore OK | Sincronizado | Nenhum | Seguir fluxo Mac->VM->EC2 para novas mudancas | VM | continuo |
 | 2026-03-06 13:02 | EC2 | Producao | main | 59cbced | health API OK / admin HTTP 200 | Sincronizado | Nenhum | Operacao normal com monitoramento padrao | EC2 | continuo |

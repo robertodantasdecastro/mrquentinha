@@ -14,6 +14,8 @@ PORTAL_PORT="${MRQ_PORTAL_PORT:-3000}"
 CLIENT_PORT="${MRQ_CLIENT_PORT:-3001}"
 ADMIN_PORT="${MRQ_ADMIN_PORT:-3002}"
 API_PORT="${MRQ_API_PORT:-8000}"
+PROJECT_ROOT="${MRQ_PROJECT_ROOT:-/home/ubuntu/mrquentinha}"
+API_STATIC_ROOT="${MRQ_API_STATIC_ROOT:-${PROJECT_ROOT}/workspaces/backend/staticfiles}"
 
 NGINX_SITE_PATH="/etc/nginx/sites-available/mrquentinha.conf"
 NGINX_SITE_LINK="/etc/nginx/sites-enabled/mrquentinha.conf"
@@ -248,6 +250,12 @@ server {
     listen 80;
     server_name ${API_DOMAIN};
 
+    location ^~ /static/ {
+        alias ${API_STATIC_ROOT}/;
+        access_log off;
+        expires 7d;
+    }
+
     location / {
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
@@ -414,6 +422,12 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location ^~ /static/ {
+        alias ${API_STATIC_ROOT}/;
+        access_log off;
+        expires 7d;
+    }
 
     location / {
         proxy_http_version 1.1;
