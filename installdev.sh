@@ -689,6 +689,7 @@ restore_dev_database() {
 prepare_prod_database() {
   log "Preparando banco PROD (migrate + seed_portal_default)..."
   run_manage "$ENV_PROD" python manage.py migrate --noinput
+  run_manage "$ENV_PROD" python manage.py collectstatic --noinput
   run_manage "$ENV_PROD" python manage.py seed_portal_default
 }
 

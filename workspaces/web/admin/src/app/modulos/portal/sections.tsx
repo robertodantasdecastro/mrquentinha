@@ -13,6 +13,7 @@ import {
   listMobileReleasesAdmin,
   listPortalSectionsAdmin,
   managePortalCloudflareRuntimeAdmin,
+  getPortalCloudflareApiStatusAdmin,
   previewPortalCloudflareAdmin,
   publishMobileReleaseAdmin,
   publishPortalConfigAdmin,
@@ -28,6 +29,7 @@ import type {
   PortalCloudflareMode,
   PortalCloudflarePreviewData,
   PortalCloudflareRuntimeData,
+  PortalCloudflareApiStatus,
   MobileReleaseData,
   PortalAsaasConfig,
   PortalAppleAuthConfig,
@@ -94,6 +96,8 @@ export type ServerAdminSectionKey =
   | "email"
   | "conectividade"
   | "mobile-build";
+
+type WebAdminEnvironmentMode = "dev" | "production" | "hybrid";
 
 type PortalSectionsMode = "portal" | "server-admin";
 
@@ -752,6 +756,39 @@ function normalizeCloudflareSettings(
   };
 }
 
+function deriveEnvironmentModeFromDraft(
+  mode: PortalCloudflareMode,
+  devMode: boolean,
+): WebAdminEnvironmentMode {
+  if (mode === "hybrid") {
+    return "hybrid";
+  }
+  if (devMode) {
+    return "dev";
+  }
+  return "production";
+}
+
+function normalizeOperationModeSettings(
+  value: PortalInstallerSettingsConfig | null | undefined,
+  cloudflareMode: PortalCloudflareMode,
+  devMode: boolean,
+): "dev" | "prod" | "hybrid" {
+  const storedMode = value?.operation_mode;
+  if (storedMode === "dev" || storedMode === "prod" || storedMode === "hybrid") {
+    return storedMode;
+  }
+
+  const derivedMode = deriveEnvironmentModeFromDraft(cloudflareMode, devMode);
+  if (derivedMode === "hybrid") {
+    return "hybrid";
+  }
+  if (derivedMode === "production") {
+    return "prod";
+  }
+  return "dev";
+}
+
 function getDefaultApiPublicAccessSettings(): PortalInstallerSettingsConfig["api_public_access"] {
   return {
     enabled: false,
@@ -801,6 +838,8 @@ export function PortalSections({
   const [sectionBodyJsonDraft, setSectionBodyJsonDraft] = useState("{}");
   const [localHostnameDraft, setLocalHostnameDraft] = useState("mrquentinha");
   const [localNetworkIpDraft, setLocalNetworkIpDraft] = useState("");
+  const [operationModeDraft, setOperationModeDraft] =
+    useState<WebAdminEnvironmentMode>("dev");
   const [rootDomainDraft, setRootDomainDraft] = useState("mrquentinha.local");
   const [portalDomainDraft, setPortalDomainDraft] = useState("www.mrquentinha.local");
   const [clientDomainDraft, setClientDomainDraft] = useState("app.mrquentinha.local");
@@ -852,6 +891,9 @@ export function PortalSections({
     null,
   );
   const [cloudflareRuntime, setCloudflareRuntime] = useState<PortalCloudflareRuntimeData | null>(
+    null,
+  );
+  const [cloudflareApiStatus, setCloudflareApiStatus] = useState<PortalCloudflareApiStatus | null>(
     null,
   );
   const [cloudflareSaving, setCloudflareSaving] = useState(false);
@@ -1096,6 +1138,9 @@ export function PortalSections({
     () => resolveHostFromApiBaseUrl(apiBaseUrlDraft),
     [apiBaseUrlDraft],
   );
+  const environmentModeDraft = operationModeDraft;
+  const isHybridEnvironmentMode = environmentModeDraft === "hybrid";
+  const isProductionEnvironmentMode = environmentModeDraft === "production";
   const customDevHostsEnabled = cloudflareDevUrlModeDraft === "manual";
   const officialDevHostsEnabled = cloudflareDevUrlModeDraft === "official";
   const selectedFrontendProviders = useMemo(
@@ -1109,6 +1154,60 @@ export function PortalSections({
   );
   const derivedAndroidDownloadUrl = `https://${derivedPublicHost}:3000/app/downloads/android.apk`;
   const derivedIosDownloadUrl = `https://${derivedPublicHost}:3000/app/downloads/ios`;
+
+  function handleEnvironmentModeChange(nextMode: WebAdminEnvironmentMode) {
+    setOperationModeDraft(nextMode);
+
+    if (nextMode === "hybrid") {
+      setCloudflareModeDraft("hybrid");
+      setSuccessMessage(
+        "Modo hibrido selecionado: rede local e Cloudflare podem coexistir.",
+      );
+      setErrorMessage("");
+      return;
+    }
+
+    if (nextMode === "dev") {
+      setCloudflareModeDraft("local_only");
+      setCloudflareDevModeDraft(true);
+      if (cloudflareDevUrlModeDraft === "random") {
+        setCloudflareDevUrlModeDraft("manual");
+      }
+      setSuccessMessage(
+        "Modo dev selecionado: foco em rede local e ambientes de teste controlados.",
+      );
+      setErrorMessage("");
+      return;
+    }
+
+    setCloudflareModeDraft("local_only");
+    setCloudflareDevModeDraft(false);
+    if (cloudflareDevUrlModeDraft === "random") {
+      setCloudflareDevUrlModeDraft("manual");
+    }
+    setSuccessMessage(
+      "Modo producao selecionado: URLs DEV random foram desativadas por seguranca.",
+    );
+    setErrorMessage("");
+  }
+
+  async function handleCloudflareApiStatus() {
+    setCloudflareSaving(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const payload = await getPortalCloudflareApiStatusAdmin(
+        buildCloudflareSettingsDraftPayload(),
+      );
+      setCloudflareApiStatus(payload);
+      setSuccessMessage("Diagnostico Cloudflare API atualizado.");
+    } catch (error) {
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setCloudflareSaving(false);
+    }
+  }
 
   function buildCloudflareSettingsDraftPayload(): PortalCloudflareConfig {
     const base = normalizeCloudflareSettings(config?.cloudflare_settings);
@@ -1227,6 +1326,14 @@ export function PortalSections({
         const cloudflareSettings = normalizeCloudflareSettings(
           configPayload.cloudflare_settings,
         );
+        const normalizedOperationMode = normalizeOperationModeSettings(
+          configPayload.installer_settings,
+          cloudflareSettings.mode,
+          cloudflareSettings.dev_mode,
+        );
+        setOperationModeDraft(
+          normalizedOperationMode === "prod" ? "production" : normalizedOperationMode,
+        );
         setCloudflareEnabledDraft(cloudflareSettings.enabled);
         setCloudflareModeDraft(cloudflareSettings.mode);
         setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
@@ -1251,7 +1358,8 @@ export function PortalSections({
         setCloudflareClientDevUrlDraft(cloudflareSettings.dev_manual_urls.client);
         setCloudflareAdminDevUrlDraft(cloudflareSettings.dev_manual_urls.admin);
         setCloudflareApiDevUrlDraft(cloudflareSettings.dev_manual_urls.api);
-        setCloudflareRuntime({
+        setCloudflareApiStatus(null);
+      setCloudflareRuntime({
           state: cloudflareSettings.runtime.state,
           pid: null,
           log_file: "",
@@ -1845,6 +1953,8 @@ export function PortalSections({
     try {
       const nextInstallerSettings: PortalInstallerSettingsConfig = {
         ...(config.installer_settings ?? ({} as PortalInstallerSettingsConfig)),
+        operation_mode:
+          environmentModeDraft === "production" ? "prod" : environmentModeDraft,
         api_public_access: {
           enabled: mobileApiPublicEnabledDraft,
           preferred_endpoint: mobileApiPreferredEndpointDraft,
@@ -1889,13 +1999,21 @@ export function PortalSections({
       const updatedMobileApiPublicAccess = normalizeApiPublicAccessSettings(
         updatedConfig.installer_settings,
       );
+      const cloudflareSettings = normalizeCloudflareSettings(
+        updatedConfig.cloudflare_settings,
+      );
+      const updatedOperationMode = normalizeOperationModeSettings(
+        updatedConfig.installer_settings,
+        cloudflareSettings.mode,
+        cloudflareSettings.dev_mode,
+      );
+      setOperationModeDraft(
+        updatedOperationMode === "prod" ? "production" : updatedOperationMode,
+      );
       setMobileApiPublicEnabledDraft(updatedMobileApiPublicAccess.enabled);
       setMobileApiPreferredEndpointDraft(updatedMobileApiPublicAccess.preferred_endpoint);
       setMobileApiPublicIpUrlDraft(updatedMobileApiPublicAccess.public_ip_base_url);
       setMobileApiAwsDnsUrlDraft(updatedMobileApiPublicAccess.aws_dns_base_url);
-      const cloudflareSettings = normalizeCloudflareSettings(
-        updatedConfig.cloudflare_settings,
-      );
       setCloudflareEnabledDraft(cloudflareSettings.enabled);
       setCloudflareModeDraft(cloudflareSettings.mode);
       setCloudflareDevModeDraft(cloudflareSettings.dev_mode);
@@ -3271,6 +3389,108 @@ export function PortalSections({
           </article>
 
           <article className="mt-4 rounded-xl border border-border bg-bg p-4">
+            <h3 className="text-base font-semibold text-text">
+              Modo de funcionamento do WebAdmin
+            </h3>
+            <p className="mt-1 text-xs text-muted">
+              Defina o perfil operacional deste ambiente: dev, producao ou hibrido.
+            </p>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="grid gap-1 text-sm text-muted">
+                Modo operacional
+                <select
+                  value={environmentModeDraft}
+                  onChange={(event) =>
+                    handleEnvironmentModeChange(
+                      event.currentTarget.value as WebAdminEnvironmentMode,
+                    )
+                  }
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
+                >
+                  <option value="dev">Ambiente DEV</option>
+                  <option value="production">Ambiente Producao</option>
+                  <option value="hybrid">Ambiente Hibrido</option>
+                </select>
+              </label>
+              <div className="rounded-md border border-border bg-surface/60 px-3 py-2 text-xs text-muted">
+                <p>
+                  <strong className="text-text">DEV:</strong> prioriza rede local, testes e
+                  ajustes rapidos.
+                </p>
+                <p className="mt-1">
+                  <strong className="text-text">PRODUCAO:</strong> bloqueia URL random de
+                  desenvolvimento e evita mudancas instaveis.
+                </p>
+                <p className="mt-1">
+                  <strong className="text-text">HIBRIDO:</strong> permite operacao local e
+                  Cloudflare em paralelo.
+                </p>
+              </div>
+            </div>
+
+            {isProductionEnvironmentMode && (
+              <p className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                Seguranca para producao: o modo DEV com dominios random fica desativado. Antes de
+                publicar alteracoes, valide DNS, SSL e health checks para nao impactar uma maquina
+                ja online.
+              </p>
+            )}
+            {cloudflareApiStatus && (
+              <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-xs text-muted">
+                <p className="font-semibold text-text">Diagnostico Cloudflare API</p>
+                <p className="mt-1">
+                  Token: <strong className="text-text">{cloudflareApiStatus.token.valid ? "valido" : "invalido"}</strong>
+                  {" "}| Zona: <strong className="text-text">{cloudflareApiStatus.zone.resolved ? "resolvida" : "nao resolvida"}</strong>
+                </p>
+                <p className="mt-1">
+                  DNS faltando: <strong className="text-text">{cloudflareApiStatus.dns.missing.length}</strong>
+                </p>
+                {cloudflareApiStatus.token.errors.length > 0 && (
+                  <p className="mt-2 text-amber-200">
+                    Token: {cloudflareApiStatus.token.errors.join(" | ")}
+                  </p>
+                )}
+                {cloudflareApiStatus.zone.errors.length > 0 && (
+                  <p className="mt-1 text-amber-200">
+                    Zona: {cloudflareApiStatus.zone.errors.join(" | ")}
+                  </p>
+                )}
+                {cloudflareApiStatus.dns.errors.length > 0 && (
+                  <p className="mt-1 text-amber-200">
+                    DNS: {cloudflareApiStatus.dns.errors.join(" | ")}
+                  </p>
+                )}
+                <div className="mt-2 rounded-md border border-border bg-bg px-2 py-2">
+                  <p className="font-semibold text-text">Permissoes minimas recomendadas</p>
+                  {cloudflareApiStatus.guide.required_permissions.map((item) => (
+                    <p key={item} className="mt-1">- {item}</p>
+                  ))}
+                </div>
+                <div className="mt-2 rounded-md border border-border bg-bg px-2 py-2">
+                  <p className="font-semibold text-text">Guia rapido de ativacao</p>
+                  {cloudflareApiStatus.guide.steps.map((item) => (
+                    <p key={item} className="mt-1">{item}</p>
+                  ))}
+                  <div className="mt-2 grid gap-1">
+                    {cloudflareApiStatus.guide.docs.map((doc) => (
+                      <a
+                        key={doc.url}
+                        href={doc.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        {doc.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </article>
+
+          <article className="mt-4 rounded-xl border border-border bg-bg p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-semibold text-text">Cloudflare online (1 clique)</h3>
@@ -3339,6 +3559,7 @@ export function PortalSections({
                   type="checkbox"
                   checked={cloudflareDevModeDraft}
                   onChange={(event) => setCloudflareDevModeDraft(event.currentTarget.checked)}
+                  disabled={isProductionEnvironmentMode}
                   className="h-4 w-4 rounded border-border text-primary"
                 />
                 Modo DEV com dominios publicos
@@ -3347,7 +3568,7 @@ export function PortalSections({
                 Quando ativo, as URLs DEV substituem as URLs de producao (portal/client/admin/api).
                 Escolha entre trycloudflare (random), manual ou dominio oficial com portas.
               </p>
-              {cloudflareDevModeDraft && (
+              {cloudflareDevModeDraft && isHybridEnvironmentMode && (
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   <div className="grid gap-2 text-sm text-muted">
                     <label className="grid gap-1 text-sm text-muted">
@@ -3361,7 +3582,9 @@ export function PortalSections({
                         }
                         className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-text"
                       >
-                        <option value="random">Random (trycloudflare)</option>
+                        <option value="random" disabled={!isHybridEnvironmentMode}>
+                          Random (trycloudflare)
+                        </option>
                         <option value="manual">Manual (URLs estaveis)</option>
                         <option value="official">Dominio oficial + portas</option>
                       </select>
@@ -3380,8 +3603,9 @@ export function PortalSections({
                   <p className="rounded-md border border-border bg-bg px-3 py-2 text-xs text-muted">
                     Em <strong>manual</strong>, as URLs abaixo viram referencia ativa para
                     roteamento/API dos frontends no modo DEV. Em <strong>random</strong>, o sistema
-                    usa os dominios gerados pelo runtime. Em <strong>oficial</strong>, usa um unico
-                    dominio (ex.: dev.mrquentinha.com.br) com portas 3000/3001/3002/8000.
+                    usa os dominios gerados pelo runtime (somente no modo hibrido). Em
+                    <strong>oficial</strong>, usa um unico dominio (ex.: dev.mrquentinha.com.br) com
+                    portas 3000/3001/3002/8000.
                   </p>
                 </div>
               )}
@@ -3595,13 +3819,21 @@ export function PortalSections({
               </button>
               <button
                 type="button"
+                onClick={() => void handleCloudflareApiStatus()}
+                disabled={cloudflareSaving || !config}
+                className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cloudflareSaving ? "Consultando..." : "Diagnosticar Cloudflare API"}
+              </button>
+              <button
+                type="button"
                 onClick={() => void handleCloudflareRuntimeAction("start")}
                 disabled={cloudflareSaving || !config}
                 className="rounded-md border border-border bg-bg px-4 py-2 text-sm font-semibold text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {cloudflareSaving ? "Iniciando..." : "Iniciar tunnel"}
               </button>
-              {cloudflareDevModeDraft && (
+              {cloudflareDevModeDraft && isHybridEnvironmentMode && (
                 <button
                   type="button"
                   onClick={() => void handleCloudflareRuntimeAction("refresh")}

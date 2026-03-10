@@ -14,6 +14,7 @@ from apps.portal.services import (
     publish_mobile_release,
     save_portal_config,
     toggle_cloudflare_mode,
+    inspect_cloudflare_api_status,
 )
 
 
@@ -763,6 +764,65 @@ def test_cloudflare_runtime_status_dev_sincroniza_urls_quando_rotacionar(monkeyp
 
 
 @pytest.mark.django_db
+@pytest.mark.django_db
+def test_inspect_cloudflare_api_status_consolida_token_zona_e_dns(monkeypatch):
+    responses = {
+        "/user/tokens/verify": {
+            "ok": True,
+            "payload": {
+                "success": True,
+                "result": {
+                    "id": "token-1",
+                    "status": "active",
+                    "expires_on": "",
+                    "not_before": "",
+                },
+            },
+            "errors": [],
+        },
+        "/zones": {
+            "ok": True,
+            "payload": {
+                "success": True,
+                "result": [{"id": "zone-1", "name": "mrquentinha.com.br", "status": "active"}],
+            },
+            "errors": [],
+        },
+        "/zones/zone-1/dns_records": {
+            "ok": True,
+            "payload": {
+                "success": True,
+                "result": [{"type": "CNAME", "content": "target.example.com", "proxied": True}],
+            },
+            "errors": [],
+        },
+    }
+
+    def fake_cloudflare_request(*, token, path, query=None):
+        if path == "/zones/zone-1/dns_records":
+            return responses[path]
+        return responses.get(path, {"ok": True, "payload": {"success": True, "result": []}, "errors": []})
+
+    monkeypatch.setattr(portal_services, "_cloudflare_api_request", fake_cloudflare_request)
+
+    payload = inspect_cloudflare_api_status(
+        overrides={
+            "api_token": "token",
+            "root_domain": "mrquentinha.com.br",
+            "subdomains": {
+                "portal": "www",
+                "client": "app",
+                "admin": "admin",
+                "api": "api",
+            },
+        }
+    )
+
+    assert payload["token"]["valid"] is True
+    assert payload["zone"]["resolved"] is True
+    assert payload["dns"]["checked"] is True
+
+
 def test_validate_installer_wizard_retorna_pre_requisitos_em_prod():
     config = ensure_portal_config()
 

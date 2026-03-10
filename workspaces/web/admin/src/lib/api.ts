@@ -46,6 +46,7 @@ import type {
   PortalCloudflareConfig,
   PortalCloudflarePreviewData,
   PortalCloudflareRuntimeResult,
+  PortalCloudflareApiStatus,
   PortalCloudflareToggleResult,
   PortalDatabaseBackupCreateResult,
   PortalDatabaseBackupsListResult,
@@ -1551,6 +1552,19 @@ export async function managePortalCloudflareRuntimeAdmin(
       method: "POST",
       auth: true,
       body: JSON.stringify({ action }),
+    },
+  );
+}
+
+export async function getPortalCloudflareApiStatusAdmin(
+  settings: Partial<PortalCloudflareConfig>,
+): Promise<PortalCloudflareApiStatus> {
+  return requestJson<PortalCloudflareApiStatus>(
+    "/api/v1/portal/admin/config/cloudflare-api-status/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ settings }),
     },
   );
 }

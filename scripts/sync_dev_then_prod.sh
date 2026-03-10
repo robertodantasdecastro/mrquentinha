@@ -70,6 +70,7 @@ run_dev() {
   ln -sfn .env.dev .env
   export DJANGO_SETTINGS_MODULE=config.settings.dev
   python manage.py migrate --noinput
+  python manage.py collectstatic --noinput
   python manage.py check
 
   log "DEV: dependencias frontend"

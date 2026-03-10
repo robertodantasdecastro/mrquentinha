@@ -1314,6 +1314,60 @@ export type PortalCloudflareRuntimeResult = {
   action: "start" | "stop" | "status" | "refresh";
 };
 
+export type PortalCloudflareApiStatus = {
+  checked_at: string;
+  configured: boolean;
+  mode: PortalCloudflareMode;
+  dev_mode: boolean;
+  expected_domains: Record<"portal" | "client" | "admin" | "api", string>;
+  token: {
+    configured: boolean;
+    valid: boolean;
+    status: string;
+    expires_on?: string;
+    not_before?: string;
+    id?: string;
+    errors: string[];
+  };
+  zone: {
+    configured: boolean;
+    resolved: boolean;
+    id: string;
+    name: string;
+    status: string;
+    errors: string[];
+  };
+  dns: {
+    checked: boolean;
+    records: Record<
+      "portal" | "client" | "admin" | "api",
+      {
+        domain: string;
+        found: boolean;
+        type: string;
+        content: string;
+        proxied: boolean | null;
+      }
+    >;
+    missing: string[];
+    errors: string[];
+  };
+  tunnel: {
+    checked: boolean;
+    account_id: string;
+    total: number;
+    errors: string[];
+  };
+  guide: {
+    required_permissions: string[];
+    steps: string[];
+    docs: Array<{
+      label: string;
+      url: string;
+    }>;
+  };
+};
+
 export type AdminActivityLogData = {
   id: number;
   request_id: string;
@@ -1464,6 +1518,7 @@ export type PortalInstallerDraftPayload = {
 };
 
 export type PortalInstallerSettingsConfig = {
+  operation_mode: "dev" | "prod" | "hybrid";
   api_public_access: {
     enabled: boolean;
     preferred_endpoint: "public_ip" | "aws_dns";

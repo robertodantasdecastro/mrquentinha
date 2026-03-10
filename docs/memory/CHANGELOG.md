@@ -1487,3 +1487,33 @@
     - `git ls-files` sem `btop.png` em todos os ambientes;
     - `git status -sb` sem `btop.png` em todos os ambientes;
     - producao manteve health OK (`/api/v1/health`) e admin HTTP 200.
+
+
+- Ops-06/03/2026 (webadmin: modo operacional + cloudflare api + hardening static)
+  - sincronizacao triagente inicial realizada com snapshot:
+    - Mac: `codex/AgenteMac` (`4def788`, com alteracoes locais fora de escopo);
+    - VM: `vm-atualizacoes` alinhada com `origin/main` e ciclo em validacao;
+    - EC2: `main` (`7dad181`) estavel aguardando promocao.
+  - hardening de runtime/producao para static do Django Admin:
+    - `scripts/setup_nginx_prod.sh`: adiciona `location ^~ /static/` no host `api` com `alias` para `staticfiles`;
+    - `scripts/setup_systemd_prod.sh`: inclui `collectstatic --noinput` no start do backend;
+    - mesma garantia propagada para `start_vm_prod.sh`, `ops_center_prod.py`, `sync_dev_then_prod.sh` e `installdev.sh`.
+  - web admin (`Administracao do servidor`):
+    - novo controle de modo operacional (`DEV`, `PRODUCAO`, `HIBRIDO`) com explicacao de impacto e aviso de seguranca para producao;
+    - regras de UX: URLs random (`trycloudflare`) e refresh de dominios DEV restritos ao modo hibrido;
+    - novo diagnostico `Cloudflare API` com status de token/zona/DNS + guia oficial de ativacao.
+  - backend/API portal:
+    - novo endpoint admin `POST /api/v1/portal/admin/config/cloudflare-api-status/`;
+    - integra chamadas oficiais Cloudflare API (token verify, zones, dns records, tunnels opcional) com retorno estruturado para operacao.
+  - validacao executada no VM/dev:
+    - `pytest -q tests/test_portal_api.py tests/test_portal_services.py -k cloudflare` -> OK;
+    - `npm run build` em `workspaces/web/admin` -> OK;
+    - `bash -n` scripts alterados + `py_compile` backend -> OK.
+
+- Ops-10/03/2026 (web admin/server-admin): persistencia central do modo operacional
+  - o seletor `DEV` / `PRODUCAO` / `HIBRIDO` em `Administracao do servidor` passou a persistir em `installer_settings.operation_mode`, deixando de depender apenas da derivacao visual por Cloudflare.
+  - backend `portal` passou a normalizar `operation_mode` como fonte oficial para resolucao de contexto de runtime, incluindo os fluxos do modulo `Banco de dados`.
+  - frontend admin passou a carregar/salvar esse modo explicitamente e o `InstallAssistantPanel` recebeu compatibilidade com o novo contrato.
+  - validacao executada:
+    - backend: `python3 -m py_compile` + `pytest -q tests/test_portal_api.py -k "database or cloudflare"` -> OK;
+    - web admin: `npm run lint` + `npm run build` -> OK.
