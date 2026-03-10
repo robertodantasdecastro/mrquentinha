@@ -769,6 +769,26 @@ function deriveEnvironmentModeFromDraft(
   return "production";
 }
 
+function normalizeOperationModeSettings(
+  value: PortalInstallerSettingsConfig | null | undefined,
+  cloudflareMode: PortalCloudflareMode,
+  devMode: boolean,
+): "dev" | "prod" | "hybrid" {
+  const storedMode = value?.operation_mode;
+  if (storedMode === "dev" || storedMode === "prod" || storedMode === "hybrid") {
+    return storedMode;
+  }
+
+  const derivedMode = deriveEnvironmentModeFromDraft(cloudflareMode, devMode);
+  if (derivedMode === "hybrid") {
+    return "hybrid";
+  }
+  if (derivedMode === "production") {
+    return "prod";
+  }
+  return "dev";
+}
+
 function getDefaultApiPublicAccessSettings(): PortalInstallerSettingsConfig["api_public_access"] {
   return {
     enabled: false,
@@ -818,6 +838,8 @@ export function PortalSections({
   const [sectionBodyJsonDraft, setSectionBodyJsonDraft] = useState("{}");
   const [localHostnameDraft, setLocalHostnameDraft] = useState("mrquentinha");
   const [localNetworkIpDraft, setLocalNetworkIpDraft] = useState("");
+  const [operationModeDraft, setOperationModeDraft] =
+    useState<WebAdminEnvironmentMode>("dev");
   const [rootDomainDraft, setRootDomainDraft] = useState("mrquentinha.local");
   const [portalDomainDraft, setPortalDomainDraft] = useState("www.mrquentinha.local");
   const [clientDomainDraft, setClientDomainDraft] = useState("app.mrquentinha.local");
@@ -1116,10 +1138,7 @@ export function PortalSections({
     () => resolveHostFromApiBaseUrl(apiBaseUrlDraft),
     [apiBaseUrlDraft],
   );
-  const environmentModeDraft = deriveEnvironmentModeFromDraft(
-    cloudflareModeDraft,
-    cloudflareDevModeDraft,
-  );
+  const environmentModeDraft = operationModeDraft;
   const isHybridEnvironmentMode = environmentModeDraft === "hybrid";
   const isProductionEnvironmentMode = environmentModeDraft === "production";
   const customDevHostsEnabled = cloudflareDevUrlModeDraft === "manual";
@@ -1137,6 +1156,8 @@ export function PortalSections({
   const derivedIosDownloadUrl = `https://${derivedPublicHost}:3000/app/downloads/ios`;
 
   function handleEnvironmentModeChange(nextMode: WebAdminEnvironmentMode) {
+    setOperationModeDraft(nextMode);
+
     if (nextMode === "hybrid") {
       setCloudflareModeDraft("hybrid");
       setSuccessMessage(
@@ -1304,6 +1325,14 @@ export function PortalSections({
         setCorsAllowedOriginsDraft(stringifyOrigins(configPayload.cors_allowed_origins));
         const cloudflareSettings = normalizeCloudflareSettings(
           configPayload.cloudflare_settings,
+        );
+        const normalizedOperationMode = normalizeOperationModeSettings(
+          configPayload.installer_settings,
+          cloudflareSettings.mode,
+          cloudflareSettings.dev_mode,
+        );
+        setOperationModeDraft(
+          normalizedOperationMode === "prod" ? "production" : normalizedOperationMode,
         );
         setCloudflareEnabledDraft(cloudflareSettings.enabled);
         setCloudflareModeDraft(cloudflareSettings.mode);
@@ -1924,6 +1953,8 @@ export function PortalSections({
     try {
       const nextInstallerSettings: PortalInstallerSettingsConfig = {
         ...(config.installer_settings ?? ({} as PortalInstallerSettingsConfig)),
+        operation_mode:
+          environmentModeDraft === "production" ? "prod" : environmentModeDraft,
         api_public_access: {
           enabled: mobileApiPublicEnabledDraft,
           preferred_endpoint: mobileApiPreferredEndpointDraft,
@@ -1968,13 +1999,21 @@ export function PortalSections({
       const updatedMobileApiPublicAccess = normalizeApiPublicAccessSettings(
         updatedConfig.installer_settings,
       );
+      const cloudflareSettings = normalizeCloudflareSettings(
+        updatedConfig.cloudflare_settings,
+      );
+      const updatedOperationMode = normalizeOperationModeSettings(
+        updatedConfig.installer_settings,
+        cloudflareSettings.mode,
+        cloudflareSettings.dev_mode,
+      );
+      setOperationModeDraft(
+        updatedOperationMode === "prod" ? "production" : updatedOperationMode,
+      );
       setMobileApiPublicEnabledDraft(updatedMobileApiPublicAccess.enabled);
       setMobileApiPreferredEndpointDraft(updatedMobileApiPublicAccess.preferred_endpoint);
       setMobileApiPublicIpUrlDraft(updatedMobileApiPublicAccess.public_ip_base_url);
       setMobileApiAwsDnsUrlDraft(updatedMobileApiPublicAccess.aws_dns_base_url);
-      const cloudflareSettings = normalizeCloudflareSettings(
-        updatedConfig.cloudflare_settings,
-      );
       setCloudflareEnabledDraft(cloudflareSettings.enabled);
       setCloudflareModeDraft(cloudflareSettings.mode);
       setCloudflareDevModeDraft(cloudflareSettings.dev_mode);

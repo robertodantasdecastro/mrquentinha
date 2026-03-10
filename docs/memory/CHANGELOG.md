@@ -1509,3 +1509,11 @@
     - `pytest -q tests/test_portal_api.py tests/test_portal_services.py -k cloudflare` -> OK;
     - `npm run build` em `workspaces/web/admin` -> OK;
     - `bash -n` scripts alterados + `py_compile` backend -> OK.
+
+- Ops-10/03/2026 (web admin/server-admin): persistencia central do modo operacional
+  - o seletor `DEV` / `PRODUCAO` / `HIBRIDO` em `Administracao do servidor` passou a persistir em `installer_settings.operation_mode`, deixando de depender apenas da derivacao visual por Cloudflare.
+  - backend `portal` passou a normalizar `operation_mode` como fonte oficial para resolucao de contexto de runtime, incluindo os fluxos do modulo `Banco de dados`.
+  - frontend admin passou a carregar/salvar esse modo explicitamente e o `InstallAssistantPanel` recebeu compatibilidade com o novo contrato.
+  - validacao executada:
+    - backend: `python3 -m py_compile` + `pytest -q tests/test_portal_api.py -k "database or cloudflare"` -> OK;
+    - web admin: `npm run lint` + `npm run build` -> OK.

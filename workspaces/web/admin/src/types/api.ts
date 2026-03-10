@@ -1518,6 +1518,7 @@ export type PortalInstallerDraftPayload = {
 };
 
 export type PortalInstallerSettingsConfig = {
+  operation_mode: "dev" | "prod" | "hybrid";
   api_public_access: {
     enabled: boolean;
     preferred_endpoint: "public_ip" | "aws_dns";

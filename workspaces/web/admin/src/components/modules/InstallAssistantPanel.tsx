@@ -263,6 +263,7 @@ function getDefaultDraft(): PortalInstallerDraftPayload {
 
 function getDefaultSettings(): PortalInstallerSettingsConfig {
   return {
+    operation_mode: "dev",
     api_public_access: {
       enabled: false,
       preferred_endpoint: "public_ip",

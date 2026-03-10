@@ -332,6 +332,7 @@ DEFAULT_INSTALLER_SETTINGS = {
     "last_synced_at": "",
     "last_sync_note": "Workflow do instalador ainda nao sincronizado nesta instancia.",
     "requires_review": False,
+    "operation_mode": "dev",
     "lifecycle": {
         "enforce_sync_memory": True,
         "enforce_quality_gate": True,
@@ -419,6 +420,15 @@ def _normalize_api_public_access_settings(raw_value: object | None) -> dict:
         "public_ip_base_url": public_ip_base_url,
         "aws_dns_base_url": aws_dns_base_url,
     }
+
+
+def _normalize_operation_mode(raw_value: object | None) -> str:
+    normalized = str(raw_value or "").strip().lower()
+    if normalized in {"production", "producao"}:
+        return "prod"
+    if normalized in {"dev", "prod", "hybrid"}:
+        return normalized
+    return "dev"
 
 
 def _normalize_database_ops_settings(raw_value: object | None) -> dict:
@@ -1794,6 +1804,9 @@ def _normalize_installer_settings(raw_value: object | None) -> dict:
         str(raw_value.get("last_sync_note", "")).strip() or normalized["last_sync_note"]
     )
     normalized["requires_review"] = bool(raw_value.get("requires_review", False))
+    normalized["operation_mode"] = _normalize_operation_mode(
+        raw_value.get("operation_mode", normalized["operation_mode"])
+    )
 
     lifecycle = raw_value.get("lifecycle")
     if isinstance(lifecycle, dict):
@@ -5284,6 +5297,10 @@ def _normalize_dbops_label(raw_value: object | None) -> str:
 
 def _resolve_operation_mode(*, config: PortalConfig) -> str:
     installer_settings = _normalize_installer_settings(config.installer_settings)
+    explicit_mode = _normalize_operation_mode(installer_settings.get("operation_mode"))
+    if explicit_mode in {"dev", "prod", "hybrid"}:
+        return explicit_mode
+
     wizard = installer_settings.get("wizard", {})
     draft = wizard.get("draft", {}) if isinstance(wizard, dict) else {}
     mode = str(draft.get("mode", "")).strip().lower()
