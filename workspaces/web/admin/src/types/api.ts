@@ -678,6 +678,23 @@ export type PurchaseRequestFromMenuResultData = {
   };
 };
 
+export type SeedParaibaCaseiraWeekPayload = {
+  start_date?: string;
+};
+
+export type SeedParaibaCaseiraWeekResultData = {
+  start_date: string;
+  end_date: string;
+  menu_days_processed: number;
+  purchase_requests_created: number;
+  production_batches_processed: number;
+  purchase: {
+    id: number;
+    invoice_number: string;
+  } | null;
+  command_log?: string[];
+};
+
 export type OpsPipelineStageData = {
   stage: string;
   count: number;
@@ -1297,6 +1314,60 @@ export type PortalCloudflareRuntimeResult = {
   action: "start" | "stop" | "status" | "refresh";
 };
 
+export type PortalCloudflareApiStatus = {
+  checked_at: string;
+  configured: boolean;
+  mode: PortalCloudflareMode;
+  dev_mode: boolean;
+  expected_domains: Record<"portal" | "client" | "admin" | "api", string>;
+  token: {
+    configured: boolean;
+    valid: boolean;
+    status: string;
+    expires_on?: string;
+    not_before?: string;
+    id?: string;
+    errors: string[];
+  };
+  zone: {
+    configured: boolean;
+    resolved: boolean;
+    id: string;
+    name: string;
+    status: string;
+    errors: string[];
+  };
+  dns: {
+    checked: boolean;
+    records: Record<
+      "portal" | "client" | "admin" | "api",
+      {
+        domain: string;
+        found: boolean;
+        type: string;
+        content: string;
+        proxied: boolean | null;
+      }
+    >;
+    missing: string[];
+    errors: string[];
+  };
+  tunnel: {
+    checked: boolean;
+    account_id: string;
+    total: number;
+    errors: string[];
+  };
+  guide: {
+    required_permissions: string[];
+    steps: string[];
+    docs: Array<{
+      label: string;
+      url: string;
+    }>;
+  };
+};
+
 export type AdminActivityLogData = {
   id: number;
   request_id: string;
@@ -1447,6 +1518,7 @@ export type PortalInstallerDraftPayload = {
 };
 
 export type PortalInstallerSettingsConfig = {
+  operation_mode: "dev" | "prod" | "hybrid";
   api_public_access: {
     enabled: boolean;
     preferred_endpoint: "public_ip" | "aws_dns";
@@ -1493,7 +1565,7 @@ export type PortalInstallerWizardValidateResult = {
   validated_at: string;
 };
 
-export type PortalInstallerAwsValidationCheck = {
+export type PortalInstallerCloudValidationCheck = {
   name: string;
   status: string;
   detail: string;
@@ -1533,14 +1605,29 @@ export type PortalInstallerAwsCostEstimate = {
 export type PortalInstallerAwsCloudValidation = {
   provider: "aws";
   checked_at: string;
-  connectivity: PortalInstallerAwsValidationCheck;
+  connectivity: PortalInstallerCloudValidationCheck;
   prerequisites: {
-    checks: PortalInstallerAwsValidationCheck[];
+    checks: PortalInstallerCloudValidationCheck[];
     warnings: string[];
   };
   costs: PortalInstallerAwsCostEstimate;
   warnings: string[];
 };
+
+export type PortalInstallerGcpCloudValidation = {
+  provider: "gcp";
+  checked_at: string;
+  connectivity: PortalInstallerCloudValidationCheck;
+  prerequisites: {
+    checks: PortalInstallerCloudValidationCheck[];
+    warnings: string[];
+  };
+  warnings: string[];
+};
+
+export type PortalInstallerCloudValidation =
+  | PortalInstallerAwsCloudValidation
+  | PortalInstallerGcpCloudValidation;
 
 export type PortalInstallerAwsValidateResult = {
   ok: boolean;
@@ -1549,6 +1636,15 @@ export type PortalInstallerAwsValidateResult = {
   normalized_payload: PortalInstallerDraftPayload;
   warnings: string[];
   cloud_validation: PortalInstallerAwsCloudValidation;
+};
+
+export type PortalInstallerGcpValidateResult = {
+  ok: boolean;
+  workflow_version: string;
+  validated_at: string;
+  normalized_payload: PortalInstallerDraftPayload;
+  warnings: string[];
+  cloud_validation: PortalInstallerGcpCloudValidation;
 };
 
 export type PortalInstallerPrerequisiteField = {
@@ -1597,7 +1693,7 @@ export type PortalInstallerJobData = {
     checked_at: string;
     [key: string]: unknown;
   }>;
-  cloud_validation?: PortalInstallerAwsCloudValidation;
+  cloud_validation?: PortalInstallerCloudValidation;
   last_log_lines?: string[];
   running?: boolean;
 };

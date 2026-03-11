@@ -18,6 +18,7 @@ import { Sparkline } from "@/components/charts/Sparkline";
 import { MenuOpsPanel } from "@/components/modules/MenuOpsPanel";
 import { DishCompositionPanel } from "@/components/modules/DishCompositionPanel";
 import { ModuleGuide } from "@/components/modules/ModuleGuide";
+import { WeeklySimulationPanel } from "@/components/modules/WeeklySimulationPanel";
 
 export const CARDAPIO_BASE_PATH = "/modulos/cardapio";
 
@@ -27,6 +28,7 @@ export const CARDAPIO_MENU_ITEMS = [
   { key: "planejamento", label: "Planejamento", href: `${CARDAPIO_BASE_PATH}/planejamento#planejamento` },
   { key: "composicao", label: "Composição", href: `${CARDAPIO_BASE_PATH}/composicao#composicao` },
   { key: "menus", label: "Menus", href: `${CARDAPIO_BASE_PATH}/menus#menus` },
+  { key: "simulacao", label: "Simulacao", href: `${CARDAPIO_BASE_PATH}/simulacao#simulacao` },
   { key: "tendencias", label: "Tendências", href: `${CARDAPIO_BASE_PATH}/tendencias#tendencias` },
 ];
 
@@ -36,6 +38,7 @@ export type CardapioSectionKey =
   | "planejamento"
   | "composicao"
   | "menus"
+  | "simulacao"
   | "tendencias";
 
 type CardapioSectionsProps = {
@@ -211,6 +214,12 @@ export function CardapioSections({ activeSection = "all" }: CardapioSectionsProp
       {(showAll || activeSection === "menus") && (
         <section id="menus" className="scroll-mt-24">
           <MenuOpsPanel />
+        </section>
+      )}
+
+      {(showAll || activeSection === "simulacao") && (
+        <section id="simulacao" className="scroll-mt-24">
+          <WeeklySimulationPanel context="cardapio" />
         </section>
       )}
 

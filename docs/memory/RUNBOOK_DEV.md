@@ -362,3 +362,21 @@ CORREIOS_CEP_REQUEST_TIMEOUT_SECONDS=8
 2. Para telefone operacional, incluir opcao de WhatsApp quando aplicavel (`phone_is_whatsapp`).
 3. Para CEP, manter link oficial dos Correios e permitir autopreenchimento de endereco.
 4. Nunca depender so de validacao frontend; validar tambem no backend (CPF/CNPJ por DV, telefone e email).
+
+## 19) Assistente de instalacao - validacao GCP (T9.2.7-A5-A3)
+Painel:
+- `http://<host>:3002/modulos/instalacao-deploy`
+
+Fluxo rapido (GCP):
+1. Na etapa `Destino`, escolha `Cloud` e `provider=gcp`.
+2. Na etapa `Infraestrutura`, preencha:
+   - `project_id`, `region`, `dns_zone`, `ec2_instance_id` (nome da VM), `elastic_ip_allocation_id` (nome do IP estatico), `codedeploy_application_name` (delivery pipeline) e `codedeploy_deployment_group` (target).
+3. Clique `Validar configuracao GCP`.
+4. Corrija itens `error` e revise `warning` antes de iniciar o job.
+
+Endpoint:
+- `POST /api/v1/portal/admin/config/installer-cloud/gcp/validate/`
+
+Retorno esperado:
+- `connectivity.gcp_cli/gcp_auth/gcp_project` com status de CLI/autenticacao/projeto.
+- `cloud_validation.checks` com status para DNS, VM, IP estatico e Cloud Deploy.

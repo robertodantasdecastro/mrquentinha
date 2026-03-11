@@ -46,6 +46,7 @@ import type {
   PortalCloudflareConfig,
   PortalCloudflarePreviewData,
   PortalCloudflareRuntimeResult,
+  PortalCloudflareApiStatus,
   PortalCloudflareToggleResult,
   PortalDatabaseBackupCreateResult,
   PortalDatabaseBackupsListResult,
@@ -62,6 +63,7 @@ import type {
   PortalSslCertificatesRequest,
   PortalSslCertificatesResult,
   PortalInstallerAwsValidateResult,
+  PortalInstallerGcpValidateResult,
   PortalInstallerDraftPayload,
   PortalInstallerJobResult,
   PortalInstallerJobsListResult,
@@ -80,6 +82,8 @@ import type {
   PurchaseItemData,
   PurchaseRequestData,
   PurchaseRequestFromMenuResultData,
+  SeedParaibaCaseiraWeekPayload,
+  SeedParaibaCaseiraWeekResultData,
   ProcurementRequestStatus,
   TaskCategoryData,
   RoleData,
@@ -1289,6 +1293,16 @@ export async function generatePurchaseRequestFromMenuAdmin(
   });
 }
 
+export async function seedParaibaCaseiraWeekAdmin(
+  payload: SeedParaibaCaseiraWeekPayload,
+): Promise<SeedParaibaCaseiraWeekResultData> {
+  return requestJson<SeedParaibaCaseiraWeekResultData>("/api/v1/procurement/ops/seed-paraiba-week/", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function listPurchasesAdmin(): Promise<PurchaseData[]> {
   const payload = await requestJson<PurchaseData[] | { results?: PurchaseData[] }>(
     "/api/v1/procurement/purchases/",
@@ -1538,6 +1552,19 @@ export async function managePortalCloudflareRuntimeAdmin(
       method: "POST",
       auth: true,
       body: JSON.stringify({ action }),
+    },
+  );
+}
+
+export async function getPortalCloudflareApiStatusAdmin(
+  settings: Partial<PortalCloudflareConfig>,
+): Promise<PortalCloudflareApiStatus> {
+  return requestJson<PortalCloudflareApiStatus>(
+    "/api/v1/portal/admin/config/cloudflare-api-status/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ settings }),
     },
   );
 }
@@ -1857,6 +1884,19 @@ export async function validateInstallerAwsCloudAdmin(
 ): Promise<PortalInstallerAwsValidateResult> {
   return requestJson<PortalInstallerAwsValidateResult>(
     "/api/v1/portal/admin/config/installer-cloud/aws/validate/",
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ payload }),
+    },
+  );
+}
+
+export async function validateInstallerGcpCloudAdmin(
+  payload: Partial<PortalInstallerDraftPayload>,
+): Promise<PortalInstallerGcpValidateResult> {
+  return requestJson<PortalInstallerGcpValidateResult>(
+    "/api/v1/portal/admin/config/installer-cloud/gcp/validate/",
     {
       method: "POST",
       auth: true,

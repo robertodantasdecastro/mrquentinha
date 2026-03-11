@@ -25,7 +25,7 @@ const initThemeScript = `
 
 export const metadata: Metadata = {
   title: {
-    default: "Mr Quentinha | Marmitas e Gestao Inteligente",
+    default: "Mr Quentinha | Quentinhas com Sabor de Casa",
     template: "%s | Mr Quentinha",
   },
   description:

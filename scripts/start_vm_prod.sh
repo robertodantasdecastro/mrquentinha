@@ -72,7 +72,7 @@ fi
 
 ln -sfn .env.prod "$BACKEND_DIR/.env"
 
-start_service "backend" "source '$BACKEND_DIR/.venv/bin/activate' && cd '$BACKEND_DIR' && DJANGO_SETTINGS_MODULE=config.settings.prod DEBUG=False python manage.py migrate --noinput && gunicorn config.wsgi:application --chdir '$BACKEND_DIR/src' --bind 127.0.0.1:8000 --workers '$GUNICORN_WORKERS' --timeout '$GUNICORN_TIMEOUT'"
+start_service "backend" "source '$BACKEND_DIR/.venv/bin/activate' && cd '$BACKEND_DIR' && DJANGO_SETTINGS_MODULE=config.settings.prod DEBUG=False python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --chdir '$BACKEND_DIR/src' --bind 127.0.0.1:8000 --workers '$GUNICORN_WORKERS' --timeout '$GUNICORN_TIMEOUT'"
 start_service "portal" "cd '$PORTAL_DIR' && NODE_OPTIONS='--max-old-space-size=${NODE_MAX_OLD_SPACE_MB}' INTERNAL_API_BASE_URL='${INTERNAL_API_BASE_URL}' NEXT_PUBLIC_API_BASE_URL='${INTERNAL_API_BASE_URL}' npm run start -- --hostname 127.0.0.1 --port 3000"
 start_service "client" "cd '$CLIENT_DIR' && NODE_OPTIONS='--max-old-space-size=${NODE_MAX_OLD_SPACE_MB}' INTERNAL_API_BASE_URL='${INTERNAL_API_BASE_URL}' NEXT_PUBLIC_API_BASE_URL='${INTERNAL_API_BASE_URL}' npm run start -- --hostname 127.0.0.1 --port 3001"
 start_service "admin" "cd '$ADMIN_DIR' && NODE_OPTIONS='--max-old-space-size=${NODE_MAX_OLD_SPACE_MB}' INTERNAL_API_BASE_URL='${INTERNAL_API_BASE_URL}' NEXT_PUBLIC_API_BASE_URL='${INTERNAL_API_BASE_URL}' npm run start -- --hostname 127.0.0.1 --port 3002"

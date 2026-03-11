@@ -48,7 +48,7 @@ WorkingDirectory=${BACKEND_DIR}
 Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
 Environment=DEBUG=False
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/usr/bin/env bash -lc 'set -euo pipefail; cd "${BACKEND_DIR}"; ln -sfn .env.prod .env; source .venv/bin/activate; python manage.py migrate --noinput; exec gunicorn config.wsgi:application --chdir "${BACKEND_DIR}/src" --bind 127.0.0.1:8000 --workers ${GUNICORN_WORKERS} --timeout ${GUNICORN_TIMEOUT}'
+ExecStart=/usr/bin/env bash -lc 'set -euo pipefail; cd "${BACKEND_DIR}"; ln -sfn .env.prod .env; source .venv/bin/activate; python manage.py migrate --noinput; python manage.py collectstatic --noinput; exec gunicorn config.wsgi:application --chdir "${BACKEND_DIR}/src" --bind 127.0.0.1:8000 --workers ${GUNICORN_WORKERS} --timeout ${GUNICORN_TIMEOUT}'
 Restart=always
 RestartSec=3
 TimeoutStopSec=30

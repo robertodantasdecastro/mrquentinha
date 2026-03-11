@@ -13,12 +13,14 @@ import {
   startInstallerJobAdmin,
   updatePortalConfigAdmin,
   validateInstallerAwsCloudAdmin,
+  validateInstallerGcpCloudAdmin,
   validateInstallerWizardAdmin,
 } from "@/lib/api";
 import type {
   PortalConfigData,
   PortalInstallerAwsCloudValidation,
   PortalInstallerDraftPayload,
+  PortalInstallerGcpCloudValidation,
   PortalInstallerJobData,
   PortalInstallerPrerequisites,
   PortalInstallerSettingsConfig,
@@ -261,6 +263,7 @@ function getDefaultDraft(): PortalInstallerDraftPayload {
 
 function getDefaultSettings(): PortalInstallerSettingsConfig {
   return {
+    operation_mode: "dev",
     api_public_access: {
       enabled: false,
       preferred_endpoint: "public_ip",
@@ -439,10 +442,14 @@ export function InstallAssistantPanel({
   const [starting, setStarting] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [awsValidating, setAwsValidating] = useState(false);
+  const [gcpValidating, setGcpValidating] = useState(false);
   const [savingPrerequisites, setSavingPrerequisites] = useState(false);
   const [awsSecretAccessKey, setAwsSecretAccessKey] = useState("");
   const [awsSessionToken, setAwsSessionToken] = useState("");
   const [awsValidation, setAwsValidation] = useState<PortalInstallerAwsCloudValidation | null>(
+    null,
+  );
+  const [gcpValidation, setGcpValidation] = useState<PortalInstallerGcpCloudValidation | null>(
     null,
   );
   const [errorMessage, setErrorMessage] = useState("");
@@ -586,6 +593,7 @@ export function InstallAssistantPanel({
 
   function updateCloudDraft(nextCloud: Partial<PortalInstallerDraftPayload["cloud"]>) {
     setAwsValidation(null);
+    setGcpValidation(null);
     setDraft((current) => ({
       ...current,
       cloud: {
@@ -831,6 +839,7 @@ export function InstallAssistantPanel({
 
   async function handleValidateAwsCloud() {
     setAwsValidating(true);
+    setGcpValidation(null);
     setErrorMessage("");
     setSuccessMessage("");
     try {
@@ -853,6 +862,34 @@ export function InstallAssistantPanel({
       setErrorMessage(resolveErrorMessage(error));
     } finally {
       setAwsValidating(false);
+    }
+  }
+
+  async function handleValidateGcpCloud() {
+    setGcpValidating(true);
+    setAwsValidation(null);
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      const runtimePayload = buildDraftForRuntime({
+        ...draft,
+        target: "gcp",
+        cloud: {
+          ...draft.cloud,
+          provider: "gcp",
+        },
+      });
+      const result = await validateInstallerGcpCloudAdmin(runtimePayload);
+      setWarnings(result.warnings ?? []);
+      setGcpValidation(result.cloud_validation);
+      setSuccessMessage(
+        "Google Cloud validada com sucesso. Revise conectividade e checks de infraestrutura.",
+      );
+    } catch (error) {
+      setGcpValidation(null);
+      setErrorMessage(resolveErrorMessage(error));
+    } finally {
+      setGcpValidating(false);
     }
   }
 
@@ -1593,9 +1630,153 @@ export function InstallAssistantPanel({
                       )}
                     </>
                   ) : (
-                    <article className="rounded-lg border border-border bg-bg p-3 text-xs text-muted">
-                      Trilha Google Cloud segue no backlog de paridade. Nesta fase, a automacao detalhada esta ativa para AWS.
-                    </article>
+                    <>
+                      <article className="rounded-lg border border-border bg-bg p-3">
+                        <p className="text-sm font-semibold text-text">
+                          Credenciais e pre-requisitos Google Cloud
+                        </p>
+                        <p className="mt-1 text-xs text-muted">
+                          A validacao usa o `gcloud` ativo no backend para conferir conectividade,
+                          DNS, VM, IP estatico e Cloud Deploy (quando habilitado).
+                        </p>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                          <label className="grid gap-1 text-sm text-muted">
+                            Cloud DNS managed zone
+                            <input
+                              value={draft.cloud.route53_hosted_zone_id}
+                              onChange={(event) =>
+                                updateCloudDraft({ route53_hosted_zone_id: event.currentTarget.value })
+                              }
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="mrquentinha-zone"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Compute Engine VM
+                            <input
+                              value={draft.cloud.ec2_instance_id}
+                              onChange={(event) =>
+                                updateCloudDraft({ ec2_instance_id: event.currentTarget.value })
+                              }
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="mrq-prod-vm"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Endereco IP estatico
+                            <input
+                              value={draft.cloud.elastic_ip_allocation_id}
+                              onChange={(event) =>
+                                updateCloudDraft({
+                                  elastic_ip_allocation_id: event.currentTarget.value,
+                                })
+                              }
+                              disabled={!draft.cloud.use_elastic_ip}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="mrq-prod-ip"
+                            />
+                          </label>
+                          <label className="mt-6 inline-flex items-center gap-2 text-sm text-text">
+                            <input
+                              type="checkbox"
+                              checked={draft.cloud.use_codedeploy}
+                              onChange={(event) =>
+                                updateCloudDraft({ use_codedeploy: event.currentTarget.checked })
+                              }
+                              className="h-4 w-4 rounded border-border text-primary"
+                            />
+                            Usar Cloud Deploy
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Delivery pipeline
+                            <input
+                              value={draft.cloud.codedeploy_application_name}
+                              onChange={(event) =>
+                                updateCloudDraft({
+                                  codedeploy_application_name: event.currentTarget.value,
+                                })
+                              }
+                              disabled={!draft.cloud.use_codedeploy}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="mrq-prod-pipeline"
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm text-muted">
+                            Target de deploy
+                            <input
+                              value={draft.cloud.codedeploy_deployment_group}
+                              onChange={(event) =>
+                                updateCloudDraft({
+                                  codedeploy_deployment_group: event.currentTarget.value,
+                                })
+                              }
+                              disabled={!draft.cloud.use_codedeploy}
+                              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text"
+                              placeholder="production-target"
+                            />
+                          </label>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void handleValidateGcpCloud()}
+                            disabled={gcpValidating}
+                            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {gcpValidating
+                              ? "Validando GCP..."
+                              : "Validar Google Cloud (conectividade e infraestrutura)"}
+                          </button>
+                        </div>
+                      </article>
+
+                      {gcpValidation && (
+                        <article className="rounded-lg border border-border bg-bg p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-text">
+                              Resultado da validacao Google Cloud
+                            </p>
+                            <StatusPill tone={getCheckTone(gcpValidation.connectivity.status)}>
+                              {gcpValidation.connectivity.status}
+                            </StatusPill>
+                          </div>
+                          <p className="mt-1 text-xs text-muted">
+                            Conta: <strong className="text-text">{String(gcpValidation.connectivity.account || "-")}</strong> | Projeto:{" "}
+                            <strong className="text-text">{String(gcpValidation.connectivity.project || "-")}</strong> | Regiao:{" "}
+                            <strong className="text-text">{String(gcpValidation.connectivity.region || "-")}</strong>
+                          </p>
+                          <p className="mt-1 text-xs text-muted">
+                            {String(gcpValidation.connectivity.detail || "-")}
+                          </p>
+
+                          <div className="mt-3 grid gap-2">
+                            {gcpValidation.prerequisites.checks.map((check) => (
+                              <div
+                                key={`${check.name}-${String(check.detail)}`}
+                                className="rounded-md border border-border bg-surface px-3 py-2 text-xs text-muted"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="font-semibold text-text">{check.name}</p>
+                                  <StatusPill tone={getCheckTone(String(check.status || ""))}>
+                                    {String(check.status || "unknown")}
+                                  </StatusPill>
+                                </div>
+                                <p className="mt-1">{String(check.detail || "-")}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          {gcpValidation.warnings.length > 0 && (
+                            <div className="mt-4 rounded-md border border-border bg-surface p-3 text-xs text-muted">
+                              {gcpValidation.warnings.map((warning) => (
+                                <p key={warning}>- {warning}</p>
+                              ))}
+                            </div>
+                          )}
+                        </article>
+                      )}
+                    </>
                   )}
                 </div>
               )}

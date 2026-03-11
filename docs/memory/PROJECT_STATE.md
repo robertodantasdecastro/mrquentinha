@@ -1,11 +1,11 @@
 # Project State (dev)
 
-Referencia de atualizacao: 02/03/2026.
+Referencia de atualizacao: 03/03/2026.
 
 ## Etapas
 - Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.6-A2`, `9.2.6-A3`, `9.2.7-A1`, `9.2.7-A2`, `9.2.7-A4`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.
 - Em progresso: `6.2` (Portal template no fluxo Antigravity).
-- Proxima execucao recomendada (unica): `T9.2.1-A2` (primeira rodada de testes manuais E2E).
+- Proxima execucao recomendada (unica): `T9.2.7-A5-A4` (automacao completa de provisionamento/deploy cloud no assistente, com paridade AWS/GCP).
 - Status atual de execucao manual: `T9.2.1-A2` iniciado em 27/02/2026, com relatorio operacional aberto em `docs/memory/T9_2_1_A2_RELATORIO_EXECUCAO_2026-02-27.md`.
 
 ## Planejamento oficial (docs-first)
@@ -157,6 +157,10 @@ Referencia de atualizacao: 02/03/2026.
   - resumo mensal por competencia com totais e status de budgets (`/summary/monthly/`).
   - importacao CSV com preview/confirmacao e deduplicacao por hash (`/imports/preview/` e `/imports/<id>/confirm/`).
 
+- Atualizacao em 03/03/2026 (`T9.2.7-A5-A3`):
+  - assistente passou a expor endpoint dedicado de validacao GCP: `POST /api/v1/portal/admin/config/installer-cloud/gcp/validate/`.
+  - `start_installer_job` no modo `provider=gcp` agora devolve `cloud_validation`, `connectivity_checks`, `warnings` e resumo operacional do plano antes da execucao remota.
+  - validacao GCP cobre `gcloud auth`, projeto ativo, Cloud DNS, VM do Compute Engine, IP estatico e Cloud Deploy (pipeline/target) com status `ok|warning|error`.
 ### Web Portal (Next.js - 3000)
 - Status: institucional em evolucao de template (`classic` + `letsfit-clean`).
 - Integracao: cardapio por API (`/today/` e `/by-date/`).
@@ -182,6 +186,7 @@ Referencia de atualizacao: 02/03/2026.
 
 ### Admin Web (Next.js - 3002)
 - Status: `T9.1.2` concluida (relatorios/exportacoes + UX/IX modular).
+- Atualizacao em 03/03/2026 (`T9.2.7-A5-A3`): modulo `Instalacao / Deploy` ganhou trilha GCP funcional no passo `Infraestrutura`, com campos de DNS/VM/IP estatico/Cloud Deploy e card de validacao detalhada (`connectivity` + checks + warnings).
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF1`): correcoes de `onChange` para evitar crash client-side no login e ajuste de `allowedDevOrigins` no Next 16 para acesso em `10.211.55.21:3002`.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF2`): liberacao de CORS do backend para origem `:3002`, fallback automatico da API no Admin Web e exibicao de erros diretamente no card de login.
 - Hotfix aplicado em 25/02/2026 (`T9.1.1-HF3`): padronizacao visual global com cores de status (success/warning/danger/info) e aplicacao da logo oficial (PNG original) no Admin Web, Portal e Client.

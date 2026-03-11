@@ -46,6 +46,7 @@ Fila atual:
    - Progresso 01/03/2026 (`A2/planejamento`): plano detalhado da trilha AWS + backlog de paridade Google Cloud + testes operacionais guiados publicado em `docs/11-plano-cloud-aws-google-e-testes-operacionais.md`.
    - Progresso 01/03/2026 (`A2/implementacao inicial`): wizard ganhou trilha AWS com validacao segura (`profile`/`access_key`), endpoint `installer-cloud/aws/validate`, checks de infraestrutura (Route53/EC2/EIP/CodeDeploy) e painel de custos (estimativa + MTD via Cost Explorer quando disponivel).
    - Progresso 01/03/2026 (`A2/HF1`): `Portal CMS` passou a exibir links de onboarding para OAuth social e gateways; guia de teste manual do instalador por cenarios publicado em `docs/12-guia-testes-instalacao-manual.md`.
+   - Progresso 03/03/2026 (`A3/paridade GCP`): endpoint `POST /api/v1/portal/admin/config/installer-cloud/gcp/validate/` implementado com checks de CLI/autenticacao/projeto + Cloud DNS + Compute VM + IP estatico + Cloud Deploy, e wizard do Admin atualizado para validar GCP no passo `Infraestrutura`.
 40. [x] T9.2.7-RBAC-HF1 Gestao completa de usuarios no Web Admin (criar/editar conta, papeis, categorias/tarefas e bloqueio de areas tecnicas para nao-admin) - concluida em 01/03/2026.
 41. [x] T9.2.7-A4-HF2 Criar modulo dedicado `Auditoria de atividade` (separado de `Administracao do servidor`) com dashboard/KPIs, filtros e analise de seguranca - concluida em 01/03/2026.
 42. [x] T9.2.6-A3 Padronizacao global de formularios: CEP Correios com autopreenchimento, mascara/validacao de telefone + checkbox WhatsApp e validacao de CPF/CNPJ por DV no backend - concluida em 01/03/2026.
@@ -72,5 +73,6 @@ Fila atual:
 63. [x] Ops-03/03/2026 Simulacao operacional semanal de culinaria paraibana (`seed_paraiba_caseira_week`) com OCR de compras, producao (20 marmitas/dia) e precificacao automatica - concluida em 03/03/2026.
 
 Proximos pontos recomendados:
-64. [ ] WebAdmin-03/03/2026 Criar painel guiado no modulo Cardapio/Compras para disparar a simulacao semanal (sem terminal), com escolha de data inicial e relatorio de resultados.
-65. [ ] QA-03/03/2026 Adicionar testes backend para `seed_paraiba_caseira_week` (idempotencia, fallback de menu com pedidos existentes e composicao de preco).
+64. [x] WebAdmin-03/03/2026 Criar painel guiado no modulo Cardapio/Compras para disparar a simulacao semanal (sem terminal), com escolha de data inicial e relatorio de resultados - concluida em 03/03/2026.
+65. [x] QA-03/03/2026 Adicionar testes backend para `seed_paraiba_caseira_week` (idempotencia, fallback de menu com pedidos existentes e composicao de preco) - concluida em 03/03/2026.
+66. [ ] T9.2.7-A5-A4 Automatizar provisionamento cloud completo (AWS/GCP) no `start_installer_job`, com orquestracao de infraestrutura/deploy e rollback basico guiado.

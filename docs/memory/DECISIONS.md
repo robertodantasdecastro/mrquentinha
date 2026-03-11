@@ -657,3 +657,18 @@ Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr
 - Consequencia:
   - memoria viva fica alinhada ao estado mais recente esperado para os tres agentes.
   - proxima acao unica passa a ser a validacao remota da VM com smoke antes de qualquer nova promocao em EC2.
+
+
+## 06/03/2026 - Modo operacional do WebAdmin e diagnostico Cloudflare API no Admin do servidor
+- Status: aceito.
+- Decisao:
+  - padronizar no modulo `Administracao do servidor` um seletor de modo operacional com tres estados:
+    - `dev`: foco em rede local e testes controlados;
+    - `producao`: desativa fluxo DEV random para reduzir risco em maquina publicada;
+    - `hibrido`: permite coexistencia local + Cloudflare.
+  - restringir dominios DEV random (`trycloudflare`) e refresh automatico desse fluxo ao modo `hibrido`.
+  - incluir endpoint dedicado de diagnostico Cloudflare API para validacao operacional de token/zona/DNS com guia de ativacao e permissoes minimas.
+- Consequencia:
+  - operador passa a ter clareza de impacto por modo antes de salvar configuracoes no WebAdmin.
+  - risco de alteracao acidental em producao e reduzido por bloqueio de fluxo random fora do modo hibrido.
+  - onboarding Cloudflare fica opcional, guiado e auditavel diretamente no painel.
