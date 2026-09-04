@@ -13,7 +13,12 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.exceptions import (
+    PermissionDenied,
+)
+from rest_framework.exceptions import (
+    ValidationError as DRFValidationError,
+)
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -371,8 +376,8 @@ class PaymentViewSet(
     required_roles_by_action = {
         "list": PAYMENT_READ_ROLES,
         "retrieve": PAYMENT_READ_ROLES,
-        "update": (*PAYMENT_WRITE_ROLES, SystemRole.CLIENTE),
-        "partial_update": (*PAYMENT_WRITE_ROLES, SystemRole.CLIENTE),
+        "update": PAYMENT_WRITE_ROLES,
+        "partial_update": PAYMENT_WRITE_ROLES,
         "intent": (*PAYMENT_WRITE_ROLES, SystemRole.CLIENTE),
         "intent_latest": PAYMENT_READ_ROLES,
     }
@@ -385,6 +390,12 @@ class PaymentViewSet(
             return queryset
 
         return queryset.filter(order__customer=user)
+
+    def permission_denied(self, request, message=None, code=None):
+        if getattr(self, "action", None) in {"update", "partial_update"}:
+            raise PermissionDenied(detail=message, code=code)
+
+        return super().permission_denied(request, message=message, code=code)
 
     def get_serializer_class(self):
         if self.action in ["update", "partial_update"]:

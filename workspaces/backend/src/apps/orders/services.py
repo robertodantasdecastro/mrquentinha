@@ -161,6 +161,19 @@ def has_global_order_access(user) -> bool:
     )
 
 
+def _has_payment_status_write_access(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+
+    if getattr(user, "is_superuser", False):
+        return True
+
+    return user_has_any_role(
+        user,
+        [SystemRole.ADMIN, SystemRole.FINANCEIRO],
+    )
+
+
 @transaction.atomic
 def create_order(
     *,
@@ -296,9 +309,8 @@ def update_payment_status(
     except Payment.DoesNotExist as exc:
         raise ValidationError("Pagamento nao encontrado.") from exc
 
-    if actor_user is not None and not has_global_order_access(actor_user):
-        if payment.order.customer_id != getattr(actor_user, "id", None):
-            raise ValidationError("Pagamento nao encontrado.")
+    if actor_user is not None and not _has_payment_status_write_access(actor_user):
+        raise ValidationError("Pagamento nao encontrado.")
 
     status_choices = {choice for choice, _ in PaymentStatus.choices}
     if "status" in update_data:

@@ -15,10 +15,27 @@ from apps.catalog.models import (
     MenuDay,
     MenuItem,
 )
-from apps.finance.models import AccountType, CashDirection, CashMovement
-from apps.orders.models import OrderStatus, PaymentWebhookEvent
+from apps.finance.models import (
+    AccountType,
+    ARReceivable,
+    ARReceivableStatus,
+    CashDirection,
+    CashMovement,
+    LedgerEntry,
+)
+from apps.orders.models import (
+    OrderStatus,
+    PaymentIntentStatus,
+    PaymentStatus,
+    PaymentWebhookEvent,
+)
 from apps.orders.payment_providers import ProviderIntentResult
-from apps.orders.services import create_order, update_order_status
+from apps.orders.services import (
+    create_or_get_payment_intent,
+    create_order,
+    update_order_status,
+)
+from apps.orders.throttling import PaymentsWebhookRateThrottle
 
 
 def _create_menu_item_for_api(menu_date: date) -> MenuItem:
@@ -50,6 +67,24 @@ def _auth_client(user):
     api_client = APIClient()
     api_client.force_authenticate(user=user)
     return api_client
+
+
+def _payment_effect_snapshot(*, payment, intent, receivable) -> dict:
+    payment.refresh_from_db()
+    intent.refresh_from_db()
+    receivable.refresh_from_db()
+    return {
+        "payment_status": payment.status,
+        "payment_provider_ref": payment.provider_ref,
+        "payment_paid_at": payment.paid_at,
+        "intent_status": intent.status,
+        "intent_updated_at": intent.updated_at,
+        "receivable_status": receivable.status,
+        "receivable_received_at": receivable.received_at,
+        "receivable_updated_at": receivable.updated_at,
+        "cash_movements": CashMovement.objects.count(),
+        "ledger_entries": LedgerEntry.objects.count(),
+    }
 
 
 @pytest.mark.django_db
@@ -272,7 +307,100 @@ def test_cliente_nao_altera_status_ou_pagamento_de_outro_cliente(
         data=json.dumps({"status": "PAID"}),
         content_type="application/json",
     )
-    assert payment_response.status_code == 404
+    assert payment_response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_payment_patch_bloqueia_atores_sem_role_financeira_sem_efeitos(
+    create_user_with_roles,
+):
+    delivery_date = date(2026, 3, 18)
+    menu_item = _create_menu_item_for_api(delivery_date)
+    owner = create_user_with_roles(
+        username="payment_guard_owner",
+        role_codes=[SystemRole.CLIENTE],
+    )
+    other = create_user_with_roles(
+        username="payment_guard_other",
+        role_codes=[SystemRole.CLIENTE],
+    )
+    cozinha = create_user_with_roles(
+        username="payment_guard_cozinha",
+        role_codes=[SystemRole.COZINHA],
+    )
+    compras = create_user_with_roles(
+        username="payment_guard_compras",
+        role_codes=[SystemRole.COMPRAS],
+    )
+    estoque = create_user_with_roles(
+        username="payment_guard_estoque",
+        role_codes=[SystemRole.ESTOQUE],
+    )
+    staff_without_role = create_user_with_roles(
+        username="payment_guard_staff",
+        role_codes=[],
+        is_staff=True,
+    )
+
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+    intent, created = create_or_get_payment_intent(
+        payment_id=payment.id,
+        idempotency_key="payment-guard-intent",
+    )
+    assert created is True
+    assert intent.status == PaymentIntentStatus.REQUIRES_ACTION
+    receivable = ARReceivable.objects.get(
+        reference_type="ORDER",
+        reference_id=order.id,
+    )
+    assert receivable.status == ARReceivableStatus.OPEN
+    baseline = _payment_effect_snapshot(
+        payment=payment,
+        intent=intent,
+        receivable=receivable,
+    )
+
+    denied_clients = [
+        ("anonymous", APIClient()),
+        ("owner", _auth_client(owner)),
+        ("other", _auth_client(other)),
+        ("cozinha", _auth_client(cozinha)),
+        ("compras", _auth_client(compras)),
+        ("estoque", _auth_client(estoque)),
+        ("staff_without_role", _auth_client(staff_without_role)),
+    ]
+    for actor_name, denied_client in denied_clients:
+        response = denied_client.patch(
+            f"/api/v1/orders/payments/{payment.id}/",
+            data=json.dumps(
+                {
+                    "status": PaymentStatus.PAID,
+                    "provider_ref": f"forbidden-{actor_name}",
+                    "paid_at": "2026-03-18T12:00:00Z",
+                }
+            ),
+            content_type="application/json",
+        )
+        assert response.status_code == 403, actor_name
+        assert (
+            _payment_effect_snapshot(
+                payment=payment,
+                intent=intent,
+                receivable=receivable,
+            )
+            == baseline
+        ), actor_name
+
+    own_payment_response = _auth_client(owner).get(
+        f"/api/v1/orders/payments/{payment.id}/"
+    )
+    assert own_payment_response.status_code == 200
+    assert own_payment_response.json()["status"] == PaymentStatus.PENDING
 
 
 @pytest.mark.django_db
@@ -320,6 +448,39 @@ def test_financeiro_lista_todos_e_atualiza_pagamento_de_terceiro(
     )
     assert payment_response.status_code == 200
     assert payment_response.json()["status"] == "PAID"
+
+
+@pytest.mark.django_db
+def test_superuser_sem_role_atualiza_pagamento(create_user_with_roles):
+    delivery_date = date(2026, 3, 19)
+    menu_item = _create_menu_item_for_api(delivery_date)
+    owner = create_user_with_roles(
+        username="payment_superuser_owner",
+        role_codes=[SystemRole.CLIENTE],
+    )
+    superuser = create_user_with_roles(
+        username="payment_superuser",
+        role_codes=[],
+        is_staff=False,
+    )
+    superuser.is_superuser = True
+    superuser.save(update_fields=["is_superuser"])
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    response = _auth_client(superuser).patch(
+        f"/api/v1/orders/payments/{payment.id}/",
+        data=json.dumps({"status": PaymentStatus.PAID}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PAID
 
 
 @pytest.mark.django_db
@@ -782,28 +943,39 @@ def test_payment_webhook_retorna_401_sem_token(settings):
 
 
 @pytest.mark.django_db
-@override_settings(PAYMENTS_WEBHOOK_THROTTLE_RATE="1/min")
-def test_payment_webhook_retorna_429_quando_excede_rate_limit(settings):
-    settings.PAYMENTS_WEBHOOK_TOKEN = "webhook-token-throttle"
+@override_settings(
+    PAYMENTS_WEBHOOK_THROTTLE_RATE="1/min",
+    PAYMENTS_WEBHOOK_TOKEN="webhook-token-throttle",
+)
+def test_payment_webhook_retorna_429_quando_excede_rate_limit():
+    identifier = "198.51.100.10"
+    cache_key = PaymentsWebhookRateThrottle.cache_format % {
+        "scope": PaymentsWebhookRateThrottle.scope,
+        "ident": identifier,
+    }
+    PaymentsWebhookRateThrottle.cache.delete(cache_key)
 
-    webhook_client = APIClient()
-    first_response = webhook_client.post(
-        "/api/v1/orders/payments/webhook/",
-        data=json.dumps({"event_id": "evt-throttle-001"}),
-        content_type="application/json",
-        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
-        HTTP_X_FORWARDED_FOR="198.51.100.10",
-    )
-    assert first_response.status_code == 400
+    try:
+        webhook_client = APIClient()
+        first_response = webhook_client.post(
+            "/api/v1/orders/payments/webhook/",
+            data=json.dumps({"event_id": "evt-throttle-001"}),
+            content_type="application/json",
+            HTTP_X_WEBHOOK_TOKEN="webhook-token-throttle",
+            HTTP_X_FORWARDED_FOR=identifier,
+        )
+        assert first_response.status_code == 400
 
-    second_response = webhook_client.post(
-        "/api/v1/orders/payments/webhook/",
-        data=json.dumps({"event_id": "evt-throttle-002"}),
-        content_type="application/json",
-        HTTP_X_WEBHOOK_TOKEN=settings.PAYMENTS_WEBHOOK_TOKEN,
-        HTTP_X_FORWARDED_FOR="198.51.100.10",
-    )
-    assert second_response.status_code == 429
+        second_response = webhook_client.post(
+            "/api/v1/orders/payments/webhook/",
+            data=json.dumps({"event_id": "evt-throttle-002"}),
+            content_type="application/json",
+            HTTP_X_WEBHOOK_TOKEN="webhook-token-throttle",
+            HTTP_X_FORWARDED_FOR=identifier,
+        )
+        assert second_response.status_code == 429
+    finally:
+        PaymentsWebhookRateThrottle.cache.delete(cache_key)
 
 
 @pytest.mark.django_db

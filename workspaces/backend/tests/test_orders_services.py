@@ -19,9 +19,15 @@ from apps.finance.models import (
     ARReceivableStatus,
     CashDirection,
     CashMovement,
+    LedgerEntry,
 )
 from apps.finance.services import create_ar_from_order
-from apps.orders.models import OrderStatus, PaymentMethod, PaymentStatus
+from apps.orders.models import (
+    OrderStatus,
+    PaymentIntentStatus,
+    PaymentMethod,
+    PaymentStatus,
+)
 from apps.orders.services import (
     create_order,
     update_order_status,
@@ -324,6 +330,133 @@ def test_update_payment_status_bloqueia_usuario_nao_dono(create_user_with_roles)
             update_data={"status": PaymentStatus.PAID},
             actor_user=other,
         )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("role_code", "is_staff"),
+    [
+        (SystemRole.CLIENTE, False),
+        (SystemRole.COZINHA, False),
+        (SystemRole.COMPRAS, False),
+        (SystemRole.ESTOQUE, False),
+        (None, True),
+    ],
+)
+def test_update_payment_status_bloqueia_ator_sem_role_financeira_sem_efeitos(
+    create_user_with_roles,
+    role_code,
+    is_staff,
+):
+    delivery_date = date(2026, 3, 20)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("18.00"),
+        dish_name=f"Prato Payment Guard {role_code}",
+        ingredient_name=f"Ingrediente Payment Guard {role_code}",
+    )
+    owner = create_user_with_roles(
+        username=f"payment_guard_service_owner_{role_code}_{is_staff}",
+        role_codes=[SystemRole.CLIENTE],
+    )
+    actor = create_user_with_roles(
+        username=f"payment_guard_service_actor_{role_code}_{is_staff}",
+        role_codes=[role_code] if role_code else [],
+        is_staff=is_staff,
+    )
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+    from apps.orders.services import create_or_get_payment_intent
+
+    intent, created = create_or_get_payment_intent(
+        payment_id=payment.id,
+        idempotency_key=f"service-guard-{role_code}-{is_staff}",
+    )
+    assert created is True
+    receivable = ARReceivable.objects.get(
+        reference_type="ORDER",
+        reference_id=order.id,
+    )
+    baseline = {
+        "payment_status": payment.status,
+        "payment_provider_ref": payment.provider_ref,
+        "payment_paid_at": payment.paid_at,
+        "intent_status": intent.status,
+        "intent_updated_at": intent.updated_at,
+        "receivable_status": receivable.status,
+        "receivable_received_at": receivable.received_at,
+        "receivable_updated_at": receivable.updated_at,
+        "cash_movements": CashMovement.objects.count(),
+        "ledger_entries": LedgerEntry.objects.count(),
+    }
+
+    with pytest.raises(ValidationError, match="Pagamento nao encontrado"):
+        update_payment_status(
+            payment_id=payment.id,
+            update_data={
+                "status": PaymentStatus.PAID,
+                "provider_ref": "forbidden-service-update",
+            },
+            actor_user=actor,
+        )
+
+    payment.refresh_from_db()
+    intent.refresh_from_db()
+    receivable.refresh_from_db()
+    assert payment.status == baseline["payment_status"] == PaymentStatus.PENDING
+    assert payment.provider_ref == baseline["payment_provider_ref"]
+    assert payment.paid_at == baseline["payment_paid_at"]
+    assert (
+        intent.status
+        == baseline["intent_status"]
+        == PaymentIntentStatus.REQUIRES_ACTION
+    )
+    assert intent.updated_at == baseline["intent_updated_at"]
+    assert receivable.status == baseline["receivable_status"] == ARReceivableStatus.OPEN
+    assert receivable.received_at == baseline["receivable_received_at"]
+    assert receivable.updated_at == baseline["receivable_updated_at"]
+    assert CashMovement.objects.count() == baseline["cash_movements"]
+    assert LedgerEntry.objects.count() == baseline["ledger_entries"]
+
+
+@pytest.mark.django_db
+def test_update_payment_status_permite_superuser_sem_role(create_user_with_roles):
+    delivery_date = date(2026, 3, 21)
+    menu_item = _create_menu_item(
+        menu_date=delivery_date,
+        sale_price=Decimal("18.00"),
+        dish_name="Prato Payment Superuser",
+        ingredient_name="Ingrediente Payment Superuser",
+    )
+    owner = create_user_with_roles(
+        username="payment_superuser_service_owner",
+        role_codes=[SystemRole.CLIENTE],
+    )
+    superuser = create_user_with_roles(
+        username="payment_superuser_service",
+        role_codes=[],
+        is_staff=False,
+    )
+    superuser.is_superuser = True
+    superuser.save(update_fields=["is_superuser"])
+    order = create_order(
+        customer=owner,
+        delivery_date=delivery_date,
+        items_payload=[{"menu_item": menu_item, "qty": 1}],
+    )
+    payment = order.payments.get()
+
+    updated_payment = update_payment_status(
+        payment_id=payment.id,
+        update_data={"status": PaymentStatus.PAID},
+        actor_user=superuser,
+    )
+
+    assert updated_payment.status == PaymentStatus.PAID
 
 
 @pytest.mark.django_db
