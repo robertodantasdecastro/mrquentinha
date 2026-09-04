@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 import subprocess
@@ -8,6 +9,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import DatabaseError
 from django.test import override_settings
 from django.utils import timezone
 
@@ -17,6 +19,7 @@ from apps.accounts.services import (
     SystemRole,
     assign_roles_to_user,
     ensure_default_roles,
+    resolve_client_base_url,
 )
 from apps.portal.services import ensure_portal_config
 
@@ -45,6 +48,10 @@ def test_accounts_register_cria_usuario_com_role_cliente(anonymous_client):
         UserRole.objects.filter(user=created_user).values_list("role__code", flat=True)
     )
     assert role_codes == {SystemRole.CLIENTE}
+
+
+def _raise_portal_database_error():
+    raise DatabaseError("portal indisponivel")
 
 
 @pytest.mark.django_db
@@ -246,6 +253,113 @@ def test_accounts_resend_prod_like_rejeita_origem_insegura_e_config_http(
         profile.email_verification_last_client_base_url
         == "https://app.mrquentinha.com.br"
     )
+
+
+@override_settings(
+    ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL=False,
+    ACCOUNTS_CLIENT_BASE_URL_HTTPS_ONLY=True,
+    ACCOUNTS_CLIENT_BASE_URL_FALLBACK="https://app.mrquentinha.com.br",
+)
+def test_resolve_client_base_url_usa_fallback_quando_portal_indisponivel(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "apps.portal.services.ensure_portal_config",
+        _raise_portal_database_error,
+    )
+
+    assert (
+        resolve_client_base_url(preferred_base_url="https://hostil.example")
+        == "https://app.mrquentinha.com.br"
+    )
+
+
+@pytest.mark.django_db
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL=False,
+    ACCOUNTS_CLIENT_BASE_URL_HTTPS_ONLY=True,
+    ACCOUNTS_CLIENT_BASE_URL_FALLBACK="https://app.mrquentinha.com.br",
+)
+def test_accounts_register_usa_fallback_quando_portal_indisponivel(
+    anonymous_client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "apps.portal.services.ensure_portal_config",
+        _raise_portal_database_error,
+    )
+    hostile_url = "https://hostil.example"
+
+    response = anonymous_client.post(
+        "/api/v1/accounts/register/",
+        {
+            "username": "cliente_fallback_portal",
+            "password": "Senha_Forte_123",
+            "email": "cliente_fallback_portal@example.com",
+            "first_name": "Cliente",
+            "last_name": "Fallback",
+        },
+        format="json",
+        HTTP_ORIGIN=hostile_url,
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert "token" not in payload
+    assert hostile_url not in str(payload)
+    User = get_user_model()
+    profile = UserProfile.objects.get(
+        user=User.objects.get(username="cliente_fallback_portal")
+    )
+    assert (
+        profile.email_verification_last_client_base_url
+        == "https://app.mrquentinha.com.br"
+    )
+    assert len(mail.outbox) == 1
+    assert hostile_url not in mail.outbox[0].body
+    assert "https://app.mrquentinha.com.br/conta/confirmar-email?token=" in (
+        mail.outbox[0].body
+    )
+
+
+@pytest.mark.django_db
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL=False,
+    ACCOUNTS_CLIENT_BASE_URL_HTTPS_ONLY=True,
+    ACCOUNTS_CLIENT_BASE_URL_FALLBACK="https://app.mrquentinha.com.br",
+)
+def test_accounts_resend_usa_fallback_quando_portal_indisponivel(
+    client,
+    admin_user,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "apps.portal.services.ensure_portal_config",
+        _raise_portal_database_error,
+    )
+    hostile_url = "https://hostil.example"
+
+    response = client.post(
+        "/api/v1/accounts/email-verification/resend/",
+        {},
+        format="json",
+        HTTP_ORIGIN=hostile_url,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["client_base_url"] == "https://app.mrquentinha.com.br"
+    assert "token" not in payload
+    assert hostile_url not in str(payload)
+    profile = UserProfile.objects.get(user=admin_user)
+    assert (
+        profile.email_verification_last_client_base_url
+        == "https://app.mrquentinha.com.br"
+    )
+    assert len(mail.outbox) == 1
+    assert hostile_url not in mail.outbox[0].body
 
 
 @pytest.mark.django_db
@@ -947,10 +1061,13 @@ def test_accounts_media_direta_sensivel_retorna_403(client):
     assert direct_response.status_code == 403
 
 
+TEST_FERNET_KEY = base64.urlsafe_b64encode(bytes(range(32))).decode("ascii")
+
+
 PROD_SETTINGS_STRONG_ENV = {
     "DATABASE_URL": "postgresql://settings_test@127.0.0.1/settings_test",
     "SECRET_KEY": "S" * 40,
-    "FIELD_ENCRYPTION_KEY": "E" * 40,
+    "FIELD_ENCRYPTION_KEY": TEST_FERNET_KEY,
     "FIELD_HASH_SALT": "H" * 40,
     "FIELD_ENCRYPTION_STRICT": "true",
     "PAYMENTS_WEBHOOK_TOKEN": "W" * 40,
@@ -989,6 +1106,7 @@ def _run_prod_settings_import(*, variable_name: str = "", value=None):
         ("SECRET_KEY", "django-insecure-" + ("S" * 40), "SECRET_KEY"),
         ("FIELD_ENCRYPTION_KEY", None, "FIELD_ENCRYPTION_KEY"),
         ("FIELD_ENCRYPTION_KEY", "short", "FIELD_ENCRYPTION_KEY"),
+        ("FIELD_ENCRYPTION_KEY", "E" * 44, "FIELD_ENCRYPTION_KEY"),
         ("FIELD_HASH_SALT", None, "FIELD_HASH_SALT"),
         ("FIELD_HASH_SALT", "short", "FIELD_HASH_SALT"),
         ("FIELD_ENCRYPTION_STRICT", "false", "FIELD_ENCRYPTION_STRICT"),

@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.utils import timezone
 
 from .models import (
@@ -294,13 +294,18 @@ def resolve_client_base_url(*, preferred_base_url: str = "") -> str:
 
     from apps.portal.services import ensure_portal_config
 
-    portal_config = ensure_portal_config()
-    from_config = _normalize_url(
-        str(portal_config.client_base_url or ""),
-        require_https=require_https,
-    )
-    if from_config:
-        return from_config
+    try:
+        portal_config = ensure_portal_config()
+    except DatabaseError:
+        portal_config = None
+
+    if portal_config is not None:
+        from_config = _normalize_url(
+            str(portal_config.client_base_url or ""),
+            require_https=require_https,
+        )
+        if from_config:
+            return from_config
 
     configured_fallback = _normalize_url(
         str(

@@ -1,3 +1,4 @@
+from cryptography.fernet import Fernet
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
@@ -56,6 +57,14 @@ def _looks_insecure_secret(value: str, *, known_defaults: set[str]) -> bool:
     )
 
 
+def _is_valid_fernet_key(value: str) -> bool:
+    try:
+        Fernet(str(value or "").strip().encode("ascii"))
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
 def _validate_production_secrets() -> None:
     invalid_categories: list[str] = []
     if _looks_insecure_secret(
@@ -63,7 +72,7 @@ def _validate_production_secrets() -> None:
         known_defaults={"django-insecure-dev-only-change-me"},
     ):
         invalid_categories.append("SECRET_KEY")
-    if len(str(FIELD_ENCRYPTION_KEY or "").strip()) < 32:
+    if not _is_valid_fernet_key(FIELD_ENCRYPTION_KEY):
         invalid_categories.append("FIELD_ENCRYPTION_KEY")
     if len(str(FIELD_HASH_SALT or "").strip()) < 32:
         invalid_categories.append("FIELD_HASH_SALT")
