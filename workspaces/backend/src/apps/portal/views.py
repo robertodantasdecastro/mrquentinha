@@ -154,6 +154,7 @@ class PortalConfigAdminViewSet(PortalForbiddenPermissionMixin, viewsets.ModelVie
             "database_sync_dev",
             "database_tunnel_action",
             "database_tunnel_save",
+            "destroy",
             "installer_cloud_aws_validate",
             "installer_cloud_gcp_validate",
             "installer_job_cancel",

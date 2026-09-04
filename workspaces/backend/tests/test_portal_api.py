@@ -4,7 +4,7 @@ from django.core import mail
 from django.test import override_settings
 from rest_framework.test import APIClient
 
-from apps.portal.models import MobileRelease, PortalConfig
+from apps.portal.models import MobileRelease, PortalConfig, PortalSection
 from apps.portal.services import ensure_portal_config
 
 
@@ -1082,7 +1082,16 @@ CRITICAL_PORTAL_ROUTES = [
         "cancel_installer_job",
     ),
     ("get", "/api/v1/portal/admin/config/installer-jobs/", "list_installer_jobs"),
+    ("delete", "/api/v1/portal/admin/config/999999/", None),
 ]
+
+
+def test_portal_critical_action_matrix_inclui_destroy():
+    from apps.portal.views import PortalConfigAdminViewSet
+
+    assert len(CRITICAL_PORTAL_ROUTES) == 30
+    assert len(PortalConfigAdminViewSet.CRITICAL_ACTIONS) == 30
+    assert "destroy" in PortalConfigAdminViewSet.CRITICAL_ACTIONS
 
 
 @pytest.mark.django_db
@@ -1103,16 +1112,58 @@ def test_portal_critical_ops_disabled_bloqueia_todas_as_rotas_sem_efeito(
         calls.append((args, kwargs))
         raise AssertionError("backend critico nao deve ser chamado")
 
-    monkeypatch.setattr(
-        f"apps.portal.views.{backend_name}",
-        unexpected_backend_call,
-    )
+    if backend_name is not None:
+        monkeypatch.setattr(
+            f"apps.portal.views.{backend_name}",
+            unexpected_backend_call,
+        )
 
     response = getattr(client, method)(url, data={}, format="json")
 
     assert response.status_code == 403
     assert calls == []
     assert PortalConfig.objects.values().get(pk=config.pk) == before
+
+
+@pytest.mark.django_db
+@override_settings(PORTAL_CRITICAL_OPS_ENABLED=False)
+@pytest.mark.parametrize("as_superuser", [False, True])
+def test_portal_config_destroy_bloqueado_preserva_cascata(client, as_superuser):
+    config = ensure_portal_config()
+    PortalSection.objects.create(
+        config=config,
+        template_id="classic",
+        page="home",
+        key=f"destroy-protected-{as_superuser}",
+        title="Conteudo protegido",
+    )
+    MobileRelease.objects.create(
+        config=config,
+        release_version=f"destroy-protected-{as_superuser}",
+        build_number=1,
+    )
+
+    api_client = client
+    if as_superuser:
+        User = get_user_model()
+        superuser = User.objects.create_superuser(
+            username="portal_destroy_superuser",
+            password="portal_destroy_superuser_123",
+            email="portal_destroy_superuser@example.com",
+        )
+        api_client = APIClient()
+        api_client.force_authenticate(user=superuser)
+
+    config_ids_before = set(PortalConfig.objects.values_list("id", flat=True))
+    section_ids_before = set(PortalSection.objects.values_list("id", flat=True))
+    release_ids_before = set(MobileRelease.objects.values_list("id", flat=True))
+
+    response = api_client.delete(f"/api/v1/portal/admin/config/{config.pk}/")
+
+    assert response.status_code == 403
+    assert set(PortalConfig.objects.values_list("id", flat=True)) == config_ids_before
+    assert set(PortalSection.objects.values_list("id", flat=True)) == section_ids_before
+    assert set(MobileRelease.objects.values_list("id", flat=True)) == release_ids_before
 
 
 @pytest.mark.django_db
