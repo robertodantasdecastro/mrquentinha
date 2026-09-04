@@ -1,5 +1,18 @@
 # Changelog (por sprint)
 
+## 04/09/2026 — checkpoint emergencial de seguranca e migracao
+- Backup preventivo de producao criado em `/var/backups/mrquentinha/20260904T105304Z`, com catalogo e integridade validados; restore isolado preservado em `mrquentinha_restore_verify_20260904_105304` (`60` tabelas, `3762` linhas agregadas). Snapshot off-host ficou `BLOCKED` por AWS CLI/autorizacao indisponivel.
+- Hotfix P0 de autorizacao de pagamento publicado em `4a497c6f9937da8ba1b130ffd79675260eacde29` e tecnicamente testado.
+- Hotfixes P0 do Portal publicados em `bb54b812fec06003931e03c8918d311fe0c17727` e `a90d52be63db6425eede8ddecd67901b6a61ca4b`, com RBAC/SQL fail-closed e provas negativas sanitizadas.
+- Hardening P1 de origem canonica e settings de producao publicado em `0aeedc9af96480702f5e68b5ce28b3b91c0223f6` e `985c1cb8bc1c545baa8cb81fa0ca7ebf9d2ea296`.
+- Runtime final permaneceu saudavel: health/API, `www`, `app` e `admin` em HTTP 200, provider exclusivamente `mock`, sem alteracao de DNS/Cloudflare ou do runtime `cereus_web`.
+- O primeiro restart do backend provocou aproximadamente 25 segundos de 502 por cascata `systemd Requires`; ativacoes posteriores por HUP do Gunicorn preservaram PIDs dos frontends e nao introduziram 5xx.
+- Candidata P1-04A preservada em `/home/ubuntu/mrquentinha-sec-p1-04a`, branch `codex/emergency-webhook-guard-20260904`: 7 arquivos modificados, stage vazio, sem commit/push. Gate encerrou `BLOCKED_HARNESS` com 22 `PASS`/1 `FAIL`; a falha contou apenas comandos transacionais de savepoint, sem operacao SQL de dados.
+- Frentes P1-04B, P1-05, segredos write-only/externalizados, providers reais, mobile, OAuth, CI e lacunas UX permanecem nao concluidas. `HUMAN_ACCEPTED=NOT_RUN`.
+- Capacidade de `cereus_web` registrada em modo read-only: raiz 14 GiB/3.0 GiB livre, sem Node/swap e com apps compartilhadas. Pela regra `<=5 GiB`, a migracao para gp3 60 GiB ficou `NOT_STARTED` e exige gate exclusivo, autorizacao AWS, backup/snapshot e rollback.
+- Item 3/Tarcila permaneceu `SPEC/NOT_STARTED` para depois da migracao/nova instancia, com Tarcila/Lina/Eliane e aceite humano separado.
+- Fechamento documental: agentes em `ZERO_WRITE/STANDBY`, locks livres, nenhum processo de escrita ativo e `RESUME_REQUIRES_NEW_EXPLICIT_MANAGER_REQUEST=YES`.
+
 ## 03/03/2026
 - Workflow/governanca: publicado `W26_gestao_triagente_novoprojeto` em `.agent/workflows/` para coordenacao de `Mac` (gestor), `VM` (dev) e `EC2` (producao).
 - Workflow/governanca: criado `docs/memory/AGENT_SYNC_BOARD.md` como quadro unico de sincronizacao entre os 3 agentes.

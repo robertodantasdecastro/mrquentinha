@@ -1,6 +1,15 @@
 # TODO Next (fila cronologica)
 
-Historico recente:
+## Checkpoint pausado — 04/09/2026
+- Nenhum baton tecnico ativo; todos os agentes estao em `ZERO_WRITE/STANDBY`.
+- `RESUME_REQUIRES_NEW_EXPLICIT_MANAGER_REQUEST=YES`.
+- Proximo gate tecnico nominal, `NOT_STARTED`: na candidata P1-04A protegida, ajustar a assercao transacional que hoje conta apenas savepoints; depois executar suite completa, revisao independente e decidir deploy em batons separados.
+- P1-04A nao esta publicada: worktree `/home/ubuntu/mrquentinha-sec-p1-04a`, branch `codex/emergency-webhook-guard-20260904`, 7 modificados, stage vazio, sem commit/push, `BLOCKED_HARNESS=22 PASS/1 FAIL`.
+- Demais gates `NOT_STARTED`: P1-04B upload/OCR; P1-05 LGPD/minimizacao/retencao; segredos Portal write-only/externalizados; EBS gp3 60 GiB e migracao transparente de `/var`, `/home` e `/opt` no `cereus_web`; Item 3/Tarcila apos migracao/nova instancia.
+- Providers/webhooks reais continuam `BLOCKED`; mobile/OAuth/CI/UX permanecem pendentes; `HUMAN_ACCEPTED=NOT_RUN`.
+- DNS/cutover depende de instrucao explicita de Roberto.
+
+Historico anterior:
 1. [x] 7.1.1 Backend Auth/RBAC (ownership orders/payments) - concluida em 24/02/2026.
 2. [x] 7.1.2 Client Auth real (login/register/me + refresh, sem demo) - concluida em 24/02/2026.
 3. [x] 7.1.3 Fechamento 7.1 (quality gate + smokes + docs/memory) - concluida em 25/02/2026.

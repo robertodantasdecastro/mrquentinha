@@ -1,5 +1,44 @@
 # Runbook DEV (stack completo)
 
+## 0) Safe resume de producao — checkpoint 04/09/2026
+
+Estado de referencia:
+- checkout canonico: `/home/ubuntu/mrquentinha`;
+- `main`, `origin/main` e remoto: `985c1cb8bc1c545baa8cb81fa0ca7ebf9d2ea296`;
+- backup preservado: `/var/backups/mrquentinha/20260904T105304Z`;
+- restore isolado preservado: `mrquentinha_restore_verify_20260904_105304` (`60` tabelas/`3762` linhas agregadas);
+- provider permitido: somente `mock`;
+- `RESUME_REQUIRES_NEW_EXPLICIT_MANAGER_REQUEST=YES`.
+
+Antes de qualquer nova sessao com escrita:
+1. receber baton explicito e confirmar exatamente um owner por Git/runtime/DB/infra;
+2. confirmar SHA local, `main`, upstream e remote, worktree limpa e stage vazio;
+3. provar locks de migracao/deploy livres por `flock`, e ausencia de processos Git/deploy/backup concorrentes;
+4. confirmar backup/restore preservados, espaco livre e health de API/`www`/`app`/`admin`;
+5. confirmar provider exclusivamente `mock` e manter DNS/Cloudflare fora de escopo salvo instrucao explicita;
+6. inventariar todas as worktrees e preservar `/home/ubuntu/mrquentinha-sec-p1-04a` sem escrita.
+
+Ativacao backend temporaria:
+- restart de `mrq-backend-prod` causou cerca de 25 segundos de 502 por cascata `systemd Requires`;
+- para codigo Python sem migration/build, HUP so e permitido com baton proprio e prova de que `MainPID` e o master Gunicorn;
+- apos HUP, validar nova geracao de workers, invariancia dos PIDs dos frontends, `ActiveState`, `NRestarts`, tres rodadas HTTP e logs sem novos 5xx/traceback;
+- se HUP nao for tecnicamente inequívoco, parar e solicitar decisao; nao substituir automaticamente por restart;
+- redesenho das units e dependencias exige gate separado.
+
+Candidata P1-04A:
+- worktree `/home/ubuntu/mrquentinha-sec-p1-04a`, branch `codex/emergency-webhook-guard-20260904`;
+- 7 arquivos modificados, stage vazio, sem commit/push;
+- `BLOCKED_HARNESS`: 22 `PASS`/1 `FAIL` por contagem de `SAVEPOINT`/`ROLLBACK TO SAVEPOINT`/`RELEASE SAVEPOINT`, sem `SELECT`/`INSERT`/`UPDATE`/`DELETE`;
+- proximo gate nominal, nao iniciado: ajustar a assercao transacional, rodar suite completa, obter revisao independente e somente depois decidir publicacao.
+
+Capacidade/migracao futura de `cereus_web`:
+- raiz 14 GiB/3.0 GiB livre: `STOP` pela regra `<=5 GiB`;
+- sem Node, sem swap e com apps compartilhadas;
+- nenhuma preparacao deve ser feita sem gate exclusivo de EBS gp3 60 GiB, autorizacao AWS, snapshot/backup, plano de `/var`, `/home` e `/opt`, PostgreSQL/releases, mount/fstab/binds/ordem e rollback;
+- DNS/cutover somente por instrucao explicita de Roberto.
+
+O checkpoint atual esta pausado. Nao executar retry, cleanup, drop do banco de restore, restart/HUP, deploy, migracao ou teste adicional sem novo pedido explicito do gestor.
+
 ## 1) Subir stack local
 No root (`~/mrquentinha`), em terminais separados:
 

@@ -3,17 +3,11 @@
 Atualize este arquivo no inicio de qualquer sessao em modo escrita.
 
 ## Registro atual
-- data_hora: 2026-03-02 10:40 UTC
-- agente: codex
+- data_hora: 2026-09-04T14:24:55Z
+- agente: Tereza
 - branch: main
-- etapa: T9.2.7-A6 ops_dashboard Postgres + installdev + guia AWS preconfig
+- etapa: SALVAR_SAFE_RESUME_CHECKPOINT_20260904 — encerrado e pausado
 - areas_ou_arquivos_tocados:
-  - workspaces/backend/src/apps/accounts/*
-  - workspaces/backend/tests/test_support_tickets_api.py
-  - scripts/ops_center.py
-  - installdev.sh
-  - docs/13-guia-instalacao-aws-preconfig-dev-prod.md
-  - workspaces/web/admin/src/app/modulos/instalacao-deploy/sections.tsx
   - docs/memory/CHANGELOG.md
   - docs/memory/DECISIONS.md
   - docs/memory/PROJECT_STATE.md
@@ -21,8 +15,12 @@ Atualize este arquivo no inicio de qualquer sessao em modo escrita.
   - .agent/memory/CONTEXT_PACK.md
   - .agent/memory/TODO_NEXT.md
   - .agent/memory/IN_PROGRESS.md
-- objetivo_imediato: concluir script/guia AWS preconfig e box Postgres no Ops Dashboard.
-- proximo_comando: rodar quality gate e atualizar memoria.
+  - docs/10-plano-mvp-cronograma.md
+  - docs/reports/2026-09-04-checkpoint-emergencia-seguranca-migracao.md
+- objetivo_imediato: nenhum; checkpoint documental concluido, agentes em `ZERO_WRITE/STANDBY`.
+- proximo_comando: nenhum. `RESUME_REQUIRES_NEW_EXPLICIT_MANAGER_REQUEST=YES`.
+- worktree_protegida: `/home/ubuntu/mrquentinha-sec-p1-04a` (`codex/emergency-webhook-guard-20260904`), 7 modificados, stage vazio, sem commit/push; nao editar/limpar.
+- locks_processos: locks tecnicos livres e nenhum processo de escrita ativo no fechamento.
 
 ## Registro anterior (manter historico curto)
 - data_hora: 2026-02-26 06:05

@@ -3,6 +3,39 @@
 Use este arquivo para registrar decisoes "em andamento" (menos formais).
 Quando uma decisao for definitiva e afetar arquitetura, crie um ADR em `docs/adr/`.
 
+## 04/09/2026 - Safe resume apos hotfixes de seguranca e preflight de migracao
+- Status: aceito como decisao operacional deste checkpoint.
+- Decisao:
+  - congelar o estado publicado em `main@985c1cb8bc1c545baa8cb81fa0ca7ebf9d2ea296`, com provider exclusivamente `mock` e `HUMAN_ACCEPTED=NOT_RUN`;
+  - manter todos os agentes em `ZERO_WRITE/STANDBY` e exigir novo pedido explicito do gestor antes de qualquer retomada (`RESUME_REQUIRES_NEW_EXPLICIT_MANAGER_REQUEST=YES`);
+  - preservar a worktree P1-04A suja como evidencia, sem editar, stagear, commitar, publicar ou limpar;
+  - manter backup e banco de restore isolado preservados; snapshot off-host continua bloqueado ate existir autoridade AWS propria.
+- Consequencia:
+  - nenhuma narrativa de progresso promove a candidata P1-04A, aceite humano, provider real, webhook real ou migracao.
+  - retomada exige preflight novo de SHA, worktrees, locks, health, provider, backup e owner exclusivo.
+
+## 04/09/2026 - HUP do Gunicorn como ativacao minima temporaria
+- Status: vigente ate redesenho das units.
+- Contexto:
+  - o primeiro restart do backend acionou dependencias `systemd Requires` e causou cerca de 25 segundos de 502 durante o aquecimento;
+  - as duas ativacoes seguintes por HUP preservaram os PIDs dos frontends e nao produziram novos 5xx.
+- Decisao:
+  - para mudanca somente de codigo Python, sem migration/build, usar HUP apenas quando o MainPID for comprovadamente o master Gunicorn e houver baton de deploy explicito;
+  - nao usar restart amplo como atalho; redesenho de `Requires`/ordenacao das units precisa de gate proprio, teste e rollback.
+- Consequencia:
+  - reduz o raio de impacto, sem converter precedente operacional em autorizacao permanente.
+
+## 04/09/2026 - Migracao de capacidade de `cereus_web` como gate isolado
+- Status: `NOT_STARTED`.
+- Decisao:
+  - aplicar `STOP` enquanto a raiz de 14 GiB tiver somente 3.0 GiB livres (`<=5 GiB`);
+  - planejar EBS gp3 separado de 60 GiB e migracao transparente de `/var`, `/home` e `/opt`, incluindo PostgreSQL e releases;
+  - exigir owner exclusivo, autorizacao AWS control-plane, backup/snapshot, mapeamento de mount/fstab/binds/ordem e rollback antes de qualquer escrita;
+  - manter DNS/cutover como gate posterior e dependente de instrucao explicita de Roberto.
+- Consequencia:
+  - a falta de Node/swap e o compartilhamento de apps entram na compatibilidade do plano; nenhuma escrita preparatoria foi autorizada.
+  - Item 3/Tarcila fica `SPEC/NOT_STARTED` ate a migracao/nova instancia, com Tarcila/Lina/Eliane e `HUMAN_ACCEPTED` independente.
+
 ## Padroes definidos
 - Backend: Django + DRF
 - DB: PostgreSQL

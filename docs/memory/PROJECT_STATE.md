@@ -1,6 +1,43 @@
 # Project State (dev)
 
-Referencia de atualizacao: 03/03/2026.
+Referencia de atualizacao: 04/09/2026.
+
+## Checkpoint seguro de producao — 04/09/2026
+- Estado canonico: `/home/ubuntu/mrquentinha`, `main`, `origin/main` e remoto em `985c1cb8bc1c545baa8cb81fa0ca7ebf9d2ea296`, worktree limpa e stage vazio no fechamento.
+- Producao atual: API health, `www`, `app` e `admin` responderam HTTP 200; provider de pagamento permaneceu exclusivamente `mock`.
+- Limites preservados: nenhum ajuste em DNS/Cloudflare, nenhuma escrita no runtime `cereus_web` e nenhum provider real/webhook real habilitado.
+- Backup preventivo: `/var/backups/mrquentinha/20260904T105304Z`, integridade local `PASS`; restore isolado preservado em `mrquentinha_restore_verify_20260904_105304`, com 60 tabelas e 3762 linhas agregadas, `PASS`. Snapshot fora do volume permaneceu `BLOCKED` por ausencia de AWS CLI/autorizacao.
+
+### Releases de seguranca publicadas e tecnicamente testadas
+- P0 autorizacao de pagamento: `4a497c6f9937da8ba1b130ffd79675260eacde29` — `PUBLISHED=PASS`, testes tecnicos `PASS`.
+- P0 Portal RBAC/SQL: `bb54b812fec06003931e03c8918d311fe0c17727` e `a90d52be63db6425eede8ddecd67901b6a61ca4b` — `PUBLISHED=PASS`, testes tecnicos independentes `PASS`.
+- P1 origem canonica/prod fail-closed: `0aeedc9af96480702f5e68b5ce28b3b91c0223f6` e `985c1cb8bc1c545baa8cb81fa0ca7ebf9d2ea296` — `PUBLISHED=PASS`, testes tecnicos independentes `PASS`.
+- `HUMAN_ACCEPTED=NOT_RUN`; publicacao e prova tecnica nao promovem aceite humano.
+
+### Ativacao e incidente transitorio
+- O primeiro restart do backend acionou uma cascata via `systemd Requires`, gerando cerca de 25 segundos de HTTP 502 durante o aquecimento.
+- Os deploys posteriores usaram somente HUP no master Gunicorn tecnicamente confirmado; os PIDs dos frontends foram preservados e nao surgiram novos 5xx.
+- Decisao operacional vigente: usar HUP para codigo backend sem migration/build enquanto a topologia das units nao for redesenhada e validada em gate proprio.
+
+### Candidata P1-04A protegida e bloqueada
+- Worktree: `/home/ubuntu/mrquentinha-sec-p1-04a`; branch: `codex/emergency-webhook-guard-20260904`.
+- Estado preservado: 7 arquivos modificados, stage vazio, sem commit e sem push; nao esta publicada nem declarada segura.
+- `BLOCKED_HARNESS`: 22 testes passaram e 1 falhou porque `django_assert_num_queries(0)` contabilizou somente `SAVEPOINT`, `ROLLBACK TO SAVEPOINT` e `RELEASE SAVEPOINT`; nao houve `SELECT`, `INSERT`, `UPDATE` ou `DELETE`.
+- Gate tecnico nominal, ainda `NOT_STARTED`: ajustar a assercao transacional sem enfraquecer a prova, executar suite completa, revisao independente e somente entao decidir deploy.
+
+### Backlog e infraestrutura
+- P1-04B limites de upload/OCR: `NOT_STARTED`.
+- P1-05 minimizacao/LGPD/retencao de auditoria: `NOT_STARTED`.
+- Externalizacao/write-only de segredos do Portal: `NOT_STARTED`.
+- Providers e webhooks reais: `BLOCKED`; lacunas de mobile, OAuth, CI e UX do MVP permanecem abertas.
+- `cereus_web`: filesystem raiz de 14 GiB com 3.0 GiB livres (`<=5 GiB`, `STOP`), sem Node e sem swap, com aplicacoes compartilhadas; nenhuma escrita foi feita.
+- Futuro gate separado: criar EBS gp3 de 60 GiB e migrar transparentemente `/var`, `/home` e `/opt`, incluindo PostgreSQL e releases, com plano de mount/fstab/binds/ordem/rollback. Esta frente esta `NOT_STARTED` e exige owner exclusivo, autorizacao AWS control-plane, snapshot e backup. DNS/cutover somente por instrucao explicita de Roberto.
+- Item 3/Tarcila: `SPEC/NOT_STARTED`; executar somente depois da migracao/nova instancia, com Tarcila, Lina e Eliane, mantendo `HUMAN_ACCEPTED` separado.
+
+### Pausa governada
+- Todos os agentes estao em `ZERO_WRITE/STANDBY`; locks tecnicos livres e sem processos de escrita ativos no fechamento.
+- `RESUME_REQUIRES_NEW_EXPLICIT_MANAGER_REQUEST=YES`.
+- Este checkpoint nao abre novo baton tecnico.
 
 ## Etapas
 - Concluidas: `0 -> 5.6.3`, `6.0`, `6.0.1`, `7.0`, `7.1.1`, `7.1.2`, `7.1.3`, `7.2.1`, `7.2.2`, `7.2.3`, `6.3.1`, `6.1.1`, `9.0.1`, `9.0.2`, `9.0.3`, `9.1.1`, `9.1.2`, `9.1.3-A7`, `9.2.6-A1`, `9.2.6-A2`, `9.2.6-A3`, `9.2.7-A1`, `9.2.7-A2`, `9.2.7-A4`, `6.3.2-A3`, `6.3.2-A4`, `6.3.2-A5`, `6.3.2-A6`, `6.3.2-A7`, `6.3.2-A9`, `6.3.2-A10`, `6.3.2-A11`, `6.3.2-A12`, `6.3.2-A13`, `6.3.2-A14`, `8.0.1`, `8.1.1`, `8.1.2`, `8.2.1`, `8.2.2`.

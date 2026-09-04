@@ -1,6 +1,9 @@
 # Plano do MVP e cronograma
 
-Data de referencia: 01/03/2026.
+Data de referencia original: 01/03/2026.
+
+## Nota de checkpoint — 04/09/2026
+O fechamento descrito abaixo e historico do escopo funcional MVP e nao equivale a conclusao de seguranca, infraestrutura ou aceite humano. A producao esta publicada em `main@985c1cb8bc1c545baa8cb81fa0ca7ebf9d2ea296`, com health tecnico HTTP 200 e provider somente `mock`, mas `HUMAN_ACCEPTED=NOT_RUN`. P1-04A encerrou `BLOCKED_HARNESS` e permanece sem commit/push; P1-04B, P1-05, providers/webhooks reais, mobile/OAuth/CI/UX, migracao de capacidade para `cereus_web` e Item 3/Tarcila continuam fora do estado concluido. O trabalho esta pausado e requer novo pedido explicito do gestor.
 
 ## Status atual do roadmap
 - Etapa 0: concluida

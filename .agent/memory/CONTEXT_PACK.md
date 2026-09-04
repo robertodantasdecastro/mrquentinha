@@ -1,5 +1,17 @@
 # Context Pack (Resumo Operacional)
 
+## Checkpoint atual — 04/09/2026
+- Producao canonica: `/home/ubuntu/mrquentinha`, `main/origin/main/remote=985c1cb8bc1c545baa8cb81fa0ca7ebf9d2ea296`, limpa/stage zero no fechamento.
+- Runtime: health/API/`www`/`app`/`admin` HTTP 200; pagamento exclusivamente `mock`; DNS/Cloudflare e `cereus_web` sem alteracao.
+- Backup: `/var/backups/mrquentinha/20260904T105304Z` com integridade `PASS`; restore isolado `mrquentinha_restore_verify_20260904_105304` `PASS` (`60` tabelas/`3762` linhas). Snapshot off-host `BLOCKED` por AWS CLI/autorizacao.
+- Publicado/testado: pagamento P0 `4a497c6f`; Portal P0 `bb54b812` + `a90d52be`; origem/settings P1 `0aeedc9a` + `985c1cb8`. `HUMAN_ACCEPTED=NOT_RUN`; o teste live role-specific do P0 de pagamento permaneceu `NOT_RUN`.
+- Operacao: primeiro restart gerou ~25 s de 502 por cascata `systemd Requires`; ativacoes posteriores por HUP preservaram frontends e ficaram sem novos 5xx. Usar HUP somente sob baton e ate redesenho das units.
+- P1-04A protegida: `/home/ubuntu/mrquentinha-sec-p1-04a`, `codex/emergency-webhook-guard-20260904`, 7 modificados, stage vazio, sem commit/push. `BLOCKED_HARNESS=22 PASS/1 FAIL`; o contador viu apenas savepoints, sem SQL de dados. Candidata nao publicada/nem promovida.
+- Pendencias: ajuste da assercao transacional + suite/review/deploy P1-04A; P1-04B upload/OCR; P1-05 LGPD/minimizacao/retencao; segredos Portal write-only/externalizados; providers/webhooks reais; mobile/OAuth/CI/UX.
+- `cereus_web`: raiz 14 GiB/3.0 GiB livre (`STOP`), sem Node/swap, apps compartilhadas. EBS gp3 60 GiB e migracao de `/var`, `/home` e `/opt` com PostgreSQL/releases sao gate separado `NOT_STARTED`; requerem owner exclusivo, AWS, backup/snapshot e rollback. DNS/cutover somente por Roberto.
+- Item 3/Tarcila: `SPEC/NOT_STARTED` apos migracao/nova instancia, com Tarcila/Lina/Eliane e aceite humano separado.
+- Pausa: agentes `ZERO_WRITE/STANDBY`, locks livres, sem processos de escrita; `RESUME_REQUIRES_NEW_EXPLICIT_MANAGER_REQUEST=YES`.
+
 ## Mapa rapido do repo
 - `AGENTS.md` (regras centrais)
 - `/home/roberto/.gemini/GEMINI.md` (fonte unica de policy)
