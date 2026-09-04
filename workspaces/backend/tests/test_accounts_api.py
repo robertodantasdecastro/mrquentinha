@@ -1,4 +1,8 @@
+import os
 import re
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -14,6 +18,7 @@ from apps.accounts.services import (
     assign_roles_to_user,
     ensure_default_roles,
 )
+from apps.portal.services import ensure_portal_config
 
 
 @pytest.mark.django_db
@@ -43,7 +48,11 @@ def test_accounts_register_cria_usuario_com_role_cliente(anonymous_client):
 
 
 @pytest.mark.django_db
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL=True,
+    ACCOUNTS_CLIENT_BASE_URL_HTTPS_ONLY=False,
+)
 def test_accounts_register_envia_email_confirmacao_com_url_do_frontend_origem(
     anonymous_client,
 ):
@@ -120,7 +129,11 @@ def test_accounts_email_verification_confirm_endpoint_valida_token(anonymous_cli
 
 
 @pytest.mark.django_db
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL=True,
+    ACCOUNTS_CLIENT_BASE_URL_HTTPS_ONLY=False,
+)
 def test_accounts_email_verification_resend_usa_origem_ativa(client, admin_user):
     response = client.post(
         "/api/v1/accounts/email-verification/resend/",
@@ -137,6 +150,101 @@ def test_accounts_email_verification_resend_usa_origem_ativa(client, admin_user)
     assert (
         profile.email_verification_last_client_base_url
         == "https://novo-endereco-dev.trycloudflare.com"
+    )
+
+
+@pytest.mark.django_db
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL=False,
+    ACCOUNTS_CLIENT_BASE_URL_HTTPS_ONLY=True,
+    ACCOUNTS_CLIENT_BASE_URL_FALLBACK="https://app.mrquentinha.com.br",
+)
+@pytest.mark.parametrize("request_source", ["origin", "referer", "body"])
+def test_accounts_resend_prod_ignora_url_hostil_e_usa_canonica(
+    client,
+    admin_user,
+    request_source,
+):
+    config = ensure_portal_config()
+    config.client_base_url = "https://app.mrquentinha.com.br"
+    config.save(update_fields=["client_base_url", "updated_at"])
+    hostile_url = "https://hostil.example"
+    data = {}
+    request_headers = {}
+    if request_source == "origin":
+        request_headers["HTTP_ORIGIN"] = hostile_url
+    elif request_source == "referer":
+        request_headers["HTTP_REFERER"] = f"{hostile_url}/conta"
+    else:
+        data["preferred_client_base_url"] = hostile_url
+
+    response = client.post(
+        "/api/v1/accounts/email-verification/resend/",
+        data,
+        format="json",
+        **request_headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["client_base_url"] == "https://app.mrquentinha.com.br"
+    assert "token" not in payload
+    assert hostile_url not in str(payload)
+    profile = UserProfile.objects.get(user=admin_user)
+    assert (
+        profile.email_verification_last_client_base_url
+        == "https://app.mrquentinha.com.br"
+    )
+    assert len(mail.outbox) == 1
+    assert hostile_url not in mail.outbox[0].body
+    assert "https://app.mrquentinha.com.br/conta/confirmar-email?token=" in (
+        mail.outbox[0].body
+    )
+
+
+@pytest.mark.django_db
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL=True,
+    ACCOUNTS_CLIENT_BASE_URL_HTTPS_ONLY=True,
+    ACCOUNTS_CLIENT_BASE_URL_FALLBACK="https://app.mrquentinha.com.br",
+)
+@pytest.mark.parametrize(
+    "unsafe_origin",
+    [
+        "javascript://hostil.example",
+        "ftp://hostil.example",
+        "https://usuario@hostil.example",
+    ],
+)
+def test_accounts_resend_prod_like_rejeita_origem_insegura_e_config_http(
+    client,
+    admin_user,
+    unsafe_origin,
+):
+    config = ensure_portal_config()
+    type(config).objects.filter(pk=config.pk).update(
+        client_base_url="http://localhost:3001"
+    )
+
+    response = client.post(
+        "/api/v1/accounts/email-verification/resend/",
+        {},
+        format="json",
+        HTTP_ORIGIN=unsafe_origin,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["client_base_url"] == "https://app.mrquentinha.com.br"
+    assert payload["client_base_url"].startswith("https://")
+    assert "localhost" not in str(payload)
+    assert "token" not in payload
+    profile = UserProfile.objects.get(user=admin_user)
+    assert (
+        profile.email_verification_last_client_base_url
+        == "https://app.mrquentinha.com.br"
     )
 
 
@@ -837,3 +945,80 @@ def test_accounts_media_direta_sensivel_retorna_403(client):
     direct_media_path = f"/media/{profile.document_front_image.name}"
     direct_response = client.get(direct_media_path)
     assert direct_response.status_code == 403
+
+
+PROD_SETTINGS_STRONG_ENV = {
+    "DATABASE_URL": "postgresql://settings_test@127.0.0.1/settings_test",
+    "SECRET_KEY": "S" * 40,
+    "FIELD_ENCRYPTION_KEY": "E" * 40,
+    "FIELD_HASH_SALT": "H" * 40,
+    "FIELD_ENCRYPTION_STRICT": "true",
+    "PAYMENTS_WEBHOOK_TOKEN": "W" * 40,
+    "ALLOWED_HOSTS": "localhost",
+}
+
+
+def _run_prod_settings_import(*, variable_name: str = "", value=None):
+    backend_root = Path(__file__).resolve().parents[1]
+    process_env = os.environ.copy()
+    process_env.update(PROD_SETTINGS_STRONG_ENV)
+    process_env["PYTHONPATH"] = str(backend_root / "src")
+    process_env["DJANGO_SETTINGS_MODULE"] = "config.settings.prod"
+    if variable_name:
+        if value is None:
+            process_env.pop(variable_name, None)
+        else:
+            process_env[variable_name] = str(value)
+
+    return subprocess.run(
+        [sys.executable, "-c", "import config.settings.prod"],
+        cwd=backend_root,
+        env=process_env,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+
+
+@pytest.mark.parametrize(
+    "variable_name,value,expected_category",
+    [
+        ("SECRET_KEY", None, "SECRET_KEY"),
+        ("SECRET_KEY", "short", "SECRET_KEY"),
+        ("SECRET_KEY", "django-insecure-" + ("S" * 40), "SECRET_KEY"),
+        ("FIELD_ENCRYPTION_KEY", None, "FIELD_ENCRYPTION_KEY"),
+        ("FIELD_ENCRYPTION_KEY", "short", "FIELD_ENCRYPTION_KEY"),
+        ("FIELD_HASH_SALT", None, "FIELD_HASH_SALT"),
+        ("FIELD_HASH_SALT", "short", "FIELD_HASH_SALT"),
+        ("FIELD_ENCRYPTION_STRICT", "false", "FIELD_ENCRYPTION_STRICT"),
+        ("PAYMENTS_WEBHOOK_TOKEN", None, "PAYMENTS_WEBHOOK_TOKEN"),
+        ("PAYMENTS_WEBHOOK_TOKEN", "short", "PAYMENTS_WEBHOOK_TOKEN"),
+        (
+            "PAYMENTS_WEBHOOK_TOKEN",
+            "dev-mrquentinha-webhook-token" + ("W" * 40),
+            "PAYMENTS_WEBHOOK_TOKEN",
+        ),
+    ],
+)
+def test_prod_settings_rejeita_categoria_critica_insegura(
+    variable_name,
+    value,
+    expected_category,
+):
+    result = _run_prod_settings_import(variable_name=variable_name, value=value)
+
+    assert result.returncode != 0
+    output = result.stdout + result.stderr
+    assert expected_category in output
+    for strong_value in PROD_SETTINGS_STRONG_ENV.values():
+        if len(strong_value) >= 32:
+            assert strong_value not in output
+
+
+def test_prod_settings_aceita_ambiente_forte_sem_expor_valores():
+    result = _run_prod_settings_import()
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert result.stderr == ""

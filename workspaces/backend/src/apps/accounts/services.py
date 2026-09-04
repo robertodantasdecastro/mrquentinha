@@ -236,6 +236,7 @@ DEFAULT_TASK_METADATA = {
 }
 
 DEFAULT_CLIENT_BASE_URL = "http://127.0.0.1:3001"
+OFFICIAL_CLIENT_BASE_URL = "https://app.mrquentinha.com.br"
 EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 3
 
 ESSENTIAL_PROFILE_FIELDS = (
@@ -250,31 +251,71 @@ ESSENTIAL_PROFILE_FIELDS = (
 )
 
 
-def _normalize_url(value: str) -> str:
+def _normalize_url(value: str, *, require_https: bool = False) -> str:
     raw_value = str(value or "").strip().rstrip("/")
     if not raw_value:
         return ""
     parsed = urlparse(raw_value)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return ""
-    return urlunparse((parsed.scheme, parsed.netloc, "", "", "", "")).rstrip("/")
+    if require_https and parsed.scheme != "https":
+        return ""
+    try:
+        hostname = parsed.hostname
+        parsed_port = parsed.port
+    except ValueError:
+        return ""
+    if not hostname or parsed.username or parsed.password:
+        return ""
+    normalized_netloc = hostname
+    if ":" in hostname and not hostname.startswith("["):
+        normalized_netloc = f"[{hostname}]"
+    if parsed_port is not None:
+        normalized_netloc = f"{normalized_netloc}:{parsed_port}"
+    return urlunparse(
+        (parsed.scheme, normalized_netloc, "", "", "", "")
+    ).rstrip("/")
 
 
 def resolve_client_base_url(*, preferred_base_url: str = "") -> str:
-    candidate = _normalize_url(preferred_base_url)
-    if candidate:
-        return candidate
+    allow_request_url = bool(
+        getattr(settings, "ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL", True)
+    )
+    require_https = bool(
+        getattr(settings, "ACCOUNTS_CLIENT_BASE_URL_HTTPS_ONLY", False)
+    )
+    if allow_request_url:
+        candidate = _normalize_url(
+            preferred_base_url,
+            require_https=require_https,
+        )
+        if candidate:
+            return candidate
 
-    try:
-        from apps.portal.services import ensure_portal_config
+    from apps.portal.services import ensure_portal_config
 
-        portal_config = ensure_portal_config()
-        from_config = _normalize_url(str(portal_config.client_base_url or ""))
-        if from_config:
-            return from_config
-    except Exception:
-        pass
+    portal_config = ensure_portal_config()
+    from_config = _normalize_url(
+        str(portal_config.client_base_url or ""),
+        require_https=require_https,
+    )
+    if from_config:
+        return from_config
 
+    configured_fallback = _normalize_url(
+        str(
+            getattr(
+                settings,
+                "ACCOUNTS_CLIENT_BASE_URL_FALLBACK",
+                DEFAULT_CLIENT_BASE_URL,
+            )
+        ),
+        require_https=require_https,
+    )
+    if configured_fallback:
+        return configured_fallback
+    if require_https:
+        return OFFICIAL_CLIENT_BASE_URL
     return DEFAULT_CLIENT_BASE_URL
 
 

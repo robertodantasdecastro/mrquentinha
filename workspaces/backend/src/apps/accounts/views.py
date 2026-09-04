@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
@@ -49,7 +50,18 @@ from .services import (
 )
 
 
-def _resolve_preferred_client_base_url(request) -> str:
+def _resolve_preferred_client_base_url(
+    request,
+    *,
+    body_preferred_base_url: str = "",
+) -> str:
+    if not bool(getattr(settings, "ACCOUNTS_ALLOW_REQUEST_CLIENT_BASE_URL", True)):
+        return ""
+
+    body_candidate = str(body_preferred_base_url or "").strip()
+    if body_candidate:
+        return body_candidate
+
     origin = str(request.headers.get("Origin", "")).strip()
     if origin:
         return origin
@@ -406,9 +418,13 @@ class EmailVerificationResendAPIView(APIView):
                     status=status.HTTP_202_ACCEPTED,
                 )
 
-        preferred_client_base_url = serializer.validated_data.get(
-            "preferred_client_base_url"
-        ) or _resolve_preferred_client_base_url(request)
+        preferred_client_base_url = _resolve_preferred_client_base_url(
+            request,
+            body_preferred_base_url=serializer.validated_data.get(
+                "preferred_client_base_url",
+                "",
+            ),
+        )
         result = issue_email_verification_for_user(
             user=target_user,
             preferred_client_base_url=preferred_client_base_url,
