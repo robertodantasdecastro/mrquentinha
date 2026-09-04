@@ -176,6 +176,11 @@ CORREIOS_CEP_REQUEST_TIMEOUT_SECONDS = env.int(
     default=8,
 )
 
+PORTAL_CRITICAL_OPS_ENABLED = env.bool(
+    "PORTAL_CRITICAL_OPS_ENABLED",
+    default=True,
+)
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",

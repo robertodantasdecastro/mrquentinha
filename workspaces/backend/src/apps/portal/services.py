@@ -3472,8 +3472,10 @@ def _build_cloudflare_api_guide_payload() -> dict:
             "1. Criar API Token no Cloudflare com escopo minimo de leitura.",
             "2. Verificar token via endpoint /user/tokens/verify.",
             "3. Resolver Zone ID (manual ou automatico por root_domain).",
-            "4. Validar se os registros DNS esperados existem (portal/client/admin/api).",
-            "5. Em producao, confirmar proxied=true apenas quando realmente usar proxy Cloudflare.",
+            "4. Validar se os registros DNS esperados existem "
+            "(portal/client/admin/api).",
+            "5. Em producao, confirmar proxied=true apenas quando realmente usar "
+            "proxy Cloudflare.",
         ],
         "docs": list(CLOUDFLARE_API_DOC_LINKS),
     }
@@ -5747,99 +5749,9 @@ def manage_database_ssh_tunnel(*, action: str) -> dict:
     }
 
 
-@transaction.atomic
 def run_remote_psql_command(*, payload: dict | None) -> dict:
-    config = ensure_portal_config()
-    context = resolve_database_runtime_context(config=config)
-    payload = payload if isinstance(payload, dict) else {}
-    command_sql = str(payload.get("command", "")).strip()
-    if not command_sql:
-        raise ValidationError("Informe o comando SQL para execucao remota.")
-    read_only = bool(payload.get("read_only", True))
-    confirm = str(payload.get("confirm", "")).strip().upper()
-    if not read_only and confirm != "EXECUTAR":
-        raise ValidationError("Para comando com escrita, informe confirm='EXECUTAR'.")
-
-    if read_only:
-        first_token = command_sql.split(None, 1)[0].lower() if command_sql else ""
-        if first_token not in {"select", "show", "explain", "with"}:
-            raise ValidationError(
-                "Comando read_only permite apenas SELECT/SHOW/EXPLAIN/WITH."
-            )
-
-    if bool(context.get("local_db_ops")):
-        local_env, local_db_name = _build_local_pg_env()
-        psql_bin = shutil.which("psql")
-        if not psql_bin:
-            raise ValidationError("PSQL_AUSENTE no ambiente local.")
-        result = subprocess.run(
-            [
-                psql_bin,
-                local_db_name,
-                "-v",
-                "ON_ERROR_STOP=1",
-                "-P",
-                "pager=off",
-                "-c",
-                command_sql,
-            ],
-            check=False,
-            env=local_env,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        command_preview = (
-            f"psql {shlex.quote(local_db_name)} -v ON_ERROR_STOP=1 "
-            f"-P pager=off -c {shlex.quote(command_sql)}"
-        )
-    else:
-        ssh_settings = _validate_dbops_ssh_settings(
-            _extract_dbops_ssh_from_config(config)
-        )
-        repo_path = str(ssh_settings.get("repo_path", "$HOME/mrquentinha")).strip()
-        remote_script = f"""
-set -euo pipefail
-REPO_PATH={shlex.quote(repo_path)}
-if [ -f "$REPO_PATH/workspaces/backend/.env.prod" ]; then
-  set -a
-  . "$REPO_PATH/workspaces/backend/.env.prod"
-  set +a
-fi
-if [ -z "${{DATABASE_URL:-}}" ]; then
-  echo "DATABASE_URL_NAO_DEFINIDA" >&2
-  exit 41
-fi
-if ! command -v psql >/dev/null 2>&1; then
-  echo "PSQL_AUSENTE" >&2
-  exit 46
-fi
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -P pager=off -c {shlex.quote(command_sql)}
-"""
-        result, command_preview = _run_remote_dbops_script(
-            ssh_settings=ssh_settings,
-            remote_shell_script=remote_script,
-            timeout_seconds=120,
-        )
-
-    installer_settings = _normalize_installer_settings(config.installer_settings)
-    database_ops = _normalize_database_ops_settings(
-        installer_settings.get("database_ops")
-    )
-    database_ops["psql"]["last_command"] = command_sql[:500]
-    database_ops["psql"]["last_executed_at"] = timezone.now().isoformat()
-    installer_settings["database_ops"] = database_ops
-    config.installer_settings = _normalize_installer_settings(installer_settings)
-    config.save(update_fields=["installer_settings", "updated_at"])
-
-    return {
-        "ok": result.returncode == 0,
-        "exit_code": result.returncode,
-        "stdout": (result.stdout or "").strip(),
-        "stderr": (result.stderr or "").strip(),
-        "command_preview": command_preview,
-        "runtime": context,
-    }
+    del payload
+    raise ValidationError("Console SQL remoto desabilitado por seguranca.")
 
 
 @transaction.atomic

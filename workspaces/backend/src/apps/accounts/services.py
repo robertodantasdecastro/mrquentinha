@@ -954,7 +954,7 @@ def _has_base_technical_admin_access(user) -> bool:
     if not user or not getattr(user, "is_authenticated", False):
         return False
 
-    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+    if getattr(user, "is_superuser", False):
         return True
 
     return SystemRole.ADMIN in get_user_role_codes(user)
@@ -1032,7 +1032,8 @@ def assign_admin_modules_to_user(
             raise ValidationError(f"Modulo admin invalido: {module_slug}.")
         if module_slug in TECHNICAL_ADMIN_MODULE_SLUGS:
             raise ValidationError(
-                "Modulos tecnicos exigem papel ADMIN e nao podem ser delegados por permissao granular."
+                "Modulos tecnicos exigem papel ADMIN e nao podem ser "
+                "delegados por permissao granular."
             )
         normalized_permissions[module_slug] = "write" if access_level == "write" else "read"
 

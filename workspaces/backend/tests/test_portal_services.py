@@ -10,12 +10,50 @@ from apps.portal.services import (
     compile_mobile_release,
     create_mobile_release,
     ensure_portal_config,
+    inspect_cloudflare_api_status,
     manage_cloudflare_runtime,
     publish_mobile_release,
+    run_remote_psql_command,
     save_portal_config,
     toggle_cloudflare_mode,
-    inspect_cloudflare_api_status,
 )
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "SELECT 1;",
+        (
+            "WITH changed AS (UPDATE records SET active = false RETURNING *) "
+            "SELECT * FROM changed;"
+        ),
+        "SELECT 1; DELETE FROM records;",
+        "EXPLAIN ANALYZE DELETE FROM records;",
+        "SELECT side_effect_function();",
+    ],
+)
+def test_run_remote_psql_command_rejeita_antes_de_contexto_ou_subprocesso(
+    monkeypatch,
+    command,
+):
+    calls = []
+
+    def unexpected_call(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("contexto ou subprocesso nao deve ser chamado")
+
+    monkeypatch.setattr(portal_services, "ensure_portal_config", unexpected_call)
+    monkeypatch.setattr(
+        portal_services,
+        "resolve_database_runtime_context",
+        unexpected_call,
+    )
+    monkeypatch.setattr(portal_services.subprocess, "run", unexpected_call)
+
+    with pytest.raises(ValidationError, match="desabilitado"):
+        run_remote_psql_command(payload={"command": command, "read_only": True})
+
+    assert calls == []
 
 
 @pytest.mark.django_db
@@ -784,7 +822,9 @@ def test_inspect_cloudflare_api_status_consolida_token_zona_e_dns(monkeypatch):
             "ok": True,
             "payload": {
                 "success": True,
-                "result": [{"id": "zone-1", "name": "mrquentinha.com.br", "status": "active"}],
+                "result": [
+                    {"id": "zone-1", "name": "mrquentinha.com.br", "status": "active"}
+                ],
             },
             "errors": [],
         },
@@ -792,7 +832,9 @@ def test_inspect_cloudflare_api_status_consolida_token_zona_e_dns(monkeypatch):
             "ok": True,
             "payload": {
                 "success": True,
-                "result": [{"type": "CNAME", "content": "target.example.com", "proxied": True}],
+                "result": [
+                    {"type": "CNAME", "content": "target.example.com", "proxied": True}
+                ],
             },
             "errors": [],
         },
@@ -801,9 +843,13 @@ def test_inspect_cloudflare_api_status_consolida_token_zona_e_dns(monkeypatch):
     def fake_cloudflare_request(*, token, path, query=None):
         if path == "/zones/zone-1/dns_records":
             return responses[path]
-        return responses.get(path, {"ok": True, "payload": {"success": True, "result": []}, "errors": []})
+        return responses.get(
+            path, {"ok": True, "payload": {"success": True, "result": []}, "errors": []}
+        )
 
-    monkeypatch.setattr(portal_services, "_cloudflare_api_request", fake_cloudflare_request)
+    monkeypatch.setattr(
+        portal_services, "_cloudflare_api_request", fake_cloudflare_request
+    )
 
     payload = inspect_cloudflare_api_status(
         overrides={
@@ -823,6 +869,7 @@ def test_inspect_cloudflare_api_status_consolida_token_zona_e_dns(monkeypatch):
     assert payload["dns"]["checked"] is True
 
 
+@pytest.mark.django_db
 def test_validate_installer_wizard_retorna_pre_requisitos_em_prod():
     config = ensure_portal_config()
 

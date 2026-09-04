@@ -4,6 +4,7 @@ from django.core import mail
 from django.test import override_settings
 from rest_framework.test import APIClient
 
+from apps.portal.models import MobileRelease, PortalConfig
 from apps.portal.services import ensure_portal_config
 
 
@@ -59,9 +60,27 @@ def test_portal_public_config_admin_channel_retorna_200(anonymous_client):
 
 
 @pytest.mark.django_db
-def test_portal_admin_endpoints_bloqueados_para_nao_admin(anonymous_client):
+def test_portal_admin_endpoints_bloqueados_para_nao_admin(
+    anonymous_client,
+    monkeypatch,
+):
+    def unexpected_backend_call(*args, **kwargs):
+        raise AssertionError("backend critico nao deve ser chamado")
+
+    monkeypatch.setattr(
+        "apps.portal.views.test_payment_provider_connection",
+        unexpected_backend_call,
+    )
+
     no_auth_response = anonymous_client.get("/api/v1/portal/admin/sections/")
-    assert no_auth_response.status_code in {401, 403}
+    assert no_auth_response.status_code == 403
+
+    no_auth_critical_response = anonymous_client.post(
+        "/api/v1/portal/admin/config/test-payment-provider/",
+        data={},
+        format="json",
+    )
+    assert no_auth_critical_response.status_code == 403
 
     User = get_user_model()
     regular_user = User.objects.create_user(
@@ -73,6 +92,23 @@ def test_portal_admin_endpoints_bloqueados_para_nao_admin(anonymous_client):
 
     forbidden_response = regular_client.get("/api/v1/portal/admin/sections/")
     assert forbidden_response.status_code == 403
+
+    staff_only_user = User.objects.create_user(
+        username="portal_staff_sem_papel",
+        password="portal_staff_sem_papel_123",
+        is_staff=True,
+    )
+    staff_only_client = APIClient()
+    staff_only_client.force_authenticate(user=staff_only_user)
+
+    staff_editorial_response = staff_only_client.get("/api/v1/portal/admin/sections/")
+    staff_critical_response = staff_only_client.post(
+        "/api/v1/portal/admin/config/test-payment-provider/",
+        data={},
+        format="json",
+    )
+    assert staff_editorial_response.status_code == 403
+    assert staff_critical_response.status_code == 403
 
 
 @pytest.mark.django_db
@@ -292,6 +328,7 @@ def test_portal_admin_test_email_action(client):
 
 
 @pytest.mark.django_db
+@override_settings(PORTAL_CRITICAL_OPS_ENABLED=True)
 def test_portal_admin_test_payment_provider_action(client, monkeypatch):
     captured_provider: dict[str, str] = {}
 
@@ -427,29 +464,45 @@ def test_portal_admin_database_tunnel_action(client, monkeypatch):
 
 
 @pytest.mark.django_db
-def test_portal_admin_database_psql_execute_action(client, monkeypatch):
-    def fake_run(*, payload=None):
-        assert payload["read_only"] is True
-        return {
-            "ok": True,
-            "exit_code": 0,
-            "stdout": "ok",
-            "stderr": "",
-            "command_preview": "ssh ...",
-        }
+@override_settings(PORTAL_CRITICAL_OPS_ENABLED=True)
+@pytest.mark.parametrize(
+    "command",
+    [
+        "SELECT 1;",
+        (
+            "WITH changed AS (UPDATE records SET active = false RETURNING *) "
+            "SELECT * FROM changed;"
+        ),
+        "SELECT 1; DELETE FROM records;",
+        "EXPLAIN ANALYZE DELETE FROM records;",
+        "SELECT side_effect_function();",
+    ],
+)
+def test_portal_admin_database_psql_execute_action_rejeita_tudo(
+    client,
+    monkeypatch,
+    command,
+):
+    calls = []
 
+    def unexpected_call(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("contexto ou subprocesso nao deve ser chamado")
+
+    monkeypatch.setattr("apps.portal.services.ensure_portal_config", unexpected_call)
     monkeypatch.setattr(
-        "apps.portal.views.run_remote_psql_command",
-        fake_run,
+        "apps.portal.services.resolve_database_runtime_context",
+        unexpected_call,
     )
-
+    monkeypatch.setattr("apps.portal.services.subprocess.run", unexpected_call)
     response = client.post(
         "/api/v1/portal/admin/config/database/psql/execute/",
-        data={"command": "SELECT 1;", "read_only": True},
+        data={"command": command, "read_only": True},
         format="json",
     )
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
+    assert response.status_code == 400
+    assert "desabilitado" in str(response.json()).lower()
+    assert calls == []
 
 
 @pytest.mark.django_db
@@ -669,8 +722,20 @@ def test_portal_admin_cloudflare_api_status_action(client, monkeypatch):
                 "admin": "admin.mrquentinha.com.br",
                 "api": "api.mrquentinha.com.br",
             },
-            "token": {"configured": True, "valid": True, "status": "active", "errors": []},
-            "zone": {"configured": True, "resolved": True, "id": "zone-1", "name": "mrquentinha.com.br", "status": "active", "errors": []},
+            "token": {
+                "configured": True,
+                "valid": True,
+                "status": "active",
+                "errors": [],
+            },
+            "zone": {
+                "configured": True,
+                "resolved": True,
+                "id": "zone-1",
+                "name": "mrquentinha.com.br",
+                "status": "active",
+                "errors": [],
+            },
             "dns": {"checked": True, "records": {}, "missing": [], "errors": []},
             "tunnel": {"checked": False, "account_id": "", "total": 0, "errors": []},
             "guide": {"required_permissions": [], "steps": [], "docs": []},
@@ -877,3 +942,317 @@ def test_portal_admin_installer_wizard_endpoints(client, monkeypatch):
     list_response = client.get("/api/v1/portal/admin/config/installer-jobs/")
     assert list_response.status_code == 200
     assert list_response.json()["results"][0]["job_id"] == "job-1"
+
+
+CRITICAL_PORTAL_ROUTES = [
+    (
+        "post",
+        "/api/v1/portal/admin/config/test-payment-provider/",
+        "test_payment_provider_connection",
+    ),
+    ("post", "/api/v1/portal/admin/config/test-email/", "send_portal_test_email"),
+    (
+        "post",
+        "/api/v1/portal/admin/config/cloudflare-preview/",
+        "build_cloudflare_preview",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/cloudflare-toggle/",
+        "toggle_cloudflare_mode",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/cloudflare-runtime/",
+        "manage_cloudflare_runtime",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/cloudflare-api-status/",
+        "inspect_cloudflare_api_status",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/ssl-certificates/apply/",
+        "apply_ssl_certificates",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/installer-wizard-validate/",
+        "validate_installer_wizard_payload",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/installer-cloud/aws/validate/",
+        "validate_installer_aws_setup",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/installer-cloud/gcp/validate/",
+        "validate_installer_gcp_setup",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/installer-wizard-save/",
+        "save_installer_wizard_settings",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/ssh/save/",
+        "save_database_ssh_settings",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/ssh/upload-key/",
+        "upload_database_ssh_key",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/ssh/probe/",
+        "validate_database_ssh_connectivity",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/tunnel/save/",
+        "save_database_tunnel_settings",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/tunnel/action/",
+        "manage_database_ssh_tunnel",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/psql/execute/",
+        "run_remote_psql_command",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/django-dbbackup/",
+        "run_remote_django_dbbackup",
+    ),
+    (
+        "get",
+        "/api/v1/portal/admin/config/database/backups/",
+        "list_remote_database_backups",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/backups/create/",
+        "create_remote_database_backup",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/backups/restore/",
+        "restore_remote_database_backup",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/sync-dev/",
+        "sync_remote_database_backup_to_dev",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/backups/fetch-dev/",
+        "copy_remote_backup_to_dev_via_scp",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/database/django/sync/",
+        "sync_remote_database_via_django",
+    ),
+    (
+        "get",
+        "/api/v1/portal/admin/config/database/commands/catalog/",
+        "build_database_ops_command_catalog",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/installer-jobs/start/",
+        "start_installer_job",
+    ),
+    (
+        "get",
+        "/api/v1/portal/admin/config/installer-jobs/job-blocked/status/",
+        "get_installer_job_status",
+    ),
+    (
+        "post",
+        "/api/v1/portal/admin/config/installer-jobs/job-blocked/cancel/",
+        "cancel_installer_job",
+    ),
+    ("get", "/api/v1/portal/admin/config/installer-jobs/", "list_installer_jobs"),
+]
+
+
+@pytest.mark.django_db
+@override_settings(PORTAL_CRITICAL_OPS_ENABLED=False)
+@pytest.mark.parametrize("method,url,backend_name", CRITICAL_PORTAL_ROUTES)
+def test_portal_critical_ops_disabled_bloqueia_todas_as_rotas_sem_efeito(
+    client,
+    monkeypatch,
+    method,
+    url,
+    backend_name,
+):
+    config = ensure_portal_config()
+    before = PortalConfig.objects.values().get(pk=config.pk)
+    calls = []
+
+    def unexpected_backend_call(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("backend critico nao deve ser chamado")
+
+    monkeypatch.setattr(
+        f"apps.portal.views.{backend_name}",
+        unexpected_backend_call,
+    )
+
+    response = getattr(client, method)(url, data={}, format="json")
+
+    assert response.status_code == 403
+    assert calls == []
+    assert PortalConfig.objects.values().get(pk=config.pk) == before
+
+
+@pytest.mark.django_db
+@override_settings(PORTAL_CRITICAL_OPS_ENABLED=False)
+def test_portal_critical_ops_disabled_tambem_bloqueia_superuser(monkeypatch):
+    User = get_user_model()
+    user = User.objects.create_superuser(
+        username="portal_superuser_critical_disabled",
+        password="portal_superuser_critical_disabled_123",
+        email="portal_superuser_critical_disabled@example.com",
+    )
+    api_client = APIClient()
+    api_client.force_authenticate(user=user)
+    calls = []
+
+    def unexpected_backend_call(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("backend critico nao deve ser chamado")
+
+    monkeypatch.setattr(
+        "apps.portal.views.test_payment_provider_connection",
+        unexpected_backend_call,
+    )
+
+    editorial_response = api_client.get("/api/v1/portal/admin/sections/")
+    critical_response = api_client.post(
+        "/api/v1/portal/admin/config/test-payment-provider/",
+        data={},
+        format="json",
+    )
+
+    assert editorial_response.status_code == 200
+    assert critical_response.status_code == 403
+    assert calls == []
+
+
+TECHNICAL_CONFIG_PAYLOADS = [
+    {"auth_providers": {}},
+    {"payment_providers": {}},
+    {"email_settings": {}},
+    {"cloudflare_settings": {}},
+    {"installer_settings": {"database_ops": {}}},
+    {"api_base_url": "https://api.example.invalid"},
+]
+
+
+@pytest.mark.django_db
+@override_settings(PORTAL_CRITICAL_OPS_ENABLED=False)
+@pytest.mark.parametrize("payload", TECHNICAL_CONFIG_PAYLOADS)
+def test_portal_config_update_tecnico_bloqueado_sem_alteracao(client, payload):
+    config = ensure_portal_config()
+    before = PortalConfig.objects.values().get(pk=config.pk)
+
+    response = client.patch(
+        f"/api/v1/portal/admin/config/{config.pk}/",
+        data=payload,
+        format="json",
+    )
+
+    assert response.status_code == 403
+    assert PortalConfig.objects.values().get(pk=config.pk) == before
+
+
+@pytest.mark.django_db
+@override_settings(PORTAL_CRITICAL_OPS_ENABLED=False)
+def test_portal_config_update_editorial_continua_para_admin(client):
+    config = ensure_portal_config()
+
+    response = client.patch(
+        f"/api/v1/portal/admin/config/{config.pk}/",
+        data={
+            "site_title": "Cardapio editorial seguro",
+            "meta_description": "Conteudo editorial",
+            "primary_color": "#112233",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    config.refresh_from_db()
+    assert config.site_title == "Cardapio editorial seguro"
+    assert config.meta_description == "Conteudo editorial"
+    assert config.primary_color == "#112233"
+
+
+@pytest.mark.django_db
+@override_settings(PORTAL_CRITICAL_OPS_ENABLED=False)
+def test_mobile_release_mutations_disabled_sem_alteracao(client, monkeypatch):
+    config = ensure_portal_config()
+    release = MobileRelease.objects.create(
+        config=config,
+        release_version="blocked-release",
+        build_number=1,
+    )
+    before = MobileRelease.objects.values().get(pk=release.pk)
+    calls = []
+
+    def unexpected_backend_call(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("backend de release nao deve ser chamado")
+
+    monkeypatch.setattr(
+        "apps.portal.views.create_mobile_release",
+        unexpected_backend_call,
+    )
+    monkeypatch.setattr(
+        "apps.portal.views.compile_mobile_release",
+        unexpected_backend_call,
+    )
+    monkeypatch.setattr(
+        "apps.portal.views.publish_mobile_release",
+        unexpected_backend_call,
+    )
+
+    read_response = client.get("/api/v1/portal/admin/mobile/releases/")
+    responses = [
+        client.post(
+            "/api/v1/portal/admin/mobile/releases/",
+            data={"config": config.pk},
+            format="json",
+        ),
+        client.patch(
+            f"/api/v1/portal/admin/mobile/releases/{release.pk}/",
+            data={"release_notes": "nao deve alterar"},
+            format="json",
+        ),
+        client.delete(f"/api/v1/portal/admin/mobile/releases/{release.pk}/"),
+        client.post(
+            f"/api/v1/portal/admin/mobile/releases/{release.pk}/compile/",
+            data={},
+            format="json",
+        ),
+        client.post(
+            f"/api/v1/portal/admin/mobile/releases/{release.pk}/publish/",
+            data={},
+            format="json",
+        ),
+    ]
+
+    assert read_response.status_code == 200
+    assert [response.status_code for response in responses] == [403] * 5
+    assert calls == []
+    assert MobileRelease.objects.values().get(pk=release.pk) == before

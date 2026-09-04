@@ -19,3 +19,7 @@ SECURE_REFERRER_POLICY = env(
 X_FRAME_OPTIONS = env("X_FRAME_OPTIONS", default="DENY")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+# Operacoes criticas do Portal permanecem bloqueadas em producao ate que cada
+# fluxo tenha implementacao real, controles especificos e gate de liberacao.
+PORTAL_CRITICAL_OPS_ENABLED = False

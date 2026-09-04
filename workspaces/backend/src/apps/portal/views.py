@@ -1,7 +1,13 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.exceptions import (
+    PermissionDenied,
+)
+from rest_framework.exceptions import (
+    ValidationError as DRFValidationError,
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -33,6 +39,7 @@ from .services import (
     create_remote_database_backup,
     ensure_portal_config,
     get_installer_job_status,
+    inspect_cloudflare_api_status,
     list_installer_jobs,
     list_remote_database_backups,
     manage_cloudflare_runtime,
@@ -51,7 +58,6 @@ from .services import (
     sync_remote_database_backup_to_dev,
     sync_remote_database_via_django,
     toggle_cloudflare_mode,
-    inspect_cloudflare_api_status,
     upload_database_ssh_key,
     validate_database_ssh_connectivity,
     validate_installer_aws_setup,
@@ -68,11 +74,27 @@ class PortalAdminPermission(permissions.BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser:
             return True
 
-        # TODO(7.1): substituir fallback por matriz RBAC fina de portal.
         return user_has_any_role(user, [SystemRole.ADMIN])
+
+
+class PortalCriticalOpsPermission(permissions.BasePermission):
+    message = "Operacoes criticas do Portal estao indisponiveis."
+
+    def has_permission(self, request, view) -> bool:
+        if not bool(getattr(settings, "PORTAL_CRITICAL_OPS_ENABLED", False)):
+            return False
+        return PortalAdminPermission().has_permission(request, view)
+
+
+class PortalForbiddenPermissionMixin:
+    def permission_denied(self, request, message=None, code=None):
+        raise PermissionDenied(
+            detail=message or "Acesso negado.",
+            code=code,
+        )
 
 
 class PortalConfigPublicAPIView(APIView):
@@ -108,9 +130,78 @@ class MobileReleaseLatestAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class PortalConfigAdminViewSet(viewsets.ModelViewSet):
+class PortalConfigAdminViewSet(PortalForbiddenPermissionMixin, viewsets.ModelViewSet):
     serializer_class = PortalConfigAdminSerializer
     permission_classes = [permissions.IsAuthenticated, PortalAdminPermission]
+
+    CRITICAL_ACTIONS = frozenset(
+        {
+            "cloudflare_api_status",
+            "cloudflare_preview",
+            "cloudflare_runtime",
+            "cloudflare_toggle",
+            "database_backups_create",
+            "database_backups_fetch_dev",
+            "database_backups_list",
+            "database_backups_restore",
+            "database_commands_catalog",
+            "database_django_dbbackup",
+            "database_django_sync",
+            "database_psql_execute",
+            "database_ssh_probe",
+            "database_ssh_save",
+            "database_ssh_upload_key",
+            "database_sync_dev",
+            "database_tunnel_action",
+            "database_tunnel_save",
+            "installer_cloud_aws_validate",
+            "installer_cloud_gcp_validate",
+            "installer_job_cancel",
+            "installer_job_status",
+            "installer_jobs",
+            "installer_jobs_start",
+            "installer_wizard_save",
+            "installer_wizard_validate",
+            "ssl_certificates_apply",
+            "test_email",
+            "test_payment_provider",
+        }
+    )
+    EDITORIAL_WRITE_FIELDS = frozenset(
+        {
+            "active_template",
+            "admin_active_template",
+            "admin_available_templates",
+            "android_download_url",
+            "available_templates",
+            "client_active_template",
+            "client_available_templates",
+            "dark_bg_color",
+            "ios_download_url",
+            "is_published",
+            "meta_description",
+            "primary_color",
+            "qr_target_url",
+            "secondary_color",
+            "site_name",
+            "site_title",
+        }
+    )
+
+    def _request_touches_critical_config(self) -> bool:
+        if self.action not in {"create", "update", "partial_update"}:
+            return False
+        request_fields = {str(field) for field in self.request.data.keys()}
+        return bool(request_fields - self.EDITORIAL_WRITE_FIELDS)
+
+    def get_permissions(self):
+        permission_classes = list(self.permission_classes)
+        if (
+            self.action in self.CRITICAL_ACTIONS
+            or self._request_touches_critical_config()
+        ):
+            permission_classes.append(PortalCriticalOpsPermission)
+        return [permission_class() for permission_class in permission_classes]
 
     def get_queryset(self):
         ensure_portal_config()
@@ -522,7 +613,7 @@ class PortalConfigAdminViewSet(viewsets.ModelViewSet):
         return Response({"results": jobs}, status=status.HTTP_200_OK)
 
 
-class PortalSectionAdminViewSet(viewsets.ModelViewSet):
+class PortalSectionAdminViewSet(PortalForbiddenPermissionMixin, viewsets.ModelViewSet):
     serializer_class = PortalSectionAdminSerializer
     permission_classes = [permissions.IsAuthenticated, PortalAdminPermission]
 
@@ -530,9 +621,17 @@ class PortalSectionAdminViewSet(viewsets.ModelViewSet):
         return list_portal_sections()
 
 
-class MobileReleaseAdminViewSet(viewsets.ModelViewSet):
+class MobileReleaseAdminViewSet(PortalForbiddenPermissionMixin, viewsets.ModelViewSet):
     serializer_class = MobileReleaseAdminSerializer
     permission_classes = [permissions.IsAuthenticated, PortalAdminPermission]
+
+    READ_ONLY_ACTIONS = frozenset({"list", "retrieve"})
+
+    def get_permissions(self):
+        permission_classes = list(self.permission_classes)
+        if self.action not in self.READ_ONLY_ACTIONS:
+            permission_classes.append(PortalCriticalOpsPermission)
+        return [permission_class() for permission_class in permission_classes]
 
     def get_queryset(self):
         return list_mobile_releases()

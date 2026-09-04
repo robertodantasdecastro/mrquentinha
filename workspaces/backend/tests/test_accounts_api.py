@@ -573,6 +573,26 @@ def test_accounts_me_retorna_modulos_permitidos_sem_areas_tecnicas_para_nao_admi
     assert "pedidos" in payload["allowed_admin_module_slugs"]
 
 
+@pytest.mark.django_db
+def test_accounts_me_is_staff_sem_papel_nao_recebe_acesso_tecnico(anonymous_client):
+    User = get_user_model()
+    user = User.objects.create_user(
+        username="staff_sem_papel_tecnico",
+        password="staff_sem_papel_tecnico_123",
+        email="staff_sem_papel_tecnico@example.com",
+        is_staff=True,
+    )
+    anonymous_client.force_authenticate(user=user)
+
+    response = anonymous_client.get("/api/v1/accounts/me/")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["can_access_technical_admin"] is False
+    assert "portal" not in payload["allowed_admin_module_slugs"]
+    assert "instalacao-deploy" not in payload["allowed_admin_module_slugs"]
+
+
 VALID_GIF_BYTES = (
     b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff"
     b"\x21\xf9\x04\x01\x00\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02"
